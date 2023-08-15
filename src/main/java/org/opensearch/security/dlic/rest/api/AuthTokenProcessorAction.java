@@ -11,10 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -24,12 +20,15 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
+
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -74,17 +73,12 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
     }
 
     @Override
-    protected RequestContentValidator createValidator(Object... params) {
-        return RequestContentValidator.NOOP_VALIDATOR;
-    }
-
-    @Override
     protected String getResourceName() {
         return "authtoken";
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return null;
     }
 

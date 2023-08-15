@@ -29,6 +29,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.MaskedField;
 import org.opensearch.security.configuration.Salt;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -47,6 +48,9 @@ import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImpl
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesApiAction extends PatchableResourceApiAction {
+
+    protected final static String RESOURCE_NAME = "role";
+
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/roles/"),
@@ -126,63 +130,79 @@ public class RolesApiAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected String getResourceName() {
+        return RESOURCE_NAME;
+    }
+
+    @Override
+    protected CType getConfigType() {
+        return CType.ROLES;
+    }
+
+    @Override
     protected Endpoint getEndpoint() {
         return Endpoint.ROLES;
     }
 
     private void rolesApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        // spotless:off
-        requestHandlersBuilder
-                .onChangeRequest(Method.PUT, request ->
-                        processPutRequest(request).map(this::canChangeRolesRestAdminPermissions))
-                .onChangeRequest(Method.DELETE, request ->
-                        processDeleteRequest(request).map(this::canChangeRolesRestAdminPermissions))
-                .override(Method.POST, methodNotImplementedHandler);
-        // spotless:on
-    }
-
-    private ValidationResult<SecurityConfiguration> canChangeRolesRestAdminPermissions(final SecurityConfiguration securityConfiguration)
-        throws IOException {
-        if (isSuperAdmin()) {
-            return ValidationResult.success(securityConfiguration);
-        }
-        return canChangeObjectWithRestAdminPermissions(securityConfiguration);
+        requestHandlersBuilder.override(Method.POST, methodNotImplementedHandler);
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return new RoleValidator(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return RESOURCE_NAME;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
-                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
-                if (isSuperAdmin()) allowedKeys.put("reserved", DataType.BOOLEAN);
-                return allowedKeys.put("cluster_permissions", DataType.ARRAY)
-                    .put("tenant_permissions", DataType.ARRAY)
-                    .put("index_permissions", DataType.ARRAY)
-                    .put("description", DataType.STRING)
-                    .build();
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
-        });
-    }
 
-    @Override
-    protected String getResourceName() {
-        return "role";
-    }
+            @Override
+            public ValidationResult<SecurityConfiguration> hasRightsToChangeEntity(SecurityConfiguration securityConfiguration)
+                throws IOException {
+                return EndpointValidator.super.hasRightsToChangeEntity(securityConfiguration).map(ignore -> {
+                    if (isCurrentUserAdmin()) {
+                        return ValidationResult.success(securityConfiguration);
+                    }
+                    return canChangeObjectWithRestAdminPermissions(securityConfiguration);
+                });
+            }
 
-    @Override
-    protected CType getConfigName() {
-        return CType.ROLES;
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return new RoleValidator(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Map<String, DataType> allowedKeys() {
+                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                        if (isCurrentUserAdmin()) allowedKeys.put("reserved", DataType.BOOLEAN);
+                        return allowedKeys.put("cluster_permissions", DataType.ARRAY)
+                            .put("tenant_permissions", DataType.ARRAY)
+                            .put("index_permissions", DataType.ARRAY)
+                            .put("description", DataType.STRING)
+                            .build();
+                    }
+                });
+            }
+        };
     }
 
     @Override

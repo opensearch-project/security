@@ -34,6 +34,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -127,34 +128,13 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     private void nodesDnApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        // spotless:off
-        requestHandlersBuilder.verifyAccessForAllMethods()
-                .onChangeRequest(Method.PUT, request ->
-                        withRequiredResourceName(request)
-                                .map(this::notStaticNodesDn)
-                                .map(ignore -> processPutRequest(request)))
-                .onChangeRequest(Method.DELETE, request ->
-                        withRequiredResourceName(request)
-                                .map(this::notStaticNodesDn)
-                                .map(ignore -> processDeleteRequest(request)))
-                .onGetRequest(request ->
-                        processGetRequest(request)
-                                .map(securityConfiguration -> {
-                                    if (request.paramAsBoolean("show_all", false)) {
-                                        final var configuration = securityConfiguration.configuration();
-                                        addStaticNodesDn(configuration);
-                                    }
-                                    return ValidationResult.success(securityConfiguration);
-                                })
-                );
-        // spotless:on
-    }
-
-    private ValidationResult<String> notStaticNodesDn(final String resourceName) {
-        if (STATIC_OPENSEARCH_YML_NODES_DN.equals(resourceName)) {
-            return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Resource '" + resourceName + "' is read-only."));
-        }
-        return ValidationResult.success(resourceName);
+        requestHandlersBuilder.verifyAccessForAllMethods().onGetRequest(request -> processGetRequest(request).map(securityConfiguration -> {
+            if (request.paramAsBoolean("show_all", false)) {
+                final var configuration = securityConfiguration.configuration();
+                addStaticNodesDn(configuration);
+            }
+            return ValidationResult.success(securityConfiguration);
+        }));
     }
 
     @Override
@@ -187,32 +167,65 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.NODESDN;
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return getResourceName();
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Set<String> mandatoryKeys() {
-                return ImmutableSet.of("nodes_dn");
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
-                return ImmutableMap.of("nodes_dn", DataType.ARRAY);
+            public ValidationResult<SecurityConfiguration> hasRightsToChangeEntity(SecurityConfiguration securityConfiguration)
+                throws IOException {
+                if (STATIC_OPENSEARCH_YML_NODES_DN.equals(securityConfiguration.entityName())) {
+                    return ValidationResult.error(
+                        RestStatus.FORBIDDEN,
+                        forbiddenMessage("Resource '" + STATIC_OPENSEARCH_YML_NODES_DN + "' is read-only.")
+                    );
+                }
+                return EndpointValidator.super.hasRightsToChangeEntity(securityConfiguration);
             }
-        });
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Set<String> mandatoryKeys() {
+                        return ImmutableSet.of("nodes_dn");
+                    }
+
+                    @Override
+                    public Map<String, DataType> allowedKeys() {
+                        return ImmutableMap.of("nodes_dn", DataType.ARRAY);
+                    }
+                });
+            }
+        };
     }
+
 }

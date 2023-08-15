@@ -23,6 +23,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -127,7 +128,14 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
 
     private void allowlistApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.verifyAccessForAllMethods()
-            .onChangeRequest(RestRequest.Method.PUT, request -> loadSecurityConfigurationWithRequestContent(RESOURCE_NAME, request))
+            .onChangeRequest(
+                RestRequest.Method.PUT,
+                request -> loadConfigurationWithRequestContent(
+                    RESOURCE_NAME,
+                    request,
+                    createEndpointValidator().createRequestContentValidator()
+                ).map(this::addEntityToConfig)
+            )
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
     }
 
@@ -142,7 +150,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.ALLOWLIST;
     }
 
@@ -152,23 +160,44 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected RequestContentValidator createValidator(Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return RESOURCE_NAME;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                return ImmutableMap.of("enabled", DataType.BOOLEAN, "requests", DataType.OBJECT);
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
-        });
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        return ImmutableMap.of("enabled", DataType.BOOLEAN, "requests", DataType.OBJECT);
+                    }
+                });
+            }
+        };
     }
 
 }

@@ -966,7 +966,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Resource 'opendistro_security_reserved' is read-only.");
+        Assert.assertEquals(settings.get("message"), "Resource 'opendistro_security_reserved' is reserved.");
 
         // Patch single hidden user
         response = rh.executePatchRequest(

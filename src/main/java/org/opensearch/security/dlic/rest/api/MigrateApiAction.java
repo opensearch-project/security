@@ -46,7 +46,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
@@ -286,18 +285,13 @@ public class MigrateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.NOOP_VALIDATOR;
-    }
-
-    @Override
     protected String getResourceName() {
         // not needed
         return null;
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return null;
     }
 

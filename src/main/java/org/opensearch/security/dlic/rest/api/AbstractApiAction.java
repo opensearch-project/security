@@ -12,14 +12,11 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -58,6 +55,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -92,6 +90,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     private Map<Method, RequestHandler> requestHandlers;
 
     protected final RequestHandler.RequestHandlersBuilder requestHandlersBuilder;
+
+    protected final EndpointValidator endpointValidator;
 
     protected AbstractApiAction(
         final Settings settings,
@@ -133,6 +133,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         this.auditLog = auditLog;
         this.requestHandlersBuilder = new RequestHandler.RequestHandlersBuilder();
         this.requestHandlersBuilder.configureRequestHandlers(this::buildDefaultRequestHandlers);
+        this.endpointValidator = createEndpointValidator();
     }
 
     private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
@@ -145,18 +146,38 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final ValidationResult<SecurityConfiguration> processDeleteRequest(final RestRequest request) throws IOException {
-        return withRequiredResourceName(request).map(name -> loadSecurityConfiguration(name, false))
-            .map(this::resourceExists)
-            .map(this::resourceCanBeChanged);
+        return withRequiredResourceName(request).map(entityName -> loadConfiguration(entityName, false))
+            .map(endpointValidator::onConfigDelete)
+            .map(this::removeEntityFromConfig);
+    }
+
+    protected final ValidationResult<SecurityConfiguration> removeEntityFromConfig(final SecurityConfiguration securityConfiguration) {
+        final var configuration = securityConfiguration.configuration();
+        configuration.remove(securityConfiguration.entityName());
+        return ValidationResult.success(securityConfiguration);
     }
 
     protected final ValidationResult<SecurityConfiguration> processGetRequest(final RestRequest request) throws IOException {
-        return loadFilteredConfiguration(nameParam(request)).map(this::resourceExists);
+        return loadConfiguration(getConfigType(), true, true).map(
+            configuration -> ValidationResult.success(SecurityConfiguration.of(nameParam(request), configuration))
+        ).map(endpointValidator::onConfigLoad).map(securityConfiguration -> securityConfiguration.maybeEntityName().map(entityName -> {
+            securityConfiguration.configuration().removeOthers(entityName);
+            return ValidationResult.success(securityConfiguration);
+        }).orElse(ValidationResult.success(securityConfiguration)));
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
-        return withRequiredResourceName(request).map(name -> loadSecurityConfigurationWithRequestContent(name, request))
-            .map(this::resourceCanBeChanged);
+        return withRequiredResourceName(request).map(
+            entityName -> loadConfigurationWithRequestContent(entityName, request, endpointValidator.createRequestContentValidator())
+        ).map(endpointValidator::onConfigChange).map(this::addEntityToConfig);
+    }
+
+    protected final ValidationResult<SecurityConfiguration> addEntityToConfig(final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        final var configuration = securityConfiguration.configuration();
+        final var entityObjectConfig = Utils.toConfigObject(securityConfiguration.requestContent(), configuration.getImplementingClass());
+        configuration.putCObject(securityConfiguration.entityName(), entityObjectConfig);
+        return ValidationResult.success(securityConfiguration);
     }
 
     final void saveOrUpdateConfiguration(
@@ -164,7 +185,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final SecurityDynamicConfiguration<?> configuration,
         final OnSucessActionListener<IndexResponse> onSucessActionListener
     ) {
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), configuration, onSucessActionListener);
+        saveAndUpdateConfigs(this.securityIndexName, client, getConfigType(), configuration, onSucessActionListener);
     }
 
     protected final String nameParam(final RestRequest request) {
@@ -183,41 +204,29 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return ValidationResult.success(resourceName);
     }
 
-    protected final ValidationResult<SecurityConfiguration> loadFilteredConfiguration(final String resourceName) throws IOException {
-        return loadSecurityConfiguration(resourceName, true).map(this::resourceNotHidden).map(securityConfiguration -> {
-            final var configuration = securityConfiguration.configuration();
-            if (!isSuperAdmin()) {
-                configuration.removeHidden();
-            }
-            configuration.clearHashes();
-            configuration.set_meta(null);
-            return ValidationResult.success(securityConfiguration);
-        });
-    }
-
-    protected final ValidationResult<SecurityConfiguration> loadSecurityConfigurationWithRequestContent(
-        final String resourceName,
-        final RestRequest request
+    protected final ValidationResult<SecurityConfiguration> loadConfigurationWithRequestContent(
+        final String entityName,
+        final RestRequest request,
+        final RequestContentValidator requestContentValidator
     ) throws IOException {
-        return createValidator().validate(request)
+        return requestContentValidator.validate(request)
             .map(
-                content -> loadConfiguration(getConfigName(), false).map(
-                    configuration -> ValidationResult.success(SecurityConfiguration.of(resourceName, content, configuration))
+                content -> loadConfiguration(getConfigType(), false, false).map(
+                    configuration -> ValidationResult.success(SecurityConfiguration.of(content, entityName, configuration))
                 )
             );
     }
 
-    protected final ValidationResult<SecurityConfiguration> loadSecurityConfiguration(
-        final String resourceName,
-        final boolean logComplianceEvent
-    ) throws IOException {
-        return loadConfiguration(getConfigName(), logComplianceEvent).map(
-            configuration -> ValidationResult.success(SecurityConfiguration.of(resourceName, configuration))
+    protected final ValidationResult<SecurityConfiguration> loadConfiguration(final String entityName, final boolean logComplianceEvent)
+        throws IOException {
+        return loadConfiguration(getConfigType(), false, logComplianceEvent).map(
+            configuration -> ValidationResult.success(SecurityConfiguration.of(entityName, configuration))
         );
     }
 
     protected final ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
         final CType cType,
+        boolean omitSensitiveData,
         final boolean logComplianceEvent
     ) {
         final var configuration = load(cType, logComplianceEvent);
@@ -225,36 +234,18 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             return ValidationResult.error(
                 RestStatus.FORBIDDEN,
                 forbiddenMessage(
-                    "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate."
+                    "Security index need to be updated to support '" + getConfigType().toLCString() + "'. Use SecurityAdmin to populate."
                 )
             );
         }
-        return ValidationResult.success(configuration);
-    }
-
-    protected final ValidationResult<SecurityConfiguration> resourceExists(final SecurityConfiguration securityConfiguration) {
-        return resourceExists(getResourceName(), securityConfiguration);
-    }
-
-    protected final ValidationResult<SecurityConfiguration> resourceExists(
-        final String resourceName,
-        final SecurityConfiguration securityConfiguration
-    ) {
-        if (securityConfiguration.maybeResourceName().isPresent()) {
-            if (!securityConfiguration.resourceExists()) {
-                return ValidationResult.error(
-                    RestStatus.NOT_FOUND,
-                    notFoundMessage(resourceName + " '" + securityConfiguration.resourceName() + "' not found.")
-                );
+        if (omitSensitiveData) {
+            if (!isSuperAdmin()) {
+                configuration.removeHidden();
             }
-            return ValidationResult.success(securityConfiguration);
+            configuration.clearHashes();
+            configuration.set_meta(null);
         }
-        return ValidationResult.success(securityConfiguration);
-    }
-
-    protected final ValidationResult<SecurityConfiguration> resourceCanBeChanged(final SecurityConfiguration securityConfiguration)
-        throws IOException {
-        return resourceNotHidden(securityConfiguration).map(ignore -> resourceNotReadOnly(securityConfiguration));
+        return ValidationResult.success(configuration);
     }
 
     protected final ValidationResult<Pair<User, TransportAddress>> withUserAndRemoteAddress() {
@@ -265,66 +256,49 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return ValidationResult.success(userAndRemoteAddress);
     }
 
-    protected final ValidationResult<SecurityConfiguration> canChangeObjectWithRestAdminPermissions(
-        final SecurityConfiguration securityConfiguration
-    ) throws IOException {
-        if (securityConfiguration.resourceExists()) {
-            final var configuration = securityConfiguration.configuration();
-            final var existingActionGroup = configuration.getCEntry(securityConfiguration.resourceName());
-            if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(existingActionGroup)) {
-                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+            @Override
+            public String resourceName() {
+                return null; // no resource name
             }
-        } else {
-            final var reducedRequestContent = securityConfiguration.contentAsConfigObject();
-            if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(reducedRequestContent)) {
-                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
-            }
-        }
-        return ValidationResult.success(securityConfiguration);
-    }
 
-    protected final ValidationResult<SecurityConfiguration> validateRoles(
-        final SecurityConfiguration securityConfiguration,
-        final List<String> roles
-    ) throws IOException {
-        return loadConfiguration(CType.ROLES, false).map(rolesConfiguration -> {
-            if (roles != null) {
-                final var maybeNotValidRole = roles.stream().map(role -> {
-                    try {
-                        return resourceExists("role", SecurityConfiguration.of(role, rolesConfiguration)).map(this::resourceCanBeChanged);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                }).filter(Predicate.not(ValidationResult::isValid)).findFirst();
-                if (maybeNotValidRole.isPresent()) {
-                    return maybeNotValidRole.get();
-                }
+            @Override
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
-            return ValidationResult.success(securityConfiguration);
-        });
-    }
 
-    protected abstract RequestContentValidator createValidator(final Object... params);
+            @Override
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(final Object... params) {
+                return RequestContentValidator.NOOP_VALIDATOR;
+            }
+        };
+    }
 
     protected abstract String getResourceName();
 
-    protected abstract CType getConfigName();
+    protected abstract CType getConfigType();
 
     protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        final var handlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
+        requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
         try {
             switch (request.method()) {
                 case DELETE:
-                    handlers.get(Method.DELETE).handle(channel, request, client);
+                    requestHandlers.get(Method.DELETE).handle(channel, request, client);
                     break;
                 case POST:
-                    handlers.get(Method.POST).handle(channel, request, client);
+                    requestHandlers.get(Method.POST).handle(channel, request, client);
                     break;
                 case PUT:
-                    handlers.get(Method.PUT).handle(channel, request, client);
+                    requestHandlers.get(Method.PUT).handle(channel, request, client);
                     break;
                 case GET:
-                    handlers.get(Method.GET).handle(channel, request, client);
+                    requestHandlers.get(Method.GET).handle(channel, request, client);
                     break;
                 default:
                     throw new IllegalArgumentException(request.method() + " not supported");
@@ -590,20 +564,20 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final ValidationResult<SecurityConfiguration> resourceNotHidden(final SecurityConfiguration securityConfiguration) {
-        if (isHidden(securityConfiguration.configuration(), securityConfiguration.resourceName())) {
+        if (isHidden(securityConfiguration.configuration(), securityConfiguration.entityName())) {
             return ValidationResult.error(
                 RestStatus.NOT_FOUND,
-                notFoundMessage("Resource '" + securityConfiguration.resourceName() + "' is not available.")
+                notFoundMessage("Resource '" + securityConfiguration.entityName() + "' is not available.")
             );
         }
         return ValidationResult.success(securityConfiguration);
     }
 
     protected final ValidationResult<SecurityConfiguration> resourceNotReadOnly(final SecurityConfiguration securityConfiguration) {
-        if (isReadOnly(securityConfiguration.configuration(), securityConfiguration.resourceName())) {
+        if (isReadOnly(securityConfiguration.configuration(), securityConfiguration.entityName())) {
             return ValidationResult.error(
                 RestStatus.FORBIDDEN,
-                forbiddenMessage("Resource '" + securityConfiguration.resourceName() + "' is read-only.")
+                forbiddenMessage("Resource '" + securityConfiguration.entityName() + "' is read-only.")
             );
         }
         return ValidationResult.success(securityConfiguration);
@@ -638,7 +612,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     protected abstract Endpoint getEndpoint();
 
     protected boolean isSuperAdmin() {
-        return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint());
+        return restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(getEndpoint());
     }
 
     /**

@@ -30,6 +30,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -43,6 +44,9 @@ import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImpl
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesMappingApiAction extends PatchableResourceApiAction {
+
+    protected final static String RESOURCE_NAME = "rolesmapping";
+
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/rolesmapping/"),
@@ -72,35 +76,28 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
         this.requestHandlersBuilder.configureRequestHandlers(this::rolesMappingApiRequestHandlers);
     }
 
-    private void rolesMappingApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        // spotless:off
-        requestHandlersBuilder
-                .onChangeRequest(Method.PUT, request ->
-                        processPutRequest(request)
-                                .map(securityConfiguration ->
-                                        validateRoles(
-                                                securityConfiguration,
-                                                List.of(securityConfiguration.resourceName())
-                                        )
-                                )
-                                .map(this::canChangeRolesMappingRestAdminPermissions))
-                .onChangeRequest(Method.DELETE, request ->
-                        processDeleteRequest(request).map(this::canChangeRolesMappingRestAdminPermissions))
-                .override(Method.POST, methodNotImplementedHandler);
-        // spotless:on
+    @Override
+    public List<Route> routes() {
+        return routes;
     }
 
-    private ValidationResult<SecurityConfiguration> canChangeRolesMappingRestAdminPermissions(
-        final SecurityConfiguration securityConfiguration
-    ) throws IOException {
-        return loadConfiguration(CType.ROLES, false).map(rolesConfiguration -> {
-            if (isSuperAdmin()) {
-                return ValidationResult.success(securityConfiguration);
-            }
-            return canChangeObjectWithRestAdminPermissions(
-                SecurityConfiguration.of(securityConfiguration.resourceName(), rolesConfiguration)
-            );
-        }).map(ignore -> ValidationResult.success(securityConfiguration));
+    @Override
+    protected Endpoint getEndpoint() {
+        return Endpoint.ROLESMAPPING;
+    }
+
+    @Override
+    protected String getResourceName() {
+        return RESOURCE_NAME;
+    }
+
+    @Override
+    protected CType getConfigType() {
+        return CType.ROLESMAPPING;
+    }
+
+    private void rolesMappingApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.override(Method.POST, methodNotImplementedHandler);
     }
 
     @Override
@@ -128,55 +125,94 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    public List<Route> routes() {
-        return routes;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.ROLESMAPPING;
-    }
-
-    @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return RESOURCE_NAME;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Set<String> mandatoryOrKeys() {
-                return ImmutableSet.of("backend_roles", "and_backend_roles", "hosts", "users");
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
-                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
-                if (isSuperAdmin()) allowedKeys.put("reserved", DataType.BOOLEAN);
-                return allowedKeys.put("backend_roles", DataType.ARRAY)
-                    .put("and_backend_roles", DataType.ARRAY)
-                    .put("hosts", DataType.ARRAY)
-                    .put("users", DataType.ARRAY)
-                    .put("description", DataType.STRING)
-                    .build();
+            public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateRoleForMapping)
+                    .map(this::canChangeObjectWithRestAdminPermissions);
             }
-        });
-    }
 
-    @Override
-    protected String getResourceName() {
-        return "rolesmapping";
-    }
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigDelete(SecurityConfiguration securityConfiguration) throws IOException {
+                return EndpointValidator.super.onConfigDelete(securityConfiguration).map(this::canChangeObjectWithRestAdminPermissions);
+            }
 
-    @Override
-    protected CType getConfigName() {
-        return CType.ROLESMAPPING;
+            private ValidationResult<SecurityConfiguration> validateRoleForMapping(final SecurityConfiguration securityConfiguration)
+                throws IOException {
+                return loadConfiguration(CType.ROLES, false, false).map(
+                    rolesConfiguration -> validateRoles(List.of(securityConfiguration.entityName()), rolesConfiguration)
+                ).map(ignore -> ValidationResult.success(securityConfiguration));
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> hasRightsToChangeEntity(SecurityConfiguration securityConfiguration)
+                throws IOException {
+                return EndpointValidator.super.hasRightsToChangeEntity(securityConfiguration).map(
+                    this::canChangeRoleMappingWithRestAdminPermissions
+                );
+            }
+
+            public ValidationResult<SecurityConfiguration> canChangeRoleMappingWithRestAdminPermissions(
+                SecurityConfiguration securityConfiguration
+            ) throws IOException {
+                return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
+                    if (isCurrentUserAdmin()) {
+                        return ValidationResult.success(securityConfiguration);
+                    }
+                    return canChangeObjectWithRestAdminPermissions(
+                        SecurityConfiguration.of(securityConfiguration.entityName(), rolesConfiguration)
+                    );
+                }).map(ignore -> ValidationResult.success(securityConfiguration));
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Set<String> mandatoryOrKeys() {
+                        return ImmutableSet.of("backend_roles", "and_backend_roles", "hosts", "users");
+                    }
+
+                    @Override
+                    public Map<String, DataType> allowedKeys() {
+                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                        if (isCurrentUserAdmin()) allowedKeys.put("reserved", DataType.BOOLEAN);
+                        return allowedKeys.put("backend_roles", DataType.ARRAY)
+                            .put("and_backend_roles", DataType.ARRAY)
+                            .put("hosts", DataType.ARRAY)
+                            .put("users", DataType.ARRAY)
+                            .put("description", DataType.STRING)
+                            .build();
+                    }
+                });
+            }
+        };
     }
 
 }

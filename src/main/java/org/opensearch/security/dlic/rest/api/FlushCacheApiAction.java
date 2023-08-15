@@ -28,7 +28,6 @@ import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -125,18 +124,13 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.NOOP_VALIDATOR;
-    }
-
-    @Override
     protected String getResourceName() {
         // not needed
         return null;
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return null;
     }
 

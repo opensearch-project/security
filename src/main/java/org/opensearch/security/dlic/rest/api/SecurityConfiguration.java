@@ -12,110 +12,83 @@
 package org.opensearch.security.dlic.rest.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.opensearch.core.common.bytes.BytesReference;
-import org.opensearch.core.xcontent.MediaTypeRegistry;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentHelper;
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
-import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 public class SecurityConfiguration {
 
-    private final String resourceName;
+    private final String entityName;
+
+    private final boolean entityExists;
 
     private final JsonNode requestContent;
 
     private final SecurityDynamicConfiguration<?> configuration;
 
-    private SecurityConfiguration(final String resourceName, final SecurityDynamicConfiguration<?> configuration) {
-        this(resourceName, null, configuration);
-    }
-
     private SecurityConfiguration(
-        final String resourceName,
+        final String entityName,
+        final boolean entityExists,
         final JsonNode requestContent,
         final SecurityDynamicConfiguration<?> configuration
     ) {
-        this.resourceName = resourceName;
+        this.entityName = entityName;
+        this.entityExists = entityExists;
         this.requestContent = requestContent;
         this.configuration = configuration;
+    }
+
+    private SecurityConfiguration(
+        final String entityName,
+        final boolean entityExists,
+        final SecurityDynamicConfiguration<?> configuration
+    ) {
+        this(entityName, entityExists, null, configuration);
+    }
+
+    public CType type() {
+        return configuration().getCType();
+    }
+
+    public String typeName() {
+        return type().toLCString();
     }
 
     public SecurityDynamicConfiguration<?> configuration() {
         return configuration;
     }
 
+    public boolean entityExists() {
+        return entityExists;
+    }
+
     public JsonNode requestContent() {
         return requestContent;
     }
 
-    public Object contentAsConfigObject() throws IOException {
-        return Utils.toConfigObject(requestContent, configuration.getImplementingClass());
+    public Optional<String> maybeEntityName() {
+        return Optional.ofNullable(entityName);
     }
 
-    public JsonNode configurationAsJsonNode() throws IOException {
-        return configurationAsJsonNode(false);
+    public String entityName() {
+        return maybeEntityName().orElse("empty");
     }
 
-    public JsonNode configurationAsJsonNode(final boolean omitDefaults) throws IOException {
-        final BytesReference bytes = XContentHelper.toXContent(
-            configuration,
-            MediaTypeRegistry.JSON,
-            new ToXContent.MapParams(Map.of("omit_defaults", Boolean.valueOf(omitDefaults).toString())),
-            false
-        );
-        return DefaultObjectMapper.readTree(bytes.utf8ToString());
-    }
-
-    public SecurityDynamicConfiguration<?> resourceConfiguration() {
-        if (resourceName != null) {
-            configuration.removeOthers(resourceName);
-        }
-        return configuration;
-    }
-
-    public boolean resourceExists() {
-        return configuration.exists(resourceName);
-    }
-
-    public SecurityDynamicConfiguration<?> deleteResource() {
-        if (resourceName != null) {
-            configuration.remove(resourceName);
-        }
-        return configuration;
-    }
-
-    public SecurityDynamicConfiguration<?> createOrUpdateResource() throws IOException {
-        configuration.putCObject(resourceName, contentAsConfigObject());
-        return configuration;
-    }
-
-    public Optional<String> maybeResourceName() {
-        return Optional.ofNullable(resourceName);
-    }
-
-    public String resourceName() {
-        return resourceName;
-    }
-
-    public static SecurityConfiguration of(final String resourceName, final SecurityDynamicConfiguration<?> configuration) {
+    public static SecurityConfiguration of(final String entityName, final SecurityDynamicConfiguration<?> configuration) {
         Objects.requireNonNull(configuration);
-        return new SecurityConfiguration(resourceName, configuration);
+        return new SecurityConfiguration(entityName, configuration.exists(entityName), configuration);
     }
 
     public static SecurityConfiguration of(
-        final String resourceName,
         final JsonNode requestContent,
+        final String entityName,
         final SecurityDynamicConfiguration<?> configuration
     ) {
+        Objects.requireNonNull(requestContent);
         Objects.requireNonNull(configuration);
-        return new SecurityConfiguration(resourceName, requestContent, configuration);
+        return new SecurityConfiguration(entityName, configuration.exists(entityName), requestContent, configuration);
     }
 
 }

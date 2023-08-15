@@ -39,11 +39,11 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -55,6 +55,9 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantsApiAction extends PatchableResourceApiAction {
+
+    protected final static String RESOURCE_NAME = "tenant";
+
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/tenants/{name}"),
@@ -103,42 +106,57 @@ public class TenantsApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
-            @Override
-            public Object[] params() {
-                return params;
-            }
-
-            @Override
-            public Settings settings() {
-                return settings;
-            }
-
-            @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
-                if (isSuperAdmin()) {
-                    allowedKeys.put("reserved", DataType.BOOLEAN);
-                }
-                return allowedKeys.put("description", DataType.STRING).build();
-            }
-        });
-    }
-
-    @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.TENANTS;
     }
 
     @Override
     protected String getResourceName() {
-        return "tenant";
+        return RESOURCE_NAME;
     }
 
     @Override
-    protected void consumeParameters(final RestRequest request) {
-        request.param("name");
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+            @Override
+            public String resourceName() {
+                return RESOURCE_NAME;
+            }
+
+            @Override
+            public Endpoint endpoint() {
+                return getEndpoint();
+            }
+
+            @Override
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(final Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                        if (isCurrentUserAdmin()) {
+                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                        }
+                        return allowedKeys.put("description", DataType.STRING).build();
+                    }
+                });
+            }
+        };
     }
 
 }

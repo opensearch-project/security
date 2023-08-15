@@ -11,23 +11,10 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -38,9 +25,9 @@ import org.opensearch.rest.RestController;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
-import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -49,14 +36,21 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
-
-    private final static Logger LOGGER = LogManager.getLogger(MultiTenancyConfigApiAction.class);
 
     public static final String DEFAULT_TENANT_JSON_PROPERTY = "default_tenant";
     public static final String PRIVATE_TENANT_ENABLED_JSON_PROPERTY = "private_tenant_enabled";
@@ -110,35 +104,55 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.CONFIG;
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return null;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
-                return ImmutableMap.of(
-                    DEFAULT_TENANT_JSON_PROPERTY,
-                    DataType.STRING,
-                    PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
-                    DataType.BOOLEAN,
-                    MULTITENANCY_ENABLED_JSON_PROPERTY,
-                    DataType.BOOLEAN
-                );
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
-        });
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Map<String, DataType> allowedKeys() {
+                        return ImmutableMap.of(
+                            DEFAULT_TENANT_JSON_PROPERTY,
+                            DataType.STRING,
+                            PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
+                            DataType.BOOLEAN,
+                            MULTITENANCY_ENABLED_JSON_PROPERTY,
+                            DataType.BOOLEAN
+                        );
+                    }
+                });
+            }
+        };
     }
 
     private ToXContent multitenancyContent(final ConfigV7 config) {
@@ -151,34 +165,27 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
     private void multiTenancyConfigApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.allMethodsNotImplemented()
-            .override(GET, (channel, request, client) -> loadConfiguration(getConfigName(), false).valid(configuration -> {
+            .override(GET, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
                 final var config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
                 ok(channel, multitenancyContent(config));
             }).error((status, toXContent) -> Responses.response(channel, status, toXContent)))
             .override(PUT, (channel, request, client) -> {
-                createValidator().validate(request)
-                    .map(
-                        content -> loadConfiguration(getConfigName(), false).map(
-                            configuration -> ValidationResult.success(Pair.of(content, configuration))
-                        )
-                    )
-                    .valid(contentAndConfig -> {
-                        updateMultitenancy(channel, client, contentAndConfig.getRight(), contentAndConfig.getLeft());
-                    })
-                    .error((status, toXContent) -> Responses.response(channel, status, toXContent));
+                loadConfigurationWithRequestContent("config", request, createEndpointValidator().createRequestContentValidator()).valid(
+                    securityConfiguration -> updateMultitenancy(channel, client, securityConfiguration)
+                ).error((status, toXContent) -> Responses.response(channel, status, toXContent));
             });
     }
 
     protected void updateMultitenancy(
         final RestChannel channel,
-        Client client,
-        final SecurityDynamicConfiguration<?> configuration,
-        final JsonNode content
+        final Client client,
+        final SecurityConfiguration securityConfiguration
+
     ) throws IOException {
         @SuppressWarnings("unchecked")
-        final var dynamicConfiguration = (SecurityDynamicConfiguration<ConfigV7>) configuration;
+        final var dynamicConfiguration = (SecurityDynamicConfiguration<ConfigV7>) securityConfiguration.configuration();
         final var config = dynamicConfiguration.getCEntry(CType.CONFIG.toLCString());
-        updateAndValidatesValues(config, content);
+        updateAndValidatesValues(config, securityConfiguration.requestContent());
         dynamicConfiguration.putCEntry(CType.CONFIG.toLCString(), config);
         saveOrUpdateConfiguration(client, dynamicConfiguration, new OnSucessActionListener<>(channel) {
             @Override

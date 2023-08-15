@@ -36,6 +36,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -58,6 +59,9 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
+
+    protected final static String RESOURCE_NAME = "user";
+
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
@@ -124,27 +128,35 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
     @Override
     protected String getResourceName() {
-        return "user";
+        return RESOURCE_NAME;
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.INTERNALUSERS;
     }
 
     private void internalUsersApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
-        // Overrides the GET request functionality to allow for the special case of requesting an auth token.
         requestHandlersBuilder
+                // Overrides the GET request functionality to allow for the special case of requesting an auth token.
                 .override(Method.POST, (channel, request, client) ->
                         withAuthTokenPath(request)
-                                .map(this::loadFilteredConfiguration)
-                                .map(this::resourceExists)
+                                .map(username ->
+                                        loadConfiguration(getConfigType(), true, false)
+                                                .map(configuration -> ValidationResult.success(SecurityConfiguration.of(username, configuration)))
+                                )
+                                .map(endpointValidator::entityExists)
                                 .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
                                 .error((status, toXContent) -> Responses.response(channel, status, toXContent)))
                 .onChangeRequest(Method.PUT, request ->
-                        processPutRequest(request)
-                                .map(securityConfiguration -> createOrUpdateUser(request, securityConfiguration))
+                        withRequiredResourceName(request)
+                                .map(username -> loadConfigurationWithRequestContent(username, request, endpointValidator.createRequestContentValidator()))
+                                .map(endpointValidator::hasRightsToChangeEntity)
+                                .map(this::validateSecurityRoles)
+                                .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
+                                .map(this::validateAndUpdatePassword)
+                                .map(this::addEntityToConfig)
         );
         // spotless:on
     }
@@ -161,7 +173,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
     private void generateAuthToken(final RestChannel channel, final SecurityConfiguration securityConfiguration) throws IOException {
         try {
-            final var username = securityConfiguration.resourceName();
+            final var username = securityConfiguration.entityName();
             final var authToken = userService.generateAuthToken(username);
             if (!Strings.isNullOrEmpty(authToken)) {
                 ok(channel, "'" + username + "' authtoken generated " + authToken);
@@ -173,38 +185,16 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
     }
 
-    private ValidationResult<SecurityConfiguration> createOrUpdateUser(
-        final RestRequest request,
-        final SecurityConfiguration securityConfiguration
-    ) throws IOException {
-        final var username = securityConfiguration.resourceName();
-        final ObjectNode contentAsNode = (ObjectNode) securityConfiguration.requestContent();
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
-        // FIXME do we need to verify roles as well?
-        final var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-        // Don't allow user to add non-existent role or a role for which role-mapping is hidden or reserved
-        // spotless:off
-        return validateRoles(securityConfiguration, securityRoles)
-                .map(ignore -> createOrUpdateAccount(request, securityConfiguration))
-                .map(updatedSecurityConfiguration -> {
-                    // when updating an existing user password hash can be blank, which means no changes
-                    // for existing users, hash is optional
-                    if (updatedSecurityConfiguration.resourceExists() && securityJsonNode.get("hash").asString() == null) {
-                        final String hash = ((Hashed) updatedSecurityConfiguration.configuration().getCEntry(username)).getHash();
-                        if (Strings.isNullOrEmpty(hash)) {
-                            return ValidationResult.error(
-                                    RestStatus.INTERNAL_SERVER_ERROR,
-                                    payload(
-                                            RestStatus.INTERNAL_SERVER_ERROR,
-                                            "Existing user " + username + " has no password, and no new password or hash was specified."
-                                    )
-                            );
-                        }
-                        contentAsNode.put("hash", hash);
-                    }
-                    return ValidationResult.success(updatedSecurityConfiguration);
-                });
-        // spotless:on
+    private ValidationResult<SecurityConfiguration> validateSecurityRoles(final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
+            final ObjectNode contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+            final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+            // FIXME do we need to verify roles as well?
+            final var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
+            return endpointValidator.validateRoles(securityRoles, rolesConfiguration)
+                .map(ignore -> ValidationResult.success(securityConfiguration));
+        });
     }
 
     private ValidationResult<SecurityConfiguration> createOrUpdateAccount(
@@ -212,7 +202,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final SecurityConfiguration securityConfiguration
     ) throws IOException {
         try {
-            final var username = securityConfiguration.resourceName();
+            final var username = securityConfiguration.entityName();
             final var content = securityConfiguration.requestContent();
             if (request.hasParam("service")) {
                 ((ObjectNode) content).put("service", request.param("service"));
@@ -224,11 +214,34 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             // FIXME add better solution for account and internal users
             final var updateConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
             // remove extra user in case we deal with the new one. not nice better to redesign account users.
-            if (!securityConfiguration.resourceExists()) updateConfiguration.remove(securityConfiguration.resourceName());
-            return ValidationResult.success(SecurityConfiguration.of(username, content, updateConfiguration));
+            if (!securityConfiguration.entityExists()) updateConfiguration.remove(securityConfiguration.entityName());
+            return ValidationResult.success(SecurityConfiguration.of(content, username, updateConfiguration));
         } catch (UserServiceException ex) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(ex.getMessage()));
         }
+    }
+
+    private ValidationResult<SecurityConfiguration> validateAndUpdatePassword(final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        // when updating an existing user password hash can be blank, which means no changes
+        // for existing users, hash is optional
+        final var username = securityConfiguration.entityName();
+        final ObjectNode contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+        if (securityConfiguration.entityExists() && securityJsonNode.get("hash").asString() == null) {
+            final String hash = ((Hashed) securityConfiguration.configuration().getCEntry(username)).getHash();
+            if (Strings.isNullOrEmpty(hash)) {
+                return ValidationResult.error(
+                    RestStatus.INTERNAL_SERVER_ERROR,
+                    payload(
+                        RestStatus.INTERNAL_SERVER_ERROR,
+                        "Existing user " + username + " has no password, and no new password or hash was specified."
+                    )
+                );
+            }
+            contentAsNode.put("hash", hash);
+        }
+        return ValidationResult.success(securityConfiguration);
     }
 
     @Override
@@ -244,7 +257,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         if (passwordNode != null) {
             String plainTextPassword = passwordNode.asText();
             final JsonNode passwordObject = DefaultObjectMapper.objectMapper.createObjectNode().put("password", plainTextPassword);
-            final ValidationResult<JsonNode> validationResult = createValidator(resourceName).validate(request, passwordObject);
+            final ValidationResult<JsonNode> validationResult = endpointValidator.createRequestContentValidator(resourceName)
+                .validate(request, passwordObject);
             ((ObjectNode) updatedResourceAsJsonNode).remove("password");
             ((ObjectNode) updatedResourceAsJsonNode).set("hash", new TextNode(hash(plainTextPassword.toCharArray())));
             return validationResult;
@@ -253,32 +267,53 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return RESOURCE_NAME;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
-                if (isSuperAdmin()) {
-                    allowedKeys.put("reserved", DataType.BOOLEAN);
-                }
-                return allowedKeys.put("backend_roles", DataType.ARRAY)
-                    .put("attributes", DataType.OBJECT)
-                    .put("description", DataType.STRING)
-                    .put("opendistro_security_roles", DataType.ARRAY)
-                    .put("hash", DataType.STRING)
-                    .put("password", DataType.STRING)
-                    .build();
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
-        });
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                        if (isCurrentUserAdmin()) {
+                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                        }
+                        return allowedKeys.put("backend_roles", DataType.ARRAY)
+                            .put("attributes", DataType.OBJECT)
+                            .put("description", DataType.STRING)
+                            .put("opendistro_security_roles", DataType.ARRAY)
+                            .put("hash", DataType.STRING)
+                            .put("password", DataType.STRING)
+                            .build();
+                    }
+                });
+            }
+        };
     }
+
 }

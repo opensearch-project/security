@@ -558,7 +558,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
             createRestAdminPermissionsPayload(),
             restApiAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
         response = rh.executePutRequest(
             ENDPOINT + "/roles/new_rest_api_role_without_mapping",
             createRestAdminPermissionsPayload(),

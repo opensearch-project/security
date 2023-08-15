@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.support;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -35,6 +36,7 @@ import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.SpecialPermission;
+import org.opensearch.common.CheckedSupplier;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -266,6 +268,14 @@ public class Utils {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         return Pair.of(user, remoteAddress);
+    }
+
+    public static <T> T withIOException(final CheckedSupplier<T, IOException> action) {
+        try {
+            return action.get();
+        } catch (final IOException ioe) {
+            throw new UncheckedIOException(ioe);
+        }
     }
 
 }

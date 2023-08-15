@@ -15,10 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Triple;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -32,6 +29,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -50,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -61,8 +58,6 @@ import static org.opensearch.security.dlic.rest.support.Utils.hash;
  * Currently this action serves GET and PUT request for /_opendistro/_security/api/account endpoint
  */
 public class AccountApiAction extends AbstractApiAction {
-
-    private final static Logger LOGGER = LogManager.getLogger(AccountApiAction.class);
 
     private static final String RESOURCE_NAME = "account";
     private static final List<Route> routes = addRoutesPrefix(
@@ -116,7 +111,7 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.INTERNALUSERS;
     }
 
@@ -126,7 +121,7 @@ public class AccountApiAction extends AbstractApiAction {
             .override(Method.GET, (channel, request, client) ->
                     withUserAndRemoteAddress().map(
                             userAndRemoteAddress ->
-                                    loadConfiguration(getConfigName(), false)
+                                    loadConfiguration(getConfigType(), false, false)
                                             .map(configuration ->
                                                     ValidationResult.success(
                                                             Triple.of(
@@ -141,16 +136,19 @@ public class AccountApiAction extends AbstractApiAction {
                         final var configuration = userRemoteAddressAndConfig.getRight();
                         userAccount(channel, user, remoteAddress, configuration);
                     }).error((status, toXContent) -> Responses.response(channel, status, toXContent))
-            ).override(Method.PUT,(channel, request, client) ->
-                withUserAndRemoteAddress()
-                        .map(userAndRemoteAddress -> {
-                            final var user = userAndRemoteAddress.getLeft();
-                            return loadSecurityConfigurationWithRequestContent(user.getName(), request)
-                                    .map(this::resourceExists)
-                                    .map(this::resourceCanBeChanged);
-                        }).map(this::passwordCanBeValidated)
-                        .valid(securityConfiguration -> updateUserPassword(channel, client, securityConfiguration))
-                        .error((status, toXContent) -> Responses.response(channel, status, toXContent))
+            ).onChangeRequest(Method.PUT, request ->
+                        withUserAndRemoteAddress()
+                                .map(userAndRemoteAddress ->
+                                        loadConfigurationWithRequestContent(
+                                                userAndRemoteAddress.getLeft().getName(),
+                                                request,
+                                                endpointValidator.createRequestContentValidator()
+                                        )
+                                )
+                                .map(endpointValidator::entityExists)
+                                .map(endpointValidator::onConfigChange)
+                                .map(this::passwordCanBeValidated)
+                                .map(this::updateUserPassword)
         );
         // spotless:on
     }
@@ -179,7 +177,7 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     private ValidationResult<SecurityConfiguration> passwordCanBeValidated(final SecurityConfiguration securityConfiguration) {
-        final var username = securityConfiguration.resourceName();
+        final var username = securityConfiguration.entityName();
         final var content = securityConfiguration.requestContent();
         final var currentPassword = content.get("current_password").asText();
         final var internalUserEntry = (Hashed) securityConfiguration.configuration().getCEntry(username);
@@ -190,8 +188,8 @@ public class AccountApiAction extends AbstractApiAction {
         return ValidationResult.success(securityConfiguration);
     }
 
-    private void updateUserPassword(final RestChannel channel, final Client client, final SecurityConfiguration securityConfiguration) {
-        final var username = securityConfiguration.resourceName();
+    private ValidationResult<SecurityConfiguration> updateUserPassword(final SecurityConfiguration securityConfiguration) {
+        final var username = securityConfiguration.entityName();
         final var securityJsonNode = new SecurityJsonNode(securityConfiguration.requestContent());
         final var internalUserEntry = (Hashed) securityConfiguration.configuration().getCEntry(username);
         // if password is set, it takes precedence over hash
@@ -203,42 +201,59 @@ public class AccountApiAction extends AbstractApiAction {
             hash = hash(password.toCharArray());
         }
         if (Strings.isNullOrEmpty(hash)) {
-            badRequest(channel, "Both provided password and hash cannot be null/empty.");
-            return;
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Both provided password and hash cannot be null/empty.")
+            );
         }
         internalUserEntry.setHash(hash);
-        saveOrUpdateConfiguration(client, securityConfiguration.configuration(), new OnSucessActionListener<>(channel) {
-            @Override
-            public void onResponse(IndexResponse indexResponse) {
-                ok(channel, "'" + username + "' updated.");
-            }
-        });
+        return ValidationResult.success(securityConfiguration);
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
             @Override
-            public Object[] params() {
-                return new Object[] { user.getName() };
+            public String resourceName() {
+                return RESOURCE_NAME;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Set<String> mandatoryKeys() {
-                return ImmutableSet.of("current_password");
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
 
             @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                return ImmutableMap.of("hash", DataType.STRING, "password", DataType.STRING, "current_password", DataType.STRING);
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return new Object[] { user.getName() };
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Set<String> mandatoryKeys() {
+                        return ImmutableSet.of("current_password");
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        return ImmutableMap.of("hash", DataType.STRING, "password", DataType.STRING, "current_password", DataType.STRING);
+                    }
+                });
             }
-        });
+        };
     }
 
 }

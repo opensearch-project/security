@@ -132,13 +132,12 @@ public interface RequestHandler {
             final CheckedFunction<RestRequest, ValidationResult<SecurityConfiguration>, IOException> mapper
         ) {
             Objects.requireNonNull(mapper, "onGetRequest request handler can't be null");
-            add(RestRequest.Method.GET, (channel, request, client) -> mapper.apply(request).valid(securityConfiguration -> {
-                securityConfiguration.maybeResourceName()
-                    .ifPresentOrElse(
-                        name -> ok(channel, securityConfiguration.resourceConfiguration()),
-                        () -> ok(channel, securityConfiguration.configuration())
-                    );
-            }).error((status, toXContent) -> response(channel, status, toXContent)));
+            add(
+                RestRequest.Method.GET,
+                (channel, request, client) -> mapper.apply(request)
+                    .valid(securityConfiguration -> ok(channel, securityConfiguration.configuration()))
+                    .error((status, toXContent) -> response(channel, status, toXContent))
+            );
             return this;
         }
 
@@ -163,8 +162,8 @@ public interface RequestHandler {
                                                     new AbstractApiAction.OnSucessActionListener<>(channel) {
                                                         @Override
                                                         public void onResponse(IndexResponse indexResponse) {
-                                                            if (securityConfiguration.maybeResourceName().isPresent()) {
-                                                                ok(channel, "'" + securityConfiguration.resourceName() + "' updated.");
+                                                            if (securityConfiguration.maybeEntityName().isPresent()) {
+                                                                ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
                                                             } else {
                                                                 ok(channel, "Resource updated.");
                                                             }
@@ -178,17 +177,16 @@ public interface RequestHandler {
                     add(method, (channel, request, client) ->
                             mapper.apply(request)
                                     .valid(securityConfiguration -> {
-                                        final var resourceExists = securityConfiguration.resourceExists();
                                         saveOrUpdateConfigurationHandler.apply(
                                                 client,
-                                                securityConfiguration.createOrUpdateResource(),
+                                                securityConfiguration.configuration(),
                                                 new AbstractApiAction.OnSucessActionListener<>(channel) {
                                                     @Override
                                                     public void onResponse(IndexResponse response) {
-                                                        if (resourceExists) {
-                                                            ok(channel, "'" + securityConfiguration.resourceName() + "' updated.");
+                                                        if (securityConfiguration.entityExists()) {
+                                                            ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
                                                         } else {
-                                                            created(channel, "'" + securityConfiguration.resourceName() + "' created.");
+                                                            created(channel, "'" + securityConfiguration.entityName() + "' created.");
                                                         }
                                                     }
                                                 }
@@ -202,11 +200,11 @@ public interface RequestHandler {
                                     .valid(securityConfiguration ->
                                             saveOrUpdateConfigurationHandler.apply(
                                                     client,
-                                                    securityConfiguration.deleteResource(),
+                                                    securityConfiguration.configuration(),
                                                     new AbstractApiAction.OnSucessActionListener<>(channel) {
                                                         @Override
                                                         public void onResponse(IndexResponse response) {
-                                                            ok(channel, "'" + securityConfiguration.resourceName() + "' deleted.");
+                                                            ok(channel, "'" + securityConfiguration.entityName() + "' deleted.");
                                                         }
                                                     }
                                             )

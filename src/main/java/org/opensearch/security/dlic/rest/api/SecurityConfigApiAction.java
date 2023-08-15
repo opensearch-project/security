@@ -32,6 +32,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -48,6 +49,8 @@ import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplement
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigApiAction extends PatchableResourceApiAction {
+
+    private final static String RESOURCE_NAME = "config";
 
     private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(new Route(Method.GET, "/securityconfig/")));
 
@@ -85,7 +88,7 @@ public class SecurityConfigApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.CONFIG;
     }
 
@@ -97,7 +100,7 @@ public class SecurityConfigApiAction extends PatchableResourceApiAction {
     @Override
     protected String getResourceName() {
         // not needed, no single resource
-        return null;
+        return RESOURCE_NAME;
     }
 
     @Override
@@ -133,30 +136,51 @@ public class SecurityConfigApiAction extends PatchableResourceApiAction {
 
     private ValidationResult<String> withConfigResourceNameOnly(final RestRequest request) {
         final var name = nameParam(request);
-        if (!"config".equals(name)) {
+        if (!RESOURCE_NAME.equals(name)) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
         }
         return ValidationResult.success(name);
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return RESOURCE_NAME;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                return ImmutableMap.of("dynamic", DataType.OBJECT);
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
-        });
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        return ImmutableMap.of("dynamic", DataType.OBJECT);
+                    }
+                });
+            }
+        };
     }
 
 }

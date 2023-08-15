@@ -71,6 +71,10 @@ public class ValidationResult<C> {
         return this;
     }
 
+    public RestStatus status() {
+        return status;
+    }
+
     public boolean isValid() {
         return errorMessage == null;
     }

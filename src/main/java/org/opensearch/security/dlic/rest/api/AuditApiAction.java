@@ -33,6 +33,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -271,7 +272,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.AUDIT;
     }
 
@@ -288,7 +289,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
                 .onChangeRequest(RestRequest.Method.PUT, request ->
                         withConfigResourceNameOnly(request)
                                 .map(ignore -> processPutRequest(request))
-                                .map(this::verifyNotReadonlyFieldUpdated))
+                )
                 .override(RestRequest.Method.POST, methodNotImplementedHandler)
                 .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
         // spotless:on
@@ -302,36 +303,64 @@ public class AuditApiAction extends PatchableResourceApiAction {
         return ValidationResult.success(name);
     }
 
-    private ValidationResult<SecurityConfiguration> verifyNotReadonlyFieldUpdated(final SecurityConfiguration securityConfiguration)
-        throws IOException {
-        if (!isSuperAdmin()) {
-            final var existingResource = securityConfiguration.configurationAsJsonNode().get(getResourceName());
-            final var targetResource = securityConfiguration.requestContent();
-            if (readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)))) {
-                return ValidationResult.error(RestStatus.CONFLICT, conflictMessage("Attempted to update read-only property."));
-            }
-        }
-        return ValidationResult.success(securityConfiguration);
-    }
-
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return new AuditRequestContentValidator(new RequestContentValidator.ValidationContext() {
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+
             @Override
-            public Object[] params() {
-                return params;
+            public String resourceName() {
+                return getResourceName();
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public Endpoint endpoint() {
+                return getEndpoint();
             }
 
             @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return restApiAdminPrivilegesEvaluator;
             }
-        });
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::verifyNotReadonlyFieldUpdated);
+            }
+
+            private ValidationResult<SecurityConfiguration> verifyNotReadonlyFieldUpdated(
+                final SecurityConfiguration securityConfiguration
+            ) {
+                if (!restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint())) {
+                    final var existingResource = Utils.convertJsonToJackson(securityConfiguration.configuration(), false)
+                        .get(getResourceName());
+                    final var targetResource = securityConfiguration.requestContent();
+                    if (readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)))) {
+                        return ValidationResult.error(RestStatus.CONFLICT, conflictMessage("Attempted to update read-only property."));
+                    }
+                }
+                return ValidationResult.success(securityConfiguration);
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return new AuditRequestContentValidator(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return settings;
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
+                    }
+                });
+            }
+        };
     }
 
     @Override

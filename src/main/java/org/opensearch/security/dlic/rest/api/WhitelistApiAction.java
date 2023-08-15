@@ -126,7 +126,7 @@ public class WhitelistApiAction extends AllowlistApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.WHITELIST;
     }
 

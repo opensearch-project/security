@@ -74,10 +74,10 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         }
 
         String name = request.param("name");
-        SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
+        SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigType(), false);
 
         if (existingConfiguration.getSeqNo() < 0) {
-            forbidden(channel, "Config '" + getConfigName().toLCString() + "' isn't configured. Use SecurityAdmin to populate.");
+            forbidden(channel, "Config '" + getConfigType().toLCString() + "' isn't configured. Use SecurityAdmin to populate.");
             return;
         }
 
@@ -94,7 +94,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         JsonNode existingAsJsonNode = Utils.convertJsonToJackson(existingConfiguration, true);
 
         if (!(existingAsJsonNode instanceof ObjectNode)) {
-            internalErrorResponse(channel, "Config " + getConfigName() + " is malformed");
+            internalErrorResponse(channel, "Config " + getConfigType() + " is malformed");
             return;
         }
 
@@ -159,7 +159,8 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        RequestContentValidator validator = createValidator();
+        // FIXME remove it
+        RequestContentValidator validator = createEndpointValidator().createRequestContentValidator();
         final ValidationResult<JsonNode> validationResult = validator.validate(request, patchedResourceAsJsonNode);
         if (!validationResult.isValid()) {
             request.params().clear();
@@ -184,7 +185,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
 
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName, client, getConfigType(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {
@@ -250,7 +251,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
 
             if (oldResource == null || !oldResource.equals(patchedResource)) {
-                RequestContentValidator validator = createValidator();
+                RequestContentValidator validator = createEndpointValidator().createRequestContentValidator();
                 final ValidationResult<JsonNode> validationResult = validator.validate(request, patchedResource);
                 if (!validationResult.isValid()) {
                     request.params().clear();
@@ -282,7 +283,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
 
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName, client, getConfigType(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {

@@ -25,7 +25,6 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
@@ -132,9 +131,9 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     private boolean accessHandler(final RestRequest request) {
         switch (request.method()) {
             case GET:
-                return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint(), "certs");
+                return restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(getEndpoint(), "certs");
             case PUT:
-                return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint(), "reloadcerts");
+                return restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(getEndpoint(), "reloadcerts");
             default:
                 return false;
         }
@@ -226,11 +225,6 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return null;
-    }
-
-    @Override
     protected void consumeParameters(RestRequest request) {
         request.param("certType");
     }
@@ -241,7 +235,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return null;
     }
 
