@@ -35,6 +35,7 @@ runs:
     - name: Build
       uses: gradle/gradle-build-action@v2
       with:
+        cache-disabled: true
         arguments: assemble
         build-root-directory: ${{ inputs.plugin-branch }}
 
