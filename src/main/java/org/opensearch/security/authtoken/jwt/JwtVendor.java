@@ -14,6 +14,7 @@ package org.opensearch.security.authtoken.jwt;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
@@ -30,6 +31,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.set.Sets;
+import org.opensearch.identity.tokens.BasicAuthToken;
+import org.opensearch.security.support.ConfigConstants;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
@@ -103,7 +107,8 @@ public class JwtVendor {
         String audience,
         Integer expirySeconds,
         List<String> roles,
-        List<String> backendRoles
+        List<String> backendRoles,
+        Boolean bwcModeEnabled
     ) throws Exception {
         String tokenIdentifier = "obo";
         long timeMillis = timeProvider.getAsLong();
@@ -142,7 +147,10 @@ public class JwtVendor {
             throw new Exception("Roles cannot be null");
         }
 
-        /* TODO: If the backendRoles is not null and the BWC Mode is on, put them into the "dbr" claim */
+        if (bwcModeEnabled && backendRoles != null) {
+            String listOfBackendRoles = String.join(",", backendRoles);
+            jwtClaims.setProperty("br", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfBackendRoles));
+        }
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 
