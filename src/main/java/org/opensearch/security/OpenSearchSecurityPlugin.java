@@ -66,7 +66,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
-import org.opensearch.action.ActionResponse;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
