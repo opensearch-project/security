@@ -14,7 +14,6 @@ package org.opensearch.security.authtoken.jwt;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.StringJoiner;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
@@ -31,8 +30,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.set.Sets;
-import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.security.support.ConfigConstants;
 
 public class JwtVendor {
@@ -44,6 +41,7 @@ public class JwtVendor {
     private final JsonWebKey signingKey;
     private final JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
+    private final Boolean bwcModeEnabled;
 
     public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
@@ -63,6 +61,7 @@ public class JwtVendor {
         } else {
             this.timeProvider = () -> System.currentTimeMillis() / 1000;
         }
+        this.bwcModeEnabled = settings.getAsBoolean(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true);
     }
 
     /*
@@ -107,8 +106,7 @@ public class JwtVendor {
         String audience,
         Integer expirySeconds,
         List<String> roles,
-        List<String> backendRoles,
-        Boolean bwcModeEnabled
+        List<String> backendRoles
     ) throws Exception {
         String tokenIdentifier = "obo";
         long timeMillis = timeProvider.getAsLong();

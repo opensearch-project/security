@@ -323,7 +323,6 @@ public class ConfigConstants {
     public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";
     public static final boolean EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT = false;
 
-
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,
