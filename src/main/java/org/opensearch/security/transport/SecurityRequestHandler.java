@@ -40,7 +40,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.search.internal.ShardSearchRequest;
@@ -95,7 +95,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final TransportChannel transportChannel,
         Task task
     ) throws Exception {
-
         String resolvedActionClass = request.getClass().getSimpleName();
 
         if (request instanceof BulkShardRequest) {
@@ -142,36 +141,10 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
 
             // bypass non-netty requests
-            if (channelType.equals("direct")) {
-                final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
-                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
-
-                if (Strings.isNullOrEmpty(userHeader)) {
-                    // Keeping role injection with higher priority as plugins under OpenSearch will be using this
-                    // on transport layer
-                    if (!Strings.isNullOrEmpty(injectedRolesHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
-                    } else if (!Strings.isNullOrEmpty(injectedUserHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
-                    }
-                } else {
-                    getThreadContext().putTransient(
-                        ConfigConstants.OPENDISTRO_SECURITY_USER,
-                        Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader))
-                    );
-                }
-
-                final String originalRemoteAddress = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER
-                );
-
-                if (!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                    getThreadContext().putTransient(
-                        ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
-                        new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress))
-                    );
-                }
+            if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null
+                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER) != null
+                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES) != null
+                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) != null) {
 
                 final String rolesValidation = getThreadContext().getHeader(
                     ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
@@ -192,7 +165,46 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 }
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
+            } else {
+                final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
+                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
+                if (Strings.isNullOrEmpty(userHeader)) {
+                    // Keeping role injection with higher priority as plugins under OpenSearch will be using this
+                    // on transport layer
+                    if (!Strings.isNullOrEmpty(injectedRolesHeader)) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
+                    } else if (!Strings.isNullOrEmpty(injectedUserHeader)) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
+                    }
+                } else {
+                    getThreadContext().putTransient(
+                        ConfigConstants.OPENDISTRO_SECURITY_USER,
+                        Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader))
+                    );
+                }
+
+                String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
+
+                if (!Strings.isNullOrEmpty(originalRemoteAddress)) {
+                    getThreadContext().putTransient(
+                        ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
+                        new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress))
+                    );
+                } else {
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
+                }
+
+                final String rolesValidation = getThreadContext().getHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
+                );
+                if (!Strings.isNullOrEmpty(rolesValidation)) {
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
+                }
+            }
+
+            if (channelType.equals("direct")) {
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
             }
@@ -272,58 +284,10 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 // network intercluster request or cross search cluster request
                 // CS-SUPPRESS-SINGLE: RegexpSingleline Used to allow/disallow TLS connections to extensions
-                if (HeaderHelper.isInterClusterRequest(getThreadContext())
+                if (!(HeaderHelper.isInterClusterRequest(getThreadContext())
                     || HeaderHelper.isTrustedClusterRequest(getThreadContext())
-                    || HeaderHelper.isExtensionRequest(getThreadContext())) {
+                    || HeaderHelper.isExtensionRequest(getThreadContext()))) {
                     // CS-ENFORCE-SINGLE
-
-                    final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                    final String injectedRolesHeader = getThreadContext().getHeader(
-                        ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER
-                    );
-                    final String injectedUserHeader = getThreadContext().getHeader(
-                        ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER
-                    );
-
-                    if (Strings.isNullOrEmpty(userHeader)) {
-                        // Keeping role injection with higher priority as plugins under OpenSearch will be using this
-                        // on transport layer
-                        if (!Strings.isNullOrEmpty(injectedRolesHeader)) {
-                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
-                        } else if (!Strings.isNullOrEmpty(injectedUserHeader)) {
-                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
-                        }
-                    } else {
-                        getThreadContext().putTransient(
-                            ConfigConstants.OPENDISTRO_SECURITY_USER,
-                            Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader))
-                        );
-                    }
-
-                    String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
-
-                    if (!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                        getThreadContext().putTransient(
-                            ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
-                            new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress))
-                        );
-                    } else {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
-                    }
-
-                    final String rolesValidation = getThreadContext().getHeader(
-                        ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
-                    );
-                    if (!Strings.isNullOrEmpty(rolesValidation)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
-                    }
-
-                } else {
-                    // this is a netty request from a non-server node (maybe also be internal: or a shard request)
-                    // and therefore issued by a transport client
-
-                    // since OS 2.0 we do not support this any longer because transport client no longer available
-
                     final OpenSearchException exception = ExceptionUtils.createTransportClientNoLongerSupportedException();
                     log.error(exception.toString());
                     transportChannel.sendResponse(exception);
@@ -346,9 +310,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 }
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
-
-                super.messageReceivedDecorate(request, handler, transportChannel, task);
             }
+            super.messageReceivedDecorate(request, handler, transportChannel, task);
         } finally {
 
             if (isActionTraceEnabled()) {

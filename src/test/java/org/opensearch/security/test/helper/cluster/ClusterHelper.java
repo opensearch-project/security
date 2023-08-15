@@ -29,6 +29,11 @@ package org.opensearch.security.test.helper.cluster;
 // CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -40,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -55,7 +59,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.node.DiscoveryNodeRole;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.http.HttpInfo;
@@ -129,7 +133,7 @@ public final class ClusterHelper {
 
         switch (clusterState) {
             case UNINITIALIZED:
-                FileUtils.deleteDirectory(new File("./target/data/" + clustername));
+                deleteTestsDataDirectory();
                 break;
             case STARTED:
                 closeAllNodes();
@@ -251,19 +255,15 @@ public final class ClusterHelper {
             PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode, settingsForNode, setting.getPlugins());
             System.out.println(node.settings());
 
-            new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        node.start();
-                        latch.countDown();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        log.error("Unable to start node: ", e);
-                        err.set(e);
-                        latch.countDown();
-                    }
+            new Thread(() -> {
+                try {
+                    node.start();
+                    latch.countDown();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("Unable to start node: ", e);
+                    err.set(e);
+                    latch.countDown();
                 }
             }).start();
             opensearchNodes.add(node);
@@ -308,9 +308,28 @@ public final class ClusterHelper {
         return cInfo;
     }
 
-    public final void stopCluster() throws Exception {
+    public void stopCluster() throws Exception {
         closeAllNodes();
-        FileUtils.deleteDirectory(new File("./target/data/" + clustername));
+        deleteTestsDataDirectory();
+    }
+
+    private void deleteTestsDataDirectory() throws IOException {
+        final File testsDataDir = new File("target/data/" + clustername);
+        if (testsDataDir.exists()) {
+            Files.walkFileTree(testsDataDir.toPath(), new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
     }
 
     private void closeAllNodes() throws Exception {

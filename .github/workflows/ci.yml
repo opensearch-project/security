@@ -1,6 +1,12 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - 1.*
+      - 2.*
+  pull_request:
 
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
@@ -18,7 +24,7 @@ jobs:
         java-version: 17
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Generate list of tasks
       id: set-matrix
@@ -44,17 +50,18 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
       with:
+        cache-disabled: true
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
           -x test
 
     - name: Coverage
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./build/reports/jacoco/test/jacocoTestReport.xml
@@ -87,12 +94,13 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
       continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
       with:
+        cache-disabled: true
         arguments: |
           integrationTest -Dbuild.snapshot=false
 
@@ -110,7 +118,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - id: build-previous
       uses: ./.github/actions/run-bwc-suite
@@ -122,20 +130,20 @@ jobs:
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/setup-java@v1
       with:
         java-version: 11
-    - uses: github/codeql-action/init@v1
+    - uses: github/codeql-action/init@v2
       with:
         languages: java
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test -x integrationTest
-    - uses: github/codeql-action/analyze@v1
+    - run: ./gradlew clean assemble
+    - uses: github/codeql-action/analyze@v2
 
   build-artifact-names:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: actions/setup-java@v1
       with:

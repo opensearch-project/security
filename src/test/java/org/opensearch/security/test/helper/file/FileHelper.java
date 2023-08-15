@@ -32,6 +32,8 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -42,11 +44,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
+import org.opensearch.common.io.Streams;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -94,17 +96,21 @@ public class FileHelper {
         return null;
     }
 
-    public static final String loadFile(final String file) throws IOException {
-        final StringWriter sw = new StringWriter();
-        IOUtils.copy(FileHelper.class.getResourceAsStream("/" + file), sw, StandardCharsets.UTF_8);
-        return sw.toString();
+    public static String loadFile(final String file) throws IOException {
+        try (
+            final StringWriter sw = new StringWriter();
+            final Reader reader = new InputStreamReader(FileHelper.class.getResourceAsStream("/" + file), StandardCharsets.UTF_8)
+        ) {
+            Streams.copy(reader, sw);
+            return sw.toString();
+        }
     }
 
     public static BytesReference readYamlContent(final String file) {
 
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML)
+            parser = XContentType.YAML.xContent()
                 .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -127,7 +133,7 @@ public class FileHelper {
 
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML)
+            parser = XContentType.YAML.xContent()
                 .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();

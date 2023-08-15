@@ -42,7 +42,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -64,6 +64,11 @@ public class DashboardsInfoAction extends BaseRestHandler {
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
+
+    public static final String DEFAULT_PASSWORD_MESSAGE = "Password should be at least 8 characters long and contain at least one "
+        + "uppercase letter, one lowercase letter, one digit, and one special character.";
+
+    public static final String DEFAULT_PASSWORD_REGEX = "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{8,}";
 
     public DashboardsInfoAction(
         final Settings settings,
@@ -103,6 +108,14 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.field("multitenancy_enabled", evaluator.multitenancyEnabled());
                     builder.field("private_tenant_enabled", evaluator.privateTenantEnabled());
                     builder.field("default_tenant", evaluator.dashboardsDefaultTenant());
+                    builder.field(
+                        "password_validation_error_message",
+                        client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, DEFAULT_PASSWORD_MESSAGE)
+                    );
+                    builder.field(
+                        "password_validation_regex",
+                        client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
+                    );
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);

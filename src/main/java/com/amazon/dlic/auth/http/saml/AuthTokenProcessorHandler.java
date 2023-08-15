@@ -53,14 +53,14 @@ import org.xml.sax.SAXException;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 
@@ -168,9 +168,7 @@ class AuthTokenProcessorHandler {
 
         try {
 
-            SamlResponse samlResponse = new SamlResponse(saml2Settings, null);
-            samlResponse.setDestinationUrl(acsEndpoint);
-            samlResponse.loadXmlFromBase64(samlResponseBase64);
+            final SamlResponse samlResponse = new SamlResponse(saml2Settings, acsEndpoint, samlResponseBase64);
 
             if (!samlResponse.isValid(samlRequestId)) {
                 log.warn("Error while validating SAML response in /_opendistro/_security/api/authtoken");
@@ -194,7 +192,7 @@ class AuthTokenProcessorHandler {
         XPathExpressionException, ParserConfigurationException, SAXException, SettingsException {
         try {
 
-            if (restRequest.getXContentType() != XContentType.JSON) {
+            if (restRequest.getMediaType() != XContentType.JSON) {
                 throw new OpenSearchSecurityException(
                     "/_opendistro/_security/api/authtoken expects content with type application/json",
                     RestStatus.UNSUPPORTED_MEDIA_TYPE

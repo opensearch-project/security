@@ -34,14 +34,15 @@ import org.joda.time.format.DateTimeFormatter;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.common.Strings;
-import org.opensearch.index.shard.ShardId;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
@@ -205,7 +206,7 @@ public final class AuditMessage {
     // }
     // }
 
-    public void addTupleToRequestBody(Tuple<XContentType, BytesReference> xContentTuple) {
+    public void addTupleToRequestBody(Tuple<MediaType, BytesReference> xContentTuple) {
         if (xContentTuple != null) {
             try {
                 auditInfo.put(REQUEST_BODY, XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1()));
@@ -377,7 +378,7 @@ public final class AuditMessage {
             addRestMethod(request.method());
             if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
                 try {
-                    final Tuple<XContentType, BytesReference> xContentTuple = request.contentOrSourceParam();
+                    final Tuple<MediaType, BytesReference> xContentTuple = request.contentOrSourceParam();
                     final String requestBody = XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
                     if (path != null
                         && requestBody != null
@@ -465,7 +466,7 @@ public final class AuditMessage {
     @Override
     public String toString() {
         try {
-            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
+            return JsonXContent.contentBuilder().map(getAsMap()).toString();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
@@ -473,7 +474,7 @@ public final class AuditMessage {
 
     public String toPrettyString() {
         try {
-            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().prettyPrint().map(getAsMap()));
+            return JsonXContent.contentBuilder().prettyPrint().map(getAsMap()).toString();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
