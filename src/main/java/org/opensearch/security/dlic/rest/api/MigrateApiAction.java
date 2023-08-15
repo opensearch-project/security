@@ -23,8 +23,6 @@ import com.google.common.collect.ImmutableList;
 import org.opensearch.LegacyESVersion;
 import org.opensearch.Version;
 import org.opensearch.action.ActionListener;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
 import org.opensearch.action.bulk.BulkResponse;
