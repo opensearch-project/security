@@ -27,6 +27,7 @@ jobs:
       - name: Assemble target plugin
         uses: gradle/gradle-build-action@v2
         with:
+          cache-disabled: true
           arguments: assemble
 
       - name: Create Setup Script
@@ -53,4 +54,5 @@ jobs:
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
         with:
+          cache-disabled: true
           arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
