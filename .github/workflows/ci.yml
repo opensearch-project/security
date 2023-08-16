@@ -113,6 +113,7 @@ jobs:
     steps:
     - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
@@ -131,6 +132,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
     - uses: github/codeql-action/init@v2
       with:
@@ -145,6 +147,7 @@ jobs:
 
     - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
 
     - run: |
