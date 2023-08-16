@@ -203,7 +203,7 @@ public class SecurityIndexAccessEvaluator {
         Boolean isDebugEnabled
 
     ) {
-        if (matchAnyDenyIndices(requestedResolved)){
+        if (matchAnyDenyIndices(requestedResolved)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             if (log.isInfoEnabled()) {
                 log.info(

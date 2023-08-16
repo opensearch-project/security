@@ -161,6 +161,23 @@ public class SecurityIndexAccessEvaluatorTest {
     }
 
     @Test
+    public void protectedActionLocalAllWithNewAccessControl() {
+        setupEvaluatorWithSystemIndicesControl();
+        final Resolved resolved = Resolved._LOCAL_ALL;
+
+        // Action
+        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, securityRoles);
+        verify(log).isDebugEnabled();
+
+        verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
+        assertThat(presponse.allowed, is(false));
+        verify(presponse).markComplete();
+        verify(presponse).isComplete();
+        verify(log).isDebugEnabled();
+        verify(log).info("{} for '_all' indices is not allowed for a regular user", "indices:data/write");
+    }
+
+    @Test
     public void protectedActionSystemIndex() {
         setupEvaluatorWithSystemIndicesControl();
         final Resolved resolved = createResolved(".testSystemIndex");
