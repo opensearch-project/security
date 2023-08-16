@@ -43,6 +43,7 @@ import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVIL
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPredicate;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.grantedPrivilege;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticated;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -187,7 +188,17 @@ public class WhoAmITests {
         try (TestRestClient client = cluster.getRestClient(AUDIT_LOG_VERIFIER)) {
             assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
 
+            auditLogsRule.assertExactly(
+                1,
+                auditPredicate(GRANTED_PRIVILEGES).withLayer(AuditLog.Origin.REST)
+                    .withRestMethod(RestRequest.Method.GET)
+                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
+                    .withEffectiveUser(AUDIT_LOG_VERIFIER)
+            );
+
             assertThat(client.get("_cat/indices").getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            auditLogsRule.assertExactly(2, grantedPrivilege(AUDIT_LOG_VERIFIER, "GetSettingsRequest"));
 
             List<AuditMessage> grantedPrivilegesMessages = auditLogsRule.getCurrentTestAuditMessages()
                 .stream()
