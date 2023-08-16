@@ -12,7 +12,7 @@ jobs:
       separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
     steps:
     - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 17
@@ -38,7 +38,7 @@ jobs:
 
     steps:
     - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
@@ -80,8 +80,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
@@ -97,9 +98,10 @@ jobs:
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
     - uses: github/codeql-action/init@v1
       with:
@@ -112,8 +114,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
 
     - run: |
