@@ -665,7 +665,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         verifyCouldNotCreatePasswords(HttpStatus.SC_BAD_REQUEST);
         verifyCanCreatePasswords();
-        verifySimilarity("xxx");
+        verifySimilarity(RequestContentValidator.ValidationError.SIMILAR_PASSWORD.message());
 
         addUserWithPasswordAndHash("empty_password", "", "$%^123", HttpStatus.SC_BAD_REQUEST);
         addUserWithPasswordAndHash("null_password", null, "$%^123", HttpStatus.SC_BAD_REQUEST);
