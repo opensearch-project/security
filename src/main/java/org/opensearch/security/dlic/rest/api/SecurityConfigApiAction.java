@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -20,13 +19,10 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
@@ -38,7 +34,6 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Data
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -66,8 +61,6 @@ public class SecurityConfigApiAction extends AbstractApiAction {
     public SecurityConfigApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -77,7 +70,7 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         AuditLog auditLog
     ) {
 
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
         this.requestHandlersBuilder.configureRequestHandlers(this::securityConfigApiActionRequestHandlers);
     }
@@ -103,36 +96,22 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         return RESOURCE_NAME;
     }
 
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
-    }
-
-    @Override
-    protected void handleApiRequest(RestChannel channel, RestRequest request, Client client) throws IOException {
-        if (request.method() == Method.PATCH && !allowPutOrPatch) {
-            notImplemented(channel, Method.PATCH);
-        } else {
-            super.handleApiRequest(channel, request, client);
-        }
-    }
-
     private void securityConfigApiActionRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onChangeRequest(Method.PUT, request -> {
-            if (!allowPutOrPatch) {
-                return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
-            } else {
-                return withConfigResourceNameOnly(request).map(ignore -> processPutRequest(request));
-            }
-        })
-            .onChangeRequest(Method.PATCH, this::processPatchRequest)
+        requestHandlersBuilder.onChangeRequest(
+            Method.PUT,
+            request -> withAllowedEndpoint(request).map(this::withConfigResourceNameOnly).map(ignore -> processPutRequest(request))
+        )
+            .onChangeRequest(Method.PATCH, request -> withAllowedEndpoint(request).map(this::processPatchRequest))
             .override(Method.POST, methodNotImplementedHandler)
             .override(Method.DELETE, methodNotImplementedHandler)
             .override(Method.POST, methodNotImplementedHandler);
+    }
+
+    private ValidationResult<RestRequest> withAllowedEndpoint(final RestRequest request) {
+        if (!allowPutOrPatch) {
+            return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
+        }
+        return ValidationResult.success(request);
     }
 
     private ValidationResult<String> withConfigResourceNameOnly(final RestRequest request) {

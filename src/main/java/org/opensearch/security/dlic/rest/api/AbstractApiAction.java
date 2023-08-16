@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api;
 
 import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -38,13 +37,10 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
@@ -76,8 +72,9 @@ import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.notFoundMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
@@ -108,8 +105,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     protected AbstractApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -457,45 +452,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     protected abstract CType getConfigType();
 
-    protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
-        try {
-            switch (request.method()) {
-                case DELETE:
-                    requestHandlers.get(Method.DELETE).handle(channel, request, client);
-                    break;
-                case PATCH:
-                    requestHandlers.get(Method.PATCH).handle(channel, request, client);
-                    break;
-                case POST:
-                    requestHandlers.get(Method.POST).handle(channel, request, client);
-                    break;
-                case PUT:
-                    requestHandlers.get(Method.PUT).handle(channel, request, client);
-                    break;
-                case GET:
-                    requestHandlers.get(Method.GET).handle(channel, request, client);
-                    break;
-                default:
-                    throw new IllegalArgumentException(request.method() + " not supported");
-            }
-        } catch (JsonMappingException jme) {
-            throw jme;
-            // TODO strip source
-            // if(jme.getLocation() == null || jme.getLocation().getSourceRef() == null) {
-            // throw jme;
-            // } else throw new JsonMappingException(null, jme.getMessage());
-        }
-    }
-
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) throws IOException {
-        return false;
-    }
-
     protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent)
             .get(config)
@@ -504,27 +460,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected boolean ensureIndexExists() {
-        if (!cs.state().metadata().hasConcreteIndex(this.securityIndexName)) {
-            return false;
-        }
-        return true;
-    }
-
-    protected void filter(SecurityDynamicConfiguration<?> builder) {
-        if (!isSuperAdmin()) {
-            builder.removeHidden();
-        }
-        builder.set_meta(null);
-    }
-
-    protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
-        // Default is false. Override function for additional logic
-        return false;
-    }
-
-    protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
-        // Default is false. Override function for additional logic
-        return false;
+        return cs.state().metadata().hasConcreteIndex(this.securityIndexName);
     }
 
     abstract static class OnSucessActionListener<Response> implements ActionListener<Response> {
@@ -623,7 +559,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
-            return channel -> internalErrorResponse(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
+            return channel -> internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
         }
 
         // check if request is authorized
@@ -641,18 +577,21 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             auditLog.logGrantedPrivileges(userName, request);
         }
 
-        final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final Object originalRemoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
         final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
 
         return channel -> threadPool.generic().submit(() -> {
             try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
                 threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUser);
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
+                threadPool.getThreadContext()
+                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+                threadPool.getThreadContext()
+                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalUserAndRemoteAddress.getRight());
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
 
-                handleApiRequest(channel, request, client);
+                requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
+                final var requestHandler = requestHandlers.getOrDefault(request.method(), methodNotImplementedHandler);
+                requestHandler.handle(channel, request, client);
             } catch (Exception e) {
                 LOGGER.error("Error processing request {}", request, e);
                 try {
@@ -662,109 +601,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 }
             }
         });
-    }
-
-    protected static XContentBuilder convertToJson(RestChannel channel, ToXContent toxContent) {
-        try {
-            XContentBuilder builder = channel.newBuilder();
-            toxContent.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            return builder;
-        } catch (IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
-
-    protected void response(RestChannel channel, RestStatus status, String message) {
-        try {
-            final XContentBuilder builder = channel.newBuilder();
-            builder.startObject();
-            builder.field("status", status.name());
-            builder.field("message", message);
-            builder.endObject();
-            channel.sendResponse(new BytesRestResponse(status, builder));
-        } catch (IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
-
-    protected void successResponse(RestChannel channel, SecurityDynamicConfiguration<?> response) {
-        channel.sendResponse(new BytesRestResponse(RestStatus.OK, convertToJson(channel, response)));
-    }
-
-    protected void successResponse(RestChannel channel) {
-        try {
-            final XContentBuilder builder = channel.newBuilder();
-            builder.startObject();
-            builder.endObject();
-            channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
-        } catch (IOException e) {
-            internalErrorResponse(channel, "Unable to fetch license: " + e.getMessage());
-            LOGGER.error("Cannot fetch convert license to XContent due to", e);
-        }
-    }
-
-    protected void badRequestResponse(RestChannel channel, ToXContent validationResult) {
-        channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, convertToJson(channel, validationResult)));
-    }
-
-    protected void successResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.OK, message);
-    }
-
-    protected void createdResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.CREATED, message);
-    }
-
-    protected void badRequestResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.BAD_REQUEST, message);
-    }
-
-    protected void notFound(RestChannel channel, String message) {
-        response(channel, RestStatus.NOT_FOUND, message);
-    }
-
-    protected void forbidden(RestChannel channel, String message) {
-        response(channel, RestStatus.FORBIDDEN, message);
-    }
-
-    protected void internalErrorResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.INTERNAL_SERVER_ERROR, message);
-    }
-
-    protected void conflict(RestChannel channel, String message) {
-        response(channel, RestStatus.CONFLICT, message);
-    }
-
-    protected void notImplemented(RestChannel channel, Method method) {
-        response(channel, RestStatus.NOT_IMPLEMENTED, "Method " + method.name() + " not supported for this action.");
-    }
-
-    protected final ValidationResult<SecurityConfiguration> resourceNotHidden(final SecurityConfiguration securityConfiguration) {
-        if (isHidden(securityConfiguration.configuration(), securityConfiguration.entityName())) {
-            return ValidationResult.error(
-                RestStatus.NOT_FOUND,
-                notFoundMessage("Resource '" + securityConfiguration.entityName() + "' is not available.")
-            );
-        }
-        return ValidationResult.success(securityConfiguration);
-    }
-
-    protected final ValidationResult<SecurityConfiguration> resourceNotReadOnly(final SecurityConfiguration securityConfiguration) {
-        if (isReadOnly(securityConfiguration.configuration(), securityConfiguration.entityName())) {
-            return ValidationResult.error(
-                RestStatus.FORBIDDEN,
-                forbiddenMessage("Resource '" + securityConfiguration.entityName() + "' is read-only.")
-            );
-        }
-        return ValidationResult.success(securityConfiguration);
-    }
-
-    protected final boolean isReserved(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-        return configuration.isStatic(resourceName) || configuration.isReserved(resourceName);
-    }
-
-    protected final boolean isHidden(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-        return configuration.isHidden(resourceName) && !isSuperAdmin();
     }
 
     /**
@@ -791,51 +627,4 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(getEndpoint());
     }
 
-    /**
-     * Resource is readonly if it is reserved and user is not super admin.
-     * @param existingConfiguration Configuration
-     * @param name
-     * @return True if resource readonly
-     */
-    protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        return !isSuperAdmin() && isReserved(existingConfiguration, name);
-    }
-
-    /**
-     * Checks if it is valid to add role to opendistro_security_roles or rolesmapping.
-     * Role can be mapped to user if it exists. Only superadmin can add hidden or reserved roles.
-     *
-     * @param channel	Rest Channel for response
-     * @param role		Name of the role
-     * @return True if role can be mapped
-     */
-    protected boolean isValidRolesMapping(final RestChannel channel, final String role) {
-        final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
-        final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, false);
-
-        if (!rolesConfiguration.exists(role)) {
-            notFound(channel, "Role '" + role + "' is not available for role-mapping.");
-            return false;
-        }
-
-        if (isHidden(rolesConfiguration, role)) {
-            notFound(channel, "Role '" + role + "' is not available for role-mapping.");
-            return false;
-        }
-
-        return isWriteable(channel, rolesMappingConfiguration, role);
-    }
-
-    boolean isWriteable(final RestChannel channel, final SecurityDynamicConfiguration<?> configuration, final String resourceName) {
-        if (isHidden(configuration, resourceName)) {
-            notFound(channel, "Resource '" + resourceName + "' is not available.");
-            return false;
-        }
-
-        if (isReadOnly(configuration, resourceName)) {
-            forbidden(channel, "Resource '" + resourceName + "' is read-only.");
-            return false;
-        }
-        return true;
-    }
 }

@@ -14,12 +14,10 @@ package org.opensearch.security.dlic.rest.api;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
@@ -28,7 +26,6 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -68,8 +65,6 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     public SecuritySSLCertsAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -80,7 +75,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
         final SecurityKeyStore securityKeyStore,
         final boolean certificatesReloadEnabled
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.securityKeyStore = securityKeyStore;
         this.certificatesReloadEnabled = certificatesReloadEnabled;
         this.httpsEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true);
@@ -88,17 +83,33 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
+    public List<Route> routes() {
+        return ROUTES;
     }
 
     @Override
-    public List<Route> routes() {
-        return ROUTES;
+    protected Endpoint getEndpoint() {
+        return Endpoint.SSL;
+    }
+
+    @Override
+    public String getName() {
+        return "SSL Certificates Action";
+    }
+
+    @Override
+    protected void consumeParameters(RestRequest request) {
+        request.param("certType");
+    }
+
+    @Override
+    protected String getResourceName() {
+        return null;
+    }
+
+    @Override
+    protected CType getConfigType() {
+        return null;
     }
 
     private void securitySSLCertsRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
@@ -212,31 +223,6 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
             // LOGGER.error("Reload of certificates for {} failed", certType, e);
             throw new IOException(e);
         }
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.SSL;
-    }
-
-    @Override
-    public String getName() {
-        return "SSL Certificates Action";
-    }
-
-    @Override
-    protected void consumeParameters(RestRequest request) {
-        request.param("certType");
-    }
-
-    @Override
-    protected String getResourceName() {
-        return null;
-    }
-
-    @Override
-    protected CType getConfigType() {
-        return null;
     }
 
 }

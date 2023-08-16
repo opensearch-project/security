@@ -16,12 +16,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ReadContext;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
@@ -35,7 +33,6 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Data
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -110,8 +107,6 @@ public class RolesApiAction extends AbstractApiAction {
     public RolesApiAction(
         Settings settings,
         final Path configPath,
-        RestController controller,
-        Client client,
         AdminDNs adminDNs,
         ConfigurationRepository cl,
         ClusterService cs,
@@ -120,7 +115,7 @@ public class RolesApiAction extends AbstractApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.requestHandlersBuilder.configureRequestHandlers(this::rolesApiRequestHandlers);
     }
 
@@ -203,28 +198,6 @@ public class RolesApiAction extends AbstractApiAction {
                 });
             }
         };
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfiguration,
-        final Object content,
-        final String resourceName
-    ) throws IOException {
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(content)) {
-            return isSuperAdmin();
-        } else {
-            return true;
-        }
-    }
-
-    @Override
-    protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(existingConfiguration.getCEntry(name))) {
-            return !isSuperAdmin();
-        } else {
-            return super.isReadOnly(existingConfiguration, name);
-        }
     }
 
 }

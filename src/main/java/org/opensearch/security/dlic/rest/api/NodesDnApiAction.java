@@ -22,13 +22,10 @@ import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
@@ -81,8 +78,6 @@ public class NodesDnApiAction extends AbstractApiAction {
     public NodesDnApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -91,18 +86,9 @@ public class NodesDnApiAction extends AbstractApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList());
         this.requestHandlersBuilder.configureRequestHandlers(this::nodesDnApiRequestHandlers);
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
     }
 
     @Override
@@ -114,12 +100,18 @@ public class NodesDnApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void handleApiRequest(RestChannel channel, RestRequest request, Client client) throws IOException {
-        if (!isSuperAdmin()) {
-            forbidden(channel, "API allowed only for admin.");
-            return;
-        }
-        super.handleApiRequest(channel, request, client);
+    protected Endpoint getEndpoint() {
+        return Endpoint.NODESDN;
+    }
+
+    @Override
+    protected String getResourceName() {
+        return "nodesdn";
+    }
+
+    @Override
+    protected CType getConfigType() {
+        return CType.NODESDN;
     }
 
     protected void consumeParameters(final RestRequest request) {
@@ -137,14 +129,6 @@ public class NodesDnApiAction extends AbstractApiAction {
         })).onChangeRequest(Method.PATCH, this::processPatchRequest);
     }
 
-    @Override
-    protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        if (STATIC_OPENSEARCH_YML_NODES_DN.equals(name)) {
-            return true;
-        }
-        return super.isReadOnly(existingConfiguration, name);
-    }
-
     @SuppressWarnings("unchecked")
     private void addStaticNodesDn(SecurityDynamicConfiguration<?> configuration) {
         if (NodesDn.class.equals(configuration.getImplementingClass())) {
@@ -154,21 +138,6 @@ public class NodesDnApiAction extends AbstractApiAction {
         } else {
             throw new RuntimeException("Unknown class type - " + configuration.getImplementingClass());
         }
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.NODESDN;
-    }
-
-    @Override
-    protected String getResourceName() {
-        return "nodesdn";
-    }
-
-    @Override
-    protected CType getConfigType() {
-        return CType.NODESDN;
     }
 
     @Override

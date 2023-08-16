@@ -137,7 +137,6 @@ public class RequestContentValidator implements ToXContent {
             final JsonNode jsonContent = DefaultObjectMapper.readTree(request.content().utf8ToString());
             return ValidationResult.success(jsonContent);
         } catch (final IOException ioe) {
-            LOGGER.error(ValidationError.BODY_NOT_PARSEABLE.message(), ioe);
             this.validationError = ValidationError.BODY_NOT_PARSEABLE;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }

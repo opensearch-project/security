@@ -17,11 +17,9 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
@@ -98,8 +96,6 @@ public class WhitelistApiAction extends AllowlistApiAction {
     public WhitelistApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -108,7 +104,7 @@ public class WhitelistApiAction extends AllowlistApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
     }
 
     public List<Route> routes() {

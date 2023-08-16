@@ -11,13 +11,11 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
@@ -48,6 +46,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -59,8 +58,6 @@ public class ValidateApiAction extends AbstractApiAction {
     public ValidateApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -69,22 +66,29 @@ public class ValidateApiAction extends AbstractApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.requestHandlersBuilder.configureRequestHandlers(this::validateApiRequestHandlers);
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
     }
 
     @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    protected String getResourceName() {
+        // not needed
+        return null;
+    }
+
+    @Override
+    protected CType getConfigType() {
+        return null;
+    }
+
+    @Override
+    protected void consumeParameters(final RestRequest request) {
+        request.paramAsBoolean("accept_invalid", false);
     }
 
     @Override
@@ -104,7 +108,7 @@ public class ValidateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<?> loadedConfig = load(CType.CONFIG, true, acceptInvalid);
 
         if (loadedConfig.getVersion() != 1) {
-            badRequestResponse(channel, "Can not migrate configuration because it was already migrated.");
+            badRequest(channel, "Can not migrate configuration because it was already migrated.");
             return;
         }
 
@@ -149,23 +153,7 @@ public class ValidateApiAction extends AbstractApiAction {
         }
     }
 
-    @Override
-    protected String getResourceName() {
-        // not needed
-        return null;
-    }
-
-    @Override
-    protected CType getConfigType() {
-        return null;
-    }
-
-    @Override
-    protected void consumeParameters(final RestRequest request) {
-        request.paramAsBoolean("accept_invalid", false);
-    }
-
-    private final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
+    private SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
         SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(
             Collections.singleton(config),
             logComplianceEvent,

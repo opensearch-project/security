@@ -13,12 +13,9 @@ package org.opensearch.security.dlic.rest.api;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
@@ -28,13 +25,11 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -94,8 +89,6 @@ public class AllowlistApiAction extends AbstractApiAction {
     public AllowlistApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -104,29 +97,11 @@ public class AllowlistApiAction extends AbstractApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
-        this.requestHandlersBuilder.configureRequestHandlers(this::allowlistApiRequestHandlers);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::allowListApiRequestHandlers);
     }
 
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
-    }
-
-    @Override
-    protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        if (!isSuperAdmin()) {
-            forbidden(channel, "API allowed only for super admin.");
-            return;
-        }
-        super.handleApiRequest(channel, request, client);
-    }
-
-    private void allowlistApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void allowListApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.verifyAccessForAllMethods()
             .onChangeRequest(RestRequest.Method.PATCH, this::processPatchRequest)
             .onChangeRequest(

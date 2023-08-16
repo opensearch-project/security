@@ -14,12 +14,10 @@ package org.opensearch.security.dlic.rest.api;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
@@ -74,8 +72,6 @@ public class ActionGroupsApiAction extends AbstractApiAction {
     public ActionGroupsApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -84,7 +80,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.requestHandlersBuilder.configureRequestHandlers(this::actionGroupsApiRequestHandlers);
     }
 
@@ -224,23 +220,4 @@ public class ActionGroupsApiAction extends AbstractApiAction {
         };
     }
 
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfiguration,
-        final Object content,
-        final String resourceName
-    ) throws IOException {
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(content)) {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(existingConfiguration.getCEntry(name))) {
-            return true;
-        }
-        return super.isReadOnly(existingConfiguration, name);
-    }
 }

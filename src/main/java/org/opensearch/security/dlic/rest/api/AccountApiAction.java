@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Triple;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -24,7 +23,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
@@ -70,8 +68,6 @@ public class AccountApiAction extends AbstractApiAction {
     public AccountApiAction(
         Settings settings,
         Path configPath,
-        RestController controller,
-        Client client,
         AdminDNs adminDNs,
         ConfigurationRepository cl,
         ClusterService cs,
@@ -80,19 +76,10 @@ public class AccountApiAction extends AbstractApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
         this.requestHandlersBuilder.configureRequestHandlers(this::accountApiRequestHandlers);
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
     }
 
     @Override
@@ -164,7 +151,7 @@ public class AccountApiAction extends AbstractApiAction {
             channel,
             (builder, params) -> builder.startObject()
                 .field("user_name", user.getName())
-                .field("is_reserved", isReserved(configuration, user.getName()))
+                .field("is_reserved", configuration.isReserved(user.getName()))
                 .field("is_hidden", configuration.isHidden(user.getName()))
                 .field("is_internal_user", configuration.exists(user.getName()))
                 .field("user_requested_tenant", user.getRequestedTenant())

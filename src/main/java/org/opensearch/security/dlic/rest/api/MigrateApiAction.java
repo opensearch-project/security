@@ -12,13 +12,8 @@
 package org.opensearch.security.dlic.rest.api;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
 
 import com.google.common.collect.ImmutableList;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -30,16 +25,15 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.Settings.Builder;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
@@ -66,6 +60,11 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
@@ -81,8 +80,6 @@ public class MigrateApiAction extends AbstractApiAction {
     public MigrateApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -91,7 +88,7 @@ public class MigrateApiAction extends AbstractApiAction {
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.requestHandlersBuilder.configureRequestHandlers(this::migrateApiRequestHandlers);
     }
 
@@ -106,12 +103,19 @@ public class MigrateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
+    protected String getResourceName() {
+        // not needed
+        return null;
+    }
+
+    @Override
+    protected CType getConfigType() {
+        return null;
+    }
+
+    @Override
+    protected void consumeParameters(final RestRequest request) {
+        // not needed
     }
 
     private void migrateApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
@@ -282,22 +286,6 @@ public class MigrateApiAction extends AbstractApiAction {
             }
         });
 
-    }
-
-    @Override
-    protected String getResourceName() {
-        // not needed
-        return null;
-    }
-
-    @Override
-    protected CType getConfigType() {
-        return null;
-    }
-
-    @Override
-    protected void consumeParameters(final RestRequest request) {
-        // not needed
     }
 
 }

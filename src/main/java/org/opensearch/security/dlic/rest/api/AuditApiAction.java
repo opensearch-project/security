@@ -17,13 +17,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
@@ -39,7 +35,6 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Data
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -52,6 +47,7 @@ import java.util.Set;
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -146,8 +142,6 @@ public class AuditApiAction extends AbstractApiAction {
     @VisibleForTesting
     public static final String STATIC_RESOURCE = "/static_config/static_audit.yml";
     private final List<String> readonlyFields;
-    private final PrivilegesEvaluator privilegesEvaluator;
-    private final ThreadContext threadContext;
 
     public static class AuditRequestContentValidator extends RequestContentValidator {
         private static final Set<AuditCategory> DISABLED_REST_CATEGORIES = ImmutableSet.of(
@@ -208,8 +202,6 @@ public class AuditApiAction extends AbstractApiAction {
     public AuditApiAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final Client client,
         final AdminDNs adminDNs,
         final ConfigurationRepository cl,
         final ClusterService cs,
@@ -218,9 +210,7 @@ public class AuditApiAction extends AbstractApiAction {
         final ThreadPool threadPool,
         final AuditLog auditLog
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
-        this.privilegesEvaluator = privilegesEvaluator;
-        this.threadContext = threadPool.getThreadContext();
+        super(settings, configPath, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         try {
             this.readonlyFields = DefaultObjectMapper.YAML_MAPPER.readValue(
                 this.getClass().getResourceAsStream(STATIC_RESOURCE),
@@ -237,28 +227,8 @@ public class AuditApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
-    }
-
-    @Override
     public List<Route> routes() {
         return routes;
-    }
-
-    @Override
-    protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        // if audit config doc is not available in security index,
-        // disable audit APIs
-        if (!cl.isAuditHotReloadingEnabled()) {
-            notImplemented(channel, request.method());
-            return;
-        }
-        super.handleApiRequest(channel, request, client);
     }
 
     @Override
@@ -277,23 +247,27 @@ public class AuditApiAction extends AbstractApiAction {
     }
 
     private void auditApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        // spotless:off
-        requestHandlersBuilder
-                .onGetRequest(request ->
-                        processGetRequest(request)
-                                .map(securityConfiguration -> {
-                                    final var configuration = securityConfiguration.configuration();
-                                    configuration.putCObject(READONLY_FIELD, readonlyFields);
-                                    return ValidationResult.success(securityConfiguration);
-                                }))
-                .onChangeRequest(RestRequest.Method.PATCH, this::processPatchRequest)
-                .onChangeRequest(RestRequest.Method.PUT, request ->
-                        withConfigResourceNameOnly(request)
-                                .map(ignore -> processPutRequest(request))
-                )
-                .override(RestRequest.Method.POST, methodNotImplementedHandler)
-                .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
-        // spotless:on
+        requestHandlersBuilder.onGetRequest(
+            request -> withEnabledAuditApi(request).map(this::processGetRequest).map(securityConfiguration -> {
+                final var configuration = securityConfiguration.configuration();
+                configuration.putCObject(READONLY_FIELD, readonlyFields);
+                return ValidationResult.success(securityConfiguration);
+            })
+        )
+            .onChangeRequest(RestRequest.Method.PATCH, request -> withEnabledAuditApi(request).map(this::processPatchRequest))
+            .onChangeRequest(
+                RestRequest.Method.PUT,
+                request -> withEnabledAuditApi(request).map(this::withConfigResourceNameOnly).map(ignore -> processPutRequest(request))
+            )
+            .override(RestRequest.Method.POST, methodNotImplementedHandler)
+            .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
+    }
+
+    private ValidationResult<RestRequest> withEnabledAuditApi(final RestRequest request) {
+        if (!cl.isAuditHotReloadingEnabled()) {
+            return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
+        }
+        return ValidationResult.success(request);
     }
 
     private ValidationResult<String> withConfigResourceNameOnly(final RestRequest request) {
@@ -364,16 +338,4 @@ public class AuditApiAction extends AbstractApiAction {
         };
     }
 
-    @Override
-    protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
-        if (!isSuperAdmin()) {
-            return readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)));
-        }
-        return false;
-    }
-
-    @Override
-    protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
-        return isReadonlyFieldUpdated(Utils.convertJsonToJackson(configuration, false).get(getResourceName()), targetResource);
-    }
 }
