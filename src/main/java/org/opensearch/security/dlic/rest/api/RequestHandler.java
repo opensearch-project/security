@@ -150,70 +150,69 @@ public interface RequestHandler {
             if (!ON_CHANGE_REQUEST.contains(method)) {
                 throw new IllegalArgumentException("Unsupported HTTP method " + method + ". Supported are: " + ON_CHANGE_REQUEST);
             }
-            // spotless:off
             switch (method) {
                 case PATCH:
-                    add(method, (channel, request, client) ->
-                            mapper.apply(request)
-                                    .valid(securityConfiguration ->
-                                            saveOrUpdateConfigurationHandler.apply(
-                                                    client,
-                                                    securityConfiguration.configuration(),
-                                                    new AbstractApiAction.OnSucessActionListener<>(channel) {
-                                                        @Override
-                                                        public void onResponse(IndexResponse indexResponse) {
-                                                            if (securityConfiguration.maybeEntityName().isPresent()) {
-                                                                ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
-                                                            } else {
-                                                                ok(channel, "Resource updated.");
-                                                            }
-                                                        }
-                                                    }
-                                            )
-                                    ).error((status, toXContent) -> response(channel, status, toXContent))
+                    add(
+                        method,
+                        (channel, request, client) -> mapper.apply(request)
+                            .valid(
+                                securityConfiguration -> saveOrUpdateConfigurationHandler.apply(
+                                    client,
+                                    securityConfiguration.configuration(),
+                                    new AbstractApiAction.OnSucessActionListener<>(channel) {
+                                        @Override
+                                        public void onResponse(IndexResponse indexResponse) {
+                                            if (securityConfiguration.maybeEntityName().isPresent()) {
+                                                ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
+                                            } else {
+                                                ok(channel, "Resource updated.");
+                                            }
+                                        }
+                                    }
+                                )
+                            )
+                            .error((status, toXContent) -> response(channel, status, toXContent))
                     );
                     break;
                 case PUT:
-                    add(method, (channel, request, client) ->
-                            mapper.apply(request)
-                                    .valid(securityConfiguration -> {
-                                        saveOrUpdateConfigurationHandler.apply(
-                                                client,
-                                                securityConfiguration.configuration(),
-                                                new AbstractApiAction.OnSucessActionListener<>(channel) {
-                                                    @Override
-                                                    public void onResponse(IndexResponse response) {
-                                                        if (securityConfiguration.entityExists()) {
-                                                            ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
-                                                        } else {
-                                                            created(channel, "'" + securityConfiguration.entityName() + "' created.");
-                                                        }
-                                                    }
-                                                }
-                                        );
-                                    }).error((status, toXContent) -> response(channel, status, toXContent)));
+                    add(method, (channel, request, client) -> mapper.apply(request).valid(securityConfiguration -> {
+                        saveOrUpdateConfigurationHandler.apply(
+                            client,
+                            securityConfiguration.configuration(),
+                            new AbstractApiAction.OnSucessActionListener<>(channel) {
+                                @Override
+                                public void onResponse(IndexResponse response) {
+                                    if (securityConfiguration.entityExists()) {
+                                        ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
+                                    } else {
+                                        created(channel, "'" + securityConfiguration.entityName() + "' created.");
+                                    }
+                                }
+                            }
+                        );
+                    }).error((status, toXContent) -> response(channel, status, toXContent)));
                     break;
                 case DELETE:
                     Objects.requireNonNull(mapper, "onDeleteRequest request handler can't be null");
-                    add(RestRequest.Method.DELETE, (channel, request, client) ->
-                            mapper.apply(request)
-                                    .valid(securityConfiguration ->
-                                            saveOrUpdateConfigurationHandler.apply(
-                                                    client,
-                                                    securityConfiguration.configuration(),
-                                                    new AbstractApiAction.OnSucessActionListener<>(channel) {
-                                                        @Override
-                                                        public void onResponse(IndexResponse response) {
-                                                            ok(channel, "'" + securityConfiguration.entityName() + "' deleted.");
-                                                        }
-                                                    }
-                                            )
-                                    )
-                                    .error((status, toXContent) -> response(channel, status, toXContent))
+                    add(
+                        RestRequest.Method.DELETE,
+                        (channel, request, client) -> mapper.apply(request)
+                            .valid(
+                                securityConfiguration -> saveOrUpdateConfigurationHandler.apply(
+                                    client,
+                                    securityConfiguration.configuration(),
+                                    new AbstractApiAction.OnSucessActionListener<>(channel) {
+                                        @Override
+                                        public void onResponse(IndexResponse response) {
+                                            ok(channel, "'" + securityConfiguration.entityName() + "' deleted.");
+                                        }
+                                    }
+                                )
+                            )
+                            .error((status, toXContent) -> response(channel, status, toXContent))
                     );
                     break;
             }
-            // spotless:on
             return this;
         }
 

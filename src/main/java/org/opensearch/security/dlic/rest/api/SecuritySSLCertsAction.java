@@ -113,14 +113,14 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     private void securitySSLCertsRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        // spotless:off
         requestHandlersBuilder.withAccessHandler(this::accessHandler)
             .allMethodsNotImplemented()
             .verifyAccessForAllMethods()
-            .override(Method.GET, (channel, request, client) ->
-                    withSecurityKeyStore()
-                            .valid(keyStore -> loadCertificates(channel, keyStore))
-                            .error((status, toXContent) -> Responses.response(channel, status, toXContent)))
+            .override(
+                Method.GET,
+                (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> loadCertificates(channel, keyStore))
+                    .error((status, toXContent) -> Responses.response(channel, status, toXContent))
+            )
             .override(Method.PUT, (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> {
                 if (!certificatesReloadEnabled) {
                     badRequest(
@@ -136,7 +136,6 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
                     reloadCertificates(channel, request, keyStore);
                 }
             }).error((status, toXContent) -> Responses.response(channel, status, toXContent)));
-        // spotless:on
     }
 
     private boolean accessHandler(final RestRequest request) {

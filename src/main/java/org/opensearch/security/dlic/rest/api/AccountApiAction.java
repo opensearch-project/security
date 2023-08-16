@@ -103,41 +103,36 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     private void accountApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        // spotless:off
         requestHandlersBuilder.allMethodsNotImplemented()
-            .override(Method.GET, (channel, request, client) ->
-                    withUserAndRemoteAddress().map(
-                            userAndRemoteAddress ->
-                                    loadConfiguration(getConfigType(), false, false)
-                                            .map(configuration ->
-                                                    ValidationResult.success(
-                                                            Triple.of(
-                                                                    userAndRemoteAddress.getLeft(),
-                                                                    userAndRemoteAddress.getRight(), configuration
-                                                            )
-                                                    )
-                                            )
-                    ).valid(userRemoteAddressAndConfig -> {
-                        final var user = userRemoteAddressAndConfig.getLeft();
-                        final var remoteAddress = userRemoteAddressAndConfig.getMiddle();
-                        final var configuration = userRemoteAddressAndConfig.getRight();
-                        userAccount(channel, user, remoteAddress, configuration);
-                    }).error((status, toXContent) -> Responses.response(channel, status, toXContent))
-            ).onChangeRequest(Method.PUT, request ->
-                        withUserAndRemoteAddress()
-                                .map(userAndRemoteAddress ->
-                                        loadConfigurationWithRequestContent(
-                                                userAndRemoteAddress.getLeft().getName(),
-                                                request,
-                                                endpointValidator.createRequestContentValidator()
-                                        )
-                                )
-                                .map(endpointValidator::entityExists)
-                                .map(endpointValidator::onConfigChange)
-                                .map(this::passwordCanBeValidated)
-                                .map(this::updateUserPassword)
-        );
-        // spotless:on
+            .override(
+                Method.GET,
+                (channel, request, client) -> withUserAndRemoteAddress().map(
+                    userAndRemoteAddress -> loadConfiguration(getConfigType(), false, false).map(
+                        configuration -> ValidationResult.success(
+                            Triple.of(userAndRemoteAddress.getLeft(), userAndRemoteAddress.getRight(), configuration)
+                        )
+                    )
+                ).valid(userRemoteAddressAndConfig -> {
+                    final var user = userRemoteAddressAndConfig.getLeft();
+                    final var remoteAddress = userRemoteAddressAndConfig.getMiddle();
+                    final var configuration = userRemoteAddressAndConfig.getRight();
+                    userAccount(channel, user, remoteAddress, configuration);
+                }).error((status, toXContent) -> Responses.response(channel, status, toXContent))
+            )
+            .onChangeRequest(
+                Method.PUT,
+                request -> withUserAndRemoteAddress().map(
+                    userAndRemoteAddress -> loadConfigurationWithRequestContent(
+                        userAndRemoteAddress.getLeft().getName(),
+                        request,
+                        endpointValidator.createRequestContentValidator()
+                    )
+                )
+                    .map(endpointValidator::entityExists)
+                    .map(endpointValidator::onConfigChange)
+                    .map(this::passwordCanBeValidated)
+                    .map(this::updateUserPassword)
+            );
     }
 
     private void userAccount(

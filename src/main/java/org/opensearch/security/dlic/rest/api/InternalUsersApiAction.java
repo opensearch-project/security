@@ -119,29 +119,31 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     private void internalUsersApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        // spotless:off
         requestHandlersBuilder
-                // Overrides the GET request functionality to allow for the special case of requesting an auth token.
-                .override(Method.POST, (channel, request, client) ->
-                        withAuthTokenPath(request)
-                                .map(username ->
-                                        loadConfiguration(getConfigType(), true, false)
-                                                .map(configuration -> ValidationResult.success(SecurityConfiguration.of(username, configuration)))
-                                )
-                                .map(endpointValidator::entityExists)
-                                .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
-                                .error((status, toXContent) -> Responses.response(channel, status, toXContent)))
-                .onChangeRequest(Method.PATCH, this::processPatchRequest)
-                .onChangeRequest(Method.PUT, request ->
-                        withRequiredResourceName(request)
-                                .map(username -> loadConfigurationWithRequestContent(username, request, endpointValidator.createRequestContentValidator()))
-                                .map(endpointValidator::hasRightsToChangeEntity)
-                                .map(this::validateSecurityRoles)
-                                .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
-                                .map(this::validateAndUpdatePassword)
-                                .map(this::addEntityToConfig)
-        );
-        // spotless:on
+            // Overrides the GET request functionality to allow for the special case of requesting an auth token.
+            .override(
+                Method.POST,
+                (channel, request, client) -> withAuthTokenPath(request).map(
+                    username -> loadConfiguration(getConfigType(), true, false).map(
+                        configuration -> ValidationResult.success(SecurityConfiguration.of(username, configuration))
+                    )
+                )
+                    .map(endpointValidator::entityExists)
+                    .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
+                    .error((status, toXContent) -> Responses.response(channel, status, toXContent))
+            )
+            .onChangeRequest(Method.PATCH, this::processPatchRequest)
+            .onChangeRequest(
+                Method.PUT,
+                request -> withRequiredResourceName(request).map(
+                    username -> loadConfigurationWithRequestContent(username, request, endpointValidator.createRequestContentValidator())
+                )
+                    .map(endpointValidator::hasRightsToChangeEntity)
+                    .map(this::validateSecurityRoles)
+                    .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
+                    .map(this::validateAndUpdatePassword)
+                    .map(this::addEntityToConfig)
+            );
     }
 
     private ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
