@@ -84,7 +84,7 @@ public class PasswordValidator {
                 minPasswordLength,
                 password.length()
             );
-            return RequestContentValidator.ValidationError.INVALID_PASSWORD;
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
         }
         if (password.length() > MAX_LENGTH) {
             logger.debug(
@@ -92,11 +92,11 @@ public class PasswordValidator {
                 MAX_LENGTH,
                 password.length()
             );
-            return RequestContentValidator.ValidationError.INVALID_PASSWORD;
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_LONG;
         }
         if (Objects.nonNull(passwordRegexpPattern) && !passwordRegexpPattern.matcher(password).matches()) {
             logger.debug("Regex does not match password");
-            return RequestContentValidator.ValidationError.INVALID_PASSWORD;
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
         }
         final Strength strength = zxcvbn.measure(password, ImmutableList.of(username));
         if (strength.getScore() < scoreStrength.score()) {
