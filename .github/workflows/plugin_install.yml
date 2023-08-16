@@ -22,11 +22,12 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout Branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Assemble target plugin
         uses: gradle/gradle-build-action@v2
         with:
+          cache-disabled: true
           arguments: assemble
 
       # Move and rename the plugin for installation
@@ -59,4 +60,5 @@ jobs:
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
         with:
+          cache-disabled: true
           arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin

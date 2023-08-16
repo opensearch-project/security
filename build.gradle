@@ -63,7 +63,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.20.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.3.0"
+    id 'com.netflix.nebula.ospackage' version "11.4.0"
     id "org.gradle.test-retry" version "1.5.4"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.14"
@@ -515,7 +515,7 @@ dependencies {
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.4.7'
+    runtimeOnly 'net.minidev:accessors-smart:2.5.0'
 
     implementation("org.apache.cxf:cxf-rt-rs-security-jose:${apache_cxf_version}") {
         exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
@@ -578,7 +578,7 @@ dependencies {
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
-    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.apache.commons:commons-lang3:3.13.0'
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
@@ -610,7 +610,7 @@ dependencies {
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
-    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
+    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.4'
     testRuntimeOnly ('org.springframework:spring-core:5.3.27') {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
