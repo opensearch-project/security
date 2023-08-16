@@ -193,7 +193,7 @@ sequenceDiagram
 
 Extensions will be able to operate in similar flows as Plugins to ensure authorization is correctly handled.  Registration of REST handlers is allowed and transport layer actions are not permitted.  After the request has been authorized for the user to be transmitted to the extension the token generator will create a just in time token for use with that request on behalf of the user.
 
-> On Behalf Of tokens are an optional feature, while supported through the extensions API it needs to be enabled on an individual extension basis and can be revoked at runtime.  This will cause the forwarded request not to include the On Behalf Of token
+> On Behalf Of tokens are an optional feature, while supported through the extensions API it needs to be enabled on an individual extension basis.  Issuing On Behalf Of tokens can be disabled which will alter request forward to the extension not to include the On Behalf Of token.
 
 ```mermaid
 sequenceDiagram
