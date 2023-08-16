@@ -1,0 +1,28 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0%
+      # Exclusions to prevent false positives triggered
+      # Tracking with https://github.com/opensearch-project/security/issues/3137
+      keyset:
+        paths:
+          - "src/main/java/com/amazon/dlic/auth/http/jwt/keybyoidc/SelfRefreshingKeySet.java"
+        target: auto
+        threshold: 10%
+      securityinterceptor:
+        paths:
+          - "src/main/java/org/opensearch/security/transport/SecurityInterceptor.java"
+        target: auto
+        threshold: 10%
+      sslnettytransport:
+        paths:
+          - "src/main/java/org/opensearch/security/ssl/transport/SecuritySSLNettyTransport.java"
+        target: auto
+        threshold: 10%
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: true
