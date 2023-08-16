@@ -2482,3 +2482,12 @@ logs_index_with_dls:
       masked_fields: null
       allowed_actions:
         - "OPENDISTRO_SECURITY_READ"
+
+terms_index_with_dls:
+  index_permissions:
+    - index_patterns:
+        - "terms"
+      dls: "{ \"terms\": { \"foo\" : [\"bar\"] } }"
+      masked_fields: null
+      allowed_actions:
+        - "OPENDISTRO_SECURITY_READ"

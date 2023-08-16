@@ -45,6 +45,7 @@ import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
@@ -431,6 +432,22 @@ public class RestHelper {
                 return false;
             }
             return ct.contains("application/json");
+        }
+
+        public String getTextFromJsonBody(String jsonPointer) {
+            return getJsonNodeAt(jsonPointer).asText();
+        }
+
+        private JsonNode getJsonNodeAt(String jsonPointer) {
+            try {
+                return toJsonNode().at(jsonPointer);
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Cound not convert response body to JSON node ", e);
+            }
+        }
+
+        private JsonNode toJsonNode() throws JsonProcessingException, IOException {
+            return DefaultObjectMapper.objectMapper.readTree(getBody());
         }
 
         public SimpleHttpResponse getInner() {

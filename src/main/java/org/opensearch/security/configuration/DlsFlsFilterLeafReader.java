@@ -232,7 +232,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 // https://github.com/apache/lucene-solr/blob/branch_6_3/lucene/misc/src/java/org/apache/lucene/index/PKIndexSplitter.java
                 final IndexSearcher searcher = new IndexSearcher(DlsFlsFilterLeafReader.this);
                 searcher.setQueryCache(null);
-                final Weight preserveWeight = searcher.createWeight(dlsQuery, ScoreMode.COMPLETE_NO_SCORES, 1f);
+                final Weight preserveWeight = searcher.rewrite(dlsQuery).createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
 
                 final int maxDoc = in.maxDoc();
                 final FixedBitSet bits = new FixedBitSet(maxDoc);
