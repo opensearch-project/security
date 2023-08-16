@@ -11,16 +11,8 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
-
 import com.google.common.collect.ImmutableMap;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -32,7 +24,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -50,6 +41,11 @@ import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
@@ -58,7 +54,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
-public class InternalUsersApiAction extends PatchableResourceApiAction {
+public class InternalUsersApiAction extends AbstractApiAction {
 
     protected final static String RESOURCE_NAME = "user";
 
@@ -149,6 +145,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                                 .map(endpointValidator::entityExists)
                                 .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
                                 .error((status, toXContent) -> Responses.response(channel, status, toXContent)))
+                .onChangeRequest(Method.PATCH, this::processPatchRequest)
                 .onChangeRequest(Method.PUT, request ->
                         withRequiredResourceName(request)
                                 .map(username -> loadConfigurationWithRequestContent(username, request, endpointValidator.createRequestContentValidator()))
@@ -203,16 +200,16 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     ) throws IOException {
         try {
             final var username = securityConfiguration.entityName();
-            final var content = securityConfiguration.requestContent();
+            final var content = (ObjectNode) securityConfiguration.requestContent();
             if (request.hasParam("service")) {
-                ((ObjectNode) content).put("service", request.param("service"));
+                content.put("service", request.param("service"));
             }
             if (request.hasParam("enabled")) {
-                ((ObjectNode) content).put("enabled", request.param("enabled"));
+                content.put("enabled", request.param("enabled"));
             }
-            ((ObjectNode) content).put("name", username);
+            content.put("name", username);
             // FIXME add better solution for account and internal users
-            final var updateConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
+            final var updateConfiguration = userService.createOrUpdateAccount(content);
             // remove extra user in case we deal with the new one. not nice better to redesign account users.
             if (!securityConfiguration.entityExists()) updateConfiguration.remove(securityConfiguration.entityName());
             return ValidationResult.success(SecurityConfiguration.of(content, username, updateConfiguration));
@@ -221,8 +218,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
     }
 
-    private ValidationResult<SecurityConfiguration> validateAndUpdatePassword(final SecurityConfiguration securityConfiguration)
-        throws IOException {
+    private ValidationResult<SecurityConfiguration> validateAndUpdatePassword(final SecurityConfiguration securityConfiguration) {
         // when updating an existing user password hash can be blank, which means no changes
         // for existing users, hash is optional
         final var username = securityConfiguration.entityName();
@@ -245,28 +241,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected ValidationResult<JsonNode> postProcessApplyPatchResult(
-        RestChannel channel,
-        RestRequest request,
-        JsonNode existingResourceAsJsonNode,
-        JsonNode updatedResourceAsJsonNode,
-        String resourceName
-    ) throws IOException {
-        RequestContentValidator retVal = null;
-        JsonNode passwordNode = updatedResourceAsJsonNode.get("password");
-        if (passwordNode != null) {
-            String plainTextPassword = passwordNode.asText();
-            final JsonNode passwordObject = DefaultObjectMapper.objectMapper.createObjectNode().put("password", plainTextPassword);
-            final ValidationResult<JsonNode> validationResult = endpointValidator.createRequestContentValidator(resourceName)
-                .validate(request, passwordObject);
-            ((ObjectNode) updatedResourceAsJsonNode).remove("password");
-            ((ObjectNode) updatedResourceAsJsonNode).set("hash", new TextNode(hash(plainTextPassword.toCharArray())));
-            return validationResult;
-        }
-        return null;
-    }
-
-    @Override
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
             @Override
@@ -282,6 +256,22 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
                 return restApiAdminPrivilegesEvaluator;
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+                // this method will be called only for PATCH
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::generateHashForPassword);
+            }
+
+            private ValidationResult<SecurityConfiguration> generateHashForPassword(final SecurityConfiguration securityConfiguration) {
+                final var content = (ObjectNode) securityConfiguration.requestContent();
+                if (content.has("password")) {
+                    final var plainTextPassword = content.get("password").asText();
+                    content.remove("password");
+                    content.put("hash", hash(plainTextPassword.toCharArray()));
+                }
+                return ValidationResult.success(securityConfiguration);
             }
 
             @Override

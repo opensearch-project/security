@@ -358,7 +358,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {\"password\": \"bla bla bla password 42\", \"backend_roles\": [\"vulcan\"] } }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/bulknew1", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();

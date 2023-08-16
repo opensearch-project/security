@@ -81,7 +81,7 @@ import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImpl
  * be used to populate the index.
  * <p>
  */
-public class AllowlistApiAction extends PatchableResourceApiAction {
+public class AllowlistApiAction extends AbstractApiAction {
     private static final List<Route> routes = ImmutableList.of(
         new Route(RestRequest.Method.GET, "/_plugins/_security/api/allowlist"),
         new Route(RestRequest.Method.PUT, "/_plugins/_security/api/allowlist"),
@@ -128,6 +128,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
 
     private void allowlistApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.verifyAccessForAllMethods()
+            .onChangeRequest(RestRequest.Method.PATCH, this::processPatchRequest)
             .onChangeRequest(
                 RestRequest.Method.PUT,
                 request -> loadConfigurationWithRequestContent(

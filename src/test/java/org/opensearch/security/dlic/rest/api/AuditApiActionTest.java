@@ -93,7 +93,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
         // should have /config for patch request
         response = rh.executePatchRequest(ENDPOINT, "{\"xxx\": 1}");
-        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // no delete supported
         response = rh.executeDeleteRequest(ENDPOINT);

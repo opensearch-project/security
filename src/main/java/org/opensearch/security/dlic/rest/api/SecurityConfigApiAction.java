@@ -48,7 +48,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class SecurityConfigApiAction extends PatchableResourceApiAction {
+public class SecurityConfigApiAction extends AbstractApiAction {
 
     private final static String RESOURCE_NAME = "config";
 
@@ -129,6 +129,7 @@ public class SecurityConfigApiAction extends PatchableResourceApiAction {
                 return withConfigResourceNameOnly(request).map(ignore -> processPutRequest(request));
             }
         })
+            .onChangeRequest(Method.PATCH, this::processPatchRequest)
             .override(Method.POST, methodNotImplementedHandler)
             .override(Method.DELETE, methodNotImplementedHandler)
             .override(Method.POST, methodNotImplementedHandler);

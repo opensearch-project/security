@@ -46,7 +46,7 @@ import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImpl
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class ActionGroupsApiAction extends PatchableResourceApiAction {
+public class ActionGroupsApiAction extends AbstractApiAction {
 
     protected final static String RESOURCE_NAME = "actiongroup";
 
@@ -109,7 +109,7 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
     }
 
     private void actionGroupsApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.override(Method.POST, methodNotImplementedHandler);
+        requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
     }
 
     @Override

@@ -47,7 +47,7 @@ import java.util.Map;
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class RolesApiAction extends PatchableResourceApiAction {
+public class RolesApiAction extends AbstractApiAction {
 
     protected final static String RESOURCE_NAME = "role";
 
@@ -145,7 +145,7 @@ public class RolesApiAction extends PatchableResourceApiAction {
     }
 
     private void rolesApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.override(Method.POST, methodNotImplementedHandler);
+        requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
     }
 
     @Override

@@ -362,6 +362,13 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // PATCH
+        // create a role since PATCH works same as PUT. It is impossible to create role mapping without role
+        final var securityRoleVulcans = DefaultObjectMapper.objectMapper.createObjectNode()
+            .set("cluster_permissions", DefaultObjectMapper.objectMapper.createArrayNode().add("cluster:monitor*"))
+            .toString();
+        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_vulcans", securityRoleVulcans, header);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+
         response = rh.executePatchRequest(
             ENDPOINT + "/rolesmapping/opendistro_security_role_vulcans",
             "[{ \"op\": \"add\", \"path\": \"/backend_roles/-\", \"value\": \"spring\" }]",
@@ -414,6 +421,12 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // PATCH
+        // create a role since PATCH works same as PUT. It is impossible to create role mapping without role
+        final var securityRoleBulknew1 = DefaultObjectMapper.objectMapper.createObjectNode()
+            .set("cluster_permissions", DefaultObjectMapper.objectMapper.createArrayNode().add("cluster:monitor*"))
+            .toString();
+        response = rh.executePutRequest(ENDPOINT + "/roles/bulknew1", securityRoleBulknew1, header);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         response = rh.executePatchRequest(
             ENDPOINT + "/rolesmapping",
             "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {  \"backend_roles\":[\"vulcanadmin\"]} }]",

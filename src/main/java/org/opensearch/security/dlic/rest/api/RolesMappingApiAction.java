@@ -43,7 +43,7 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class RolesMappingApiAction extends PatchableResourceApiAction {
+public class RolesMappingApiAction extends AbstractApiAction {
 
     protected final static String RESOURCE_NAME = "rolesmapping";
 
@@ -97,7 +97,7 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
     }
 
     private void rolesMappingApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.override(Method.POST, methodNotImplementedHandler);
+        requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
     }
 
     @Override
@@ -144,13 +144,7 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
-                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateRoleForMapping)
-                    .map(this::canChangeObjectWithRestAdminPermissions);
-            }
-
-            @Override
-            public ValidationResult<SecurityConfiguration> onConfigDelete(SecurityConfiguration securityConfiguration) throws IOException {
-                return EndpointValidator.super.onConfigDelete(securityConfiguration).map(this::canChangeObjectWithRestAdminPermissions);
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateRoleForMapping);
             }
 
             private ValidationResult<SecurityConfiguration> validateRoleForMapping(final SecurityConfiguration securityConfiguration)

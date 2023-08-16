@@ -11,19 +11,17 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.flipkart.zjsonpatch.JsonPatch;
+import com.flipkart.zjsonpatch.JsonPatchApplicationException;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
@@ -31,12 +29,15 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.CheckedSupplier;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.engine.VersionConflictEngineException;
@@ -46,8 +47,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -67,16 +66,29 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.notFoundMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public abstract class AbstractApiAction extends BaseRestHandler {
 
     private final static Logger LOGGER = LogManager.getLogger(AbstractApiAction.class);
+
+    private final static Set<String> PATCH_OPERATIONS = Set.of("add", "replace", "remove");
+
+    private final static String PATCH_OPERATIONS_AS_STRING = String.join(",", PATCH_OPERATIONS);
 
     protected final ConfigurationRepository cl;
     protected final ClusterService cs;
@@ -140,6 +152,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         builder.withAccessHandler(request -> isSuperAdmin())
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
             .add(Method.POST, methodNotImplementedHandler)
+            .add(Method.PATCH, methodNotImplementedHandler)
             .onGetRequest(this::processGetRequest)
             .onChangeRequest(Method.DELETE, this::processDeleteRequest)
             .onChangeRequest(Method.PUT, this::processPutRequest);
@@ -164,6 +177,166 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             securityConfiguration.configuration().removeOthers(entityName);
             return ValidationResult.success(securityConfiguration);
         }).orElse(ValidationResult.success(securityConfiguration)));
+    }
+
+    protected final ValidationResult<SecurityConfiguration> processPatchRequest(final RestRequest request) throws IOException {
+        return loadConfiguration(nameParam(request), false).map(
+            securityConfiguration -> withPatchRequestContent(request).map(
+                patchContent -> securityConfiguration.maybeEntityName()
+                    .map(entityName -> patchEntity(request, patchContent, securityConfiguration))
+                    .orElseGet(() -> patchEntities(request, patchContent, securityConfiguration))
+            )
+        );
+    }
+
+    protected final ValidationResult<JsonNode> withPatchRequestContent(final RestRequest request) {
+        try {
+            final var parsedPatchRequestContent = Utils.toJsonNode(request.content().utf8ToString());
+            if (!(parsedPatchRequestContent instanceof ArrayNode)) {
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Wrong request body"));
+            }
+            final var operations = patchOperations(parsedPatchRequestContent);
+            if (operations.isEmpty()) {
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Wrong request body"));
+            }
+            for (final var patchOperation : operations) {
+                if (!PATCH_OPERATIONS.contains(patchOperation)) {
+                    return ValidationResult.error(
+                        RestStatus.BAD_REQUEST,
+                        badRequestMessage(
+                            "Unsupported patch operation: " + patchOperation + ". Supported are: " + PATCH_OPERATIONS_AS_STRING
+                        )
+                    );
+                }
+            }
+            return ValidationResult.success(parsedPatchRequestContent);
+        } catch (final IOException e) {
+            LOGGER.debug("Error while parsing JSON patch", e);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Error in JSON patch: " + e.getMessage()));
+        }
+    }
+
+    protected final ValidationResult<SecurityConfiguration> patchEntity(
+        final RestRequest request,
+        final JsonNode patchContent,
+        final SecurityConfiguration securityConfiguration
+    ) {
+        final var entityName = securityConfiguration.entityName();
+        final var configuration = securityConfiguration.configuration();
+        return withIOException(
+            () -> endpointValidator.hasRightsToChangeEntity(securityConfiguration).map(endpointValidator::entityExists).map(ignore -> {
+                final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
+                final var entityAsJson = (ObjectNode) configurationAsJson.get(entityName);
+                return withJsonPatchException(
+                    () -> endpointValidator.createRequestContentValidator(entityName)
+                        .validate(request, JsonPatch.apply(patchContent, entityAsJson))
+                        .map(
+                            patchedEntity -> endpointValidator.onConfigChange(
+                                SecurityConfiguration.of(patchedEntity, entityName, configuration)
+                            ).map(sc -> ValidationResult.success(patchedEntity))
+                        )
+                        .map(patchedEntity -> {
+                            final var updatedConfigurationAsJson = configurationAsJson.deepCopy().set(entityName, patchedEntity);
+                            return ValidationResult.success(
+                                SecurityConfiguration.of(
+                                    entityName,
+                                    SecurityDynamicConfiguration.fromNode(
+                                        updatedConfigurationAsJson,
+                                        configuration.getCType(),
+                                        configuration.getVersion(),
+                                        configuration.getSeqNo(),
+                                        configuration.getPrimaryTerm()
+                                    )
+                                )
+                            );
+                        })
+                );
+            })
+        );
+    }
+
+    protected final ValidationResult<SecurityConfiguration> patchEntities(
+        final RestRequest request,
+        final JsonNode patchContent,
+        final SecurityConfiguration securityConfiguration
+    ) {
+        final var configuration = securityConfiguration.configuration();
+        final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
+        return withIOException(() -> withJsonPatchException(() -> {
+            final var patchedConfigurationAsJson = JsonPatch.apply(patchContent, configurationAsJson);
+            for (final var entityName : patchEntityNames(patchContent)) {
+                final var beforePatchEntity = configurationAsJson.get(entityName);
+                final var patchedEntity = patchedConfigurationAsJson.get(entityName);
+                // verify we can process exising or updated entities
+                if (beforePatchEntity != null && !beforePatchEntity.equals(patchedEntity)) {
+                    final var checkEntityCanBeProcess = endpointValidator.hasRightsToChangeEntity(
+                        SecurityConfiguration.of(entityName, configuration)
+                    );
+                    if (!checkEntityCanBeProcess.isValid()) {
+                        return checkEntityCanBeProcess;
+                    }
+                }
+                // entity removed no need to process patched content
+                if (patchedEntity == null) {
+                    continue; // in this case entity was removed from new configuration
+                }
+                // create or update case of the entity
+                if ((beforePatchEntity == null) || !Objects.equals(beforePatchEntity, patchedEntity)) {
+                    final var requestCheck = endpointValidator.createRequestContentValidator(entityName).validate(request, patchedEntity);
+                    if (!requestCheck.isValid()) {
+                        return ValidationResult.error(requestCheck.status(), requestCheck.errorMessage());
+                    }
+                }
+                final var additionalValidatorCheck = endpointValidator.onConfigChange(
+                    SecurityConfiguration.of(patchedEntity, entityName, configuration)
+                );
+                if (!additionalValidatorCheck.isValid()) {
+                    return additionalValidatorCheck;
+                }
+            }
+            return ValidationResult.success(
+                SecurityConfiguration.of(
+                    null,// there is no entity name in case of patch
+                    SecurityDynamicConfiguration.fromNode(
+                        patchedConfigurationAsJson,
+                        configuration.getCType(),
+                        configuration.getVersion(),
+                        configuration.getSeqNo(),
+                        configuration.getPrimaryTerm()
+                    )
+                )
+            );
+        }));
+    }
+
+    private ValidationResult<SecurityConfiguration> withJsonPatchException(
+        final CheckedSupplier<ValidationResult<SecurityConfiguration>, IOException> action
+    ) throws IOException {
+        try {
+            return action.get();
+        } catch (final JsonPatchApplicationException e) {
+            LOGGER.debug("Error while applying JSON patch", e);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(e.getMessage()));
+        }
+    }
+
+    protected final Set<String> patchOperations(final JsonNode patchRequestContent) {
+        final var operations = ImmutableSet.<String>builder();
+        for (final JsonNode node : patchRequestContent) {
+            if (node.has("op")) operations.add(node.get("op").asText());
+        }
+        return operations.build();
+    }
+
+    protected final Set<String> patchEntityNames(final JsonNode patchRequestContent) {
+        final var patchedResourceNames = ImmutableSet.<String>builder();
+        for (final JsonNode node : patchRequestContent) {
+            if (node.has("path")) {
+                final var s = JsonPointer.compile(node.get("path").asText());
+                patchedResourceNames.add(s.getMatchingProperty());
+            }
+        }
+        return patchedResourceNames.build();
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
@@ -290,6 +463,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             switch (request.method()) {
                 case DELETE:
                     requestHandlers.get(Method.DELETE).handle(channel, request, client);
+                    break;
+                case PATCH:
+                    requestHandlers.get(Method.PATCH).handle(channel, request, client);
                     break;
                 case POST:
                     requestHandlers.get(Method.POST).handle(channel, request, client);

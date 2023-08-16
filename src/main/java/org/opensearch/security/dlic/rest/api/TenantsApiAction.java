@@ -54,7 +54,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class TenantsApiAction extends PatchableResourceApiAction {
+public class TenantsApiAction extends AbstractApiAction {
 
     protected final static String RESOURCE_NAME = "tenant";
 
@@ -84,6 +84,7 @@ public class TenantsApiAction extends PatchableResourceApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(builder -> builder.onChangeRequest(Method.PATCH, this::processPatchRequest));
     }
 
     @Override

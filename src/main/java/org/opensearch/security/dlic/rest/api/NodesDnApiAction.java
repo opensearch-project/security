@@ -62,7 +62,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *
  * See {@link NodesDnApiTest} for usage examples.
  */
-public class NodesDnApiAction extends PatchableResourceApiAction {
+public class NodesDnApiAction extends AbstractApiAction {
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
@@ -134,7 +134,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
                 addStaticNodesDn(configuration);
             }
             return ValidationResult.success(securityConfiguration);
-        }));
+        })).onChangeRequest(Method.PATCH, this::processPatchRequest);
     }
 
     @Override

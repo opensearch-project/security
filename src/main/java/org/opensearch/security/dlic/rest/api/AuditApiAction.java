@@ -131,7 +131,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * [{"op": "replace", "path": "/config/audit/enable_rest", "value": "true"}]
  * [{"op": "replace", "path": "/config/compliance/internal_config", "value": "true"}]
  */
-public class AuditApiAction extends PatchableResourceApiAction {
+public class AuditApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(RestRequest.Method.GET, "/audit/"),
@@ -286,6 +286,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
                                     configuration.putCObject(READONLY_FIELD, readonlyFields);
                                     return ValidationResult.success(securityConfiguration);
                                 }))
+                .onChangeRequest(RestRequest.Method.PATCH, this::processPatchRequest)
                 .onChangeRequest(RestRequest.Method.PUT, request ->
                         withConfigResourceNameOnly(request)
                                 .map(ignore -> processPutRequest(request))
