@@ -26,7 +26,7 @@
 
 package org.opensearch.security.action.whoami;
 
-import org.opensearch.action.ActionListener;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.cluster.service.ClusterService;
