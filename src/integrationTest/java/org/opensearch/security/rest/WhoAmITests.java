@@ -224,6 +224,70 @@ public class WhoAmITests {
         checkForStructuralSimilarity(restSet.get(0), transportSet.get(0));
     }
 
+    /**
+     * Checks for structural similarity between audit message generated at Rest layer vs transport layer
+     * Example REST audit message for GRANTED_PRIVILEGES:
+     * {
+     *    "audit_cluster_name":"local_cluster_1",
+     *    "audit_node_name":"data_0",
+     *    "audit_rest_request_method":"GET",
+     *    "audit_category":"GRANTED_PRIVILEGES",
+     *    "audit_request_origin":"REST",
+     *    "audit_node_id":"Dez5cwAAQAC6cdmK_____w",
+     *    "audit_request_layer":"REST",
+     *    "audit_rest_request_path":"/_plugins/_security/whoamiprotected",
+     *    "@timestamp":"2023-08-16T17:35:53.531+00:00",
+     *    "audit_format_version":4,
+     *    "audit_request_remote_address":"127.0.0.1",
+     *    "audit_node_host_address":"127.0.0.1",
+     *    "audit_rest_request_headers":{
+     *       "Connection":[
+     *          "keep-alive"
+     *       ],
+     *       "User-Agent":[
+     *          "Apache-HttpClient/5.2.1 (Java/19.0.1)"
+     *       ],
+     *       "content-length":[
+     *          "0"
+     *       ],
+     *       "Host":[
+     *          "127.0.0.1:47210"
+     *       ],
+     *       "Accept-Encoding":[
+     *          "gzip, x-gzip, deflate"
+     *       ]
+     *    },
+     *    "audit_request_effective_user":"audit_log_verifier",
+     *    "audit_node_host_name":"127.0.0.1"
+     * }
+     *
+     *
+     * Example Transport audit message for GRANTED_PRIVILEGES:
+     * {
+     *    "audit_cluster_name":"local_cluster_1",
+     *    "audit_transport_headers":{
+     *       "_system_index_access_allowed":"false"
+     *    },
+     *    "audit_node_name":"data_0",
+     *    "audit_trace_task_id":"Dez5cwAAQAC6cdmK_____w:87",
+     *    "audit_transport_request_type":"GetSettingsRequest",
+     *    "audit_category":"GRANTED_PRIVILEGES",
+     *    "audit_request_origin":"REST",
+     *    "audit_node_id":"Dez5cwAAQAC6cdmK_____w",
+     *    "audit_request_layer":"TRANSPORT",
+     *    "@timestamp":"2023-08-16T17:35:53.621+00:00",
+     *    "audit_format_version":4,
+     *    "audit_request_remote_address":"127.0.0.1",
+     *    "audit_request_privilege":"indices:monitor/settings/get",
+     *    "audit_node_host_address":"127.0.0.1",
+     *    "audit_request_effective_user":"audit_log_verifier",
+     *    "audit_node_host_name":"127.0.0.1"
+     * }
+     *
+     *
+     * @param restAuditMessage audit message generated at REST layer
+     * @param transportAuditMessage audit message generated at Transport layer
+     */
     private void checkForStructuralSimilarity(AuditMessage restAuditMessage, AuditMessage transportAuditMessage) {
 
         Set<String> restAuditSet = restAuditMessage.getAsMap().keySet();
