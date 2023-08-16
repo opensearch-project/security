@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
@@ -67,6 +68,10 @@ public class WhoAmITests {
 
     protected final static TestSecurityConfig.User WHO_AM_I_UNREGISTERED = new TestSecurityConfig.User("who_am_i_user_no_perm");
 
+    protected final String expectedAuthorizedBody = "{\"dn\":null,\"is_admin\":false,\"is_node_certificate_request\":false}";
+    protected final String expectedUnuauthorizedBody =
+        "no permissions for [security:whoamiprotected] and User [name=who_am_i_user_no_perm, backend_roles=[], requestedTenant=null]";
+
     public static final String WHOAMI_ENDPOINT = "_plugins/_security/whoami";
     public static final String WHOAMI_PROTECTED_ENDPOINT = "_plugins/_security/whoamiprotected";
 
@@ -85,81 +90,40 @@ public class WhoAmITests {
 
     @Test
     public void testWhoAmIWithGetPermissions() {
+
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I)) {
-            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
+            assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
 
             // audit log, named route
-            auditLogsRule.assertExactly(
-                1,
-                userAuthenticated(WHO_AM_I).withLayer(AuditLog.Origin.REST)
-                    .withRestMethod(RestRequest.Method.GET)
-                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
-                    .withInitiatingUser(WHO_AM_I)
-            );
-            auditLogsRule.assertExactly(
-                1,
-                auditPredicate(GRANTED_PRIVILEGES).withLayer(AuditLog.Origin.REST)
-                    .withRestMethod(RestRequest.Method.GET)
-                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
-                    .withEffectiveUser(WHO_AM_I)
-            );
-        }
+            assertExactlyOneAuthenticatedLogMessage(WHO_AM_I);
+            assertExactlyOnePrivilegeEvaluationMessage(GRANTED_PRIVILEGES, WHO_AM_I);
 
-        try (TestRestClient client = cluster.getRestClient(WHO_AM_I)) {
-            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
+            assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
         }
     }
 
     @Test
     public void testWhoAmIWithGetPermissionsLegacy() {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_LEGACY)) {
-            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
-
-        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_LEGACY)) {
-            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
+            assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
 
             // audit log, named route
-            auditLogsRule.assertExactly(
-                1,
-                userAuthenticated(WHO_AM_I_LEGACY).withLayer(AuditLog.Origin.REST)
-                    .withRestMethod(RestRequest.Method.GET)
-                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
-                    .withInitiatingUser(WHO_AM_I_LEGACY)
-            );
-            auditLogsRule.assertExactly(
-                1,
-                auditPredicate(GRANTED_PRIVILEGES).withLayer(AuditLog.Origin.REST)
-                    .withRestMethod(RestRequest.Method.GET)
-                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
-                    .withEffectiveUser(WHO_AM_I_LEGACY)
-            );
+            assertExactlyOneAuthenticatedLogMessage(WHO_AM_I_LEGACY);
+            assertExactlyOnePrivilegeEvaluationMessage(GRANTED_PRIVILEGES, WHO_AM_I_LEGACY);
+
+            assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
         }
     }
 
     @Test
     public void testWhoAmIWithoutGetPermissions() {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
-            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
-
-        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
-            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
-
+            assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_UNAUTHORIZED, expectedUnuauthorizedBody);
             // audit log, named route
-            auditLogsRule.assertExactly(
-                1,
-                userAuthenticated(WHO_AM_I_NO_PERM).withLayer(AuditLog.Origin.REST)
-                    .withRestMethod(RestRequest.Method.GET)
-                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
-            );
-            auditLogsRule.assertExactly(
-                1,
-                auditPredicate(MISSING_PRIVILEGES).withLayer(AuditLog.Origin.REST)
-                    .withRestMethod(RestRequest.Method.GET)
-                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
-                    .withEffectiveUser(WHO_AM_I_NO_PERM)
-            );
+            assertExactlyOneAuthenticatedLogMessage(WHO_AM_I_NO_PERM);
+            assertExactlyOnePrivilegeEvaluationMessage(MISSING_PRIVILEGES, WHO_AM_I_NO_PERM);
+
+            assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
         }
     }
 
@@ -186,26 +150,46 @@ public class WhoAmITests {
     @Test
     public void testAuditLogSimilarityWithTransportLayer() {
         try (TestRestClient client = cluster.getRestClient(AUDIT_LOG_VERIFIER)) {
-            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
-
-            auditLogsRule.assertExactly(
-                1,
-                auditPredicate(GRANTED_PRIVILEGES).withLayer(AuditLog.Origin.REST)
-                    .withRestMethod(RestRequest.Method.GET)
-                    .withRequestPath("/" + WHOAMI_PROTECTED_ENDPOINT)
-                    .withEffectiveUser(AUDIT_LOG_VERIFIER)
-            );
+            assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
+            assertExactlyOnePrivilegeEvaluationMessage(GRANTED_PRIVILEGES, AUDIT_LOG_VERIFIER);
 
             assertThat(client.get("_cat/indices").getStatusCode(), equalTo(HttpStatus.SC_OK));
 
+            // transport layer audit messages
             auditLogsRule.assertExactly(2, grantedPrivilege(AUDIT_LOG_VERIFIER, "GetSettingsRequest"));
 
             List<AuditMessage> grantedPrivilegesMessages = auditLogsRule.getCurrentTestAuditMessages()
                 .stream()
                 .filter(msg -> msg.getCategory().equals(GRANTED_PRIVILEGES))
                 .collect(Collectors.toList());
+
             verifyAuditLogSimilarity(grantedPrivilegesMessages);
         }
+    }
+
+    private void assertResponse(TestRestClient.HttpResponse response, int expectedStatus, String expectedBody) {
+        assertThat(response.getStatusCode(), equalTo(expectedStatus));
+        assertThat(response.getBody(), equalTo(expectedBody));
+    }
+
+    private void assertExactlyOneAuthenticatedLogMessage(TestSecurityConfig.User user) {
+        auditLogsRule.assertExactly(
+            1,
+            userAuthenticated(user).withLayer(AuditLog.Origin.REST)
+                .withRestMethod(RestRequest.Method.GET)
+                .withRequestPath("/" + WhoAmITests.WHOAMI_PROTECTED_ENDPOINT)
+                .withInitiatingUser(user)
+        );
+    }
+
+    private void assertExactlyOnePrivilegeEvaluationMessage(AuditCategory privileges, TestSecurityConfig.User user) {
+        auditLogsRule.assertExactly(
+            1,
+            auditPredicate(privileges).withLayer(AuditLog.Origin.REST)
+                .withRestMethod(RestRequest.Method.GET)
+                .withRequestPath("/" + WhoAmITests.WHOAMI_PROTECTED_ENDPOINT)
+                .withEffectiveUser(user)
+        );
     }
 
     private void verifyAuditLogSimilarity(List<AuditMessage> currentTestAuditMessages) {
