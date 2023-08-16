@@ -808,7 +808,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             RequestContentValidator.ValidationError.WEAK_PASSWORD.message()
         );
 
-        addUserWithPassword("admin", "pas", HttpStatus.SC_BAD_REQUEST, RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT.message());
+        addUserWithPassword(
+            "admin",
+            "pas",
+            HttpStatus.SC_BAD_REQUEST,
+            RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT.message()
+        );
 
         verifySimilarity(RequestContentValidator.ValidationError.SIMILAR_PASSWORD.message());
 
