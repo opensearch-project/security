@@ -86,7 +86,11 @@ public class PasswordValidator {
                 minPasswordLength,
                 password.length()
             );
+<<<<<<< HEAD
             return ErrorType.INVALID_PASSWORD;
+=======
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
+>>>>>>> 847f9110 (Change password security message (#3057))
         }
         if (password.length() > MAX_LENGTH) {
             logger.debug(
@@ -94,11 +98,19 @@ public class PasswordValidator {
                 MAX_LENGTH,
                 password.length()
             );
+<<<<<<< HEAD
             return ErrorType.INVALID_PASSWORD;
         }
         if (Objects.nonNull(passwordRegexpPattern) && !passwordRegexpPattern.matcher(password).matches()) {
             logger.debug("Regex does not match password");
             return ErrorType.INVALID_PASSWORD;
+=======
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_LONG;
+        }
+        if (Objects.nonNull(passwordRegexpPattern) && !passwordRegexpPattern.matcher(password).matches()) {
+            logger.debug("Regex does not match password");
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
+>>>>>>> 847f9110 (Change password security message (#3057))
         }
         final Strength strength = zxcvbn.measure(password, ImmutableList.of(username));
         if (strength.getScore() < scoreStrength.score()) {
