@@ -91,7 +91,9 @@ public class JwtVendorTest {
         Settings settings = Settings.builder()
             .put("signing_key", "abc123")
             .put("encryption_key", claimsEncryptionKey)
+            // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
+            // CS-ENFORCE-SINGLE
             .build();
         Long expectedExp = currentTime.getAsLong() + expirySeconds;
 
