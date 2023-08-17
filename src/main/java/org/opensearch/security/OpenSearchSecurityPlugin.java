@@ -199,7 +199,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     implements
         ClusterPlugin,
         MapperPlugin,
-        ExtensionAwarePlugin {
+        // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+        ExtensionAwarePlugin
+// CS-ENFORCE-SINGLE
+
+{
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -1115,12 +1119,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
         return builder.build();
     }
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
 
     @Override
     public List<Setting<?>> getExtensionSettings() {
-        List<Setting<?>> extentionSettings = new ArrayList<Setting<?>>();
+        List<Setting<?>> extensionSettings = new ArrayList<Setting<?>>();
 
-        extentionSettings.add(
+        extensionSettings.add(
             Setting.boolSetting(
                 ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE,
                 ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT,
@@ -1128,8 +1133,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Property.Final
             )
         );
-        return extentionSettings;
+        return extensionSettings;
     }
+    // CS-ENFORCE-SINGLE:
 
     @Override
     public List<Setting<?>> getSettings() {

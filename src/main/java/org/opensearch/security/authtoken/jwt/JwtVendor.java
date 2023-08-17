@@ -61,7 +61,12 @@ public class JwtVendor {
         } else {
             this.timeProvider = () -> System.currentTimeMillis() / 1000;
         }
-        this.bwcModeEnabled = settings.getAsBoolean(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true);
+        // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+        this.bwcModeEnabled = settings.getAsBoolean(
+            ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE,
+            ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT
+        );
+        // CS-ENFORCE-SINGLE
     }
 
     /*
@@ -147,7 +152,7 @@ public class JwtVendor {
 
         if (bwcModeEnabled && backendRoles != null) {
             String listOfBackendRoles = String.join(",", backendRoles);
-            jwtClaims.setProperty("br", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfBackendRoles));
+            jwtClaims.setProperty("dbr", listOfBackendRoles);
         }
 
         String encodedJwt = jwtProducer.processJwt(jwt);
