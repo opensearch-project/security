@@ -126,21 +126,12 @@ public class PasswordValidatorTest {
                 .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
                 .build()
         );
-<<<<<<< HEAD
-        verifyWeakPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.INVALID_PASSWORD);
-        verifyFairPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.INVALID_PASSWORD);
-        for (final String password : GOOD_PASSWORDS.subList(0, GOOD_PASSWORDS.size() - 2))
-            assertEquals(
-                password,
-                AbstractConfigurationValidator.ErrorType.INVALID_PASSWORD,
-=======
         verifyWeakPasswords(passwordValidator, RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX);
         verifyFairPasswords(passwordValidator, RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX);
         for (final String password : GOOD_PASSWORDS.subList(0, GOOD_PASSWORDS.size() - 2))
             assertEquals(
                 password,
                 RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX,
->>>>>>> 847f9110 (Change password security message (#3057))
                 passwordValidator.validate("some_user_name", password)
             );
         for (final String password : GOOD_PASSWORDS.subList(GOOD_PASSWORDS.size() - 2, GOOD_PASSWORDS.size()))
