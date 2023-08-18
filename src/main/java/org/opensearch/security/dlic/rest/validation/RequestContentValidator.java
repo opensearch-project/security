@@ -245,7 +245,7 @@ public class RequestContentValidator implements ToXContent {
             final PasswordValidator passwordValidator = PasswordValidator.of(validationContext.settings());
             final String password = jsonContent.get("password").asText();
             if (Strings.isNullOrEmpty(password)) {
-                this.validationError = ValidationError.INVALID_PASSWORD;
+                this.validationError = ValidationError.INVALID_PASSWORD_TOO_SHORT;
                 return ValidationResult.error(this);
             }
             final String username = Utils.coalesce(
@@ -278,20 +278,12 @@ public class RequestContentValidator implements ToXContent {
                 addErrorMessage(builder, MISSING_MANDATORY_KEYS_KEY, missingMandatoryKeys);
                 addErrorMessage(builder, MISSING_MANDATORY_OR_KEYS_KEY, missingMandatoryOrKeys);
                 break;
-            case INVALID_PASSWORD:
+            case INVALID_PASSWORD_INVALID_REGEX:
                 builder.field("status", "error");
                 builder.field(
                     "reason",
                     validationContext.settings()
                         .get(SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, "Password does not match minimum criteria")
-                );
-                break;
-            case WEAK_PASSWORD:
-            case SIMILAR_PASSWORD:
-                builder.field("status", "error");
-                builder.field(
-                    "reason",
-                    validationContext.settings().get(SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, validationError.message())
                 );
                 break;
             case WRONG_DATATYPE:
@@ -357,7 +349,9 @@ public class RequestContentValidator implements ToXContent {
     public enum ValidationError {
         NONE("ok"),
         INVALID_CONFIGURATION("Invalid configuration"),
-        INVALID_PASSWORD("Invalid password"),
+        INVALID_PASSWORD_TOO_SHORT("Password is too short"),
+        INVALID_PASSWORD_TOO_LONG("Password is too long"),
+        INVALID_PASSWORD_INVALID_REGEX("Password does not match validation regex"),
         NO_USERNAME("No username is given"),
         WEAK_PASSWORD("Weak password"),
         SIMILAR_PASSWORD("Password is similar to user name"),
