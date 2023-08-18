@@ -106,6 +106,7 @@ import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -194,7 +195,15 @@ import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
 // CS-ENFORCE-SINGLE
 
-public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
+public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
+    implements
+        ClusterPlugin,
+        MapperPlugin,
+        // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+        ExtensionAwarePlugin
+// CS-ENFORCE-SINGLE
+
+{
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -1110,6 +1119,23 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         }
         return builder.build();
     }
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+
+    @Override
+    public List<Setting<?>> getExtensionSettings() {
+        List<Setting<?>> extensionSettings = new ArrayList<Setting<?>>();
+
+        extensionSettings.add(
+            Setting.boolSetting(
+                ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE,
+                ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT,
+                Property.ExtensionScope,
+                Property.Final
+            )
+        );
+        return extensionSettings;
+    }
+    // CS-ENFORCE-SINGLE:
 
     @Override
     public List<Setting<?>> getSettings() {
