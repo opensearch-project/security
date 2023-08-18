@@ -151,14 +151,10 @@ public class PasswordValidatorTest {
             Settings.builder().put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 15).build()
         );
         for (final String password : STRONG_PASSWORDS) {
-<<<<<<< HEAD
-            assertEquals(AbstractConfigurationValidator.ErrorType.INVALID_PASSWORD, passwordValidator.validate(password, "some_user_name"));
-=======
             assertEquals(
                 RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT,
                 passwordValidator.validate(password, "some_user_name")
             );
->>>>>>> 847f9110 (Change password security message (#3057))
         }
 
     }
