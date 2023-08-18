@@ -128,6 +128,7 @@ public class ConfigurationRepository {
                 }
 
                 if (installDefaultConfig.get()) {
+                    LOGGER.info("INSTALL DEFAULT CONFIG IS TRUE");
 
                     try {
                         String lookupDir = System.getProperty("security.default_init.dir");
@@ -136,6 +137,7 @@ public class ConfigurationRepository {
                             : new Environment(settings, configPath).configFile().toAbsolutePath().toString() + "/opensearch-security/";
                         File confFile = new File(cd + "config.yml");
                         if (confFile.exists()) {
+                            LOGGER.info("Config file " + confFile.getAbsolutePath() + " exists.");
                             final ThreadContext threadContext = threadPool.getThreadContext();
                             try (StoredContext ctx = threadContext.stashContext()) {
                                 threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");

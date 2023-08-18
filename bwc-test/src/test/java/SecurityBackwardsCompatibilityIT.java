@@ -98,8 +98,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, "esnode.pem")
             .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, "esnode-key.pem")
             .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "root-ca.pem")
-            // Tried to  use this, but I think the one I grabbed from ${GIT_ROOT}/src/test/resources might need to be modified?
-//            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, "kirk-keystore.jks")
+            //.put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, "kirk-keystore.jks")
             .put("plugins.security.ssl.http.keystore_password", "changeit")
             .put("plugins.security.ssl.http.keystore_keypassword", "changeit")
             .build();
@@ -137,7 +136,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         if (keystore != null) {
             // create adminDN (super-admin) client
             // TODO: Don't know that this was needed - uses admin cert?, but the resolution of this path wasn't correct
-            File file = new File("/home/petern/git/security/bwc-test/src/test/resources/security/");
+            File file = new File("/Users/steecraw/security/bwc-test/src/test/resources/security/");
             Path configPath = PathUtils.get(file.toURI()).toAbsolutePath();
             return new SecureRestClientBuilder(settings, configPath).setSocketTimeout(60000).setConnectionRequestTimeout(180000).build();
         }

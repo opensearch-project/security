@@ -160,6 +160,7 @@ public class BackendRegistry {
 
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+        log.info("Should trigger initialized to true");
 
         invalidateCache();
         anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()// config.dynamic.http.anonymous_auth_enabled
@@ -188,6 +189,8 @@ public class BackendRegistry {
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress
             && isBlocked(((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress())) {
+
+            log.info("Processing request: " + request.uri() + " with string " + request.toString());
             if (isDebugEnabled) {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getHttpChannel().getRemoteAddress());
             }
@@ -200,6 +203,7 @@ public class BackendRegistry {
         final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
         if (adminDns.isAdminDN(sslPrincipal)) {
+            log.info("isAdminDN in backend registry ");
             // PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
