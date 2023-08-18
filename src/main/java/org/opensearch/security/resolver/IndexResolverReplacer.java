@@ -57,6 +57,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
@@ -750,11 +751,15 @@ public class IndexResolverReplacer {
             }
             ((IndexRequest) request).index(newIndices.length != 1 ? null : newIndices[0]);
         } else if (request instanceof Replaceable) {
-            String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
-            if (checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
-                return false;
+            if (request instanceof GetSettingsRequest) {
+                provider.provide(((GetSettingsRequest) request).indices(), request, true);
+            } else {
+                String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
+                if (checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
+                    return false;
+                }
+                ((Replaceable) request).indices(newIndices);
             }
-            ((Replaceable) request).indices(newIndices);
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             // replace not supported?
