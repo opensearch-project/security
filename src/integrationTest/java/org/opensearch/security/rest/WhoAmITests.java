@@ -12,6 +12,7 @@
 package org.opensearch.security.rest;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import joptsimple.internal.Strings;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -31,8 +32,13 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,6 +46,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -274,13 +281,23 @@ public class WhoAmITests {
      */
     private void checkForStructuralSimilarity(AuditMessage restAuditMessage, AuditMessage transportAuditMessage) {
 
-        Set<String> restAuditSet = restAuditMessage.getAsMap().keySet();
-        Set<String> transportAuditSet = transportAuditMessage.getAsMap().keySet();
+        Map<String, Object> restMsgFields = restAuditMessage.getAsMap();
+        Map<String, Object> transportMsgFields = transportAuditMessage.getAsMap();
+
+        Set<String> restAuditSet = restMsgFields.keySet();
+        Set<String> transportAuditSet = transportMsgFields.keySet();
 
         // Added a magic number here and below, because there are always 15 or more items in each message generated via Audit logs
         assertThat(restAuditSet.size(), greaterThan(14));
         assertThat(transportAuditSet.size(), greaterThan(14));
 
+        // check for values of common fields
+        Set<String> commonFields = new HashSet<>(restAuditSet);
+        commonFields.retainAll(transportAuditSet);
+
+        assertCommonFields(commonFields, restMsgFields, transportMsgFields);
+
+        // check for values of uncommon fields
         restAuditSet.removeAll(transportAuditMessage.getAsMap().keySet());
         transportAuditSet.removeAll(restAuditMessage.getAsMap().keySet());
 
@@ -289,5 +306,34 @@ public class WhoAmITests {
         // The end goal of this test is to ensure similarity, not equality.
         assertThat(restAuditSet.size(), lessThan(5));
         assertThat(transportAuditSet.size(), lessThan(5));
+
+        assertThat(restMsgFields.get("audit_rest_request_path"), equalTo("/_plugins/_security/whoamiprotected"));
+        assertThat(restMsgFields.get("audit_rest_request_method").toString(), equalTo("GET"));
+        assertThat(restMsgFields.get("audit_rest_request_headers").toString().contains("Connection"), equalTo(true));
+
+        assertThat(transportMsgFields.get("audit_transport_request_type"), equalTo("GetSettingsRequest"));
+        assertThat(transportMsgFields.get("audit_request_privilege"), equalTo("indices:monitor/settings/get"));
+        assertThat(Strings.isNullOrEmpty(transportMsgFields.get("audit_trace_task_id").toString()), equalTo(false));
+    }
+
+    private void assertCommonFields(Set<String> commonFields, Map<String, Object> restMsgFields, Map<String, Object> transportMsgFields) {
+        for (String key : commonFields) {
+            if (key.equals("@timestamp")) {
+                String restTimeStamp = restMsgFields.get(key).toString();
+                String transportTimeStamp = transportMsgFields.get(key).toString();
+
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+                LocalDateTime restDateTime = LocalDateTime.parse(restTimeStamp, formatter);
+                LocalDateTime transportDateTime = LocalDateTime.parse(transportTimeStamp, formatter);
+
+                // assert that these log messages are generated within 10 seconds of each other
+                assertTrue(Duration.between(restDateTime, transportDateTime).getSeconds() < 10);
+            } else if (key.equals("audit_request_layer")) {
+                assertThat(restMsgFields.get(key).toString(), equalTo("REST"));
+                assertThat(transportMsgFields.get(key).toString(), equalTo("TRANSPORT"));
+            } else {
+                assertThat(restMsgFields.get(key), equalTo(transportMsgFields.get(key)));
+            }
+        }
     }
 }
