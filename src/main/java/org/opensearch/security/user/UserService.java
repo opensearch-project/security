@@ -318,6 +318,16 @@ public class UserService {
         }
     }
 
+    /**
+     * Removes accounts that are not of the requested type from the SecurityDynamicConfiguration object passed.
+     *
+     * Accounts with the 'service' attribute set to true, are considered of type 'service'.
+     * Accounts with the 'service' attribute set to false or without the 'service' attribute, are considered of type 'internal'.
+     *
+     * @param configuration SecurityDynamicConfiguration object containing all accounts
+     * @param requestedAccountType The type of account to be kept. Should be "service" or "internal"
+     *
+     */
     public void filterAccountsByType(SecurityDynamicConfiguration<?> configuration, String requestedAccountType) {
         List<String> toBeRemoved = new ArrayList<>();
 
@@ -332,9 +342,7 @@ public class UserService {
             } else if (requestedAccountType.equalsIgnoreCase("service") && isServiceAccount == false) {
                 toBeRemoved.add(accountName);
             }
-
         }
         configuration.remove(toBeRemoved);
     }
-
 }

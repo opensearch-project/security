@@ -27,6 +27,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
@@ -133,12 +134,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         String filterBy = request.param("filterBy", "all");
 
-        if (filterBy != "internal" && filterBy != "service") {
+        if (filterBy.equalsIgnoreCase("internal") || filterBy.equalsIgnoreCase("service")) {
             userService.filterAccountsByType(configuration, filterBy);
         }
 
         // no specific resource requested, return complete config
-        if (resourcename == null || resourcename.length() == 0) {
+        if (Strings.isNullOrEmpty(resourcename)) {
             successResponse(channel, configuration);
             return;
         }
@@ -200,7 +201,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         if (userExisted && securityJsonNode.get("hash").asString() == null) {
             // sanity check, this should usually not happen
             final String hash = ((Hashed) internalUsersConfiguration.getCEntry(username)).getHash();
-            if (hash == null || hash.length() == 0) {
+            if (Strings.isNullOrEmpty(hash)) {
                 internalErrorResponse(
                     channel,
                     "Existing user " + username + " has no password, and no new password or hash was specified."
@@ -255,7 +256,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         filter(internalUsersConfiguration); // Hides hashes
 
         // no specific resource requested
-        if (username == null || username.length() == 0) {
+        if (Strings.isNullOrEmpty(username)) {
 
             notImplemented(channel, Method.POST);
             return;
