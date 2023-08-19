@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
@@ -93,11 +94,6 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     @Override
     protected Endpoint getEndpoint() {
         return Endpoint.TENANTS;
-    }
-
-    @Override
-    protected String getResourceName() {
-        return null;
     }
 
     @Override
@@ -165,11 +161,11 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             .override(GET, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
                 final var config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
                 ok(channel, multitenancyContent(config));
-            }).error((status, toXContent) -> Responses.response(channel, status, toXContent)))
+            }).error((status, toXContent) -> response(channel, status, toXContent)))
             .override(PUT, (channel, request, client) -> {
-                loadConfigurationWithRequestContent("config", request, createEndpointValidator().createRequestContentValidator()).valid(
+                loadConfigurationWithRequestContent("config", request).valid(
                     securityConfiguration -> updateMultitenancy(channel, client, securityConfiguration)
-                ).error((status, toXContent) -> Responses.response(channel, status, toXContent));
+                ).error((status, toXContent) -> response(channel, status, toXContent));
             });
     }
 

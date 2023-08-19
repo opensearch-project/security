@@ -232,11 +232,6 @@ public class AuditApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
     protected Endpoint getEndpoint() {
         return Endpoint.AUDIT;
     }
@@ -257,7 +252,7 @@ public class AuditApiAction extends AbstractApiAction {
             .onChangeRequest(RestRequest.Method.PATCH, request -> withEnabledAuditApi(request).map(this::processPatchRequest))
             .onChangeRequest(
                 RestRequest.Method.PUT,
-                request -> withEnabledAuditApi(request).map(this::withConfigResourceNameOnly).map(ignore -> processPutRequest(request))
+                request -> withEnabledAuditApi(request).map(this::withConfigEntityNameOnly).map(ignore -> processPutRequest(request))
             )
             .override(RestRequest.Method.POST, methodNotImplementedHandler)
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
@@ -270,7 +265,7 @@ public class AuditApiAction extends AbstractApiAction {
         return ValidationResult.success(request);
     }
 
-    private ValidationResult<String> withConfigResourceNameOnly(final RestRequest request) {
+    private ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
         final var name = nameParam(request);
         if (!RESOURCE_NAME.equals(name)) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
@@ -284,7 +279,7 @@ public class AuditApiAction extends AbstractApiAction {
 
             @Override
             public String resourceName() {
-                return getResourceName();
+                return RESOURCE_NAME;
             }
 
             @Override
@@ -307,7 +302,7 @@ public class AuditApiAction extends AbstractApiAction {
             ) {
                 if (!restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint())) {
                     final var existingResource = Utils.convertJsonToJackson(securityConfiguration.configuration(), false)
-                        .get(getResourceName());
+                        .get(RESOURCE_NAME);
                     final var targetResource = securityConfiguration.requestContent();
                     if (readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)))) {
                         return ValidationResult.error(RestStatus.CONFLICT, conflictMessage("Attempted to update read-only property."));

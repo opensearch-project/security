@@ -46,8 +46,6 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ActionGroupsApiAction extends AbstractApiAction {
 
-    protected final static String RESOURCE_NAME = "actiongroup";
-
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             // legacy mapping for backwards compatibility
@@ -95,11 +93,6 @@ public class ActionGroupsApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
     protected Endpoint getEndpoint() {
         return Endpoint.ACTIONGROUPS;
     }
@@ -113,7 +106,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
         return new EndpointValidator() {
             @Override
             public String resourceName() {
-                return RESOURCE_NAME;
+                return "actiongroup";
             }
 
             @Override

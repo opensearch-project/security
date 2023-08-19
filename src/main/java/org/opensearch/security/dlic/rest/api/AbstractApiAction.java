@@ -72,6 +72,7 @@ import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.conflict;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
@@ -83,9 +84,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     private final static Logger LOGGER = LogManager.getLogger(AbstractApiAction.class);
 
-    private final static Set<String> PATCH_OPERATIONS = Set.of("add", "replace", "remove");
+    private final static Set<String> supportedPatchOperations = Set.of("add", "replace", "remove");
 
-    private final static String PATCH_OPERATIONS_AS_STRING = String.join(",", PATCH_OPERATIONS);
+    private final static String supportedPatchOperationsAsString = String.join(",", supportedPatchOperations);
 
     protected final ConfigurationRepository cl;
     protected final ClusterService cs;
@@ -154,7 +155,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final ValidationResult<SecurityConfiguration> processDeleteRequest(final RestRequest request) throws IOException {
-        return withRequiredResourceName(request).map(entityName -> loadConfiguration(entityName, false))
+        return endpointValidator.withRequiredEntityName(nameParam(request))
+            .map(entityName -> loadConfiguration(entityName, false))
             .map(endpointValidator::onConfigDelete)
             .map(this::removeEntityFromConfig);
     }
@@ -195,11 +197,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Wrong request body"));
             }
             for (final var patchOperation : operations) {
-                if (!PATCH_OPERATIONS.contains(patchOperation)) {
+                if (!supportedPatchOperations.contains(patchOperation)) {
                     return ValidationResult.error(
                         RestStatus.BAD_REQUEST,
                         badRequestMessage(
-                            "Unsupported patch operation: " + patchOperation + ". Supported are: " + PATCH_OPERATIONS_AS_STRING
+                            "Unsupported patch operation: " + patchOperation + ". Supported are: " + supportedPatchOperationsAsString
                         )
                     );
                 }
@@ -335,9 +337,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
-        return withRequiredResourceName(request).map(
-            entityName -> loadConfigurationWithRequestContent(entityName, request, endpointValidator.createRequestContentValidator())
-        ).map(endpointValidator::onConfigChange).map(this::addEntityToConfig);
+        return endpointValidator.withRequiredEntityName(nameParam(request))
+            .map(entityName -> loadConfigurationWithRequestContent(entityName, request))
+            .map(endpointValidator::onConfigChange)
+            .map(this::addEntityToConfig);
     }
 
     protected final ValidationResult<SecurityConfiguration> addEntityToConfig(final SecurityConfiguration securityConfiguration)
@@ -364,20 +367,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return name;
     }
 
-    protected final ValidationResult<String> withRequiredResourceName(final RestRequest request) {
-        final var resourceName = nameParam(request);
-        if (resourceName == null) {
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + getResourceName() + " specified."));
-        }
-        return ValidationResult.success(resourceName);
-    }
-
     protected final ValidationResult<SecurityConfiguration> loadConfigurationWithRequestContent(
         final String entityName,
-        final RestRequest request,
-        final RequestContentValidator requestContentValidator
+        final RestRequest request
     ) throws IOException {
-        return requestContentValidator.validate(request)
+        return endpointValidator.createRequestContentValidator()
+            .validate(request)
             .map(
                 content -> loadConfiguration(getConfigType(), false, false).map(
                     configuration -> ValidationResult.success(SecurityConfiguration.of(content, entityName, configuration))
@@ -448,7 +443,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         };
     }
 
-    protected abstract String getResourceName();
+    // protected abstract String getResourceName();
 
     protected abstract CType getConfigType();
 
@@ -475,9 +470,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         @Override
         public final void onFailure(Exception e) {
             if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
-                Responses.conflict(channel, e.getMessage());
+                conflict(channel, e.getMessage());
             } else {
-                Responses.internalSeverError(channel, "Error " + e.getMessage());
+                internalSeverError(channel, "Error " + e.getMessage());
             }
         }
 

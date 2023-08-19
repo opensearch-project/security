@@ -77,13 +77,14 @@ import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImpl
  * <p>
  */
 public class AllowlistApiAction extends AbstractApiAction {
+
+    private static final String RESOURCE_NAME = "config";
+
     private static final List<Route> routes = ImmutableList.of(
         new Route(RestRequest.Method.GET, "/_plugins/_security/api/allowlist"),
         new Route(RestRequest.Method.PUT, "/_plugins/_security/api/allowlist"),
         new Route(RestRequest.Method.PATCH, "/_plugins/_security/api/allowlist")
     );
-
-    private static final String RESOURCE_NAME = "config";
 
     @Inject
     public AllowlistApiAction(
@@ -106,11 +107,7 @@ public class AllowlistApiAction extends AbstractApiAction {
             .onChangeRequest(RestRequest.Method.PATCH, this::processPatchRequest)
             .onChangeRequest(
                 RestRequest.Method.PUT,
-                request -> loadConfigurationWithRequestContent(
-                    RESOURCE_NAME,
-                    request,
-                    createEndpointValidator().createRequestContentValidator()
-                ).map(this::addEntityToConfig)
+                request -> loadConfigurationWithRequestContent(RESOURCE_NAME, request).map(this::addEntityToConfig)
             )
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
     }
@@ -118,11 +115,6 @@ public class AllowlistApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
-    }
-
-    @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
     }
 
     @Override

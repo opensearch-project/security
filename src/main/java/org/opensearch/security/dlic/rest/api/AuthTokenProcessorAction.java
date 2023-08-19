@@ -57,11 +57,6 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return "authtoken";
-    }
-
-    @Override
     protected CType getConfigType() {
         return null;
     }

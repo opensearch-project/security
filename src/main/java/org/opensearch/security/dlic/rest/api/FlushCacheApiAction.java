@@ -110,12 +110,6 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        // not needed
-        return null;
-    }
-
-    @Override
     protected CType getConfigType() {
         return null;
     }

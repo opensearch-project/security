@@ -48,6 +48,7 @@ import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
@@ -88,11 +89,6 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
     protected Endpoint getEndpoint() {
         return Endpoint.ACCOUNT;
     }
@@ -117,16 +113,12 @@ public class AccountApiAction extends AbstractApiAction {
                     final var remoteAddress = userRemoteAddressAndConfig.getMiddle();
                     final var configuration = userRemoteAddressAndConfig.getRight();
                     userAccount(channel, user, remoteAddress, configuration);
-                }).error((status, toXContent) -> Responses.response(channel, status, toXContent))
+                }).error((status, toXContent) -> response(channel, status, toXContent))
             )
             .onChangeRequest(
                 Method.PUT,
                 request -> withUserAndRemoteAddress().map(
-                    userAndRemoteAddress -> loadConfigurationWithRequestContent(
-                        userAndRemoteAddress.getLeft().getName(),
-                        request,
-                        endpointValidator.createRequestContentValidator()
-                    )
+                    userAndRemoteAddress -> loadConfigurationWithRequestContent(userAndRemoteAddress.getLeft().getName(), request)
                 )
                     .map(endpointValidator::entityExists)
                     .map(endpointValidator::onConfigChange)

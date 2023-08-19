@@ -42,7 +42,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesMappingApiAction extends AbstractApiAction {
 
-    protected final static String RESOURCE_NAME = "rolesmapping";
+    protected final static String RESOURCE_NAME = "roles mapping";
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
@@ -81,11 +81,6 @@ public class RolesMappingApiAction extends AbstractApiAction {
     @Override
     protected Endpoint getEndpoint() {
         return Endpoint.ROLESMAPPING;
-    }
-
-    @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
     }
 
     @Override

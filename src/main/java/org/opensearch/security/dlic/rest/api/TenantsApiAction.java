@@ -98,11 +98,6 @@ public class TenantsApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
             @Override

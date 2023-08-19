@@ -72,6 +72,17 @@ public class EndpointValidatorTest {
     }
 
     @Test
+    public void requiredEntityName() {
+        var validationResult = endpointValidator.withRequiredEntityName(null);
+        assertFalse(validationResult.isValid());
+        assertEquals(RestStatus.BAD_REQUEST, validationResult.status());
+
+        validationResult = endpointValidator.withRequiredEntityName("a");
+        assertTrue(validationResult.isValid());
+        assertEquals(RestStatus.OK, validationResult.status());
+    }
+
+    @Test
     public void entityDoesNotExist() {
         when(configuration.exists("some_role")).thenReturn(false);
         final var validationResult = endpointValidator.entityExists(SecurityConfiguration.of("some_role", configuration));

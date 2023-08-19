@@ -125,11 +125,6 @@ public class RolesApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
     protected CType getConfigType() {
         return CType.ROLES;
     }

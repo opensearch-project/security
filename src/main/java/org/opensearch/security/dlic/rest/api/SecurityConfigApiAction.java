@@ -90,19 +90,12 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         return Endpoint.CONFIG;
     }
 
-    @Override
-    protected String getResourceName() {
-        // not needed, no single resource
-        return RESOURCE_NAME;
-    }
-
     private void securityConfigApiActionRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(
             Method.PUT,
-            request -> withAllowedEndpoint(request).map(this::withConfigResourceNameOnly).map(ignore -> processPutRequest(request))
+            request -> withAllowedEndpoint(request).map(this::withConfigEntityNameOnly).map(ignore -> processPutRequest(request))
         )
             .onChangeRequest(Method.PATCH, request -> withAllowedEndpoint(request).map(this::processPatchRequest))
-            .override(Method.POST, methodNotImplementedHandler)
             .override(Method.DELETE, methodNotImplementedHandler)
             .override(Method.POST, methodNotImplementedHandler);
     }
@@ -114,7 +107,7 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         return ValidationResult.success(request);
     }
 
-    private ValidationResult<String> withConfigResourceNameOnly(final RestRequest request) {
+    private ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
         final var name = nameParam(request);
         if (!RESOURCE_NAME.equals(name)) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));

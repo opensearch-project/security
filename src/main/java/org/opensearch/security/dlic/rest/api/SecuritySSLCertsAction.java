@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -103,11 +104,6 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return null;
-    }
-
-    @Override
     protected CType getConfigType() {
         return null;
     }
@@ -119,7 +115,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
             .override(
                 Method.GET,
                 (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> loadCertificates(channel, keyStore))
-                    .error((status, toXContent) -> Responses.response(channel, status, toXContent))
+                    .error((status, toXContent) -> response(channel, status, toXContent))
             )
             .override(Method.PUT, (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> {
                 if (!certificatesReloadEnabled) {
@@ -135,7 +131,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
                 } else {
                     reloadCertificates(channel, request, keyStore);
                 }
-            }).error((status, toXContent) -> Responses.response(channel, status, toXContent)));
+            }).error((status, toXContent) -> response(channel, status, toXContent)));
     }
 
     private boolean accessHandler(final RestRequest request) {

@@ -60,6 +60,9 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * See {@link NodesDnApiTest} for usage examples.
  */
 public class NodesDnApiAction extends AbstractApiAction {
+
+    public static final String RESOURCE_NAME = "nodesdn";
+
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
@@ -105,11 +108,6 @@ public class NodesDnApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return "nodesdn";
-    }
-
-    @Override
     protected CType getConfigType() {
         return CType.NODESDN;
     }
@@ -145,7 +143,7 @@ public class NodesDnApiAction extends AbstractApiAction {
         return new EndpointValidator() {
             @Override
             public String resourceName() {
-                return getResourceName();
+                return RESOURCE_NAME;
             }
 
             @Override

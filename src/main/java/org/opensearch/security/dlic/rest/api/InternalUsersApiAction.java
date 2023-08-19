@@ -48,6 +48,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
@@ -109,11 +110,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
     protected CType getConfigType() {
         return CType.INTERNALUSERS;
     }
@@ -130,14 +126,13 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 )
                     .map(endpointValidator::entityExists)
                     .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
-                    .error((status, toXContent) -> Responses.response(channel, status, toXContent))
+                    .error((status, toXContent) -> response(channel, status, toXContent))
             )
             .onChangeRequest(Method.PATCH, this::processPatchRequest)
             .onChangeRequest(
                 Method.PUT,
-                request -> withRequiredResourceName(request).map(
-                    username -> loadConfigurationWithRequestContent(username, request, endpointValidator.createRequestContentValidator())
-                )
+                request -> endpointValidator.withRequiredEntityName(nameParam(request))
+                    .map(username -> loadConfigurationWithRequestContent(username, request))
                     .map(endpointValidator::hasRightsToChangeEntity)
                     .map(this::validateSecurityRoles)
                     .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
@@ -147,7 +142,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     private ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
-        return withRequiredResourceName(request).map(username -> {
+        return endpointValidator.withRequiredEntityName(nameParam(request)).map(username -> {
             // Handle auth token fetching
             if (!(request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken"))) {
                 return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static java.util.function.Predicate.not;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.notFoundMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
@@ -25,6 +26,13 @@ public interface EndpointValidator {
 
     default boolean isCurrentUserAdmin() {
         return restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint());
+    }
+
+    default ValidationResult<String> withRequiredEntityName(final String entityName) {
+        if (entityName == null) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + resourceName() + " specified."));
+        }
+        return ValidationResult.success(entityName);
     }
 
     default ValidationResult<SecurityConfiguration> entityExists(final SecurityConfiguration securityConfiguration) {

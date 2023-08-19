@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 import java.util.Objects;
@@ -48,14 +47,6 @@ public class SecurityConfiguration {
         this(entityName, entityExists, null, configuration);
     }
 
-    public CType type() {
-        return configuration().getCType();
-    }
-
-    public String typeName() {
-        return type().toLCString();
-    }
-
     public SecurityDynamicConfiguration<?> configuration() {
         return configuration;
     }
@@ -77,7 +68,7 @@ public class SecurityConfiguration {
     }
 
     public static SecurityConfiguration of(final String entityName, final SecurityDynamicConfiguration<?> configuration) {
-        Objects.requireNonNull(configuration);
+        Objects.requireNonNull(configuration, "configuration hasn't been set");
         return new SecurityConfiguration(entityName, configuration.exists(entityName), configuration);
     }
 
@@ -86,8 +77,8 @@ public class SecurityConfiguration {
         final String entityName,
         final SecurityDynamicConfiguration<?> configuration
     ) {
-        Objects.requireNonNull(requestContent);
-        Objects.requireNonNull(configuration);
+        Objects.requireNonNull(configuration, "configuration hasn't been set");
+        Objects.requireNonNull(requestContent, "requestContent hasn't been set");
         return new SecurityConfiguration(entityName, configuration.exists(entityName), requestContent, configuration);
     }
 

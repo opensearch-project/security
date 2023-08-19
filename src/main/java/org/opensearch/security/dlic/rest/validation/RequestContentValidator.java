@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -143,7 +142,7 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> validateContentSize(final JsonNode jsonContent) {
-        if (jsonContent.size() == 0) {
+        if (jsonContent.isEmpty()) {
             this.validationError = ValidationError.PAYLOAD_MANDATORY;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
@@ -172,7 +171,7 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> validateDataType(final JsonNode jsonContent) {
-        try (final JsonParser parser = new JsonFactory().createParser(jsonContent.toString())) {
+        try (final JsonParser parser = DefaultObjectMapper.objectMapper.treeAsTokens(jsonContent)) {
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
                 if (token.equals(JsonToken.FIELD_NAME)) {
