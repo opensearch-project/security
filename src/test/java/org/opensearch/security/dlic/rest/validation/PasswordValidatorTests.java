@@ -23,7 +23,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_P
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
 
-public class PasswordValidatorTest {
+public class PasswordValidatorTests {
 
     static final List<String> WEAK_PASSWORDS = ImmutableList.of("q", "5", "&", "admin", "123456", "password");
 
