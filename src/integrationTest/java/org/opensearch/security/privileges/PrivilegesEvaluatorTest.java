@@ -85,16 +85,6 @@ public class PrivilegesEvaluatorTest {
     }
 
     @Test
-    public void testGetIndicesSuccess() {
-        // Insert doc into services index with admin user
-        try (TestRestClient client = cluster.getRestClient(GET_INDICES)) {
-            final String searchTemplateOnServicesIndex = "/_cat/indices/logs-*";
-            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.get(searchTemplateOnServicesIndex);
-            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
-    }
-
-    @Test
     public void testSearchTemplateRequestSuccess() {
         // Insert doc into services index with admin user
         try (TestRestClient client = cluster.getRestClient(TestSecurityConfig.User.USER_ADMIN)) {

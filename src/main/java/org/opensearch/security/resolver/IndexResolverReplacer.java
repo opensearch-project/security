@@ -751,15 +751,11 @@ public class IndexResolverReplacer {
             }
             ((IndexRequest) request).index(newIndices.length != 1 ? null : newIndices[0]);
         } else if (request instanceof Replaceable) {
-            if (request instanceof GetSettingsRequest) {
-                provider.provide(((GetSettingsRequest) request).indices(), request, true);
-            } else {
-                String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
-                if (checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
-                    return false;
-                }
-                ((Replaceable) request).indices(newIndices);
+            String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
+            if (checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
+                return false;
             }
+            ((Replaceable) request).indices(newIndices);
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             // replace not supported?
