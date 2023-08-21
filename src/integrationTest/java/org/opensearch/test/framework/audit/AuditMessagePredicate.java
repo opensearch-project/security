@@ -41,6 +41,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
     private final String transportRequestType;
     private final String effectiveUser;
     private final String index;
+    private final String privilege;
 
     private AuditMessagePredicate(
         AuditCategory category,
@@ -50,7 +51,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         Method requestMethod,
         String transportRequestType,
         String effectiveUser,
-        String index
+        String index,
+        String privilege
     ) {
         this.category = category;
         this.requestLayer = requestLayer;
@@ -60,10 +62,11 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         this.transportRequestType = transportRequestType;
         this.effectiveUser = effectiveUser;
         this.index = index;
+        this.privilege = privilege;
     }
 
     private AuditMessagePredicate(AuditCategory category) {
-        this(category, null, null, null, null, null, null, null);
+        this(category, null, null, null, null, null, null, null, null);
     }
 
     public static AuditMessagePredicate auditPredicate(AuditCategory category) {
@@ -82,6 +85,22 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         return auditPredicate(MISSING_PRIVILEGES).withLayer(Origin.TRANSPORT).withEffectiveUser(user).withTransportRequestType(requestType);
     }
 
+    public static AuditMessagePredicate privilegePredicateTransportLayer(
+        AuditCategory category,
+        User user,
+        String requestType,
+        String privilege
+    ) {
+        return auditPredicate(category).withLayer(Origin.TRANSPORT)
+            .withEffectiveUser(user)
+            .withPrivilege(privilege)
+            .withTransportRequestType(requestType);
+    }
+
+    public static AuditMessagePredicate privilegePredicateRESTLayer(AuditCategory category, User user, Method method, String endpoint) {
+        return auditPredicate(category).withLayer(Origin.REST).withEffectiveUser(user).withRestRequest(method, endpoint);
+    }
+
     public AuditMessagePredicate withLayer(Origin layer) {
         return new AuditMessagePredicate(
             category,
@@ -91,7 +110,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             requestMethod,
             transportRequestType,
             effectiveUser,
-            index
+            index,
+            privilege
         );
     }
 
@@ -104,7 +124,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             requestMethod,
             transportRequestType,
             effectiveUser,
-            index
+            index,
+            privilege
         );
     }
 
@@ -117,7 +138,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             requestMethod,
             transportRequestType,
             effectiveUser,
-            index
+            index,
+            privilege
         );
     }
 
@@ -134,7 +156,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             method,
             transportRequestType,
             effectiveUser,
-            index
+            index,
+            privilege
         );
     }
 
@@ -147,7 +170,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             requestMethod,
             type,
             effectiveUser,
-            index
+            index,
+            privilege
         );
     }
 
@@ -160,7 +184,8 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             requestMethod,
             transportRequestType,
             user,
-            index
+            index,
+            privilege
         );
     }
 
@@ -181,7 +206,22 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             requestMethod,
             transportRequestType,
             effectiveUser,
-            indexName
+            indexName,
+            privilege
+        );
+    }
+
+    public AuditMessagePredicate withPrivilege(String privilegeAction) {
+        return new AuditMessagePredicate(
+            category,
+            requestLayer,
+            restRequestPath,
+            initiatingUser,
+            requestMethod,
+            transportRequestType,
+            effectiveUser,
+            index,
+            privilegeAction
         );
     }
 
@@ -196,6 +236,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         predicates.add(audit -> Objects.isNull(transportRequestType) || transportRequestType.equals(audit.getRequestType()));
         predicates.add(audit -> Objects.isNull(effectiveUser) || effectiveUser.equals(audit.getEffectiveUser()));
         predicates.add(audit -> Objects.isNull(index) || containIndex(audit, index));
+        predicates.add(audit -> Objects.isNull(privilege) || privilege.equals(audit.getPrivilege()));
         return predicates.stream().reduce(Predicate::and).orElseThrow().test(auditMessage);
     }
 
