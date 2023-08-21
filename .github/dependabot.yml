@@ -18,3 +18,5 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "[1.x] dependabot:"
+    labels:
+      - "backport 1.3"
