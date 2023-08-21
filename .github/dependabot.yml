@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "dependabot:"
+    ignore:
+      # For all packages, ignore all major versions to minimize breaking issues
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    labels:
+      - "backport 1.3"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "dependabot:"
+
