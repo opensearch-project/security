@@ -434,7 +434,7 @@ repositories {
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
+    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
 
