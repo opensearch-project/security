@@ -24,7 +24,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.test.framework.testplugins.dummyaction;
+package org.opensearch.test.framework.testplugins.dummyprotected.dummyaction;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -44,7 +44,7 @@ public class TransportDummyAction extends HandledTransportAction<DummyRequest, D
 
     @Override
     protected void doExecute(Task task, DummyRequest request, ActionListener<DummyResponse> listener) {
-        String responseString = "Hello from dummy plugin";
+        String responseString = "Hello from dummy protected plugin";
 
         listener.onResponse(new DummyResponse(responseString));
     }

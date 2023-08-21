@@ -24,20 +24,21 @@
  * GitHub history for details.
  */
 
-package org.opensearch.test.framework.testplugins.dummyaction;
+package org.opensearch.test.framework.testplugins.dummyprotected.dummyaction;
 
+import org.opensearch.common.xcontent.StatusToXContentObject;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 import java.io.IOException;
 
-public class DummyResponse extends ActionResponse implements ToXContent {
-    private String responseString;
+public class DummyResponse extends ActionResponse implements StatusToXContentObject {
+    private final String responseString;
 
     public DummyResponse(String responseString) {
         this.responseString = responseString;
@@ -64,8 +65,8 @@ public class DummyResponse extends ActionResponse implements ToXContent {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("dummy_response");
-        builder.field("responseString", responseString);
+        builder.startObject();
+        builder.field("response_string", this.responseString);
         builder.endObject();
 
         return builder;
@@ -74,5 +75,13 @@ public class DummyResponse extends ActionResponse implements ToXContent {
     @Override
     public String toString() {
         return Strings.toString(MediaTypeRegistry.JSON, this, true, true);
+    }
+
+    /**
+     * @return
+     */
+    @Override
+    public RestStatus status() {
+        return RestStatus.OK;
     }
 }

@@ -1,4 +1,4 @@
-package org.opensearch.test.framework.testplugins;
+package org.opensearch.test.framework.testplugins.dummyprotected;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -14,14 +14,14 @@ import org.opensearch.plugins.NetworkPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.test.framework.testplugins.dummyaction.DummyAction;
-import org.opensearch.test.framework.testplugins.dummyaction.TransportDummyAction;
+import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.DummyAction;
+import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.TransportDummyAction;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class CustomTestPlugin extends Plugin implements ClusterPlugin, NetworkPlugin, ActionPlugin {
+public class CustomRestProtectedTestPlugin extends Plugin implements ClusterPlugin, NetworkPlugin, ActionPlugin {
 
     @Override
     public List<RestHandler> getRestHandlers(
@@ -35,7 +35,7 @@ public class CustomTestPlugin extends Plugin implements ClusterPlugin, NetworkPl
     ) {
 
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
-        handlers.add(new DummyRestHandler());
+        handlers.add(new ProtectedRoutesRestHandler());
 
         return handlers;
     }
