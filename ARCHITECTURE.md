@@ -1,3 +1,17 @@
+- [OpenSearch Security Plugin Architecture](#opensearch-security-plugin-architecture)
+  - [Components](#components)
+    - [Security Plugin](#security-plugin)
+    - [Security Configuration](#security-configuration)
+      - [Configuration Files](#configuration-files)
+    - [Admin Tools](#admin-tools)
+  - [Flows](#flows)
+    - [Authentication / Authorization](#authentication--authorization)
+      - [Multiple Authorization Provider flow](#multiple-authorization-provider-flow)
+      - [Rest vs Transport flow](#rest-vs-transport-flow)
+      - [Plugin Authorization Flows](#plugin-authorization-flows)
+      - [Extension On Behalf Of Authorization Flows](#extension-on-behalf-of-authorization-flows)
+      - [Extension Service Account Authorization](#extension-service-account-authorization)
+
 # OpenSearch Security Plugin Architecture
 
 OpenSearch’s core systems do not include security features, these features are added by installing the Security Plugin. The Security Plugin extends OpenSearch to provide authentication, authorization, end to end Encryption, audit logging, and management interfaces.
@@ -128,4 +142,127 @@ sequenceDiagram
     O->>AH: Send transport request to action handler
     AH-->>O: Result
     O->>C: Response
+```
+
+#### Plugin Authorization Flows
+
+Plugins that implement ActionPlugin can register REST and Transport layer handlers which can receive requests from the user and other nodes in the cluster, respectively.  During the lifecycle of an incoming requests there are two standard ways to handle authorized actions in these flows.  One us to use the authenticated user, the other is to run outside the user context.
+
+As in the normal authorization flow into the service the user is authenticated, then the action is determined, and finally an authorization check for the user is performed, and they are allowed or denied.  This can be thought of as running on behalf of the user.
+
+There are some actions run by plugins that do not reuse the authentication or authorization of the current user, such as to make changes to internal cluster state for cross cluster replication.  When requests come in for these actions they are run outside the user context.
+
+> Operating outside the user context means that no authorization checks are performed.  This is used to elevate plugin activities such as modifications to system indices, operations on the cluster configuration, and to ensure actions on the cluster are not associated with a singular user.
+
+```mermaid
+sequenceDiagram
+    title Authorization during action flow for Plugins
+    autonumber
+    participant C as Client
+    participant OS as OpenSearch
+    participant SP as SecurityPlugin
+    participant P as Plugin
+
+    C->>OS: Request
+    OS->>SP: Request
+    SP->>SP: Add Auth information to request context
+    OS->>P: Client Request
+    P->>SP: Execute transport layer action
+    SP->>SP: Check if action is allowed
+    alt Allowed
+        SP->>OS: Continue request
+        OS-->>P: Transport layer action result
+    else Denied
+        SP-->>OS: Return 403 Forbidden
+        OS-->>C: 403 Forbidden
+    end
+    alt Plugin run outside user context
+    P->>P: Stash context
+    P->>SP: Execute transport layer action outside user context
+    SP-->>SP: Check if action is allowed
+    SP->>OS: Continue request
+    OS-->>P: Transport layer action result
+    P->>P: Restore user context
+    end
+    P-->>SP: Result
+    SP-->>OS: Result
+    OS-->>C: Result
+```
+
+#### Extension On Behalf Of Authorization Flows
+
+Extensions will be able to operate in similar flows as Plugins to ensure authorization is correctly handled.  Registration of REST handlers is allowed and transport layer actions are not permitted.  After the request has been authorized for the user to be transmitted to the extension the token generator will create a just in time token for use with that request on behalf of the user.
+
+> On Behalf Of tokens are an optional feature, while supported through the extensions API it needs to be enabled on an individual extension basis.  Issuing On Behalf Of tokens can be disabled which will alter request forward to the extension not to include the On Behalf Of token.
+
+```mermaid
+sequenceDiagram
+    title Authorization during action flow for Extension
+    autonumber
+    participant C as Client
+    participant OS as OpenSearch
+    participant SP as SecurityPlugin
+    participant E as Extension
+
+    C->>OS: Request
+    OS->>SP: Request
+    SP->>SP: Add Auth information from request context
+    alt Allowed
+        SP->>OS: Continue request
+        OS-->>SP: Generate OnBehalfOf token for extension
+        SP->>OS: Return OnBehalfOf token
+        OS-->>E: Forward client Request with OnBehalfOf token
+    else Denied
+        note over E: Extension does not know<br>about denied requests
+        SP-->>OS: Access denied
+        OS-->>C: 403 Forbidden
+    end
+
+    E->>OS: Call OpenSearch REST API<br>with OnBehalfOf token
+    OS->>SP: Request
+    SP->>SP: Add Auth information from OnBehalfOf token
+    alt Allowed
+        SP->>OS: Continue request
+        OS-->>E: Return REST API Action
+        E->>OS: Return extension response
+        OS->>C: Result
+    else Denied
+        SP-->>OS: Access denied
+        OS-->>E: 403 Forbidden
+        note over E: Extension responsible to understand<br>communicate failure response(s)
+        E->>OS: Return extension response
+        OS->>C: Result
+    end
+```
+
+#### Extension Service Account Authorization
+
+Service account information is provided to the extension on initialization.  This allows extension to make requests against the OpenSearch Cluster without needing an incoming request.  Since this request is down in the context of a different identity it can have different permissions from that of an On Behalf Of user such as modification to a persistent data store used by the extension.
+
+```mermaid
+sequenceDiagram
+    title Authorization with Service Account
+    autonumber
+    participant C as Client
+    participant E as Extension
+    participant OS as OpenSearch
+    participant SP as SecurityPlugin
+
+    OS->>OS: Initialize Extensions
+    OS->>SP: Register extension service account
+    SP->>OS: Service account token
+    OS->>E: Initialization extension<br>include Service account token
+    Note over E: Extension is initalized
+    C->>E: Request
+    E->>OS: Check extension data store<br>include Service account token
+    OS->>SP: Request
+    SP->>SP: Add Auth information from request context
+    alt Allowed
+        SP->>OS: Continue request
+        OS->>E: REST API Result
+    else Denied
+        SP->>OS: Access denied
+        OS->>E: 403 Forbidden
+    end
+    E->>C: Return extension response
 ```
