@@ -63,4 +63,25 @@ public class RestPathMatchesTest {
         String handlerPath = "_plugins/security/api/x/y";
         assertFalse((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
     }
+
+    @Test
+    public void testRequestPathWithNamedParam() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "_plugins/security/api/123/y";
+        String handlerPath = "_plugins/security/api/{id}/z";
+        assertFalse((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
+    }
+
+    @Test
+    public void testRequestPathMismatch() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "_plugins/security/api/x/y";
+        String handlerPath = "_plugins/security/api/z/y";
+        assertFalse((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
+    }
+
+    @Test
+    public void testRequestPathWithExtraSegments() throws InvocationTargetException, IllegalAccessException {
+        String requestPath = "_plugins/security/api/x/y/z";
+        String handlerPath = "_plugins/security/api/x/y";
+        assertFalse((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
+    }
 }
