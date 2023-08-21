@@ -31,7 +31,7 @@ import org.opensearch.action.ActionType;
 public class DummyAction extends ActionType<DummyResponse> {
 
     public static final DummyAction INSTANCE = new DummyAction();
-    public static final String NAME = "cluster:admin/dummy_protected_plugin/dummy";
+    public static final String NAME = "cluster:admin/dummy_protected_plugin/dummy/get";
 
     protected DummyAction() {
         super(NAME, DummyResponse::new);

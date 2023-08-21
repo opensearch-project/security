@@ -12,9 +12,13 @@
 package org.opensearch.test.framework.testplugins.dummy;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestStatusToXContentListener;
 import org.opensearch.test.framework.testplugins.AbstractRestHandler;
+import org.opensearch.test.framework.testplugins.dummy.dummyaction.DummyAction;
+import org.opensearch.test.framework.testplugins.dummy.dummyaction.DummyRequest;
 
 import java.util.List;
 
@@ -29,8 +33,6 @@ public class LegacyRestHandler extends AbstractRestHandler {
         "/_plugins/_dummy"
     );
 
-    private final Logger log = LogManager.getLogger(this.getClass());
-
     public LegacyRestHandler() {
         super();
     }
@@ -43,5 +45,12 @@ public class LegacyRestHandler extends AbstractRestHandler {
     @Override
     public String getName() {
         return "Dummy Rest Action";
+    }
+
+    @Override
+    public void handleGet(RestChannel channel, RestRequest request, NodeClient client) {
+        String message = request.param("message");
+        DummyRequest dummyRequest = new DummyRequest(message);
+        client.execute(DummyAction.INSTANCE, dummyRequest, new RestStatusToXContentListener<>(channel));
     }
 }

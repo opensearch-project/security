@@ -8,9 +8,6 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.action.RestStatusToXContentListener;
-import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.DummyAction;
-import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.DummyRequest;
 
 import java.io.IOException;
 
@@ -47,13 +44,11 @@ public class AbstractRestHandler extends BaseRestHandler {
         }
     }
 
-    private void handlePost(RestChannel channel, RestRequest request, NodeClient client) {
+    public void handlePost(RestChannel channel, RestRequest request, NodeClient client) {
         notImplemented(channel, request.method());
     }
 
-    private void handleGet(RestChannel channel, RestRequest request, NodeClient client) {
-        String message = request.param("message");
-        DummyRequest dummyRequest = new DummyRequest(message);
-        client.execute(DummyAction.INSTANCE, dummyRequest, new RestStatusToXContentListener<>(channel));
+    public void handleGet(RestChannel channel, RestRequest request, NodeClient client) {
+        notImplemented(channel, request.method());
     }
 }

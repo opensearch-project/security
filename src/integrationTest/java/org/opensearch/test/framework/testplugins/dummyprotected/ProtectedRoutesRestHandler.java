@@ -15,11 +15,15 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
+import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.NamedRoute;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestStatusToXContentListener;
 import org.opensearch.test.framework.testplugins.AbstractRestHandler;
+import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.DummyAction;
+import org.opensearch.test.framework.testplugins.dummyprotected.dummyaction.DummyRequest;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -43,8 +47,6 @@ public class ProtectedRoutesRestHandler extends AbstractRestHandler {
         "/_plugins/_dummy_protected"
     );
 
-    private final Logger log = LogManager.getLogger(this.getClass());
-
     public ProtectedRoutesRestHandler() {
         super();
     }
@@ -57,5 +59,12 @@ public class ProtectedRoutesRestHandler extends AbstractRestHandler {
     @Override
     public String getName() {
         return "Dummy Protected Rest Action";
+    }
+
+    @Override
+    public void handleGet(RestChannel channel, RestRequest request, NodeClient client) {
+        String message = request.param("message");
+        DummyRequest dummyRequest = new DummyRequest(message);
+        client.execute(DummyAction.INSTANCE, dummyRequest, new RestStatusToXContentListener<>(channel));
     }
 }
