@@ -9,6 +9,7 @@
 package org.opensearch.security.transport;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
+import java.net.UnknownHostException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
