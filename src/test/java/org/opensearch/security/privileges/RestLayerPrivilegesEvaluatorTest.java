@@ -73,11 +73,11 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(threadPool.getThreadContext()).thenReturn(context);
 
         privilegesEvaluator = new RestLayerPrivilegesEvaluator(
-            clusterService,
-            threadPool,
-            mock(AuditLog.class),
-            mock(ClusterInfoHolder.class),
-            namedXContentRegistry
+                clusterService,
+                threadPool,
+                mock(AuditLog.class),
+                mock(ClusterInfoHolder.class),
+                namedXContentRegistry
         );
         privilegesEvaluator.onConfigModelChanged(configModel);
         privilegesEvaluator.onDynamicConfigModelChanged(dcm);
@@ -128,7 +128,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(true);
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
-
+        assertTrue(privilegesEvaluator.isInitialized());
         assertTrue(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
     }
@@ -159,5 +159,17 @@ public class RestLayerPrivilegesEvaluatorTest {
 
         assertFalse(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
+    }
+
+    @Test
+    public void testIsInitialized_False() {
+        privilegesEvaluator = new RestLayerPrivilegesEvaluator(
+                clusterService,
+                threadPool,
+                mock(AuditLog.class),
+                mock(ClusterInfoHolder.class),
+                namedXContentRegistry
+        );
+        assertFalse(privilegesEvaluator.isInitialized());
     }
 }
