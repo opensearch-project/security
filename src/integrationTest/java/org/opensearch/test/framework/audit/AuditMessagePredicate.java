@@ -101,6 +101,10 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         return auditPredicate(category).withLayer(Origin.REST).withEffectiveUser(user).withRestRequest(method, endpoint);
     }
 
+    public static AuditMessagePredicate userAuthenticatedPredicate(User user, Method method, String endpoint) {
+        return userAuthenticated(user).withLayer(Origin.REST).withRestRequest(method, endpoint).withInitiatingUser(user);
+    }
+
     public AuditMessagePredicate withLayer(Origin layer) {
         return new AuditMessagePredicate(
             category,
