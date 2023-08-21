@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "dependabot:"
+      prefix: "[2.x] dependabot:"
     ignore:
       # For all packages, ignore all major versions to minimize breaking issues
       - dependency-name: "*"
@@ -15,4 +15,4 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "dependabot:"
+      prefix: "[2.x] dependabot:"
