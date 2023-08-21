@@ -32,13 +32,13 @@ import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.transport.MockTransport;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportInterceptor.AsyncSender;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestOptions;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
@@ -51,6 +51,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 // CS-ENFORCE-SINGLE
+
+import java.net.InetAddress;
 
 public class SecurityInterceptorTests {
 
@@ -141,10 +143,17 @@ public class SecurityInterceptorTests {
         TransportRequestOptions options = mock(TransportRequestOptions.class);
         TransportResponseHandler<TransportResponse> handler = mock(TransportResponseHandler.class);
 
-        DiscoveryNode localNode = new DiscoveryNode("local-node", OpenSearchTestCase.buildNewFakeTransportAddress(), Version.CURRENT);
+        InetAddress localAddress = null;
+        try {
+            localAddress = InetAddress.getByName("0.0.0.0");
+        } catch (final UnknownHostException uhe) {
+            throw new RuntimeException(uhe);
+        }
+
+        DiscoveryNode localNode = new DiscoveryNode("local-node", new TransportAddress(localAddress, 1234), Version.CURRENT);
         Connection connection1 = transportService.getConnection(localNode);
 
-        DiscoveryNode otherNode = new DiscoveryNode("local-node", OpenSearchTestCase.buildNewFakeTransportAddress(), Version.CURRENT);
+        DiscoveryNode otherNode = new DiscoveryNode("local-node", new TransportAddress(localAddress, 4321), Version.CURRENT);
         Connection connection2 = transportService.getConnection(otherNode);
 
         // isSameNodeRequest = true
