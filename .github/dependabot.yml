@@ -15,4 +15,4 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "dependabot:"
+      prefix: "[2.x] dependabot:"
