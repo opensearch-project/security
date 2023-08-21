@@ -14,7 +14,7 @@ package org.opensearch.security.dlic.rest.validation;
 import java.util.Map;
 
 import org.opensearch.core.common.bytes.BytesReference;
-import org.opensearch.core.common.compress.NotXContentException;
+import org.opensearch.core.compress.NotXContentException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
