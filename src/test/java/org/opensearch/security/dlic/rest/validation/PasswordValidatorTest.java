@@ -66,7 +66,7 @@ public class PasswordValidatorTest {
 
     public void verifyWeakPasswords(
         final PasswordValidator passwordValidator,
-        final AbstractConfigurationValidator.ErrorType expectedValidationResult
+        final RequestContentValidator.ValidationError expectedValidationResult
     ) {
         for (final String password : WEAK_PASSWORDS)
             assertEquals(password, expectedValidationResult, passwordValidator.validate("some_user_name", password));
@@ -75,7 +75,7 @@ public class PasswordValidatorTest {
 
     public void verifyFairPasswords(
         final PasswordValidator passwordValidator,
-        final AbstractConfigurationValidator.ErrorType expectedValidationResult
+        final RequestContentValidator.ValidationError expectedValidationResult
     ) {
         for (final String password : FAIR_PASSWORDS)
             assertEquals(password, expectedValidationResult, passwordValidator.validate("some_user_name", password));
@@ -84,7 +84,7 @@ public class PasswordValidatorTest {
 
     public void verifyGoodPasswords(
         final PasswordValidator passwordValidator,
-        final AbstractConfigurationValidator.ErrorType expectedValidationResult
+        final RequestContentValidator.ValidationError expectedValidationResult
     ) {
         for (final String password : GOOD_PASSWORDS)
             assertEquals(password, expectedValidationResult, passwordValidator.validate("some_user_name", password));
@@ -93,7 +93,7 @@ public class PasswordValidatorTest {
 
     public void verifyStrongPasswords(
         final PasswordValidator passwordValidator,
-        final AbstractConfigurationValidator.ErrorType expectedValidationResult
+        final RequestContentValidator.ValidationError expectedValidationResult
     ) {
         for (final String password : STRONG_PASSWORDS)
             assertEquals(password, expectedValidationResult, passwordValidator.validate("some_user_name", password));
@@ -102,7 +102,7 @@ public class PasswordValidatorTest {
 
     public void verifyVeryStrongPasswords(
         final PasswordValidator passwordValidator,
-        final AbstractConfigurationValidator.ErrorType expectedValidationResult
+        final RequestContentValidator.ValidationError expectedValidationResult
     ) {
         for (final String password : VERY_STRONG_PASSWORDS)
             assertEquals(password, expectedValidationResult, passwordValidator.validate("some_user_name", password));
@@ -113,7 +113,7 @@ public class PasswordValidatorTest {
         for (final String password : SIMILAR_PASSWORDS)
             assertEquals(
                 password,
-                AbstractConfigurationValidator.ErrorType.SIMILAR_PASSWORD,
+                RequestContentValidator.ValidationError.SIMILAR_PASSWORD,
                 passwordValidator.validate("some_user_name", password)
             );
 
@@ -137,11 +137,11 @@ public class PasswordValidatorTest {
         for (final String password : GOOD_PASSWORDS.subList(GOOD_PASSWORDS.size() - 2, GOOD_PASSWORDS.size()))
             assertEquals(
                 password,
-                AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD,
+                RequestContentValidator.ValidationError.WEAK_PASSWORD,
                 passwordValidator.validate("some_user_name", password)
             );
-        verifyStrongPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
-        verifyVeryStrongPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
+        verifyStrongPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
+        verifyVeryStrongPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
         verifySimilarPasswords(passwordValidator);
     }
 
@@ -162,11 +162,11 @@ public class PasswordValidatorTest {
     @Test
     public void testScoreBasedValidation() {
         PasswordValidator passwordValidator = PasswordValidator.of(Settings.EMPTY);
-        verifyWeakPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD);
-        verifyFairPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD);
-        verifyGoodPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD);
-        verifyStrongPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
-        verifyVeryStrongPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
+        verifyWeakPasswords(passwordValidator, RequestContentValidator.ValidationError.WEAK_PASSWORD);
+        verifyFairPasswords(passwordValidator, RequestContentValidator.ValidationError.WEAK_PASSWORD);
+        verifyGoodPasswords(passwordValidator, RequestContentValidator.ValidationError.WEAK_PASSWORD);
+        verifyStrongPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
+        verifyVeryStrongPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
         verifySimilarPasswords(passwordValidator);
 
         passwordValidator = PasswordValidator.of(
@@ -175,11 +175,11 @@ public class PasswordValidatorTest {
                 .build()
         );
 
-        verifyWeakPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD);
-        verifyFairPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
-        verifyGoodPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
-        verifyStrongPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
-        verifyVeryStrongPasswords(passwordValidator, AbstractConfigurationValidator.ErrorType.NONE);
+        verifyWeakPasswords(passwordValidator, RequestContentValidator.ValidationError.WEAK_PASSWORD);
+        verifyFairPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
+        verifyGoodPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
+        verifyStrongPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
+        verifyVeryStrongPasswords(passwordValidator, RequestContentValidator.ValidationError.NONE);
         verifySimilarPasswords(passwordValidator);
     }
 

@@ -29,12 +29,13 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 
+import com.google.common.collect.ImmutableMap;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestController;
@@ -43,8 +44,8 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.TenantValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -102,8 +103,27 @@ public class TenantsApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator getValidator(final RestRequest request, BytesReference ref, Object... param) {
-        return new TenantValidator(request, isSuperAdmin(), ref, this.settings, param);
+    protected RequestContentValidator createValidator(final Object... params) {
+        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return params;
+            }
+
+            @Override
+            public Settings settings() {
+                return settings;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                if (isSuperAdmin()) {
+                    allowedKeys.put("reserved", DataType.BOOLEAN);
+                }
+                return allowedKeys.put("description", DataType.STRING).build();
+            }
+        });
     }
 
     @Override
