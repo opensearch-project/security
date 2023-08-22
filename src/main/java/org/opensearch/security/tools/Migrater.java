@@ -27,6 +27,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.Migration;
@@ -39,8 +41,9 @@ import org.opensearch.security.support.ConfigHelper;
 
 public class Migrater {
 
-    public static void main(final String[] args) {
+    protected static final Logger log = LogManager.getLogger(Migrater.class);
 
+    public static void main(final String[] args) {
         final Options options = new Options();
         final HelpFormatter formatter = new HelpFormatter();
         options.addOption(
@@ -60,7 +63,7 @@ public class Migrater {
                 }
             }
         } catch (final Exception exp) {
-            System.err.println("Parsing failed.  Reason: " + exp.getMessage());
+            log.error("Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("migrater.sh", options, true);
         }
 
@@ -69,12 +72,12 @@ public class Migrater {
 
     public static boolean migrateDirectory(File dir, boolean backup) {
         if (!dir.exists()) {
-            System.out.println(dir.getAbsolutePath() + " does not exist");
+            log.info(dir.getAbsolutePath() + " does not exist");
             return false;
         }
 
         if (!dir.isDirectory()) {
-            System.out.println(dir.getAbsolutePath() + " is not a directory");
+            log.info(dir.getAbsolutePath() + " is not a directory");
             return false;
         }
 
@@ -93,12 +96,12 @@ public class Migrater {
         final String absolutePath = file.getAbsolutePath();
         // NODESDN is newer type and supports populating empty content if file is missing
         if (!file.exists() && cType != CType.NODESDN) {
-            System.out.println("Skip " + absolutePath + " because it does not exist");
+            log.info("Skip " + absolutePath + " because it does not exist");
             return false;
         }
 
         if (!file.isFile()) {
-            System.out.println("Skip " + absolutePath + " because it is a directory or a special file");
+            log.info("Skip " + absolutePath + " because it is a directory or a special file");
             return false;
         }
 
@@ -169,7 +172,7 @@ public class Migrater {
                 return backupAndWrite(file, val, backup);
             }
         } catch (Exception e) {
-            System.out.println("Can not migrate " + file + " due to " + e);
+            log.error("Can not migrate " + file + " due to " + e);
         }
 
         return false;
@@ -178,19 +181,18 @@ public class Migrater {
     private static boolean backupAndWrite(File file, SecurityDynamicConfiguration<?> val, boolean backup) {
         try {
             if (val == null) {
-                System.out.println("NULL object for " + file.getAbsolutePath());
+                log.info("NULL object for " + file.getAbsolutePath());
                 return false;
             }
             if (backup && file.exists()) {
                 Files.copy(file, new File(file.getParent(), file.getName() + ".bck6"));
             }
             DefaultObjectMapper.YAML_MAPPER.writeValue(file, val);
-            System.out.println("Migrated (as " + val.getCType() + ") " + file.getAbsolutePath());
+            log.info("Migrated (as " + val.getCType() + ") " + file.getAbsolutePath());
             return true;
         } catch (Exception e) {
-            System.out.println("Unable to write " + file.getAbsolutePath() + ". This is unexpected and we will abort migration.");
-            System.out.println("    Details: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Unable to write " + file.getAbsolutePath() + ". This is unexpected and we will abort migration.");
+            log.error("    Details: " + e.getMessage());
         }
 
         return false;

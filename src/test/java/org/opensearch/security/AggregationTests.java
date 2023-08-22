@@ -114,7 +114,7 @@ public class AggregationTests extends SingleClusterTest {
                 encodeBasicHeader("nagilum", "nagilum")
             )).getStatusCode()
         );
-        System.out.println(res.getBody());
+
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -134,7 +134,7 @@ public class AggregationTests extends SingleClusterTest {
                 encodeBasicHeader("nagilum", "nagilum")
             )).getStatusCode()
         );
-        System.out.println(res.getBody());
+
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -154,7 +154,7 @@ public class AggregationTests extends SingleClusterTest {
                 encodeBasicHeader("worf", "worf")
             )).getStatusCode()
         );
-        System.out.println(res.getBody());
+
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");

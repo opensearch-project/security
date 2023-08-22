@@ -49,7 +49,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             encodeBasicHeader("admin", "admin")
         );
         Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
@@ -84,7 +83,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
         Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
@@ -116,10 +114,8 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
-        System.out.println("----rest");
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
         Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 2);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
@@ -146,7 +142,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
 
         Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
 
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 2);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
@@ -172,14 +167,12 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
         TestAuditlogImpl.clear();
         String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
-        System.out.println("exec");
         HttpResponse response = rh.executePutRequest(
             "_opendistro/_security/api/internalusers/compuser?pretty",
             body,
             encodeBasicHeader("admin", "admin")
         );
         Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.isEmpty());
     }
@@ -206,16 +199,15 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
-        System.out.println("req");
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
         Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
+        String auditLogImpl = TestAuditlogImpl.sb.toString();
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.size() == 1);
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("UPDATE"));
+        Assert.assertTrue(auditLogImpl.contains("audit_request_effective_user"));
+        Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
+        Assert.assertFalse(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
+        Assert.assertFalse(auditLogImpl.contains("UPDATE"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 

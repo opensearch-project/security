@@ -158,8 +158,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             final String renegoMsg =
                 "Client side initiated TLS renegotiation enabled. This can open a vulnerablity for DoS attacks through client side initiated TLS renegotiation.";
             log.warn(renegoMsg);
-            System.out.println(renegoMsg);
-            System.err.println(renegoMsg);
         } else {
             if (!rejectClientInitiatedRenegotiation) {
 
@@ -225,8 +223,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
         if (!httpSSLEnabled && !transportSSLEnabled) {
             log.error("SSL not activated for http and/or transport.");
-            System.out.println("SSL not activated for http and/or transport.");
-            System.err.println("SSL not activated for http and/or transport.");
         }
 
         if (ExternalSecurityKeyStore.hasExternalSslContext(settings)) {

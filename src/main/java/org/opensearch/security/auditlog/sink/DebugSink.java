@@ -11,10 +11,14 @@
 
 package org.opensearch.security.auditlog.sink;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 
 public final class DebugSink extends AuditLogSink {
+
+    final Logger log = LogManager.getLogger(DebugSink.class);
 
     public DebugSink(String name, Settings settings, AuditLogSink fallbackSink) {
         super(name, settings, null, fallbackSink);
@@ -27,7 +31,7 @@ public final class DebugSink extends AuditLogSink {
 
     @Override
     public boolean doStore(final AuditMessage msg) {
-        System.out.println("AUDIT_LOG: " + msg.toPrettyString());
+        log.info("AUDIT_LOG: " + msg.toPrettyString());
         return true;
     }
 

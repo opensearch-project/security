@@ -145,7 +145,6 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         RestHelper rh = new RestHelper(clusterInfo, httpsEnabled, httpsEnabled, getResourceFolder());
         rh.sendAdminCertificate = httpsEnabled;
         rh.keystore = "restapi/kirk-keystore.jks";
-        System.out.println("### " + ch.getClusterName() + " complete ###");
         return new Tuple<>(clusterInfo, rh);
     }
 
@@ -199,43 +198,39 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### query 1");
+        // query 1
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("nagilum", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));
         Assert.assertTrue(ccs.getBody().contains("twitter"));
 
-        System.out.println("###################### query 4");
+        // query 4
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:xx,xx/xx/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("nagilum", "nagilum")
         );
-        System.out.println(ccs.getBody());
         // TODO fix exception nesting
         // Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, ccs.getStatusCode());
         // Assert.assertTrue(ccs.getBody().contains("Can not filter indices; index cross_cluster_two:xx exists but there is also a remote
         // cluster named: cross_cluster_two"));
 
-        System.out.println("###################### query 5");
+        // query 5
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:abcnonext/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("nagilum", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("index_not_found_exception"));
 
-        System.out.println("###################### query 6");
+        // query 6
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,twutter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("nagilum", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("\"timed_out\" : false"));
@@ -298,56 +293,50 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### query 1");
+        // query 1
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        System.out.println("###################### query 2");
+        // query 2
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twit*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        System.out.println("###################### query 3");
+        // query 3
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,twitter,twutter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        System.out.println("###################### query 4");
+        // query 4
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
-        System.out.println("###################### query 5");
+        // query 5
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        System.out.println("###################### query 6");
+        // query 6
         String msearchBody = "{}"
             + System.lineSeparator()
             + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
@@ -358,10 +347,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             msearchBody,
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        System.out.println("###################### query 7");
+        // query 7
         msearchBody = "{}"
             + System.lineSeparator()
             + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
@@ -372,68 +360,62 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             msearchBody,
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "_all/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "*:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "hfghgtdhfhuth/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "hfghgtdhfhuth*/_search",
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(":*/_search", encodeBasicHeader("worf", "worf"));
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
@@ -441,21 +423,21 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             "*:/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
@@ -463,57 +445,57 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                 + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        System.out.println("#### Alias both");
+        // Alias both
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "notexist,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
         // TODO Fix for 25.0 to resolve coordalias (Indices options)
 
@@ -521,7 +503,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("crusherw", "crusherw")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
     }
@@ -580,52 +562,52 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### query 1");
+        // query 1
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
-        System.out.println("###################### query 2");
+        // query 2
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twit*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        System.out.println("###################### query 3");
+        // query 3
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,twitter,twutter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("twutter"));
 
-        System.out.println("###################### query 4");
+        // query 4
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
-        System.out.println("###################### query 5");
+        // query 5
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        System.out.println("###################### query 6");
+        // query 6
         String msearchBody = "{}"
             + System.lineSeparator()
             + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
@@ -636,10 +618,10 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             msearchBody,
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        System.out.println("###################### query 7");
+        // query 7
         msearchBody = "{}"
             + System.lineSeparator()
             + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
@@ -650,50 +632,50 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             msearchBody,
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "_all/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        System.out.println("#####*");
+        // *
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:*,*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
@@ -703,40 +685,40 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             "*cross*:*twit*,*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter,t*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "*:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "hfghgtdhfhuth/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "hfghgtdhfhuth*/_search",
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(":*/_search", encodeBasicHeader("worf", "worf"));
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
@@ -744,21 +726,21 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             "*:/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
@@ -766,56 +748,56 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                 + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("worf", "worf")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("crusherw", "crusherw")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
     }
 
@@ -845,12 +827,12 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### query 1");
+        // query 1
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
             "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("twitter", "nagilum")
         );
-        System.out.println(ccs.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("\"timed_out\" : false"));
@@ -898,7 +880,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### kibana indices agg");
+        // kibana indices agg
         String dashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
             "*/_search?pretty",
@@ -1035,7 +1017,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### kibana indices agg");
+        // kibana indices agg
         String dashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
             "*/_search?pretty",
@@ -1166,7 +1148,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### aggs");
+        // aggs
         final String agg = "{\"size\":0,\"aggs\":{\"clusteragg\":{\"terms\":{\"field\":\"cluster.keyword\",\"size\":100}}}}";
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
             "*:*,*/_search?pretty",
@@ -1292,7 +1274,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### aggs");
+        // aggs
         final String agg = "{\"size\":0,\"aggs\":{\"clusteragg\":{\"terms\":{\"field\":\"cluster.keyword\",\"size\":100}}}}";
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
             "cross_cluster_two:notfound,*/_search?pretty",
@@ -1416,7 +1398,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         String uri = "cross_cluster_two:twitter/_search?pretty";
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
-        System.out.println(ccs.getBody());
+
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         assertThat(ccs.getBody(), containsString("Transport client authentication no longer supported"));
     }
@@ -1440,7 +1422,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         String uri = "cross_cluster_two:twitter/_search?pretty";
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
-        System.out.println(ccs.getBody());
+
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(ccs.getBody(), not(containsString("security_exception")));
         assertThat(ccs.getBody(), containsString("\"timed_out\" : false"));
@@ -1467,7 +1449,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         String uri = "cross_cluster_two:twitter/_search?pretty";
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
-        System.out.println(ccs.getBody());
+
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(ccs.getBody(), not(containsString("security_exception")));
         assertThat(ccs.getBody(), containsString("\"timed_out\" : false"));
@@ -1521,7 +1503,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         OpenSearchSecurityException exception = null;
 
-        System.out.println("###################### with invalid role injection");
+        // with invalid role injection
         // 1. With invalid roles injection
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "invalid_user|invalid_role";
         try (
@@ -1548,7 +1530,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertNotNull(exception);
         Assert.assertTrue(exception.getMessage().contains("no permissions for"));
 
-        System.out.println("###################### with valid role injection");
+        // with valid role injection
         // 2. With valid roles injection
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "valid_user|opendistro_security_all_access";
         try (

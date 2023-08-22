@@ -98,8 +98,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                         }
                     } catch (Throwable e) {
                         log.error("Unable to enable krb_debug due to ", e);
-                        System.err.println("Unable to enable krb_debug due to " + ExceptionsHelper.stackTrace(e));
-                        System.out.println("Unable to enable krb_debug due to " + ExceptionsHelper.stackTrace(e));
+                        log.debug("Unable to enable krb_debug due to " + ExceptionsHelper.stackTrace(e));
                     }
 
                     System.setProperty(KrbConstants.USE_SUBJECT_CREDS_ONLY_PROP, "false");

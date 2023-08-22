@@ -192,7 +192,6 @@ public class DisabledCategoriesTest {
         List<AuditCategory> allButDisablesCategories = new LinkedList<>(Arrays.asList(AuditCategory.values()));
         allButDisablesCategories.removeAll(Arrays.asList(disabledCategories));
 
-        System.out.println(result + "###" + disabledCategoriesString);
         Assert.assertFalse(categoriesPresentInLog(result, disabledCategories));
         Assert.assertTrue(
             categoriesPresentInLog(result, filterComplianceCategories(allButDisablesCategories.toArray(new AuditCategory[] {})))
@@ -205,7 +204,6 @@ public class DisabledCategoriesTest {
         result = result.replaceAll(" ", "");
         for (AuditCategory category : categories) {
             if (!result.contains("\"" + AuditMessage.CATEGORY + "\":\"" + category.name() + "\"")) {
-                System.out.println("MISSING: " + category.name());
                 return false;
             }
         }

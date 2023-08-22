@@ -240,7 +240,6 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = restHelper();
 
         Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executeGetRequest("_opendistro/_security/health?pretty").getStatusCode());
-        // System.out.println(res.getBody());
         // assertContains(res, "*UP*");
         // assertContains(res, "*strict*");
         // assertNotContains(res, "*DOWN*");
@@ -276,7 +275,6 @@ public class SecurityAdminTests extends SingleClusterTest {
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-        System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -351,7 +349,6 @@ public class SecurityAdminTests extends SingleClusterTest {
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-        System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -390,7 +387,6 @@ public class SecurityAdminTests extends SingleClusterTest {
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-        System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -429,7 +425,6 @@ public class SecurityAdminTests extends SingleClusterTest {
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-        System.out.println(res.getBody());
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -450,10 +445,8 @@ public class SecurityAdminTests extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
-        System.out.println(
-            rh.executePutRequest(".opendistro_security/_doc/roles", FileHelper.loadFile("roles_invalidxcontent.yml")).getBody()
-        );
-        ;
+
+        rh.executePutRequest(".opendistro_security/_doc/roles", FileHelper.loadFile("roles_invalidxcontent.yml")).getBody();
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executePutRequest(".opendistro_security/_doc/roles", "{\"roles\":\"dummy\"}").getStatusCode()

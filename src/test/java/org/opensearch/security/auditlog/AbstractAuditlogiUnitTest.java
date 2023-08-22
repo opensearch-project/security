@@ -107,7 +107,6 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
             JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
 
             if (node.get("audit_request_body") != null) {
-                System.out.println("    Check audit_request_body for validity: " + node.get("audit_request_body").asText());
                 DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
             }
 
@@ -134,7 +133,6 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
         RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/audit/config", payload, new Header[0]);
-        System.out.println(response);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
     }
