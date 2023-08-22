@@ -32,29 +32,14 @@ public class DummyRequest extends ActionRequest implements ToXContent {
         this.message = message;
     }
 
-    /**
-     * @return
-     */
     @Override
     public ActionRequestValidationException validate() {
-        // if (Strings.isNullOrEmpty(message)) {
-        // ActionRequestValidationException ex = new ActionRequestValidationException();
-        // ex.addValidationError("Message cannot be null or empty");
-        // throw ex;
-        // }
         return null;
     }
 
-    /**
-     * @param xContentBuilder
-     * @param params
-     * @return
-     * @throws IOException
-     */
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.field("message", message);
-
         return xContentBuilder;
     }
 }

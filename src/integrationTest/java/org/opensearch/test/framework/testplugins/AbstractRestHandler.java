@@ -20,7 +20,6 @@ public class AbstractRestHandler extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-
         switch (request.method()) {
             case GET:
                 return channel -> handleGet(channel, request, client);

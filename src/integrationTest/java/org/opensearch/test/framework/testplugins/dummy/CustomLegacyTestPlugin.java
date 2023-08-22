@@ -44,19 +44,15 @@ public class CustomLegacyTestPlugin extends Plugin implements ClusterPlugin, Net
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
         handlers.add(new LegacyRestHandler());
-
         return handlers;
     }
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
-
         actions.add(new ActionHandler<>(DummyAction.INSTANCE, TransportDummyAction.class));
-
         return actions;
     }
 }

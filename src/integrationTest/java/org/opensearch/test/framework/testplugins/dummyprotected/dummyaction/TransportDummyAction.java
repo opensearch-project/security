@@ -22,15 +22,12 @@ public class TransportDummyAction extends HandledTransportAction<DummyRequest, D
 
     @Inject
     public TransportDummyAction(final TransportService transportService, final ActionFilters actionFilters) {
-
         super(DummyAction.NAME, transportService, actionFilters, DummyRequest::new);
-
     }
 
     @Override
     protected void doExecute(Task task, DummyRequest request, ActionListener<DummyResponse> listener) {
         String responseString = "Hello from dummy protected plugin";
-
         listener.onResponse(new DummyResponse(responseString));
     }
 }

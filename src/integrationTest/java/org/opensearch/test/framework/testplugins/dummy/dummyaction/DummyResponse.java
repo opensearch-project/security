@@ -29,11 +29,6 @@ public class DummyResponse extends ActionResponse implements StatusToXContentObj
         this.responseString = responseString;
     }
 
-    public DummyResponse() {
-        super();
-        this.responseString = "Bleh!";
-    }
-
     public DummyResponse(StreamInput in) throws IOException {
         super(in);
         responseString = in.readString();
@@ -44,16 +39,11 @@ public class DummyResponse extends ActionResponse implements StatusToXContentObj
         out.writeString(responseString);
     }
 
-    public String getResponseString() {
-        return responseString;
-    }
-
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field("response_string", responseString);
         builder.endObject();
-
         return builder;
     }
 
@@ -62,9 +52,6 @@ public class DummyResponse extends ActionResponse implements StatusToXContentObj
         return Strings.toString(MediaTypeRegistry.JSON, this, true, true);
     }
 
-    /**
-     * @return
-     */
     @Override
     public RestStatus status() {
         return RestStatus.OK;
