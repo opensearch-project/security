@@ -662,7 +662,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         verifyCouldNotCreatePasswords(HttpStatus.SC_BAD_REQUEST);
         verifyCanCreatePasswords();
-        verifySimilarity("xxx");
+        verifySimilarity(RequestContentValidator.ValidationError.SIMILAR_PASSWORD.message());
 
         addUserWithPasswordAndHash("empty_password", "", "$%^123", HttpStatus.SC_BAD_REQUEST);
         addUserWithPasswordAndHash("null_password", null, "$%^123", HttpStatus.SC_BAD_REQUEST);
@@ -805,7 +805,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             RequestContentValidator.ValidationError.WEAK_PASSWORD.message()
         );
 
-        addUserWithPassword("admin", "pas", HttpStatus.SC_BAD_REQUEST, "Password does not match minimum criteria");
+        addUserWithPassword(
+            "admin",
+            "pas",
+            HttpStatus.SC_BAD_REQUEST,
+            RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT.message()
+        );
 
         verifySimilarity(RequestContentValidator.ValidationError.SIMILAR_PASSWORD.message());
 
