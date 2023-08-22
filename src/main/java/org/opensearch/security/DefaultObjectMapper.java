@@ -57,6 +57,10 @@ public class DefaultObjectMapper {
 
     static {
         objectMapper.setSerializationInclusion(Include.NON_NULL);
+        // exclude sensitive information from the request body,
+        // if jackson cant parse the entity, e.g. passwords, hashes and so on,
+        // but provides which property is unknown
+        objectMapper.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
         // objectMapper.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
         objectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
         defaulOmittingObjectMapper.setSerializationInclusion(Include.NON_DEFAULT);

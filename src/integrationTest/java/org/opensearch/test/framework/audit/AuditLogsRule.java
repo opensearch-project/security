@@ -40,6 +40,10 @@ public class AuditLogsRule implements TestRule {
 
     private List<AuditMessage> currentTestAuditMessages;
 
+    public List<AuditMessage> getCurrentTestAuditMessages() {
+        return currentTestAuditMessages;
+    }
+
     public void waitForAuditLogs() {
         try {
             TimeUnit.SECONDS.sleep(3);
