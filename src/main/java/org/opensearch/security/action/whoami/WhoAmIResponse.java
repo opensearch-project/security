@@ -28,11 +28,11 @@ package org.opensearch.security.action.whoami;
 
 import java.io.IOException;
 
-import org.opensearch.action.ActionResponse;
-import org.opensearch.common.Strings;
+import org.opensearch.core.action.ActionResponse;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
@@ -105,6 +105,6 @@ public class WhoAmIResponse extends ActionResponse implements ToXContent {
 
     @Override
     public String toString() {
-        return Strings.toString(XContentType.JSON, this, true, true);
+        return Strings.toString(MediaTypeRegistry.JSON, this, true, true);
     }
 }

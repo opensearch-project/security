@@ -20,7 +20,6 @@ function usage() {
     echo -e "-v OPENSEARCH_VERSION\t, no defaults"
     echo -e "-n SNAPSHOT\t, defaults to false"
     echo -e "-m CLUSTER_NAME\t, defaults to docker-cluster"
-    echo -e "-u COMMON_UTILS_VERSION\t, defaults to 3.0.0.0-SNAPSHOT"
     echo "--------------------------------------------------------------------------"
 }
 
@@ -99,12 +98,8 @@ if [ -z "$CLUSTER_NAME" ]
 then
   CLUSTER_NAME="docker-cluster"
 fi
-if [ -z "$COMMON_UTILS_VERSION" ]
-then
-  COMMON_UTILS_VERSION="3.0.0.0-SNAPSHOT"
-fi
 
 USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
 PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 
-./gradlew integTestRemote -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dsecurity_enabled=$SECURITY_ENABLED -Dtests.clustername=$CLUSTER_NAME -Dhttps=true -Duser=$USERNAME -Dpassword=$PASSWORD -Dcommon_utils.version=$COMMON_UTILS_VERSION
+./gradlew integTestRemote -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dsecurity_enabled=$SECURITY_ENABLED -Dtests.clustername=$CLUSTER_NAME -Dhttps=true -Duser=$USERNAME -Dpassword=$PASSWORD

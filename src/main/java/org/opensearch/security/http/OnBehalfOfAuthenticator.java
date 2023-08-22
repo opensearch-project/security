@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -28,40 +29,56 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.keyUtil;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
+
+    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
+    private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
+    private static final String ON_BEHALF_OF_SUFFIX = "api/user/onbehalfof";
+    private static final String ACCOUNT_SUFFIX = "api/account";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
-    private static final String SUBJECT_CLAIM = "sub";
+    private static final String TOKEN_TYPE_CLAIM = "typ";
+    private static final String TOKEN_TYPE = "obo";
 
     private final JwtParser jwtParser;
     private final String encryptionKey;
+    private final Boolean oboEnabled;
 
     public OnBehalfOfAuthenticator(Settings settings) {
+        String oboEnabledSetting = settings.get("enabled");
+        oboEnabled = oboEnabledSetting == null ? Boolean.TRUE : Boolean.valueOf(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
         jwtParser = initParser(settings.get("signing_key"));
     }
 
     private JwtParser initParser(final String signingKey) {
         JwtParser _jwtParser = keyUtil.keyAlgorithmCheck(signingKey, log);
-        if (_jwtParser != null) {
-            return _jwtParser;
-        } else {
+
+        if (_jwtParser == null) {
             throw new RuntimeException("Unable to find on behalf of authenticator signing key");
         }
+
+        return _jwtParser;
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
@@ -128,6 +145,11 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private AuthCredentials extractCredentials0(final RestRequest request) {
+        if (!oboEnabled) {
+            log.error("On-behalf-of authentication has been disabled");
+            return null;
+        }
+
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
@@ -159,6 +181,15 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
 
         try {
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
+            final String suffix = matcher.matches() ? matcher.group(2) : null;
+            if (request.method() == RestRequest.Method.POST && ON_BEHALF_OF_SUFFIX.equals(suffix)
+                || request.method() == RestRequest.Method.PUT && ACCOUNT_SUFFIX.equals(suffix)) {
+                final OpenSearchException exception = ExceptionUtils.invalidUsageOfOBOTokenException();
+                log.error(exception.toString());
+                return null;
+            }
+
             final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
             final String subject = claims.getSubject();
@@ -170,6 +201,19 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             final String audience = claims.getAudience();
             if (Objects.isNull(audience)) {
                 log.error("Valid jwt on behalf of token with no audience");
+                return null;
+            }
+
+            final String tokenType = claims.get(TOKEN_TYPE_CLAIM).toString();
+            if (!tokenType.equals(TOKEN_TYPE)) {
+                log.error("This toke is not verifying as an on-behalf-of token");
+                return null;
+            }
+
+            final String issuer = claims.getIssuer();
+            final String clusterID = OpenSearchSecurityPlugin.getClusterNameString().getClusterName().value();
+            if (!issuer.equals(clusterID)) {
+                log.error("This issuer of this OBO does not match the current cluster identifier");
                 return null;
             }
 

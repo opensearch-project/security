@@ -11,19 +11,14 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
@@ -32,17 +27,25 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.AuditValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -141,6 +144,62 @@ public class AuditApiAction extends PatchableResourceApiAction {
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
 
+    public static class AuditRequestContentValidator extends RequestContentValidator {
+        private static final Set<AuditCategory> DISABLED_REST_CATEGORIES = ImmutableSet.of(
+            AuditCategory.BAD_HEADERS,
+            AuditCategory.SSL_EXCEPTION,
+            AuditCategory.AUTHENTICATED,
+            AuditCategory.FAILED_LOGIN,
+            AuditCategory.GRANTED_PRIVILEGES,
+            AuditCategory.MISSING_PRIVILEGES
+        );
+
+        private static final Set<AuditCategory> DISABLED_TRANSPORT_CATEGORIES = ImmutableSet.of(
+            AuditCategory.BAD_HEADERS,
+            AuditCategory.SSL_EXCEPTION,
+            AuditCategory.AUTHENTICATED,
+            AuditCategory.FAILED_LOGIN,
+            AuditCategory.GRANTED_PRIVILEGES,
+            AuditCategory.MISSING_PRIVILEGES,
+            AuditCategory.INDEX_EVENT,
+            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT
+        );
+
+        protected AuditRequestContentValidator(ValidationContext validationContext) {
+            super(validationContext);
+        }
+
+        @Override
+        public ValidationResult validate(RestRequest request) throws IOException {
+            return super.validate(request).map(this::validateAuditPayload);
+        }
+
+        @Override
+        public ValidationResult validate(RestRequest request, JsonNode jsonContent) throws IOException {
+            return super.validate(request, jsonContent).map(this::validateAuditPayload);
+        }
+
+        private ValidationResult validateAuditPayload(final JsonNode jsonContent) {
+            try {
+                // try parsing to target type
+                final AuditConfig auditConfig = DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
+                final AuditConfig.Filter filter = auditConfig.getFilter();
+                if (!DISABLED_REST_CATEGORIES.containsAll(filter.getDisabledRestCategories())) {
+                    throw new IllegalArgumentException("Invalid REST categories passed in the request");
+                }
+                if (!DISABLED_TRANSPORT_CATEGORIES.containsAll(filter.getDisabledTransportCategories())) {
+                    throw new IllegalArgumentException("Invalid transport categories passed in the request");
+                }
+                return ValidationResult.success(jsonContent);
+            } catch (final Exception e) {
+                // this.content is not valid json
+                this.validationError = ValidationError.BODY_NOT_PARSEABLE;
+                LOGGER.error("Invalid content passed in the request", e);
+                return ValidationResult.error(this);
+            }
+        }
+    }
+
     public AuditApiAction(
         final Settings settings,
         final Path configPath,
@@ -232,8 +291,23 @@ public class AuditApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        return new AuditValidator(request, ref, this.settings, params);
+    protected RequestContentValidator createValidator(final Object... params) {
+        return new AuditRequestContentValidator(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return params;
+            }
+
+            @Override
+            public Settings settings() {
+                return settings;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
+            }
+        });
     }
 
     @Override

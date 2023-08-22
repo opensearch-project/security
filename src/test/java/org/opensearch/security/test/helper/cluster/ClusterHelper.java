@@ -59,7 +59,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.node.DiscoveryNodeRole;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.http.HttpInfo;
@@ -319,14 +319,12 @@ public final class ClusterHelper {
             Files.walkFileTree(testsDataDir.toPath(), new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    System.out.println("Deleting file " + file.getFileName());
                     Files.delete(file);
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    System.out.println("Deleting directory " + dir.getFileName());
                     Files.delete(dir);
                     return FileVisitResult.CONTINUE;
                 }

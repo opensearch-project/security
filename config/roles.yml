@@ -32,12 +32,16 @@ alerting_read_access:
     - 'cluster:admin/opendistro/alerting/monitor/get'
     - 'cluster:admin/opendistro/alerting/monitor/search'
     - 'cluster:admin/opensearch/alerting/findings/get'
+    - 'cluster:admin/opensearch/alerting/workflow/get'
+    - 'cluster:admin/opensearch/alerting/workflow_alerts/get'
 
 # Allows users to view and acknowledge alerts
 alerting_ack_alerts:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opendistro/alerting/alerts/*'
+    - 'cluster:admin/opendistro/alerting/chained_alerts/*'
+    - 'cluster:admin/opendistro/alerting/workflow_alerts/*'
 
 # Allows users to use all alerting functionality
 alerting_full_access:
@@ -103,6 +107,18 @@ knn_full_access:
     - 'cluster:admin/knn_training_model_action'
     - 'cluster:admin/knn_update_model_graveyard_action'
     - 'cluster:admin/knn_warmup_action'
+
+# Allow users to execute read only ip2geo datasource action
+ip2geo_datasource_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/geospatial/datasource/get'
+
+# Allow users to use all ip2geo datasource action
+ip2geo_datasource_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/geospatial/datasource/*'
 
 # Allows users to read Notebooks
 notebooks_read_access:

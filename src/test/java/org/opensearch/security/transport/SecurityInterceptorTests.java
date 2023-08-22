@@ -39,7 +39,7 @@ import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportInterceptor.AsyncSender;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestOptions;
-import org.opensearch.transport.TransportResponse;
+import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 
@@ -147,11 +147,8 @@ public class SecurityInterceptorTests {
         DiscoveryNode otherNode = new DiscoveryNode("local-node", OpenSearchTestCase.buildNewFakeTransportAddress(), Version.CURRENT);
         Connection connection2 = transportService.getConnection(otherNode);
 
-        // setting localNode value explicitly
-        OpenSearchSecurityPlugin.setLocalNode(localNode);
-
         // isSameNodeRequest = true
-        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler);
+        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
         // from thread context inside sendRequestDecorate
         doAnswer(i -> {
             User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -165,7 +162,7 @@ public class SecurityInterceptorTests {
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
 
         // isSameNodeRequest = false
-        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler);
+        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, otherNode);
         // checking thread context inside sendRequestDecorate
         doAnswer(i -> {
             String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);

@@ -36,11 +36,12 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.core.common.bytes.BytesReference;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
@@ -111,7 +112,12 @@ public class Utils {
             pm.put("omit_defaults", String.valueOf(omitDefaults));
             ToXContent.MapParams params = new ToXContent.MapParams(pm);
 
-            final BytesReference bytes = XContentHelper.toXContent(jsonContent, XContentType.JSON, params, false);
+            final BytesReference bytes = org.opensearch.core.xcontent.XContentHelper.toXContent(
+                jsonContent,
+                MediaTypeRegistry.JSON,
+                params,
+                false
+            );
             return DefaultObjectMapper.readTree(bytes.utf8ToString());
         } catch (IOException e1) {
             throw ExceptionsHelper.convertToOpenSearchException(e1);

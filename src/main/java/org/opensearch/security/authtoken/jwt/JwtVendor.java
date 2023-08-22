@@ -30,6 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
@@ -40,6 +41,7 @@ public class JwtVendor {
     private final JsonWebKey signingKey;
     private final JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
+    private final Boolean bwcModeEnabled;
 
     public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
@@ -59,6 +61,12 @@ public class JwtVendor {
         } else {
             this.timeProvider = () -> System.currentTimeMillis() / 1000;
         }
+        // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+        this.bwcModeEnabled = settings.getAsBoolean(
+            ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE,
+            ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT
+        );
+        // CS-ENFORCE-SINGLE
     }
 
     /*
@@ -105,12 +113,15 @@ public class JwtVendor {
         List<String> roles,
         List<String> backendRoles
     ) throws Exception {
+        String tokenIdentifier = "obo";
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
         jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
         JwtClaims jwtClaims = new JwtClaims();
         JwtToken jwt = new JwtToken(jwtClaims);
+
+        jwtClaims.setProperty("typ", tokenIdentifier);
 
         jwtClaims.setIssuer(issuer);
 
@@ -139,7 +150,10 @@ public class JwtVendor {
             throw new Exception("Roles cannot be null");
         }
 
-        /* TODO: If the backendRoles is not null and the BWC Mode is on, put them into the "dbr" claim */
+        if (bwcModeEnabled && backendRoles != null) {
+            String listOfBackendRoles = String.join(",", backendRoles);
+            jwtClaims.setProperty("dbr", listOfBackendRoles);
+        }
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 
