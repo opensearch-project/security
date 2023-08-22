@@ -416,8 +416,8 @@ public class SSLTest extends SingleClusterTest {
 
         String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(res.contains("TLS"));
-        Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
         Assert.assertTrue(res.contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"));
+        Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
     }
 
     @Test
@@ -469,7 +469,6 @@ public class SSLTest extends SingleClusterTest {
 
         String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(res.contains("TLS"));
-        Assert.assertTrue(res.length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
         // Assert.assertTrue(!executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("null"));
         Assert.assertTrue(res.contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"));
@@ -863,6 +862,8 @@ public class SSLTest extends SingleClusterTest {
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             log.debug("NodesInfoRequest asserted");
         }
+
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
 
         // we need to test this in SG itself because in the SSL only plugin the info is not longer propagated
         // Assert.assertTrue(TestPrincipalExtractor.getTransportCount() > 0);
