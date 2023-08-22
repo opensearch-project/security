@@ -31,7 +31,6 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
@@ -134,7 +133,7 @@ public class RestLayerPrivilegesEvaluatorTest {
     public void testMapRoles_ReturnsMappedRoles() {
         final User user = mock(User.class);
         final Set<String> mappedRoles = Collections.singleton("role1");
-        when(configModel.mapSecurityRoles(user, any(TransportAddress.class))).thenReturn(mappedRoles);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(mappedRoles);
 
         final Set<String> result = privilegesEvaluator.mapRoles(user, null);
 
