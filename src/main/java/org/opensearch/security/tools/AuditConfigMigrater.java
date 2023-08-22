@@ -25,8 +25,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent;
@@ -44,8 +42,6 @@ public class AuditConfigMigrater {
     private static final Options options = new Options();
     private static final HelpFormatter formatter = new HelpFormatter();
     private static final CommandLineParser parser = new DefaultParser();
-
-    static final Logger log = LogManager.getLogger(AuditConfigMigrater.class);
 
     public static void main(String[] args) {
         options.addOption(
@@ -95,7 +91,7 @@ public class AuditConfigMigrater {
             final String opensearchOutput = sanitizeFilePath(line.getOptionValue("oed", "."), OPENSEARCH_AUDIT_FILTERED_YML);
 
             // create settings builder
-            log.info("Using source opensearch.yml file from path " + source);
+            System.out.println("Using source opensearch.yml file from path " + source);
             final Settings.Builder settingsBuilder = Settings.builder().loadFromPath(Paths.get(source));
 
             // create audit config
@@ -110,10 +106,10 @@ public class AuditConfigMigrater {
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(auditOutput), result);
 
             // remove all deprecated values opensearch.yml
-            log.info("Looking for deprecated keys in " + source);
+            System.out.println("Looking for deprecated keys in " + source);
             AuditConfig.DEPRECATED_KEYS.forEach(key -> {
                 if (settingsBuilder.get(key) != null) {
-                    log.info(" " + key);
+                    System.out.println(" " + key);
                 }
                 settingsBuilder.remove(key);
             });
@@ -127,8 +123,8 @@ public class AuditConfigMigrater {
                 builder.close();
             }
 
-            log.info("Generated " + AUDIT_YML + " is available at path " + auditOutput);
-            log.info(
+            System.out.println("Generated " + AUDIT_YML + " is available at path " + auditOutput);
+            System.out.println(
                 "Generated "
                     + OPENSEARCH_AUDIT_FILTERED_YML
                     + " is available at path "
@@ -136,6 +132,7 @@ public class AuditConfigMigrater {
                     + " Please remove the deprecated keys from your opensearch.yml or replace with the generated file after reviewing."
             );
         } catch (final Exception e) {
+            e.printStackTrace();
             formatter.printHelp("audit_config_migrater.sh", options, true);
             System.exit(-1);
         }

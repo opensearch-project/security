@@ -58,7 +58,6 @@ public class ConfigTests {
     @Test
     public void testMigrate() throws Exception {
 
-        // TODO add a better way to test it rather than adding sysouts
         Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesResult = Migration.migrateRoles(
             (SecurityDynamicConfiguration<RoleV6>) load("./legacy/securityconfig_v6/roles.yml", CType.ROLES),
             (SecurityDynamicConfiguration<RoleMappingsV6>) load("./legacy/securityconfig_v6/roles_mapping.yml", CType.ROLESMAPPING)
