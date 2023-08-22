@@ -106,8 +106,7 @@ forbiddenApisTest.enabled = false
 filepermissions.enabled = false
 forbiddenPatterns.enabled = false
 testingConventions.enabled = false
-// Conflicts between runtime kafka-clients:x.y.z & testRuntime kafka-clients:x.y.z:test
-jarHell.enabled = false
+jarHell.enabled = true
 tasks.whenTaskAdded {task ->
     if(task.name.contains("forbiddenApisIntegrationTest")) {
         task.enabled = false
