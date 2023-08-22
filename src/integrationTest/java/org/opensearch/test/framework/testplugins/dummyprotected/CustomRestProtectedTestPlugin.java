@@ -32,6 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * Registers a plugin with protected routes using {@linkplain org.opensearch.rest.NamedRoute}
+ * This allows authorization against REST layer
+ */
 public class CustomRestProtectedTestPlugin extends Plugin implements ClusterPlugin, NetworkPlugin, ActionPlugin {
 
     @Override

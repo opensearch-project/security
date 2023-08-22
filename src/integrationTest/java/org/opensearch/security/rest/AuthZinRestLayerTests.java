@@ -43,35 +43,32 @@ import static org.opensearch.test.framework.audit.AuditMessagePredicate.privileg
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class AuthZinRestLayerTests {
-    protected final static TestSecurityConfig.User DUMMY_REST_ONLY = new TestSecurityConfig.User("dummy_rest_only").roles(
-        new Role("dummy_rest_only_role").clusterPermissions("security:dummy_protected/get")
-            .clusterPermissions("cluster:admin/dummy_plugin/dummy")
+    protected final static TestSecurityConfig.User REST_ONLY = new TestSecurityConfig.User("rest_only").roles(
+        new Role("rest_only_role").clusterPermissions("security:dummy_protected/get").clusterPermissions("cluster:admin/dummy_plugin/dummy")
     );
 
-    protected final static TestSecurityConfig.User DUMMY_WITH_TRANSPORT_PERM = new TestSecurityConfig.User("dummy_transport_perm").roles(
-        new Role("dummy_transport_perm_role").clusterPermissions("security:dummy_protected/get")
+    protected final static TestSecurityConfig.User TRANSPORT_ONLY = new TestSecurityConfig.User("transport_only").roles(
+        new Role("transport_only_role").clusterPermissions("cluster:admin/dummy_plugin/dummy")
+    );
+
+    protected final static TestSecurityConfig.User REST_PLUS_TRANSPORT = new TestSecurityConfig.User("rest_plus_transport").roles(
+        new Role("rest_plus_transport_role").clusterPermissions("security:dummy_protected/get")
             .clusterPermissions("cluster:admin/dummy_plugin/dummy", "cluster:admin/dummy_protected_plugin/dummy/get")
     );
 
-    protected final static TestSecurityConfig.User DUMMY_LEGACY = new TestSecurityConfig.User("dummy_user_legacy").roles(
-        new Role("dummy_role_legacy").clusterPermissions("cluster:admin/dummy_plugin/dummy")
-    );
+    protected final static TestSecurityConfig.User NO_PERM = new TestSecurityConfig.User("no_perm").roles(new Role("no_perm_role"));
 
-    protected final static TestSecurityConfig.User DUMMY_NO_PERM = new TestSecurityConfig.User("dummy_user_no_perm").roles(
-        new Role("dummy_role_no_perm")
-    );
+    protected final static TestSecurityConfig.User UNREGISTERED = new TestSecurityConfig.User("unregistered");
 
-    protected final static TestSecurityConfig.User DUMMY_UNREGISTERED = new TestSecurityConfig.User("dummy_user_not_registered");
-
-    public static final String DUMMY_BASE_ENDPOINT = "_plugins/_dummy";
-    public static final String DUMMY_PROTECTED_BASE_ENDPOINT = "_plugins/_dummy_protected";
-    public static final String DUMMY_API = DUMMY_BASE_ENDPOINT + "/dummy";
-    public static final String DUMMY_PROTECTED_API = DUMMY_PROTECTED_BASE_ENDPOINT + "/dummy";
+    public static final String UNPROTECTED_BASE_ENDPOINT = "_plugins/_dummy";
+    public static final String PROTECTED_BASE_ENDPOINT = "_plugins/_dummy_protected";
+    public static final String UNPROTECTED_API = UNPROTECTED_BASE_ENDPOINT + "/dummy";
+    public static final String PROTECTED_API = PROTECTED_BASE_ENDPOINT + "/dummy";
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(DUMMY_REST_ONLY, DUMMY_WITH_TRANSPORT_PERM, DUMMY_LEGACY, DUMMY_NO_PERM)
+        .users(REST_ONLY, REST_PLUS_TRANSPORT, TRANSPORT_ONLY, NO_PERM)
         .plugin(CustomLegacyTestPlugin.class)
         .plugin(CustomRestProtectedTestPlugin.class)
         .audit(
@@ -87,29 +84,29 @@ public class AuthZinRestLayerTests {
 
     @Test
     public void testShouldFailForUnregisteredUsers() {
-        try (TestRestClient client = cluster.getRestClient(DUMMY_UNREGISTERED)) {
+        try (TestRestClient client = cluster.getRestClient(UNREGISTERED)) {
             // Legacy plugin
-            assertThat(client.get(DUMMY_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
-            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(FAILED_LOGIN, DUMMY_UNREGISTERED, GET, "/" + DUMMY_API));
+            assertThat(client.get(UNPROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(FAILED_LOGIN, UNREGISTERED, GET, "/" + UNPROTECTED_API));
 
             // Protected Routes plugin
-            assertThat(client.get(DUMMY_PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
-            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(FAILED_LOGIN, DUMMY_UNREGISTERED, GET, "/" + DUMMY_PROTECTED_API));
+            assertThat(client.get(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(FAILED_LOGIN, UNREGISTERED, GET, "/" + PROTECTED_API));
         }
     }
 
     @Test
     public void testShouldFailForBothPlugins() {
-        try (TestRestClient client = cluster.getRestClient(DUMMY_NO_PERM)) {
-            // fail at Transport
-            assertThat(client.get(DUMMY_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        try (TestRestClient client = cluster.getRestClient(NO_PERM)) {
+            // fail at Transport (won't have a rest authz success audit log since this is not a protected endpoint)
+            assertThat(client.get(UNPROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
             auditLogsRule.assertExactlyOne(
-                privilegePredicateTransportLayer(MISSING_PRIVILEGES, DUMMY_NO_PERM, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
+                privilegePredicateTransportLayer(MISSING_PRIVILEGES, NO_PERM, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
             );
 
             // fail at REST
-            assertThat(client.get(DUMMY_PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
-            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, DUMMY_NO_PERM, GET, "/" + DUMMY_PROTECTED_API));
+            assertThat(client.get(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, NO_PERM, GET, "/" + PROTECTED_API));
         }
     }
 
@@ -117,17 +114,15 @@ public class AuthZinRestLayerTests {
 
     @Test
     public void testShouldFailAtTransportLayerWithRestOnlyPermission() {
-        try (TestRestClient client = cluster.getRestClient(DUMMY_REST_ONLY)) {
-            assertThat(client.get(DUMMY_PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        try (TestRestClient client = cluster.getRestClient(REST_ONLY)) {
+            assertThat(client.get(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
             // granted at Rest layer
-            auditLogsRule.assertExactlyOne(
-                privilegePredicateRESTLayer(GRANTED_PRIVILEGES, DUMMY_REST_ONLY, GET, "/" + DUMMY_PROTECTED_API)
-            );
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(GRANTED_PRIVILEGES, REST_ONLY, GET, "/" + PROTECTED_API));
             // missing at Transport layer
             auditLogsRule.assertExactlyOne(
                 privilegePredicateTransportLayer(
                     MISSING_PRIVILEGES,
-                    DUMMY_REST_ONLY,
+                    REST_ONLY,
                     "DummyRequest",
                     "cluster:admin/dummy_protected_plugin/dummy/get"
                 )
@@ -136,17 +131,15 @@ public class AuthZinRestLayerTests {
     }
 
     @Test
-    public void testShouldPassWithRequiredPermissions() {
-        try (TestRestClient client = cluster.getRestClient(DUMMY_WITH_TRANSPORT_PERM)) {
+    public void testShouldReturnSuccessResponseWithRequiredPermissions() {
+        try (TestRestClient client = cluster.getRestClient(REST_PLUS_TRANSPORT)) {
             assertOKResponseFromProtectedPlugin(client);
 
-            auditLogsRule.assertExactlyOne(
-                privilegePredicateRESTLayer(GRANTED_PRIVILEGES, DUMMY_WITH_TRANSPORT_PERM, GET, "/" + DUMMY_PROTECTED_API)
-            );
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(GRANTED_PRIVILEGES, REST_PLUS_TRANSPORT, GET, "/" + PROTECTED_API));
             auditLogsRule.assertExactlyOne(
                 privilegePredicateTransportLayer(
                     GRANTED_PRIVILEGES,
-                    DUMMY_WITH_TRANSPORT_PERM,
+                    REST_PLUS_TRANSPORT,
                     "DummyRequest",
                     "cluster:admin/dummy_protected_plugin/dummy/get"
                 )
@@ -156,20 +149,16 @@ public class AuthZinRestLayerTests {
 
     @Test
     public void testShouldFailForPOST() {
-        try (TestRestClient client = cluster.getRestClient(DUMMY_REST_ONLY)) {
-            assertThat(client.post(DUMMY_PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+        try (TestRestClient client = cluster.getRestClient(REST_ONLY)) {
+            assertThat(client.post(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
 
-            auditLogsRule.assertExactlyOne(
-                privilegePredicateRESTLayer(MISSING_PRIVILEGES, DUMMY_REST_ONLY, POST, "/" + DUMMY_PROTECTED_API)
-            );
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, REST_ONLY, POST, "/" + PROTECTED_API));
         }
 
-        try (TestRestClient client = cluster.getRestClient(DUMMY_WITH_TRANSPORT_PERM)) {
-            assertThat(client.post(DUMMY_PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+        try (TestRestClient client = cluster.getRestClient(REST_PLUS_TRANSPORT)) {
+            assertThat(client.post(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
 
-            auditLogsRule.assertExactlyOne(
-                privilegePredicateRESTLayer(MISSING_PRIVILEGES, DUMMY_WITH_TRANSPORT_PERM, POST, "/" + DUMMY_PROTECTED_API)
-            );
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, REST_PLUS_TRANSPORT, POST, "/" + PROTECTED_API));
         }
     }
 
@@ -179,37 +168,37 @@ public class AuthZinRestLayerTests {
     public void testBackwardsCompatibility() {
 
         // DUMMY_LEGACY should have access to legacy endpoint, but not protected endpoint
-        try (TestRestClient client = cluster.getRestClient(DUMMY_LEGACY)) {
-            TestRestClient.HttpResponse res = client.get(DUMMY_PROTECTED_API);
+        try (TestRestClient client = cluster.getRestClient(TRANSPORT_ONLY)) {
+            TestRestClient.HttpResponse res = client.get(PROTECTED_API);
             assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
-            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, DUMMY_LEGACY, GET, "/" + DUMMY_PROTECTED_API));
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, TRANSPORT_ONLY, GET, "/" + PROTECTED_API));
 
             assertOKResponseFromLegacyPlugin(client);
             // check that there is no log for REST layer AuthZ since this is an unprotected endpoint
-            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(GRANTED_PRIVILEGES, DUMMY_LEGACY, GET, DUMMY_API));
+            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(GRANTED_PRIVILEGES, TRANSPORT_ONLY, GET, UNPROTECTED_API));
             // check that there is exactly 1 message for Transport Layer privilege evaluation
             auditLogsRule.assertExactlyOne(
-                privilegePredicateTransportLayer(GRANTED_PRIVILEGES, DUMMY_LEGACY, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
+                privilegePredicateTransportLayer(GRANTED_PRIVILEGES, TRANSPORT_ONLY, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
             );
         }
 
         // DUMMY_REST_ONLY should have access to legacy endpoint (protected endpoint already tested above)
-        try (TestRestClient client = cluster.getRestClient(DUMMY_REST_ONLY)) {
+        try (TestRestClient client = cluster.getRestClient(REST_ONLY)) {
             assertOKResponseFromLegacyPlugin(client);
-            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(GRANTED_PRIVILEGES, DUMMY_REST_ONLY, GET, DUMMY_API));
+            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(GRANTED_PRIVILEGES, REST_ONLY, GET, UNPROTECTED_API));
             auditLogsRule.assertExactlyOne(
-                privilegePredicateTransportLayer(GRANTED_PRIVILEGES, DUMMY_REST_ONLY, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
+                privilegePredicateTransportLayer(GRANTED_PRIVILEGES, REST_ONLY, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
             );
         }
 
         // DUMMY_WITH_TRANSPORT_PERM should have access to legacy endpoint (protected endpoint already tested above)
-        try (TestRestClient client = cluster.getRestClient(DUMMY_WITH_TRANSPORT_PERM)) {
+        try (TestRestClient client = cluster.getRestClient(REST_PLUS_TRANSPORT)) {
             assertOKResponseFromLegacyPlugin(client);
-            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(GRANTED_PRIVILEGES, DUMMY_WITH_TRANSPORT_PERM, GET, DUMMY_API));
+            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(GRANTED_PRIVILEGES, REST_PLUS_TRANSPORT, GET, UNPROTECTED_API));
             auditLogsRule.assertExactlyOne(
                 privilegePredicateTransportLayer(
                     GRANTED_PRIVILEGES,
-                    DUMMY_WITH_TRANSPORT_PERM,
+                    REST_PLUS_TRANSPORT,
                     "DummyRequest",
                     "cluster:admin/dummy_plugin/dummy"
                 )
@@ -217,37 +206,37 @@ public class AuthZinRestLayerTests {
         }
 
         // DUMMY_NO_PERM should not have access to legacy endpoint (protected endpoint already tested above)
-        try (TestRestClient client = cluster.getRestClient(DUMMY_NO_PERM)) {
-            assertThat(client.get(DUMMY_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(MISSING_PRIVILEGES, DUMMY_NO_PERM, GET, DUMMY_API));
+        try (TestRestClient client = cluster.getRestClient(NO_PERM)) {
+            assertThat(client.get(UNPROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(MISSING_PRIVILEGES, NO_PERM, GET, UNPROTECTED_API));
             auditLogsRule.assertExactlyOne(
-                privilegePredicateTransportLayer(MISSING_PRIVILEGES, DUMMY_NO_PERM, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
+                privilegePredicateTransportLayer(MISSING_PRIVILEGES, NO_PERM, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
             );
         }
 
         // DUMMY_UNREGISTERED should not have access to legacy endpoint (protected endpoint already tested above)
-        try (TestRestClient client = cluster.getRestClient(DUMMY_UNREGISTERED)) {
-            assertThat(client.get(DUMMY_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
-            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(MISSING_PRIVILEGES, DUMMY_UNREGISTERED, GET, DUMMY_API));
+        try (TestRestClient client = cluster.getRestClient(UNREGISTERED)) {
+            assertThat(client.get(UNPROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(MISSING_PRIVILEGES, UNREGISTERED, GET, UNPROTECTED_API));
             auditLogsRule.assertExactly(
                 0,
-                privilegePredicateTransportLayer(MISSING_PRIVILEGES, DUMMY_UNREGISTERED, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
+                privilegePredicateTransportLayer(MISSING_PRIVILEGES, UNREGISTERED, "DummyRequest", "cluster:admin/dummy_plugin/dummy")
             );
-            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(FAILED_LOGIN, DUMMY_UNREGISTERED, GET, DUMMY_API));
+            auditLogsRule.assertExactly(0, privilegePredicateRESTLayer(FAILED_LOGIN, UNREGISTERED, GET, UNPROTECTED_API));
         }
     }
 
     /** Helper Methods */
     private void assertOKResponseFromLegacyPlugin(TestRestClient client) {
         String expectedResponseFromLegacyPlugin = "{\"response_string\":\"Hello from dummy plugin\"}";
-        TestRestClient.HttpResponse res = client.get(DUMMY_API);
+        TestRestClient.HttpResponse res = client.get(UNPROTECTED_API);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(res.getBody(), equalTo(expectedResponseFromLegacyPlugin));
     }
 
     private void assertOKResponseFromProtectedPlugin(TestRestClient client) {
         String expectedResponseFromProtectedPlugin = "{\"response_string\":\"Hello from dummy protected plugin\"}";
-        TestRestClient.HttpResponse res = client.get(DUMMY_PROTECTED_API);
+        TestRestClient.HttpResponse res = client.get(PROTECTED_API);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(res.getBody(), equalTo(expectedResponseFromProtectedPlugin));
     }

@@ -32,6 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * Registers a plugin with legacy routes using {@link org.opensearch.rest.RestHandler.Route}
+ */
 public class CustomLegacyTestPlugin extends Plugin implements ClusterPlugin, NetworkPlugin, ActionPlugin {
 
     @Override
