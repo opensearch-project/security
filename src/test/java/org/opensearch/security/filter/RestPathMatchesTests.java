@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class RestPathMatchesTest {
+public class RestPathMatchesTests {
     Method restPathMatches;
     SecurityRestFilter securityRestFilter;
 
