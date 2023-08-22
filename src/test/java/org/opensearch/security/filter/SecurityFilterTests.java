@@ -47,12 +47,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
-public class SecurityFilterTest {
+public class SecurityFilterTests {
 
     private final Settings settings;
     private final WildcardMatcher expected;
 
-    public SecurityFilterTest(Settings settings, WildcardMatcher expected) {
+    public SecurityFilterTests(Settings settings, WildcardMatcher expected) {
         this.settings = settings;
         this.expected = expected;
     }
