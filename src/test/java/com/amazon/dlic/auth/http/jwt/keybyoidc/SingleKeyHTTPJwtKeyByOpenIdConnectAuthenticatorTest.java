@@ -45,9 +45,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         } finally {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         }
     }
 
@@ -69,9 +67,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         } finally {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         }
     }
 
@@ -96,9 +92,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         } finally {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         }
     }
 
@@ -120,9 +114,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         } finally {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         }
     }
 
@@ -174,9 +166,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         } finally {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) {}
         }
 
         mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_2);
@@ -198,9 +188,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         } finally {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         }
     }
 

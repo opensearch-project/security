@@ -65,7 +65,6 @@ public class DlsDateMathTest extends AbstractDlsFlsTest {
             HttpStatus.SC_OK,
             (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode()
         );
-
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 

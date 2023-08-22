@@ -112,9 +112,7 @@ public class HTTPSamlAuthenticatorTest {
         if (mockSamlIdpServer != null) {
             try {
                 mockSamlIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         }
     }
 

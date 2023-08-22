@@ -987,19 +987,16 @@ public class IntegrationTests extends SingleClusterTest {
             HttpStatus.SC_OK,
             rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
-
         // _mapping/field/*
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executeGetRequest("_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
-
         // */_mapping/field/*
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executeGetRequest("*/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
-
     }
 
     @Test

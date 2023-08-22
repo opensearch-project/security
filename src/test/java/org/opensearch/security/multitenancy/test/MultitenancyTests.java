@@ -136,7 +136,6 @@ public class MultitenancyTests extends SingleClusterTest {
         // msearch a
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_a", "user_a"));
         Assert.assertEquals(200, resc.getStatusCode());
-
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -145,7 +144,6 @@ public class MultitenancyTests extends SingleClusterTest {
         // msearch b
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
         Assert.assertEquals(200, resc.getStatusCode());
-
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -162,7 +160,6 @@ public class MultitenancyTests extends SingleClusterTest {
 
         // msearch b2
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
-
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexc"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexd"));
@@ -301,7 +298,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("hr_employee", "hr_employee")
             )).getStatusCode()
         );
-
         Assert.assertEquals(".kibana_1592542611_humanresources_1", DefaultObjectMapper.readTree(res.getBody()).get("_index").asText());
 
         Assert.assertEquals(
@@ -312,14 +308,12 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("hr_employee", "hr_employee")
             )).getStatusCode()
         );
-
         Assert.assertTrue(WildcardMatcher.from("*human_resources*").test(res.getBody()));
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
             (res = rh.executeGetRequest(".kibana_1592542611_humanresources_1/_alias", encodeBasicHeader("admin", "admin"))).getStatusCode()
         );
-
         Assert.assertNotNull(
             DefaultObjectMapper.readTree(res.getBody())
                 .get(".kibana_1592542611_humanresources_1")
@@ -371,7 +365,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("admin", "admin")
             )).getStatusCode()
         );
-        //
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
@@ -392,7 +385,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("admin", "admin")
             )).getStatusCode()
         );
-        //
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
@@ -407,7 +399,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("admin", "admin")
             )).getStatusCode()
         );
-        //
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
@@ -424,7 +415,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("admin", "admin")
             )).getStatusCode()
         );
-        //
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains(dashboardsIndex));
@@ -445,7 +435,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("admin", "admin")
             )).getStatusCode()
         );
-        //
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("\"result\" : \"created\""));
         Assert.assertTrue(res.getBody().contains(dashboardsIndex));
@@ -469,7 +458,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("admin", "admin")
             )).getStatusCode()
         );
-        //
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains(dashboardsIndex));
         Assert.assertTrue(res.getBody().contains("\"errors\" : false"));
@@ -553,7 +541,6 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("kibanaro", "kibanaro")
             )).getStatusCode()
         );
-
         Assert.assertTrue(res.getBody().contains(".kibana_-900636979_kibanaro"));
     }
 

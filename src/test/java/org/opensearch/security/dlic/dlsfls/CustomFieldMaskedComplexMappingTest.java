@@ -44,7 +44,6 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
             Thread.sleep(1000);
 
         } catch (Exception e) {
-            e.printStackTrace();
             Assert.fail(e.toString());
         }
 
@@ -87,10 +86,9 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
         for (int i = 0; i < 10; i++) {
             Assert.assertEquals(
                 HttpStatus.SC_OK,
-                (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("user_masked_nowc1", "password")))
+                rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("user_masked_nowc1", "password"))
                     .getStatusCode()
             );
-
         }
 
         for (int i = 0; i < 10; i++) {
@@ -122,7 +120,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
 
             Assert.assertEquals(
                 HttpStatus.SC_OK,
-                (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+                rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin")).getStatusCode()
             );
 
         }

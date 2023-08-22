@@ -85,7 +85,6 @@ public class LdapBackendIntegTest2 extends SingleClusterTest {
                 encodeBasicHeader("spock", "spocksecret")
             )).getStatusCode()
         );
-
         Assert.assertTrue(res.getBody().contains("ldap.dn"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.entryDN"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.subschemaSubentry"));

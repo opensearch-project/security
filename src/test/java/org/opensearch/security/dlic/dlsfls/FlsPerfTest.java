@@ -76,7 +76,6 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
             tc.admin().indices().refresh(new RefreshRequest("deals")).actionGet();
         } catch (IOException e) {
-            e.printStackTrace();
             Assert.fail(e.toString());
         }
 

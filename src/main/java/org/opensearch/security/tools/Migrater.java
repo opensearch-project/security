@@ -190,7 +190,6 @@ public class Migrater {
         } catch (Exception e) {
             System.out.println("Unable to write " + file.getAbsolutePath() + ". This is unexpected and we will abort migration.");
             System.out.println("    Details: " + e.getMessage());
-            e.printStackTrace();
         }
 
         return false;

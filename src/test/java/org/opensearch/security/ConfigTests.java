@@ -33,7 +33,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
 import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
@@ -52,7 +51,7 @@ public class ConfigTests {
 
     @Test
     public void testEmptyConfig() throws Exception {
-        Assert.assertTrue(SecurityDynamicConfiguration.empty().deepClone() != SecurityDynamicConfiguration.empty());
+        Assert.assertNotSame(SecurityDynamicConfiguration.empty().deepClone(), SecurityDynamicConfiguration.empty());
     }
 
     @Test
@@ -64,7 +63,7 @@ public class ConfigTests {
         );
 
         SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsResult = Migration.migrateActionGroups(
-            (SecurityDynamicConfiguration<ActionGroupsV6>) load("./legacy/securityconfig_v6/action_groups.yml", CType.ACTIONGROUPS)
+            load("./legacy/securityconfig_v6/action_groups.yml", CType.ACTIONGROUPS)
         );
         SecurityDynamicConfiguration<ConfigV7> configResult = Migration.migrateConfig(
             (SecurityDynamicConfiguration<ConfigV6>) load("./legacy/securityconfig_v6/config.yml", CType.CONFIG)
@@ -75,7 +74,6 @@ public class ConfigTests {
         SecurityDynamicConfiguration<RoleMappingsV7> rolemappingsResult = Migration.migrateRoleMappings(
             (SecurityDynamicConfiguration<RoleMappingsV6>) load("./legacy/securityconfig_v6/roles_mapping.yml", CType.ROLESMAPPING)
         );
-
     }
 
     @Test
@@ -104,7 +102,6 @@ public class ConfigTests {
         final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
-
         if (jsonNode.get("_meta") != null) {
             Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
             configVersion = jsonNode.get("_meta").get("config_version").asInt();

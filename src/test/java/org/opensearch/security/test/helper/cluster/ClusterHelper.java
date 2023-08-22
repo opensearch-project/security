@@ -222,7 +222,6 @@ public final class ClusterHelper {
                         node.start();
                         latch.countDown();
                     } catch (Exception e) {
-                        e.printStackTrace();
                         log.error("Unable to start node: ", e);
                         err.set(e);
                         latch.countDown();
@@ -258,7 +257,6 @@ public final class ClusterHelper {
                     node.start();
                     latch.countDown();
                 } catch (Exception e) {
-                    e.printStackTrace();
                     log.error("Unable to start node: ", e);
                     err.set(e);
                     latch.countDown();

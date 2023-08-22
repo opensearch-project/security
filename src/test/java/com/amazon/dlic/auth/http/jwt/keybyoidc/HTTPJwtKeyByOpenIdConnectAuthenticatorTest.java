@@ -37,9 +37,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         if (mockIdpServer != null) {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) {}
         }
     }
 
