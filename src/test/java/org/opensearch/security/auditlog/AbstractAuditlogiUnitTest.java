@@ -11,9 +11,6 @@
 
 package org.opensearch.security.auditlog;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.Header;
 
@@ -26,6 +23,9 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
 
@@ -72,15 +72,15 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         return builder.put(additionalSettings).build();
     }
 
-    protected void setupStarfleetIndex() throws Exception {
+    protected void setupStarfleetIndex() {
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
-        rh.executePutRequest("sf", null, new Header[0]);
-        rh.executePutRequest("sf/public/0?refresh", "{\"number\" : \"NCC-1701-D\"}", new Header[0]);
-        rh.executePutRequest("sf/public/0?refresh", "{\"some\" : \"value\"}", new Header[0]);
-        rh.executePutRequest("sf/public/0?refresh", "{\"some\" : \"value\"}", new Header[0]);
+        rh.executePutRequest("sf", null);
+        rh.executePutRequest("sf/public/0?refresh", "{\"number\" : \"NCC-1701-D\"}");
+        rh.executePutRequest("sf/public/0?refresh", "{\"some\" : \"value\"}");
+        rh.executePutRequest("sf/public/0?refresh", "{\"some\" : \"value\"}");
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
     }
@@ -107,13 +107,11 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
             JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
 
             if (node.get("audit_request_body") != null) {
-                System.out.println("    Check audit_request_body for validity: " + node.get("audit_request_body").asText());
                 DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
             }
 
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }
@@ -128,13 +126,12 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         updateAuditConfig(AuditTestUtils.createAuditPayload(settings));
     }
 
-    protected void updateAuditConfig(final String payload) throws Exception {
+    protected void updateAuditConfig(final String payload) {
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/audit/config", payload, new Header[0]);
-        System.out.println(response);
+        rh.executePutRequest("_opendistro/_security/api/audit/config", payload);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
     }

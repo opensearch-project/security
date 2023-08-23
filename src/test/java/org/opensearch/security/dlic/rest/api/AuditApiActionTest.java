@@ -72,9 +72,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         super.tearDown();
         try {
             updateStaticResourceReadonly(Collections.emptyList());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ignored) {}
     }
 
     @Test

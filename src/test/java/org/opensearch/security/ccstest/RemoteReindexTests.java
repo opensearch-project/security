@@ -126,18 +126,14 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
             + "\"index\": \"twutter\""
             + "}"
             + "}";
-
-        System.out.println(reindex);
-
         HttpResponse ccs = null;
 
-        System.out.println("###################### reindex");
+        // reindex
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
             "_reindex?pretty",
             reindex,
             encodeBasicHeader("nagilum", "nagilum")
         );
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("created\" : 1"));
     }
