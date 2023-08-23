@@ -323,6 +323,7 @@ jacocoTestReport {
 
 checkstyle {
     configFile file("checkstyle/sun_checks.xml")
+    configFile file("checkstyle/println_checks.xml")
 }
 
 opensearchplugin {

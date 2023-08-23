@@ -21,7 +21,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.common.Strings;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class DlsTest extends AbstractDlsFlsTest {
@@ -46,10 +45,8 @@ public class DlsTest extends AbstractDlsFlsTest {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
         }
-        System.out.println("q");
-        System.out.println(Strings.toString(XContentType.JSON, tc.search(new SearchRequest().indices(".opendistro_security")).actionGet()));
+        tc.search(new SearchRequest().indices(".opendistro_security")).actionGet();
         tc.search(new SearchRequest().indices("deals")).actionGet();
         tc.search(new SearchRequest().indices("terms")).actionGet();
     }

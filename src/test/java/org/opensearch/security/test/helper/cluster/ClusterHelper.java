@@ -169,7 +169,7 @@ public final class ClusterHelper {
         freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el -> httpPorts.add(el));
         final Iterator<Integer> httpPortsIt = httpPorts.iterator();
 
-        System.out.println(
+        log.info(
             "tcpClusterManagerPorts: "
                 + tcpClusterManagerPortsOnly
                 + "/tcpAllPorts: "
@@ -213,7 +213,6 @@ public final class ClusterHelper {
                 settingsForNode = nodeSettingsBuilder.build();
             }
             PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode, settingsForNode, setting.getPlugins());
-            System.out.println(node.settings());
 
             new Thread(new Runnable() {
 
@@ -223,7 +222,6 @@ public final class ClusterHelper {
                         node.start();
                         latch.countDown();
                     } catch (Exception e) {
-                        e.printStackTrace();
                         log.error("Unable to start node: ", e);
                         err.set(e);
                         latch.countDown();
@@ -253,14 +251,12 @@ public final class ClusterHelper {
                 settingsForNode = nodeSettingsBuilder.build();
             }
             PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode, settingsForNode, setting.getPlugins());
-            System.out.println(node.settings());
 
             new Thread(() -> {
                 try {
                     node.start();
                     latch.countDown();
                 } catch (Exception e) {
-                    e.printStackTrace();
                     log.error("Unable to start node: ", e);
                     err.set(e);
                     latch.countDown();

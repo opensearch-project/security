@@ -114,7 +114,6 @@ public class AggregationTests extends SingleClusterTest {
                 encodeBasicHeader("nagilum", "nagilum")
             )).getStatusCode()
         );
-        System.out.println(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -134,7 +133,6 @@ public class AggregationTests extends SingleClusterTest {
                 encodeBasicHeader("nagilum", "nagilum")
             )).getStatusCode()
         );
-        System.out.println(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -154,7 +152,6 @@ public class AggregationTests extends SingleClusterTest {
                 encodeBasicHeader("worf", "worf")
             )).getStatusCode()
         );
-        System.out.println(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -168,11 +165,11 @@ public class AggregationTests extends SingleClusterTest {
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executePostRequest(
+            rh.executePostRequest(
                 "_search?pretty",
                 "{\"size\":0,\"aggs\":{\"myindices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
                 encodeBasicHeader("worf", "worf")
-            )).getStatusCode()
+            ).getStatusCode()
         );
 
     }
