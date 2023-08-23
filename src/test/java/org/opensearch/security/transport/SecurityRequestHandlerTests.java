@@ -7,6 +7,7 @@
  */
 
 package org.opensearch.security.transport;
+// CS-SUPPRESS-SINGLE: RegexpSingleline Wrap whole test since it's using keyword extension a lot
 
 import org.junit.Test;
 import org.opensearch.common.settings.Setting;
@@ -80,4 +81,5 @@ public class SecurityRequestHandlerTests {
 
         assertFalse(SecurityRequestHandler.isExtensionAllowed(extension, principal));
     }
+    // CS-ENFORCE-SINGLE
 }

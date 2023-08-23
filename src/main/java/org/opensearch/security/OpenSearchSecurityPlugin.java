@@ -1111,15 +1111,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     }
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Implementation of interface ExtensionAwarePlugin
-    @Override
-    public List<Setting<?>> getExtensionSettings() {
-        List<Setting<?>> settings = new ArrayList<Setting<?>>();
-        settings.add(EXTENSION_NODES_DN);
-        return settings;
-    }
-    // CS-ENFORCE-SINGLE
-
     @Override
     public Settings additionalSettings() {
 
@@ -1151,6 +1142,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Property.Final
             )
         );
+        extensionSettings.add(EXTENSION_NODES_DN);
         return extensionSettings;
     }
     // CS-ENFORCE-SINGLE:
