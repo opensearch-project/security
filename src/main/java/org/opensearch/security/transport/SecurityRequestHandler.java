@@ -29,7 +29,9 @@ package org.opensearch.security.transport;
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,6 +45,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.extensions.ExtensionsManager;
+import org.opensearch.extensions.ExtensionsSettings;
 import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
@@ -55,6 +58,7 @@ import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -62,6 +66,7 @@ import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.EXTENSION_NODES_DN;
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 // CS-ENFORCE-SINGLE
 
@@ -377,7 +382,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         String extensionUniqueId = getThreadContext().getHeader("extension_unique_id");
         if (extensionUniqueId != null) {
             ExtensionsManager extManager = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager();
-            if (extManager.lookupExtensionSettingsById(extensionUniqueId).isPresent()) {
+            Optional<ExtensionsSettings.Extension> extension = extManager.lookupExtensionSettingsById(extensionUniqueId);
+
+            if (extension.isPresent() && isExtensionAllowed(extension.get(), principal)) {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
             }
         }
@@ -385,4 +392,26 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
     }
+
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Is extension allowed to connect based on distinguishedNames list
+    public static boolean isExtensionAllowed(ExtensionsSettings.Extension extension, String principal) {
+        List<String> distinguishedNames = extension.getAdditionalSettings().get(EXTENSION_NODES_DN);
+
+        String[] principals = new String[2];
+
+        if (principal != null && principal.length() > 0) {
+            principals[0] = principal;
+            principals[1] = principal.replace(" ", "");
+        }
+
+        if (distinguishedNames == null || distinguishedNames.isEmpty()) {
+            // no distinguished names set, skipping validation
+            return true;
+        }
+        WildcardMatcher dnMatcher = WildcardMatcher.from(distinguishedNames);
+
+        return principals[0] != null && dnMatcher.matchAny(principals);
+    }
+    // CS-ENFORCE-SINGLE
+
 }

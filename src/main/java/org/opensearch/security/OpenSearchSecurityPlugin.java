@@ -237,6 +237,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Extension distinguishedNames allowed to connect to cluster
+    public static Setting<List<String>> EXTENSION_NODES_DN = Setting.listSetting(
+        "distinguishedNames",
+        List.of(),
+        Function.identity(),
+        Property.ExtensionScope
+    );
+    // CS-ENFORCE-SINGLE
+
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
     }
@@ -1133,6 +1142,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Property.Final
             )
         );
+        extensionSettings.add(EXTENSION_NODES_DN);
         return extensionSettings;
     }
     // CS-ENFORCE-SINGLE:
