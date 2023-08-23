@@ -32,7 +32,6 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -58,10 +57,6 @@ public class RestLayerPrivilegesEvaluatorTest {
     private ThreadPool threadPool;
     @Mock
     private ConfigModel configModel;
-    @Mock
-    private DynamicConfigModel dcm;
-    @Mock
-    private PrivilegesEvaluatorResponse presponse;
 
     private RestLayerPrivilegesEvaluator privilegesEvaluator;
 
@@ -73,7 +68,7 @@ public class RestLayerPrivilegesEvaluatorTest {
     }
 
     @Before
-    public void setUp() throws InstantiationException, IllegalAccessException {
+    public void setUp() {
         when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
 
         when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class, withSettings().strictness(Strictness.LENIENT)));
@@ -108,7 +103,7 @@ public class RestLayerPrivilegesEvaluatorTest {
     }
 
     @Test
-    public void testEvaluate_NotInitialized_NullModel_ExceptionThrown() throws Exception {
+    public void testEvaluate_NotInitialized_NullModel_ExceptionThrown() {
         // Null out the config model
         privilegesEvaluator.onConfigModelChanged(null);
         final OpenSearchSecurityException exception = assertThrows(
@@ -120,7 +115,7 @@ public class RestLayerPrivilegesEvaluatorTest {
     }
 
     @Test
-    public void testEvaluate_NotInitialized_NoSecurityRoles_ExceptionThrown() throws Exception {
+    public void testEvaluate_NotInitialized_NoSecurityRoles_ExceptionThrown() {
         final OpenSearchSecurityException exception = assertThrows(
             OpenSearchSecurityException.class,
             () -> privilegesEvaluator.evaluate(TEST_USER, null)
