@@ -81,11 +81,11 @@ public class SecureRestClientBuilder {
      * @param passWord
      */
     public SecureRestClientBuilder(
-            final String host,
-            final int port,
-            final boolean httpSSLEnabled,
-            final String user,
-            final String passWord
+        final String host,
+        final int port,
+        final boolean httpSSLEnabled,
+        final String user,
+        final String passWord
     ) {
         if (Strings.isNullOrEmpty(user) || Strings.isNullOrEmpty(passWord)) {
             throw new IllegalArgumentException("Invalid user or password");
@@ -180,10 +180,9 @@ public class SecureRestClientBuilder {
         builder.setRequestConfigCallback(new RestClientBuilder.RequestConfigCallback() {
             @Override
             public RequestConfig.Builder customizeRequestConfig(RequestConfig.Builder requestConfigBuilder) {
-                return requestConfigBuilder
-                        .setConnectTimeout(defaultConnectTimeOutMSecs)
-                        .setSocketTimeout(defaultSoTimeoutMSecs)
-                        .setConnectionRequestTimeout(defaultConnRequestTimeoutMSecs);
+                return requestConfigBuilder.setConnectTimeout(defaultConnectTimeOutMSecs)
+                    .setSocketTimeout(defaultSoTimeoutMSecs)
+                    .setConnectionRequestTimeout(defaultConnRequestTimeoutMSecs);
             }
         });
 
@@ -233,8 +232,7 @@ public class SecureRestClientBuilder {
     }
 
     private CredentialsProvider createCredsProvider() {
-        if (Strings.isNullOrEmpty(user) || Strings.isNullOrEmpty(passwd))
-            return null;
+        if (Strings.isNullOrEmpty(user) || Strings.isNullOrEmpty(passwd)) return null;
 
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, passwd));
@@ -258,12 +256,12 @@ public class SecureRestClientBuilder {
 
         if (!Files.isReadable(Paths.get(path))) {
             throw new OpenSearchException(
-                    "Unable to read "
-                            + path
-                            + " ("
-                            + Paths.get(path)
-                            + "). Please make sure this files exists and is readable regarding to permissions. Property: "
-                            + originalFile
+                "Unable to read "
+                    + path
+                    + " ("
+                    + Paths.get(path)
+                    + "). Please make sure this files exists and is readable regarding to permissions. Property: "
+                    + originalFile
             );
         }
         if ("".equals(path)) {

@@ -35,11 +35,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Arrays;
-import java.util.Collection;
-import org.opensearch.SpecialPermission;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -98,35 +93,34 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, "esnode.pem")
             .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, "esnode-key.pem")
             .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "root-ca.pem")
-            //.put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, "kirk-keystore.jks")
+            // .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, "kirk-keystore.jks")
             .put("plugins.security.ssl.http.keystore_password", "changeit")
             .put("plugins.security.ssl.http.keystore_keypassword", "changeit")
             .build();
     }
 
-
     // Disabled security manager and didn't follow through if this was needed/not
     // @Override
     // protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
-    //     System.out.println("What are the hosts" + Arrays.stream(hosts).map(h -> h.toHostString()).collect(Collectors.joining(",")));
+    // System.out.println("What are the hosts" + Arrays.stream(hosts).map(h -> h.toHostString()).collect(Collectors.joining(",")));
 
-    //     final SecurityManager sm = System.getSecurityManager();
+    // final SecurityManager sm = System.getSecurityManager();
 
-    //     if (sm != null) {
-    //         sm.checkPermission(new SpecialPermission());
-    //     }
+    // if (sm != null) {
+    // sm.checkPermission(new SpecialPermission());
+    // }
 
-    //     final RestClient client = AccessController.doPrivileged(new PrivilegedAction<RestClient>() {
-    //         @Override
-    //         public RestClient run() {
-    //             try {
-    //                 return buildClient0(settings, hosts);
-    //             } catch (IOException ioe) {
-    //                 throw new RuntimeException(ioe);
-    //             }
-    //         }
-    //     });
-    //     return client;
+    // final RestClient client = AccessController.doPrivileged(new PrivilegedAction<RestClient>() {
+    // @Override
+    // public RestClient run() {
+    // try {
+    // return buildClient0(settings, hosts);
+    // } catch (IOException ioe) {
+    // throw new RuntimeException(ioe);
+    // }
+    // }
+    // });
+    // return client;
     // }
 
     @Override

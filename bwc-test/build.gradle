@@ -43,7 +43,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.10.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.9.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
     }
     repositories {
@@ -118,7 +118,6 @@ def String extractVersion(versionStr) {
                 def firstPlugin = plugins.get(0)
                 plugins.remove(0)
                 plugins.add(firstPlugin)
-                systemProperty("testKey", "testValue")
 
                 node.extraConfigFile("kirk.pem", file("src/test/resources/security/kirk.pem"))
                 node.extraConfigFile("kirk-key.pem", file("src/test/resources/security/kirk-key.pem"))
@@ -172,8 +171,6 @@ List<Provider<RegularFile>> plugins = [
         systemProperty 'tests.rest.bwcsuite', 'old_cluster'
         systemProperty 'tests.rest.bwcsuite_round', 'old'
         systemProperty 'tests.plugin_bwc_version', bwcVersion
-        println "bwc version is: " + bwcVersion
-        println "testclustername is :  " + testClusters."${baseName}$i".getName()
         nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
         nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
     }
@@ -186,14 +183,11 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#oldVersionClusterTask0"
     useCluster testClusters."${baseName}0"
     doFirst {
-        println "calling upgrade Node and plugin to next version with on " + testClusters."${baseName}0"
         testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
     }
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'first'
     systemProperty 'tests.plugin_bwc_version', bwcVersion
-    println "bwc version is: " + bwcVersion
-    println "testclustername is :  " + testClusters."${baseName}0".getName()
     nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
     nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
 }
