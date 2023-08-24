@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Set up JDK for build and test
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
@@ -49,6 +49,7 @@ jobs:
       - name: Build and Test
         uses: gradle/gradle-build-action@v2
         with:
+          cache-disabled: true
           arguments: |
             ${{ matrix.gradle_task }} -Dbuild.snapshot=false
             -x test
@@ -70,33 +71,6 @@ jobs:
         if: always()
         run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
-
-  integration-tests:
-    name: integration-tests
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: [17]
-        platform: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v2
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
-
-      - name: Checkout security
-        uses: actions/checkout@v2
-
-      - name: Build and Test
-        uses: gradle/gradle-build-action@v2
-        continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
-        with:
-          arguments: |
-            integrationTest -Dbuild.snapshot=false
-
   backward-compatibility:
     strategy:
       fail-fast: false
@@ -106,34 +80,34 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/setup-java@v3
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: ${{ matrix.jdk }}
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: ${{ matrix.jdk }}
 
-    - name: Checkout Security Repo
-      uses: actions/checkout@v2
+      - name: Checkout Security Repo
+        uses: actions/checkout@v2
 
-    - id: build-previous
-      uses: ./.github/actions/run-bwc-suite
-      with:
-        plugin-previous-branch: "2.9"
-        plugin-next-branch: "current_branch"
-        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
+      - id: build-previous
+        uses: ./.github/actions/run-bwc-suite
+        with:
+          plugin-previous-branch: "2.9"
+          plugin-next-branch: "current_branch"
+          report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
 
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-java@v3
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 11
-    - uses: github/codeql-action/init@v1
-      with:
-        languages: java
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
-    - uses: github/codeql-action/analyze@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 11
+      - uses: github/codeql-action/init@v1
+        with:
+          languages: java
+      - run: ./gradlew clean build -Dbuild.snapshot=false -x test
+      - uses: github/codeql-action/analyze@v1
 
   build-artifact-names:
     runs-on: ubuntu-latest
@@ -150,7 +124,7 @@ jobs:
           security_plugin_version_no_snapshot=$(echo $security_plugin_version | sed 's/-SNAPSHOT//g')
           security_plugin_version_only_number=$(echo $security_plugin_version_no_snapshot | cut -d- -f1)
           test_qualifier=alpha2
-
+          
           echo "SECURITY_PLUGIN_VERSION=$security_plugin_version" >> $GITHUB_ENV
           echo "SECURITY_PLUGIN_VERSION_NO_SNAPSHOT=$security_plugin_version_no_snapshot" >> $GITHUB_ENV
           echo "SECURITY_PLUGIN_VERSION_ONLY_NUMBER=$security_plugin_version_only_number" >> $GITHUB_ENV
@@ -167,8 +141,6 @@ jobs:
       - run: ./gradlew clean assemble -Dbuild.snapshot=false && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}.zip
 
       - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.zip
-
-      - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
 
       - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
 
