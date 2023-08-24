@@ -36,7 +36,7 @@ cp ${GIT_PROJECT_ROOT}/security/build/distributions/opensearch-security-3.0.0.0-
 ```sh
 mkdir -p ${GIT_PROJECT_ROOT}/security/bwc-test/src/test/resources/2.9.0.0
 wget https://repo1.maven.org/maven2/org/opensearch/plugin/opensearch-security/2.9.0.0/opensearch-security-2.9.0.0.zip
-mv opensearch-security-2.9.0.0.zip ${GIT_PROJECT_ROOT}/security/bwc-test/src/test/resources/2.9.0.0/opensearch-security-2.9.0.0.zip
+mv opensearch-security-2.8.0.0.zip ${GIT_PROJECT_ROOT}/security/bwc-test/src/test/resources/2.9.0.0/opensearch-security-2.8.0.0.zip
 ```
 
 ### Run bwc tests (from root of security repo)

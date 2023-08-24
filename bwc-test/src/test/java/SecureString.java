@@ -30,7 +30,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.common.settings;
+package org.opensearch.core.common.settings;
 
 import java.io.Closeable;
 import java.util.Arrays;
