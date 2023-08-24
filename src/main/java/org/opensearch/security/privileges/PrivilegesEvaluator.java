@@ -103,7 +103,7 @@ public class PrivilegesEvaluator {
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
 
-    private static final Pattern DNFOF_PATTERNS = Pattern.compile(
+    public static final Pattern DNFOF_PATTERNS = Pattern.compile(
         "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index))|(monitor/((settings/get)|(stats))))"
     );
 
