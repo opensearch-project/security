@@ -70,6 +70,7 @@ dependencies {
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation "org.opensearch:opensearch:${opensearch_version}"
+    implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
 }
 
 loggerUsageCheck.enabled = false

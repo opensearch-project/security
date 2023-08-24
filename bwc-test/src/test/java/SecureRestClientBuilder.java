@@ -17,37 +17,35 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 
+import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
+import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.settings.Settings;
-import org.apache.http.ssl.SSLContexts;
-import org.opensearch.core.common.Strings;
-import java.security.cert.X509Certificate;
-import org.apache.http.conn.ssl.TrustStrategy;
 import org.opensearch.commons.ConfigConstants;
+import org.opensearch.core.common.Strings;
 
 /**
  * Provides builder to create low-level and high-level REST client to make calls to OpenSearch.
  *
  * Sample usage:
- *      org.opensearch.security.SecureRestClientBuilder builder = new org.opensearch.security.SecureRestClientBuilder(settings).build()
+ *      SecureRestClientBuilder builder = new SecureRestClientBuilder(settings).build()
  *      RestClient restClient = builder.build();
  *
  * Other usage:
- *  RestClient restClient = new org.opensearch.security.SecureRestClientBuilder("localhost", 9200, false)
+ *  RestClient restClient = new SecureRestClientBuilder("localhost", 9200, false)
  *                     .setUserPassword("admin", "admin")
  *                     .setTrustCerts(trustStorePath)
  *                     .build();
@@ -70,9 +68,7 @@ public class SecureRestClientBuilder {
 
     private int defaultConnectTimeOutMSecs = 5000;
     private int defaultSoTimeoutMSecs = 10000;
-    private int defaultConnRequestTimeoutMSecs = 3 * 60 * 1000; /* 3 mins */
-    private int defaultMaxConnPerRoute = RestClientBuilder.DEFAULT_MAX_CONN_PER_ROUTE;
-    private int defaultMaxConnTotal = RestClientBuilder.DEFAULT_MAX_CONN_TOTAL;
+    private int defaultConnRequestTimeoutMSecs = 0;
 
     private static final Logger log = LogManager.getLogger(SecureRestClientBuilder.class);
 
@@ -154,6 +150,15 @@ public class SecureRestClientBuilder {
         return createRestClientBuilder().build();
     }
 
+    /**
+     * Creates a high-level Rest client.
+     * @return
+     * @throws IOException
+     */
+    public RestHighLevelClient buildHighlevelClient() throws IOException {
+        return new RestHighLevelClient(createRestClientBuilder());
+    }
+
     public SecureRestClientBuilder setConnectTimeout(int timeout) {
         this.defaultConnectTimeOutMSecs = timeout;
         return this;
@@ -169,23 +174,14 @@ public class SecureRestClientBuilder {
         return this;
     }
 
-    public SecureRestClientBuilder setMaxConnPerRoute(final int maxConnPerRoute) {
-        this.defaultMaxConnPerRoute = maxConnPerRoute;
-        return this;
-    }
-
-    public SecureRestClientBuilder setMaxConnTotal(final int maxConnTotal) {
-        this.defaultMaxConnTotal = maxConnTotal;
-        return this;
-    }
-
     private RestClientBuilder createRestClientBuilder() throws IOException {
         RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
 
         builder.setRequestConfigCallback(new RestClientBuilder.RequestConfigCallback() {
             @Override
             public RequestConfig.Builder customizeRequestConfig(RequestConfig.Builder requestConfigBuilder) {
-                return requestConfigBuilder.setConnectTimeout(defaultConnectTimeOutMSecs)
+                return requestConfigBuilder
+                        .setConnectTimeout(defaultConnectTimeOutMSecs)
                         .setSocketTimeout(defaultSoTimeoutMSecs)
                         .setConnectionRequestTimeout(defaultConnRequestTimeoutMSecs);
             }
@@ -197,84 +193,20 @@ public class SecureRestClientBuilder {
         } catch (GeneralSecurityException | IOException ex) {
             throw new IOException(ex);
         }
-
         final CredentialsProvider credentialsProvider = createCredsProvider();
-
         builder.setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
             @Override
             public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                try {
-                    return asyncClientBuilder(httpClientBuilder);
-                } catch (Exception e) {
-                    log.error("Unable to build http client", e);
-                    throw new RuntimeException(e);
+                if (sslContext != null) {
+                    httpClientBuilder.setSSLContext(sslContext);
                 }
+                if (credentialsProvider != null) {
+                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                }
+                return httpClientBuilder;
             }
         });
-
         return builder;
-    }
-
-    private final HttpAsyncClientBuilder asyncClientBuilder(HttpAsyncClientBuilder httpClientBuilder) throws Exception {
-
-        // basic auth
-        // pki auth
-
-        if (httpSSLEnabled) {
-
-            final SSLContextBuilder sslContextBuilder = SSLContexts.custom();
-
-            if (log.isTraceEnabled()) {
-                log.trace("Configure HTTP client with SSL");
-            }
-
-            if (trustStore != null) {
-                sslContextBuilder.loadTrustMaterial(trustStore, null);
-            }
-
-            if (keystore != null) {
-                sslContextBuilder.loadKeyMaterial(keystore, keyPassword, new PrivateKeyStrategy() {
-
-                    @Override
-                    public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
-                        if (aliases == null || aliases.isEmpty()) {
-                            return keystoreAlias;
-                        }
-
-                        if (keystoreAlias == null || keystoreAlias.isEmpty()) {
-                            return aliases.keySet().iterator().next();
-                        }
-
-                        return keystoreAlias;
-                    }
-                });
-            }
-
-            final HostnameVerifier hnv = verifyHostnames ? new DefaultHostnameVerifier() : NoopHostnameVerifier.INSTANCE;
-
-            final SSLContext sslContext = sslContextBuilder.build();
-            httpClientBuilder.setSSLStrategy(new SSLIOSessionStrategy(sslContext, supportedProtocols, supportedCipherSuites, hnv));
-        }
-
-        if (basicCredentials != null) {
-            httpClientBuilder.setDefaultHeaders(
-                    Lists.newArrayList(new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + basicCredentials))
-            );
-        }
-
-        // TODO: set a timeout until we have a proper way to deal with back pressure
-        int timeout = 5;
-
-        RequestConfig config = RequestConfig.custom()
-                .setConnectTimeout(defaultConnectTimeOutMSecs)
-                .setConnectionRequestTimeout(defaultConnRequestTimeoutMSecs)
-                .setSocketTimeout(defaultSoTimeoutMSecs)
-                .build();
-
-        httpClientBuilder.setDefaultRequestConfig(config);
-
-        return httpClientBuilder;
-
     }
 
     private SSLContext createSSLContext() throws IOException, GeneralSecurityException {
@@ -283,13 +215,7 @@ public class SecureRestClientBuilder {
             // Handle trust store
             String pemFile = getTrustPem();
             if (Strings.isNullOrEmpty(pemFile)) {
-                // Force a trust everything strategy, looks like the certs aren't only self-signed
-                builder.loadTrustMaterial(null, new TrustStrategy() {
-                    @Override
-                    public boolean isTrusted(X509Certificate[] chain, String authType) {
-                        return true;
-                    }
-                });
+                builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
             } else {
                 String pem = resolve(pemFile, configPath);
                 KeyStore trustStore = new TrustStore(pem).create();
@@ -307,10 +233,11 @@ public class SecureRestClientBuilder {
     }
 
     private CredentialsProvider createCredsProvider() {
-        if (Strings.isNullOrEmpty(user) || Strings.isNullOrEmpty(passwd)) return null;
+        if (Strings.isNullOrEmpty(user) || Strings.isNullOrEmpty(passwd))
+            return null;
 
-        final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user, passwd));
+        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, passwd));
         return credentialsProvider;
     }
 
@@ -350,13 +277,13 @@ public class SecureRestClientBuilder {
     }
 
     private String getKeystorePasswd() {
-        return ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD_SETTING.get(settings).toString();
+        return settings.get(ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, null);
     }
 
     private KeyStore getKeyStore() throws IOException, GeneralSecurityException {
         KeyStore keyStore = KeyStore.getInstance("jks");
         String keyStoreFile = settings.get(ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, null);
-        String passwd = ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD_SETTING.get(settings).toString();
+        String passwd = settings.get(ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD, null);
         if (Strings.isNullOrEmpty(keyStoreFile) || Strings.isNullOrEmpty(passwd)) {
             return null;
         }
