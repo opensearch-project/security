@@ -54,7 +54,6 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/roles");
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
         String errorString = response.getBody();
-        System.out.println(errorString);
         Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
 
         // GET roles

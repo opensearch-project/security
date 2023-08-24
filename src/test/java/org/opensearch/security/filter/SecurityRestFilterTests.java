@@ -27,7 +27,7 @@ import static org.hamcrest.Matchers.equalTo;
  * Currently tests that the whitelisting functionality works correctly.
  * Uses the test/resources/restapi folder for setup.
  */
-public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
+public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
 
     private RestHelper.HttpResponse response;
 
