@@ -82,7 +82,7 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.index.Index;
+import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;

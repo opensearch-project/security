@@ -31,6 +31,7 @@ runs:
     - name: Run BWC tests
       uses: gradle/gradle-build-action@v2
       with:
+        cache-disabled: true
         arguments: |
           bwcTestSuite
           -Dtests.security.manager=false

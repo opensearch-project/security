@@ -247,3 +247,7 @@ opendistro_security_mapped:
 logs_index_with_dls:
   users:
     - dept_manager
+
+terms_index_with_dls:
+  users:
+    - dept_manager

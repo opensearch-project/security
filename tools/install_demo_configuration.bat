@@ -315,7 +315,7 @@ echo plugins.security.enable_snapshot_restore_privilege: true >> "%OPENSEARCH_CO
 echo plugins.security.check_snapshot_restore_write_privileges: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"] >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
-echo plugins.security.system_indices.indices: [".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models"] >> "%OPENSEARCH_CONF_FILE%"
+echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*"] >> "%OPENSEARCH_CONF_FILE%"
 
 :: network.host
 >nul findstr /b /c:"network.host" "%OPENSEARCH_CONF_FILE%" && (

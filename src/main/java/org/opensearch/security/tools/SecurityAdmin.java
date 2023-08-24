@@ -103,8 +103,8 @@ import org.opensearch.client.indices.GetIndexRequest.Feature;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.transport.NoNodeAvailableException;
 import org.opensearch.cluster.health.ClusterHealthStatus;
-import org.opensearch.common.Strings;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.Strings;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -112,11 +112,12 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.MediaType;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.IndexNotFoundException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -1194,7 +1195,7 @@ public class SecurityAdmin {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(mediaType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
+            parser = mediaType.xContent().createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -1232,7 +1233,7 @@ public class SecurityAdmin {
                 builder.prettyPrint();
             }
             builder.rawValue(new ByteArrayInputStream(parser.binaryValue()), XContentType.YAML);
-            return Strings.toString(builder);
+            return builder.toString();
         }
     }
 
@@ -1259,7 +1260,7 @@ public class SecurityAdmin {
         try {
             sb.append("ClusterHealthRequest:" + System.lineSeparator());
             ClusterHealthResponse nir = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
-            sb.append(Strings.toString(XContentType.JSON, nir, true, true));
+            sb.append(Strings.toString(MediaTypeRegistry.JSON, nir, true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }

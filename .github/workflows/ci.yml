@@ -12,7 +12,7 @@ jobs:
       separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
     steps:
     - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 17
@@ -38,7 +38,7 @@ jobs:
 
     steps:
     - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
@@ -49,6 +49,7 @@ jobs:
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
       with:
+        cache-disabled: true
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
           -x test
@@ -79,8 +80,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
@@ -89,16 +91,17 @@ jobs:
     - id: build-previous
       uses: ./.github/actions/run-bwc-suite
       with:
-        plugin-previous-branch: "2.8"
-        plugin-next-branch: "2.x"
+        plugin-previous-branch: "2.9"
+        plugin-next-branch: "current_branch"
         report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
 
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
     - uses: github/codeql-action/init@v1
       with:
@@ -111,8 +114,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
 
     - run: |

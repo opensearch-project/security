@@ -39,7 +39,7 @@ import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
-import org.opensearch.index.Index;
+import org.opensearch.core.index.Index;
 
 public class ClusterInfoHolder implements ClusterStateListener {
 

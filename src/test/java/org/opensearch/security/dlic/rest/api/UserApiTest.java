@@ -23,16 +23,23 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.user.UserService;
+import org.passay.CharacterCharacteristicsRule;
+import org.passay.CharacterRule;
+import org.passay.EnglishCharacterData;
+import org.passay.LengthRule;
+import org.passay.PasswordData;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotEquals;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
@@ -188,14 +195,14 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\" asd  other: \"thing\"}", header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.BODY_NOT_PARSEABLE.getMessage());
+        Assert.assertEquals(settings.get("reason"), RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE.message());
 
         // Missing quotes in JSON - parseable in 6.x, but wrong config keys
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\", other: \"thing\"}", header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         // JK: this should be "Could not parse content of request." because JSON is truly invalid
-        // Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
+        // Assert.assertEquals(settings.get("reason"), ValidationError.INVALID_CONFIGURATION.message());
         // Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
         // Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
 
@@ -234,9 +241,11 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}", header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
-        Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
-        Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
+        Assert.assertEquals(settings.get("reason"), RequestContentValidator.ValidationError.INVALID_CONFIGURATION.message());
+        Assert.assertEquals(settings.get("reason"), RequestContentValidator.ValidationError.INVALID_CONFIGURATION.message());
+        Assert.assertTrue(settings.get(RequestContentValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
+        Assert.assertTrue(settings.get(RequestContentValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
+
     }
 
     private void verifyPatch(final boolean sendAdminCert, Header... restAdminHeader) throws Exception {
@@ -514,7 +523,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -526,7 +535,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -538,7 +547,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("password").equals("String expected"));
         Assert.assertTrue(settings.get("backend_roles") == null);
         rh.sendAdminCertificate = false;
@@ -551,7 +560,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -653,7 +662,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         verifyCouldNotCreatePasswords(HttpStatus.SC_BAD_REQUEST);
         verifyCanCreatePasswords();
-        verifySimilarity("xxx");
+        verifySimilarity(RequestContentValidator.ValidationError.SIMILAR_PASSWORD.message());
 
         addUserWithPasswordAndHash("empty_password", "", "$%^123", HttpStatus.SC_BAD_REQUEST);
         addUserWithPasswordAndHash("null_password", null, "$%^123", HttpStatus.SC_BAD_REQUEST);
@@ -787,18 +796,23 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "admin",
             "password89",
             HttpStatus.SC_BAD_REQUEST,
-            AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD.getMessage()
+            RequestContentValidator.ValidationError.WEAK_PASSWORD.message()
         );
         addUserWithPassword(
             "admin",
             "A123456789",
             HttpStatus.SC_BAD_REQUEST,
-            AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD.getMessage()
+            RequestContentValidator.ValidationError.WEAK_PASSWORD.message()
         );
 
-        addUserWithPassword("admin", "pas", HttpStatus.SC_BAD_REQUEST, "Password does not match minimum criteria");
+        addUserWithPassword(
+            "admin",
+            "pas",
+            HttpStatus.SC_BAD_REQUEST,
+            RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT.message()
+        );
 
-        verifySimilarity(AbstractConfigurationValidator.ErrorType.SIMILAR_PASSWORD.getMessage());
+        verifySimilarity(RequestContentValidator.ValidationError.SIMILAR_PASSWORD.message());
 
         addUserWithPassword("some_user_name", "ASSDsadwe324wadaasdadqwe", HttpStatus.SC_CREATED);
     }
@@ -995,7 +1009,33 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/picard", body);
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
     }
 
+    @Test
+    public void testGeneratedPasswordContents() {
+        String password = UserService.generatePassword();
+        PasswordData data = new PasswordData(password);
+
+        LengthRule lengthRule = new LengthRule(8, 16);
+
+        CharacterCharacteristicsRule characteristicsRule = new CharacterCharacteristicsRule();
+
+        // Define M (3 in this case)
+        characteristicsRule.setNumberOfCharacteristics(3);
+
+        // Define elements of N (upper, lower, digit, symbol)
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.UpperCase, 1));
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.LowerCase, 1));
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.Digit, 1));
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.Special, 1));
+
+        org.passay.PasswordValidator validator = new org.passay.PasswordValidator(lengthRule, characteristicsRule);
+        validator.validate(data);
+
+        String password2 = UserService.generatePassword();
+        PasswordData data2 = new PasswordData(password2);
+        assertNotEquals(password, password2);
+        assertNotEquals(data, data2);
+    }
 }

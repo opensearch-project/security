@@ -40,7 +40,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.search.internal.ShardSearchRequest;

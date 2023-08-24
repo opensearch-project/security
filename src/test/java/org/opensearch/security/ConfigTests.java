@@ -18,17 +18,18 @@
 package org.opensearch.security;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.common.Strings;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -107,7 +108,7 @@ public class ConfigTests {
 
     private void check(String file, CType cType) throws Exception {
         final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
-        JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(adjustedFilePath), "UTF-8"));
+        JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
         System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST %%%%%%%");
         if (jsonNode.get("_meta") != null) {
@@ -128,7 +129,7 @@ public class ConfigTests {
 
     private SecurityDynamicConfiguration<?> load(String file, CType cType) throws Exception {
         final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
-        JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(adjustedFilePath), "UTF-8"));
+        JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
 
         System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST LOAD: CONFIG VERSION: %%%%%%%");

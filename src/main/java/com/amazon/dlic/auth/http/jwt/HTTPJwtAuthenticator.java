@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.WeakKeyException;
@@ -40,7 +41,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -63,7 +64,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
 
-        JwtParser _jwtParser = null;
+        final JwtParserBuilder _jwtParserBuilder = Jwts.parserBuilder();
 
         try {
             String signingKey = settings.get("signing_key");
@@ -91,9 +92,9 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 }
 
                 if (key != null) {
-                    _jwtParser = Jwts.parser().setSigningKey(key);
+                    _jwtParserBuilder.setSigningKey(key);
                 } else {
-                    _jwtParser = Jwts.parser().setSigningKey(decoded);
+                    _jwtParserBuilder.setSigningKey(decoded);
                 }
 
             }
@@ -111,14 +112,27 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         requireIssuer = settings.get("required_issuer");
 
         if (requireAudience != null) {
-            _jwtParser.requireAudience(requireAudience);
+            _jwtParserBuilder.requireAudience(requireAudience);
         }
 
         if (requireIssuer != null) {
-            _jwtParser.requireIssuer(requireIssuer);
+            _jwtParserBuilder.requireIssuer(requireIssuer);
         }
 
-        jwtParser = _jwtParser;
+        final SecurityManager sm = System.getSecurityManager();
+
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+
+        JwtParser parser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
+            @Override
+            public JwtParser run() {
+                return _jwtParserBuilder.build();
+            }
+        });
+
+        jwtParser = parser;
     }
 
     @Override

@@ -51,7 +51,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.set.Sets;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;

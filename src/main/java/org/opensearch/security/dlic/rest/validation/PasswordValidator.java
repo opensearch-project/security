@@ -11,23 +11,21 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.StringJoiner;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
 import com.google.common.collect.ImmutableList;
 import com.nulabinc.zxcvbn.Strength;
 import com.nulabinc.zxcvbn.Zxcvbn;
 import com.nulabinc.zxcvbn.matchers.Match;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator.ErrorType;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
@@ -79,14 +77,14 @@ public class PasswordValidator {
         );
     }
 
-    ErrorType validate(final String username, final String password) {
+    public RequestContentValidator.ValidationError validate(final String username, final String password) {
         if (minPasswordLength > 0 && password.length() < minPasswordLength) {
             logger.debug(
                 "Password is too short, the minimum required length is {}, but current length is {}",
                 minPasswordLength,
                 password.length()
             );
-            return ErrorType.INVALID_PASSWORD;
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
         }
         if (password.length() > MAX_LENGTH) {
             logger.debug(
@@ -94,11 +92,11 @@ public class PasswordValidator {
                 MAX_LENGTH,
                 password.length()
             );
-            return ErrorType.INVALID_PASSWORD;
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_LONG;
         }
         if (Objects.nonNull(passwordRegexpPattern) && !passwordRegexpPattern.matcher(password).matches()) {
             logger.debug("Regex does not match password");
-            return ErrorType.INVALID_PASSWORD;
+            return RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
         }
         final Strength strength = zxcvbn.measure(password, ImmutableList.of(username));
         if (strength.getScore() < scoreStrength.score()) {
@@ -107,14 +105,14 @@ public class PasswordValidator {
                 scoreStrength,
                 ScoreStrength.fromScore(strength.getScore())
             );
-            return ErrorType.WEAK_PASSWORD;
+            return RequestContentValidator.ValidationError.WEAK_PASSWORD;
         }
         final boolean similar = strength.getSequence().stream().anyMatch(USERNAME_SIMILARITY_CHECK);
         if (similar) {
             logger.debug("Password is too similar to the user name {}", username);
-            return ErrorType.SIMILAR_PASSWORD;
+            return RequestContentValidator.ValidationError.SIMILAR_PASSWORD;
         }
-        return ErrorType.NONE;
+        return RequestContentValidator.ValidationError.NONE;
     }
 
     public enum ScoreStrength {

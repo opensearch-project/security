@@ -44,7 +44,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Booleans;
-import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
@@ -56,12 +56,12 @@ import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.indices.breaker.CircuitBreakerService;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
-import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.plugins.NetworkPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
@@ -387,17 +387,17 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
+
+        // add secure settings (with fallbacks for legacy insecure settings)
+        settings.addAll(SecureSSLSettings.getSecureSettings());
+
+        // add non secure settings
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(
-            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered)
-        );
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
         settings.add(
             Setting.boolSetting(
@@ -450,15 +450,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         settings.add(
             Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered)
         );
-        settings.add(
-            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, Property.NodeScope, Property.Filtered)
-        );
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
         settings.add(
             Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered)
-        );
-        settings.add(
-            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered)
         );
         settings.add(
             Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered)
@@ -521,13 +515,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                     Property.Filtered
                 )
             );
-            settings.add(
-                Setting.simpleString(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
 
             settings.add(
                 Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered)
@@ -535,13 +522,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             settings.add(
                 Setting.simpleString(
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD,
                     Property.NodeScope,
                     Property.Filtered
                 )
@@ -557,13 +537,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             settings.add(
                 Setting.simpleString(
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD,
                     Property.NodeScope,
                     Property.Filtered
                 )
@@ -592,13 +565,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             );
             settings.add(
                 Setting.simpleString(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH,
                     Property.NodeScope,
                     Property.Filtered
@@ -611,18 +577,12 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             settings.add(
                 Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered)
             );
-            settings.add(
-                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered)
-            );
 
             settings.add(
                 Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered)
             );
             settings.add(
                 Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered)
-            );
-            settings.add(
-                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered)
             );
             settings.add(
                 Setting.simpleString(
@@ -634,7 +594,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         }
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
         settings.add(
             Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered)
         );
@@ -666,6 +625,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         settings.add(
             Setting.longSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered)
         );
+
         return settings;
     }
 

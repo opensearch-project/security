@@ -14,6 +14,7 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -21,24 +22,26 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.MultiTenancyConfigValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -52,6 +55,12 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
+
+    private final static Logger LOGGER = LogManager.getLogger(MultiTenancyConfigApiAction.class);
+
+    public static final String DEFAULT_TENANT_JSON_PROPERTY = "default_tenant";
+    public static final String PRIVATE_TENANT_ENABLED_JSON_PROPERTY = "private_tenant_enabled";
+    public static final String MULTITENANCY_ENABLED_JSON_PROPERTY = "multitenancy_enabled";
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/tenancy/config"), new Route(PUT, "/tenancy/config"))
@@ -90,8 +99,30 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        return new MultiTenancyConfigValidator(request, ref, settings, params);
+    protected RequestContentValidator createValidator(final Object... params) {
+        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return params;
+            }
+
+            @Override
+            public Settings settings() {
+                return settings;
+            }
+
+            @Override
+            public Map<String, DataType> allowedKeys() {
+                return ImmutableMap.of(
+                    DEFAULT_TENANT_JSON_PROPERTY,
+                    DataType.STRING,
+                    PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
+                    DataType.BOOLEAN,
+                    MULTITENANCY_ENABLED_JSON_PROPERTY,
+                    DataType.BOOLEAN
+                );
+            }
+        });
     }
 
     @Override
@@ -121,18 +152,15 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                 new BytesRestResponse(
                     RestStatus.OK,
                     contentBuilder.startObject()
-                        .field(MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY, config.dynamic.kibana.default_tenant)
-                        .field(
-                            MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
-                            config.dynamic.kibana.private_tenant_enabled
-                        )
-                        .field(MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY, config.dynamic.kibana.multitenancy_enabled)
+                        .field(DEFAULT_TENANT_JSON_PROPERTY, config.dynamic.kibana.default_tenant)
+                        .field(PRIVATE_TENANT_ENABLED_JSON_PROPERTY, config.dynamic.kibana.private_tenant_enabled)
+                        .field(MULTITENANCY_ENABLED_JSON_PROPERTY, config.dynamic.kibana.multitenancy_enabled)
                         .endObject()
                 )
             );
         } catch (final Exception e) {
             internalErrorResponse(channel, e.getMessage());
-            log.error("Error handle request ", e);
+            LOGGER.error("Error handle request ", e);
         }
     }
 
@@ -163,18 +191,14 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     private void updateAndValidatesValues(final ConfigV7 config, final JsonNode jsonContent) {
-        if (Objects.nonNull(jsonContent.findValue(MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY))) {
-            config.dynamic.kibana.default_tenant = jsonContent.findValue(MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY).asText();
+        if (Objects.nonNull(jsonContent.findValue(DEFAULT_TENANT_JSON_PROPERTY))) {
+            config.dynamic.kibana.default_tenant = jsonContent.findValue(DEFAULT_TENANT_JSON_PROPERTY).asText();
         }
-        if (Objects.nonNull(jsonContent.findValue(MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY))) {
-            config.dynamic.kibana.private_tenant_enabled = jsonContent.findValue(
-                MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY
-            ).booleanValue();
+        if (Objects.nonNull(jsonContent.findValue(PRIVATE_TENANT_ENABLED_JSON_PROPERTY))) {
+            config.dynamic.kibana.private_tenant_enabled = jsonContent.findValue(PRIVATE_TENANT_ENABLED_JSON_PROPERTY).booleanValue();
         }
-        if (Objects.nonNull(jsonContent.findValue(MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY))) {
-            config.dynamic.kibana.multitenancy_enabled = jsonContent.findValue(
-                MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY
-            ).asBoolean();
+        if (Objects.nonNull(jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY))) {
+            config.dynamic.kibana.multitenancy_enabled = jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY).asBoolean();
         }
         final String defaultTenant = Optional.ofNullable(config.dynamic.kibana.default_tenant).map(String::toLowerCase).orElse("");
 

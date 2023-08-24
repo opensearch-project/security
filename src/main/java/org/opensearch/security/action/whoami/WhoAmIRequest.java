@@ -29,7 +29,7 @@ package org.opensearch.security.action.whoami;
 import java.io.IOException;
 
 import org.opensearch.action.support.nodes.BaseNodesRequest;
-import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamInput;
 
 public class WhoAmIRequest extends BaseNodesRequest<WhoAmIRequest> {
 
