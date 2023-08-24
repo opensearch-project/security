@@ -43,7 +43,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.10.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.9.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
     }
     repositories {
@@ -71,14 +71,15 @@ dependencies {
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation "org.opensearch:opensearch:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation "org.opensearch:opensearch-core:${opensearch_version}"
 }
 
 loggerUsageCheck.enabled = false
 testingConventions.enabled = false
 validateNebulaPom.enabled = false
 
-String previousVersion = System.getProperty("bwc.version.previous", "2.9.0.0")
-String nextVersion = System.getProperty("bwc.version.next", "2.10.0.0")
+String previousVersion = System.getProperty("bwc.version.previous", "2.8.0.0")
+String nextVersion = System.getProperty("bwc.version.next", "2.9.0.0")
 
 String bwcVersion = previousVersion
 String baseName = "securityBwcCluster"

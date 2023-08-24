@@ -7,7 +7,7 @@ package org.opensearch.commons;
 
 import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
-import org.opensearch.core.common.settings.SecureString;
+import org.opensearch.common.settings.SecureString;
 
 public class ConfigConstants {
 
