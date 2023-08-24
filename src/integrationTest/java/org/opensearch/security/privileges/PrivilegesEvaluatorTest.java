@@ -49,10 +49,6 @@ public class PrivilegesEvaluatorTest {
         new Role("search_template_role").indexPermissions("read").on("services").clusterPermissions("cluster_composite_ops")
     );
 
-    protected final static TestSecurityConfig.User GET_INDICES = new TestSecurityConfig.User("get_indices_user").roles(
-            new Role("get_indices_role").indexPermissions("read").on("logs-*").clusterPermissions("cluster_composite_ops", "cluster_monitor")
-    );
-
     private String TEST_QUERY =
         "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}";
 
@@ -61,7 +57,7 @@ public class PrivilegesEvaluatorTest {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN, GET_INDICES)
+        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN)
         .plugin(MustacheModulePlugin.class)
         .build();
 
