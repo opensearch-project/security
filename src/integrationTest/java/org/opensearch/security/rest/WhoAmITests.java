@@ -18,9 +18,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
@@ -47,12 +44,13 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
-import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPredicate;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.grantedPrivilege;
-import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticated;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateRESTLayer;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticatedPredicate;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -102,8 +100,8 @@ public class WhoAmITests {
             assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
 
             // audit log, named route
-            assertExactlyOneAuthenticatedLogMessage(WHO_AM_I);
-            assertExactlyOnePrivilegeEvaluationMessage(GRANTED_PRIVILEGES, WHO_AM_I);
+            auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
+            auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(GRANTED_PRIVILEGES, WHO_AM_I, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
 
             assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
         }
@@ -115,8 +113,10 @@ public class WhoAmITests {
             assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
 
             // audit log, named route
-            assertExactlyOneAuthenticatedLogMessage(WHO_AM_I_LEGACY);
-            assertExactlyOnePrivilegeEvaluationMessage(GRANTED_PRIVILEGES, WHO_AM_I_LEGACY);
+            auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I_LEGACY, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
+            auditLogsRule.assertExactlyOne(
+                privilegePredicateRESTLayer(GRANTED_PRIVILEGES, WHO_AM_I_LEGACY, GET, "/" + WHOAMI_PROTECTED_ENDPOINT)
+            );
 
             assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
         }
@@ -127,8 +127,10 @@ public class WhoAmITests {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
             assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_UNAUTHORIZED, expectedUnuauthorizedBody);
             // audit log, named route
-            assertExactlyOneAuthenticatedLogMessage(WHO_AM_I_NO_PERM);
-            assertExactlyOnePrivilegeEvaluationMessage(MISSING_PRIVILEGES, WHO_AM_I_NO_PERM);
+            auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I_NO_PERM, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
+            auditLogsRule.assertExactlyOne(
+                privilegePredicateRESTLayer(MISSING_PRIVILEGES, WHO_AM_I_NO_PERM, GET, "/" + WHOAMI_PROTECTED_ENDPOINT)
+            );
 
             assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
         }
@@ -152,13 +154,18 @@ public class WhoAmITests {
             assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
+        // No audit logs generated because `/whoami` is passthrough at Transport Layer, and POST route is not a NamedRoute
+        auditLogsRule.assertAuditLogsCount(0, 0);
     }
 
     @Test
     public void testAuditLogSimilarityWithTransportLayer() {
         try (TestRestClient client = cluster.getRestClient(AUDIT_LOG_VERIFIER)) {
             assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
-            assertExactlyOnePrivilegeEvaluationMessage(GRANTED_PRIVILEGES, AUDIT_LOG_VERIFIER);
+            auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(AUDIT_LOG_VERIFIER, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
+            auditLogsRule.assertExactlyOne(
+                privilegePredicateRESTLayer(GRANTED_PRIVILEGES, AUDIT_LOG_VERIFIER, GET, "/" + WHOAMI_PROTECTED_ENDPOINT)
+            );
 
             assertThat(client.get("_cat/indices").getStatusCode(), equalTo(HttpStatus.SC_OK));
 
@@ -177,26 +184,6 @@ public class WhoAmITests {
     private void assertResponse(TestRestClient.HttpResponse response, int expectedStatus, String expectedBody) {
         assertThat(response.getStatusCode(), equalTo(expectedStatus));
         assertThat(response.getBody(), equalTo(expectedBody));
-    }
-
-    private void assertExactlyOneAuthenticatedLogMessage(TestSecurityConfig.User user) {
-        auditLogsRule.assertExactly(
-            1,
-            userAuthenticated(user).withLayer(AuditLog.Origin.REST)
-                .withRestMethod(RestRequest.Method.GET)
-                .withRequestPath("/" + WhoAmITests.WHOAMI_PROTECTED_ENDPOINT)
-                .withInitiatingUser(user)
-        );
-    }
-
-    private void assertExactlyOnePrivilegeEvaluationMessage(AuditCategory privileges, TestSecurityConfig.User user) {
-        auditLogsRule.assertExactly(
-            1,
-            auditPredicate(privileges).withLayer(AuditLog.Origin.REST)
-                .withRestMethod(RestRequest.Method.GET)
-                .withRequestPath("/" + WhoAmITests.WHOAMI_PROTECTED_ENDPOINT)
-                .withEffectiveUser(user)
-        );
     }
 
     private void verifyAuditLogSimilarity(List<AuditMessage> currentTestAuditMessages) {
