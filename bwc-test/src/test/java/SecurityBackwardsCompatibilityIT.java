@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.http.HttpHost;
 import org.junit.Assume;
 import org.junit.Before;
 import org.opensearch.common.settings.Settings;
