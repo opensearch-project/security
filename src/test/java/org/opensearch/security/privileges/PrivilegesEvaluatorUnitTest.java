@@ -17,8 +17,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_PATTERNS;
 import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.privileges.PrivilegesEvaluator.isDnfofAction;
 
 public class PrivilegesEvaluatorUnitTest {
 
@@ -118,14 +118,14 @@ public class PrivilegesEvaluatorUnitTest {
     @Test
     public void testDnfofPermissions_negative() {
         for (final String permission : disallowedDnfof) {
-            assertThat(DNFOF_PATTERNS.matcher(permission).matches(), equalTo(false));
+            assertThat(isDnfofAction(permission), equalTo(false));
         }
     }
 
     @Test
     public void testDnfofPermissions_positive() {
         for (final String permission : allowedDnfof) {
-            assertThat(DNFOF_PATTERNS.matcher(permission).matches(), equalTo(true));
+            assertThat(isDnfofAction(permission), equalTo(true));
         }
     }
 }
