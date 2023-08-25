@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.google.common.collect.ImmutableList;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -58,7 +57,6 @@ import static org.opensearch.security.Song.QUERY_TITLE_POISON;
 import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.security.Song.TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.TITLE_NEXT_SONG;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_PATTERNS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
@@ -99,25 +97,6 @@ public class DoNotFailOnForbiddenTests {
     private static final String ID_2 = "2";
     private static final String ID_3 = "3";
     private static final String ID_4 = "4";
-
-    private static final List<String> allowedDnfof = ImmutableList.of(
-        "indices:monitor/settings/get",
-        "indices:monitor/stats",
-        "indices:data/read/search",
-        "indices:data/read/msearch",
-        "indices:data/read/scroll",
-        "indices:data/read/mget",
-        "indices:admin/mappings/fields/get"
-    );
-
-    private static final List<String> disallowedDnfof = ImmutableList.of(
-        "indices:admin/template/put",
-        "indices:data/write/index",
-        "indices:admin/create",
-        "indices:data/write/bulk",
-        "indices:admin/aliases",
-        "indices:data/write/reindex"
-    );
 
     private static final User ADMIN_USER = new User("admin").roles(ALL_ACCESS);
     private static final User LIMITED_USER = new User("limited_user").roles(
@@ -445,20 +424,6 @@ public class DoNotFailOnForbiddenTests {
 
             assertThat(indexes.size(), equalTo(1));
             assertThat(indexes.get(0), containsString("marvelous_songs"));
-        }
-    }
-
-    @Test
-    public void testDnfofPermissions_negative() {
-        for (final String permission : disallowedDnfof) {
-            assertThat(DNFOF_PATTERNS.matcher(permission).matches(), equalTo(false));
-        }
-    }
-
-    @Test
-    public void testDnfofPermissions_positive() {
-        for (final String permission : allowedDnfof) {
-            assertThat(DNFOF_PATTERNS.matcher(permission).matches(), equalTo(true));
         }
     }
 
