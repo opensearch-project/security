@@ -400,7 +400,7 @@ public class ConfigV6 {
 
         @Override
         public String toString() {
-            return "OnBehalfOf [ enabled=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+            return "OnBehalfOfSettings [ enabled=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
     }
 
