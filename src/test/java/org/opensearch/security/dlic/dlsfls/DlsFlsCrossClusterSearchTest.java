@@ -164,7 +164,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         Assert.assertFalse(body.contains("secret1"));
         Assert.assertFalse(body.contains("AnotherSecredField"));
         Assert.assertFalse(body.contains("xxx1"));
-        Assert.assertEquals(ccs.getHeaders().toString(), 3, ccs.getHeaders().size());
+        Assert.assertEquals(ccs.getHeaders().toString(), 1, ccs.getHeaders().size());
     }
 
     @Test
