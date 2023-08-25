@@ -12,7 +12,6 @@
 package org.opensearch.security.auditlog;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.http.Header;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
