@@ -16,40 +16,36 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
-import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
+
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.jwk.JWK;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 
 public class JwtVendorTest {
 
     @Test
     public void testCreateJwkFromSettings() throws Exception {
-        Settings settings = Settings.builder().put("signing_key", "abc123").build();
+        final Settings settings = Settings.builder().put("signing_key", "abc123-1234567812345678123456781234567812345678123456781234567812345678").build();
 
-        JsonWebKey jwk = JwtVendor.createJwkFromSettings(settings);
-        Assert.assertEquals("HS512", jwk.getAlgorithm());
-        Assert.assertEquals("sig", jwk.getPublicKeyUse().toString());
-        Assert.assertEquals("abc123", jwk.getProperty("k"));
+        final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
+        Assert.assertEquals("HS512", jwk.v1().getAlgorithm().getName());
+        Assert.assertEquals("sig", jwk.v1().getKeyUse().toString());
+        Assert.assertEquals("abc123-1234567812345678123456781234567812345678123456781234567812345678", jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString());
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
-            try {
-                JwtVendor.createJwkFromSettings(settings);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        Assert.assertEquals(
-            "java.lang.Exception: Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.",
-            exception.getMessage()
-        );
+        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        assertThat(exception.getMessage(), equalTo("Signing key is required for creation of OnBehalfOf tokens, the '\"on_behalf_of\": {\"signing_key\":{KEY}, ...} with a shared secret."));
     }
 
     @Test
@@ -59,28 +55,15 @@ public class JwtVendorTest {
         String audience = "audience_0";
         List<String> roles = List.of("IT", "HR");
         List<String> backendRoles = List.of("Sales", "Support");
-        String expectedRoles = "IT,HR";
         int expirySeconds = 300;
         LongSupplier currentTime = () -> (long) 100;
-        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
-        Long expectedExp = currentTime.getAsLong() + expirySeconds;
+        String claimsEncryptionKey = "1234567890123456";
+        Settings settings = Settings.builder().put("signing_key", "abc123-1234567812345678123456781234567812345678123456781234567812345678").put("encryption_key", claimsEncryptionKey).build();
 
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
-        JwtToken jwt = jwtConsumer.getJwtToken();
-
-        Assert.assertEquals("cluster_0", jwt.getClaim("iss"));
-        Assert.assertEquals("admin", jwt.getClaim("sub"));
-        Assert.assertEquals("audience_0", jwt.getClaim("aud"));
-        Assert.assertNotNull(jwt.getClaim("iat"));
-        Assert.assertNotNull(jwt.getClaim("exp"));
-        Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
-        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        Assert.assertEquals(expectedRoles, encryptionUtil.decrypt(jwt.getClaim("er").toString()));
-        Assert.assertNull(jwt.getClaim("br"));
+        assertThat(encodedJwt, equalTo("eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6ImF1ZGllbmNlXzAiLCJuYmYiOjAsImlzcyI6ImNsdXN0ZXJfMCIsImV4cCI6MCwiaWF0IjowLCJlciI6IjJ0UUd1TzczMXNYMmhraFk4OTJYUEE9PSJ9.s12TCp0aRfKLO3NZQR-Rq9UhTYIDFzGvXEonXjnqLdLxW72-J6_Q2s8RaQZBDpAWNTHzd_cxcvIjiFNddp6tPA"));
     }
 
     @Test
@@ -90,35 +73,19 @@ public class JwtVendorTest {
         String audience = "audience_0";
         List<String> roles = List.of("IT", "HR");
         List<String> backendRoles = List.of("Sales", "Support");
-        String expectedRoles = "IT,HR";
-        String expectedBackendRoles = "Sales,Support";
 
         int expirySeconds = 300;
         LongSupplier currentTime = () -> (long) 100;
-        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder()
-            .put("signing_key", "abc123")
+            .put("signing_key", "abc123-1234567812345678123456781234567812345678123456781234567812345678")
             .put("encryption_key", claimsEncryptionKey)
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
             .build();
-        Long expectedExp = currentTime.getAsLong() + expirySeconds;
+        final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
 
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
-
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
-        JwtToken jwt = jwtConsumer.getJwtToken();
-
-        Assert.assertEquals("cluster_0", jwt.getClaim("iss"));
-        Assert.assertEquals("admin", jwt.getClaim("sub"));
-        Assert.assertEquals("audience_0", jwt.getClaim("aud"));
-        Assert.assertNotNull(jwt.getClaim("iat"));
-        Assert.assertNotNull(jwt.getClaim("exp"));
-        Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
-        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        Assert.assertEquals(expectedRoles, encryptionUtil.decrypt(jwt.getClaim("er").toString()));
-        Assert.assertNotNull(jwt.getClaim("br"));
-        Assert.assertEquals(expectedBackendRoles, jwt.getClaim("br"));
+        assertThat(encodedJwt, equalTo("eyJhbGciOiJIUzUxMiJ9.eyJiciI6IlNhbGVzLFN1cHBvcnQiLCJzdWIiOiJhZG1pbiIsImF1ZCI6ImF1ZGllbmNlXzAiLCJuYmYiOjAsImlzcyI6ImNsdXN0ZXJfMCIsImV4cCI6MCwiaWF0IjowLCJlciI6IjJ0UUd1TzczMXNYMmhraFk4OTJYUEE9PSJ9.MlwFL1ZgcKcFoqM_7ZQEXHvSlYkmvdKflbkvjfLpmV980wd-tPwa-lMA5q1UupvCy5WGV3phsX_BIfHC5CVnyg"));
     }
 
     @Test
@@ -129,7 +96,7 @@ public class JwtVendorTest {
         List<String> roles = List.of("admin");
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", "abc123-1234567812345678123456781234567812345678123456781234567812345678").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
@@ -150,7 +117,7 @@ public class JwtVendorTest {
         List<String> roles = List.of("admin");
         Integer expirySeconds = 300;
 
-        Settings settings = Settings.builder().put("signing_key", "abc123").build();
+        Settings settings = Settings.builder().put("signing_key", "abc123-1234567812345678123456781234567812345678123456781234567812345678").build();
 
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
             try {
@@ -170,7 +137,7 @@ public class JwtVendorTest {
         List<String> roles = null;
         Integer expirySeconds = 300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", "abc123-1234567812345678123456781234567812345678123456781234567812345678").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
