@@ -22,6 +22,8 @@ import org.opensearch.Version;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED;
+
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     private ClusterType CLUSTER_TYPE;
@@ -53,6 +55,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     @Override
     protected final Settings restClientSettings() {
         return Settings.builder()
+            .put(SECURITY_SSL_HTTP_ENABLED, true)
             .put(super.restClientSettings())
             // increase the timeout here to 90 seconds to handle long waits for a green
             // cluster health. the waits for green need to be longer than a minute to
