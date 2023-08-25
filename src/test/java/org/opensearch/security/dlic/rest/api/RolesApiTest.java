@@ -52,15 +52,12 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         // check roles exists
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/admin", FileHelper.loadFile("restapi/simple_role.json"));
-        System.out.println(response.getBody());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         response = rh.executePutRequest(ENDPOINT + "/roles/lala", "{ \"cluster_permissions\": [\"*\"] }");
-        System.out.println(response.getBody());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         response = rh.executePutRequest(ENDPOINT + "/roles/empty", "{ \"cluster_permissions\": [] }");
-        System.out.println(response.getBody());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
     }
 
@@ -363,7 +360,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        System.out.println(response.getBody());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(1, settings.size());
         Assert.assertEquals(
@@ -749,7 +745,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("add"), restApiHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("remove"), restApiHeader);
-        System.out.println("RESPONSE: " + response.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
 

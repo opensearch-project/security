@@ -303,8 +303,6 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
         }
 
-        System.out.println(TestAuditlogImpl.sb.toString());
-
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(
             AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ,
             4L,

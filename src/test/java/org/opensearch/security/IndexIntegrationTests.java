@@ -156,16 +156,16 @@ public class IndexIntegrationTests extends SingleClusterTest {
             + "{ \"delete\" : { \"_index\" : \"lorem\", \"_id\" : \"5\" } }"
             + System.lineSeparator();
 
-        System.out.println("############ _bulk");
+        // _bulk
         HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
-        System.out.println(res.getBody());
+
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"errors\" : true"));
         Assert.assertTrue(res.getBody().contains("\"status\" : 201"));
         Assert.assertTrue(res.getBody().contains("no permissions for"));
 
-        System.out.println("############ check shards");
-        System.out.println(rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("nagilum", "nagilum")));
+        // check shards
+        rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("nagilum", "nagilum"));
 
     }
 
@@ -372,51 +372,45 @@ public class IndexIntegrationTests extends SingleClusterTest {
         HttpResponse res = null;
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
-                .getStatusCode()
+            rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
         );
 
         // nonexistent index with permissions
         Assert.assertEquals(
             HttpStatus.SC_NOT_FOUND,
-            (res = rh.executeGetRequest("/logstash-nonex/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
-                .getStatusCode()
+            rh.executeGetRequest("/logstash-nonex/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
         );
 
         // existent index without permissions
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/nopermindex/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
-                .getStatusCode()
+            rh.executeGetRequest("/nopermindex/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
         );
 
         // nonexistent index without permissions
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest(
-                "/does-not-exist-and-no-perm/_search",
-                encodeBasicHeader("opendistro_security_logstash", "nagilum")
-            )).getStatusCode()
+            rh.executeGetRequest("/does-not-exist-and-no-perm/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
+                .getStatusCode()
         );
 
         // nonexistent and existent index with permissions
         Assert.assertEquals(
             HttpStatus.SC_NOT_FOUND,
-            (res = rh.executeGetRequest("/logstash-nonex,logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
+            rh.executeGetRequest("/logstash-nonex,logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
                 .getStatusCode()
         );
 
         // existent index with permissions
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
-                .getStatusCode()
+            rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
         );
 
         // nonexistent index with failed login
         Assert.assertEquals(
             HttpStatus.SC_UNAUTHORIZED,
-            (res = rh.executeGetRequest("/logstash-nonex/_search", encodeBasicHeader("nouser", "nosuer"))).getStatusCode()
+            rh.executeGetRequest("/logstash-nonex/_search", encodeBasicHeader("nouser", "nosuer")).getStatusCode()
         );
 
         // nonexistent index with no login
@@ -424,102 +418,93 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode()
+            rh.executeGetRequest("/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/_all/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode()
+            rh.executeGetRequest("/_all/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/*/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode()
+            rh.executeGetRequest("/*/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest(
-                "/nopermindex,logstash-1,nonexist/_search",
-                encodeBasicHeader("opendistro_security_logstash", "nagilum")
-            )).getStatusCode()
-        );
-
-        Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/logstash-1,nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
+            rh.executeGetRequest("/nopermindex,logstash-1,nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
                 .getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode()
-        );
-
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest(
-                "/%3Clogstash-%7Bnow%2Fd%7D%3E/_search",
-                encodeBasicHeader("opendistro_security_logstash", "nagilum")
-            )).getStatusCode()
+            rh.executeGetRequest("/logstash-1,nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
+                .getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/%3Cnonex-%7Bnow%2Fd%7D%3E/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
+            rh.executeGetRequest("/nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
+        );
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("/%3Clogstash-%7Bnow%2Fd%7D%3E/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
+                .getStatusCode()
+        );
+
+        Assert.assertEquals(
+            HttpStatus.SC_FORBIDDEN,
+            rh.executeGetRequest("/%3Cnonex-%7Bnow%2Fd%7D%3E/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
                 .getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest(
+            rh.executeGetRequest(
                 "/%3Clogstash-%7Bnow%2Fd%7D%3E,logstash-*/_search",
                 encodeBasicHeader("opendistro_security_logstash", "nagilum")
-            )).getStatusCode()
+            ).getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest(
+            rh.executeGetRequest(
                 "/%3Clogstash-%7Bnow%2Fd%7D%3E,logstash-1/_search",
                 encodeBasicHeader("opendistro_security_logstash", "nagilum")
-            )).getStatusCode()
+            ).getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_CREATED,
-            (res = rh.executePutRequest("/logstash-b/_doc/1", "{}", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
+            rh.executePutRequest("/logstash-b/_doc/1", "{}", encodeBasicHeader("opendistro_security_logstash", "nagilum")).getStatusCode()
+        );
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executePutRequest("/%3Clogstash-cnew-%7Bnow%2Fd%7D%3E", "{}", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
                 .getStatusCode()
         );
 
         Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executePutRequest(
-                "/%3Clogstash-cnew-%7Bnow%2Fd%7D%3E",
-                "{}",
-                encodeBasicHeader("opendistro_security_logstash", "nagilum")
-            )).getStatusCode()
-        );
-
-        Assert.assertEquals(
             HttpStatus.SC_CREATED,
-            (res = rh.executePutRequest(
+            rh.executePutRequest(
                 "/%3Clogstash-new-%7Bnow%2Fd%7D%3E/_doc/1",
                 "{}",
                 encodeBasicHeader("opendistro_security_logstash", "nagilum")
-            )).getStatusCode()
+            ).getStatusCode()
         );
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
             (res = rh.executeGetRequest("/_cat/indices?v", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
         );
-
-        System.out.println(res.getBody());
-        Assert.assertTrue(res.getBody().contains("logstash-b"));
-        Assert.assertTrue(res.getBody().contains("logstash-new-20"));
-        Assert.assertTrue(res.getBody().contains("logstash-cnew-20"));
-        Assert.assertFalse(res.getBody().contains("<"));
+        String body = res.getBody();
+        Assert.assertTrue(body.contains("logstash-b"));
+        Assert.assertTrue(body.contains("logstash-new-20"));
+        Assert.assertTrue(body.contains("logstash-cnew-20"));
+        Assert.assertFalse(body.contains("<"));
     }
 
     @Test
@@ -571,7 +556,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executePostRequest("/mysgi/_doc", "{}", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+            rh.executePostRequest("/mysgi/_doc", "{}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
         Assert.assertEquals(
             HttpStatus.SC_OK,
@@ -579,28 +564,28 @@ public class IndexIntegrationTests extends SingleClusterTest {
         );
         assertContains(res, "*\"hits\" : {*\"value\" : 0,*\"hits\" : [ ]*");
 
-        System.out.println("#### add alias to allowed index");
+        // add alias to allowed index
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executePutRequest("/logstash-1/_alias/alog1", "", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executePutRequest("/logstash-1/_alias/alog1", "", encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
-        System.out.println("#### add alias to not existing (no perm)");
+        // add alias to not existing (no perm)
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executePutRequest("/nonexitent/_alias/alnp", "", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executePutRequest("/nonexitent/_alias/alnp", "", encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
-        System.out.println("#### add alias to not existing (with perm)");
+        // add alias to not existing (with perm)
         Assert.assertEquals(
             HttpStatus.SC_NOT_FOUND,
-            (res = rh.executePutRequest("/logstash-nonex/_alias/alnp", "", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executePutRequest("/logstash-nonex/_alias/alnp", "", encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
-        System.out.println("#### add alias to not allowed index");
+        // add alias to not allowed index
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executePutRequest("/nopermindex/_alias/alnp", "", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executePutRequest("/nopermindex/_alias/alnp", "", encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
         String aliasRemoveIndex = "{"
@@ -610,36 +595,36 @@ public class IndexIntegrationTests extends SingleClusterTest {
             + "]"
             + "}";
 
-        System.out.println("#### remove_index");
+        // remove_index
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executePostRequest("/_aliases", aliasRemoveIndex, encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executePostRequest("/_aliases", aliasRemoveIndex, encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
-        System.out.println("#### get alias for permitted index");
+        // get alias for permitted index
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logstash-1/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executeGetRequest("/logstash-1/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
-        System.out.println("#### get alias for all indices");
+        // get alias for all indices
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executeGetRequest("/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
-        System.out.println("#### get alias no perm");
+        // get alias no perm
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("/_alias/nopermalias", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executeGetRequest("/_alias/nopermalias", encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
 
         String alias = "{" + "\"aliases\": {" + "\"alias1\": {}" + "}" + "}";
 
-        System.out.println("#### create alias along with index");
+        // create alias along with index
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executePutRequest("/beats-withalias", alias, encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode()
+            rh.executePutRequest("/beats-withalias", alias, encodeBasicHeader("aliasmngt", "nagilum")).getStatusCode()
         );
     }
 
@@ -737,10 +722,8 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:noperm/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res.getBody());
         res = rh.executeGetRequest("/*:noexists/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res.getBody());
     }
 
     @Test

@@ -177,7 +177,6 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals("CN=kirk,OU=client,O=client,L=Test,C=DE", body.get("user_name"));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());        // check admin user exists
-        System.out.println(response.getBody());
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + "admin" + "\"}";
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("admin", "admin"));
         assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());

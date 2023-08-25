@@ -73,13 +73,13 @@ public class TracingTests extends SingleClusterTest {
             }
         }
 
-        System.out.println("############ check shards");
-        System.out.println(rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("admin", "admin")));
+        // check shards
+        rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ check shards");
-        System.out.println(rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("admin", "admin")));
+        // check shards
+        rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ _bulk");
+        // _bulk
         String bulkBody = "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
             + System.lineSeparator()
             + "{ \"field1\" : \"value1\" }"
@@ -91,9 +91,9 @@ public class TracingTests extends SingleClusterTest {
             + "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"2\" } }"
             + System.lineSeparator();
 
-        System.out.println(rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ _bulk");
+        // _bulk
         bulkBody = "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
             + System.lineSeparator()
             + "{ \"field1\" : \"value1\" }"
@@ -105,67 +105,65 @@ public class TracingTests extends SingleClusterTest {
             + "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"2\" } }"
             + System.lineSeparator();
 
-        System.out.println(rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ cat indices");
+        // cat indices
         // cluster:monitor/state
         // cluster:monitor/health
         // indices:monitor/stats
-        System.out.println(rh.executeGetRequest("_cat/indices", encodeBasicHeader("admin", "admin")));
+        rh.executeGetRequest("_cat/indices", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ _search");
+        // _search
         // indices:data/read/search
-        System.out.println(rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin")));
+        rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ get 1");
+        // get 1
         // indices:data/read/get
-        System.out.println(rh.executeGetRequest("a/b/1", encodeBasicHeader("admin", "admin")));
-        System.out.println("############ get 5");
-        System.out.println(rh.executeGetRequest("a/b/5", encodeBasicHeader("admin", "admin")));
-        System.out.println("############ get 17");
-        System.out.println(rh.executeGetRequest("a/b/17", encodeBasicHeader("admin", "admin")));
+        rh.executeGetRequest("a/b/1", encodeBasicHeader("admin", "admin"));
+        // get 5
+        rh.executeGetRequest("a/b/5", encodeBasicHeader("admin", "admin"));
+        // get 17
+        rh.executeGetRequest("a/b/17", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ index (+create index)");
+        // index (+create index)
         // indices:data/write/index
         // indices:data/write/bulk
         // indices:admin/create
         // indices:data/write/bulk[s]
-        System.out.println(rh.executePostRequest("u/b/1?refresh=true", "{}", encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("u/b/1?refresh=true", "{}", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ index only");
+        // index only
         // indices:data/write/index
         // indices:data/write/bulk
         // indices:admin/create
         // indices:data/write/bulk[s]
-        System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{}", encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("u/b/2?refresh=true", "{}", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ index updates");
+        // index updates
         // indices:data/write/index
         // indices:data/write/bulk
         // indices:admin/create
         // indices:data/write/bulk[s]
-        System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{\"n\":1, \"m\":1}", encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{\"n\":2, \"m\":1, \"z\":1}", encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{\"n\":2, \"z\":4}", encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{\"n\":5, \"z\":5}", encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePostRequest("u/b/2?refresh=true", "{\"n\":5}", encodeBasicHeader("admin", "admin")));
-        System.out.println("############ update");
+        rh.executePostRequest("u/b/2?refresh=true", "{\"n\":1, \"m\":1}", encodeBasicHeader("admin", "admin"));
+        rh.executePostRequest("u/b/2?refresh=true", "{\"n\":2, \"m\":1, \"z\":1}", encodeBasicHeader("admin", "admin"));
+        rh.executePostRequest("u/b/2?refresh=true", "{\"n\":2, \"z\":4}", encodeBasicHeader("admin", "admin"));
+        rh.executePostRequest("u/b/2?refresh=true", "{\"n\":5, \"z\":5}", encodeBasicHeader("admin", "admin"));
+        rh.executePostRequest("u/b/2?refresh=true", "{\"n\":5}", encodeBasicHeader("admin", "admin"));
+        // update
         // indices:data/write/index
         // indices:data/write/bulk
         // indices:admin/create
         // indices:data/write/bulk[s]
-        System.out.println(
-            rh.executePostRequest("u/b/2/_update?refresh=true", "{\"doc\" : {\"a\":1}}", encodeBasicHeader("admin", "admin"))
-        );
+        rh.executePostRequest("u/b/2/_update?refresh=true", "{\"doc\" : {\"a\":1}}", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ delete");
+        // delete
         // indices:data/write/index
         // indices:data/write/bulk
         // indices:admin/create
         // indices:data/write/bulk[s]
-        System.out.println(rh.executeDeleteRequest("u/b/2?refresh=true", encodeBasicHeader("admin", "admin")));
+        rh.executeDeleteRequest("u/b/2?refresh=true", encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ reindex");
+        // reindex
         String reindex = "{"
             + "  \"source\": {"
             + "    \"index\": \"a\""
@@ -175,9 +173,9 @@ public class TracingTests extends SingleClusterTest {
             + "  }"
             + "}";
 
-        System.out.println(rh.executePostRequest("_reindex", reindex, encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("_reindex", reindex, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ msearch");
+        // msearch
         String msearchBody = "{\"index\":\"a\", \"type\":\"b\", \"ignore_unavailable\": true}"
             + System.lineSeparator()
             + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
@@ -191,9 +189,9 @@ public class TracingTests extends SingleClusterTest {
             + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
             + System.lineSeparator();
 
-        System.out.println(rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ mget");
+        // mget
         String mgetBody = "{"
             + "\"docs\" : ["
             + "{"
@@ -215,12 +213,12 @@ public class TracingTests extends SingleClusterTest {
             + "]"
             + "}";
 
-        System.out.println(rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ delete by query");
+        // delete by query
         String dbqBody = "{" + "" + "  \"query\": { " + "    \"match\": {" + "      \"content\": 12" + "    }" + "  }" + "}";
 
-        System.out.println(rh.executePostRequest("a/b/_delete_by_query", dbqBody, encodeBasicHeader("admin", "admin")));
+        rh.executePostRequest("a/b/_delete_by_query", dbqBody, encodeBasicHeader("admin", "admin"));
         Thread.sleep(5000);
     }
 
@@ -279,19 +277,19 @@ public class TracingTests extends SingleClusterTest {
 
         }
 
-        System.out.println("########pause1");
+        // pause1
         Thread.sleep(5000);
-        System.out.println("########end pause1");
+        // end pause1
 
-        System.out.println("########search");
+        // search
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin")).getStatusCode());
-        System.out.println("########search done");
+        // search done
 
-        System.out.println("########pause2");
+        // pause2
         Thread.sleep(5000);
-        System.out.println("########end pause2");
+        // end pause2
 
-        System.out.println("############ _bulk");
+        // _bulk
         String bulkBody = "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
             + System.lineSeparator()
             + "{ \"field1\" : \"value1\" }"
@@ -311,8 +309,8 @@ public class TracingTests extends SingleClusterTest {
             + "{ \"field1\" : \"value1\" }"
             + System.lineSeparator();
 
-        System.out.println(rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("admin", "admin")).getBody());
-        System.out.println("############ _end");
+        rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("admin", "admin"));
+        // _end
         Thread.sleep(5000);
     }
 
@@ -331,18 +329,16 @@ public class TracingTests extends SingleClusterTest {
                 ).actionGet();
         }
 
-        System.out.println("########search");
+        // search
         HttpResponse res;
         Assert.assertEquals(
             HttpStatus.SC_OK,
             (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("admin", "admin"))).getStatusCode()
         );
 
-        System.out.println(res.getBody());
         int start = res.getBody().indexOf("_scroll_id") + 15;
         String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start + 1));
-        System.out.println(scrollid);
-        System.out.println("########search scroll");
+        // search scroll
         Assert.assertEquals(
             HttpStatus.SC_OK,
             (res = rh.executePostRequest(
@@ -352,7 +348,7 @@ public class TracingTests extends SingleClusterTest {
             )).getStatusCode()
         );
 
-        System.out.println("########search done");
+        // search done
 
     }
 
@@ -391,38 +387,36 @@ public class TracingTests extends SingleClusterTest {
                 .actionGet();
         }
 
-        System.out.println("############ write into mapping 1");
+        // write into mapping 1
         String data1 = FileHelper.loadFile("auditlog/data1.json");
         String data2 = FileHelper.loadFile("auditlog/data1mod.json");
-        System.out.println(rh.executePutRequest("myindex1/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePutRequest("myindex1/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin")));
-        System.out.println("############ write into mapping diffing");
-        System.out.println(rh.executePutRequest("myindex1/_doc/1?refresh", data2, encodeBasicHeader("admin", "admin")));
+        rh.executePutRequest("myindex1/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin"));
+        rh.executePutRequest("myindex1/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin"));
+        // write into mapping diffing
+        rh.executePutRequest("myindex1/_doc/1?refresh", data2, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ write into mapping 2");
-        System.out.println(rh.executePutRequest("myindex2/_doc/2?refresh", data1, encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePutRequest("myindex2/_doc/2?refresh", data2, encodeBasicHeader("admin", "admin")));
+        // write into mapping 2
+        rh.executePutRequest("myindex2/_doc/2?refresh", data1, encodeBasicHeader("admin", "admin"));
+        rh.executePutRequest("myindex2/_doc/2?refresh", data2, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ write into mapping 3");
+        // write into mapping 3
         String parent = FileHelper.loadFile("auditlog/data2.json");
         String child = FileHelper.loadFile("auditlog/data3.json");
-        System.out.println(rh.executePutRequest("myindex3/_doc/1?refresh", parent, encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePutRequest("myindex3/_doc/2?routing=1&refresh", child, encodeBasicHeader("admin", "admin")));
+        rh.executePutRequest("myindex3/_doc/1?refresh", parent, encodeBasicHeader("admin", "admin"));
+        rh.executePutRequest("myindex3/_doc/2?routing=1&refresh", child, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ write into mapping 4");
-        System.out.println(rh.executePutRequest("myindex4/_doc/1?refresh", parent, encodeBasicHeader("admin", "admin")));
-        System.out.println(rh.executePutRequest("myindex4/_doc/2?routing=1&refresh", child, encodeBasicHeader("admin", "admin")));
+        // write into mapping 4
+        rh.executePutRequest("myindex4/_doc/1?refresh", parent, encodeBasicHeader("admin", "admin"));
+        rh.executePutRequest("myindex4/_doc/2?routing=1&refresh", child, encodeBasicHeader("admin", "admin"));
 
-        System.out.println("############ get");
-        System.out.println(
-            rh.executeGetRequest(
-                "myindex1/_doc/1?pretty=true&_source=true&_source_include=*.id&_source_exclude=entities&stored_fields=tags,counter",
-                encodeBasicHeader("admin", "admin")
-            ).getBody()
+        // get
+        rh.executeGetRequest(
+            "myindex1/_doc/1?pretty=true&_source=true&_source_include=*.id&_source_exclude=entities&stored_fields=tags,counter",
+            encodeBasicHeader("admin", "admin")
         );
 
-        System.out.println("############ search");
-        System.out.println(rh.executeGetRequest("myindex1/_search", encodeBasicHeader("admin", "admin")).getStatusCode());
+        // search
+        rh.executeGetRequest("myindex1/_search", encodeBasicHeader("admin", "admin"));
 
     }
 
@@ -454,7 +448,7 @@ public class TracingTests extends SingleClusterTest {
                 .actionGet();
         }
 
-        System.out.println("############ immutable 1");
+        // immutable 1
         String data1 = FileHelper.loadFile("auditlog/data1.json");
         String data2 = FileHelper.loadFile("auditlog/data1mod.json");
         HttpResponse res = rh.executePutRequest("myindex1/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin"));
@@ -468,7 +462,7 @@ public class TracingTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("city"));
         Assert.assertTrue(res.getBody().contains("\"found\":true,"));
 
-        System.out.println("############ immutable 2");
+        // immutable 2
         res = rh.executePutRequest("myindex2/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(201, res.getStatusCode());
         res = rh.executePutRequest("myindex2/_doc/1?refresh", data2, encodeBasicHeader("admin", "admin"));
