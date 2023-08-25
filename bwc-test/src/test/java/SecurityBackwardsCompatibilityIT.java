@@ -22,6 +22,9 @@ import org.opensearch.Version;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 
+import org.opensearch.client.RestClient;
+import org.opensearch.commons.rest.SecureRestClientBuilder;
+
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     private ClusterType CLUSTER_TYPE;
@@ -64,6 +67,16 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             // account for delayed shards
             .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
             .build();
+    }
+
+    @Override
+    protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
+        String userName = System.getProperty("tests.opensearch.username");
+        String password = System.getProperty("tests.opensearch.password");
+
+        return new SecureRestClientBuilder(hosts, true, userName, password).setSocketTimeout(60000)
+                .setConnectionRequestTimeout(180000)
+                .build();
     }
 
     public void testBasicBackwardsCompatibility() throws Exception {
