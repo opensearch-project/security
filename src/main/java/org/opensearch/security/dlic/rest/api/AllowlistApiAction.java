@@ -17,20 +17,14 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -78,8 +72,6 @@ import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImpl
  */
 public class AllowlistApiAction extends AbstractApiAction {
 
-    private static final String RESOURCE_NAME = "config";
-
     private static final List<Route> routes = ImmutableList.of(
         new Route(RestRequest.Method.GET, "/_plugins/_security/api/allowlist"),
         new Route(RestRequest.Method.PUT, "/_plugins/_security/api/allowlist"),
@@ -88,17 +80,12 @@ public class AllowlistApiAction extends AbstractApiAction {
 
     @Inject
     public AllowlistApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final Endpoint endpoint,
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(endpoint, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(this::allowListApiRequestHandlers);
     }
 
@@ -107,7 +94,7 @@ public class AllowlistApiAction extends AbstractApiAction {
             .onChangeRequest(RestRequest.Method.PATCH, this::processPatchRequest)
             .onChangeRequest(
                 RestRequest.Method.PUT,
-                request -> loadConfigurationWithRequestContent(RESOURCE_NAME, request).map(this::addEntityToConfig)
+                request -> loadConfigurationWithRequestContent("config", request).map(this::addEntityToConfig)
             )
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
     }
@@ -123,27 +110,17 @@ public class AllowlistApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.ALLOWLIST;
-    }
-
-    @Override
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
 
             @Override
-            public String resourceName() {
-                return RESOURCE_NAME;
-            }
-
-            @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
@@ -156,7 +133,7 @@ public class AllowlistApiAction extends AbstractApiAction {
 
                     @Override
                     public Settings settings() {
-                        return settings;
+                        return securityApiDependencies.settings();
                     }
 
                     @Override

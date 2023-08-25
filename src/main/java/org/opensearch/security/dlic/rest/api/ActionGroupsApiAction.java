@@ -19,23 +19,17 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,17 +62,11 @@ public class ActionGroupsApiAction extends AbstractApiAction {
 
     @Inject
     public ActionGroupsApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.ACTIONGROUPS, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(this::actionGroupsApiRequestHandlers);
     }
 
@@ -92,11 +80,6 @@ public class ActionGroupsApiAction extends AbstractApiAction {
         return CType.ACTIONGROUPS;
     }
 
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.ACTIONGROUPS;
-    }
-
     private void actionGroupsApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
     }
@@ -105,18 +88,13 @@ public class ActionGroupsApiAction extends AbstractApiAction {
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
             @Override
-            public String resourceName() {
-                return "actiongroup";
-            }
-
-            @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
@@ -126,10 +104,10 @@ public class ActionGroupsApiAction extends AbstractApiAction {
             }
 
             @Override
-            public ValidationResult<SecurityConfiguration> hasRightsToChangeEntity(SecurityConfiguration securityConfiguration)
+            public ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(SecurityConfiguration securityConfiguration)
                 throws IOException {
-                return EndpointValidator.super.hasRightsToChangeEntity(securityConfiguration).map(
-                    this::canChangeObjectWithRestAdminPermissions
+                return EndpointValidator.super.isAllowedToChangeImmutableEntity(securityConfiguration).map(
+                    this::isAllowedToChangeEntityWithRestAdminPermissions
                 );
             }
 
@@ -189,7 +167,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
 
                     @Override
                     public Settings settings() {
-                        return settings;
+                        return securityApiDependencies.settings();
                     }
 
                     @Override

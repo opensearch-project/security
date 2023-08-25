@@ -22,22 +22,16 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.MaskedField;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -45,8 +39,6 @@ import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImpl
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesApiAction extends AbstractApiAction {
-
-    protected final static String RESOURCE_NAME = "role";
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
@@ -105,17 +97,11 @@ public class RolesApiAction extends AbstractApiAction {
 
     @Inject
     public RolesApiAction(
-        Settings settings,
-        final Path configPath,
-        AdminDNs adminDNs,
-        ConfigurationRepository cl,
-        ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.ROLES, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(this::rolesApiRequestHandlers);
     }
 
@@ -129,11 +115,6 @@ public class RolesApiAction extends AbstractApiAction {
         return CType.ROLES;
     }
 
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.ROLES;
-    }
-
     private void rolesApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
     }
@@ -141,29 +122,25 @@ public class RolesApiAction extends AbstractApiAction {
     @Override
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
-            @Override
-            public String resourceName() {
-                return RESOURCE_NAME;
-            }
 
             @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
-            public ValidationResult<SecurityConfiguration> hasRightsToChangeEntity(SecurityConfiguration securityConfiguration)
+            public ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(SecurityConfiguration securityConfiguration)
                 throws IOException {
-                return EndpointValidator.super.hasRightsToChangeEntity(securityConfiguration).map(ignore -> {
+                return EndpointValidator.super.isAllowedToChangeImmutableEntity(securityConfiguration).map(ignore -> {
                     if (isCurrentUserAdmin()) {
                         return ValidationResult.success(securityConfiguration);
                     }
-                    return canChangeObjectWithRestAdminPermissions(securityConfiguration);
+                    return isAllowedToChangeEntityWithRestAdminPermissions(securityConfiguration);
                 });
             }
 
@@ -177,7 +154,7 @@ public class RolesApiAction extends AbstractApiAction {
 
                     @Override
                     public Settings settings() {
-                        return settings;
+                        return securityApiDependencies.settings();
                     }
 
                     @Override

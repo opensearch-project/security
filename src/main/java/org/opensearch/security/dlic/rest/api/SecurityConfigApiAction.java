@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,16 +24,11 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -44,8 +38,6 @@ import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplement
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigApiAction extends AbstractApiAction {
-
-    private final static String RESOURCE_NAME = "config";
 
     private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(new Route(Method.GET, "/securityconfig/")));
 
@@ -59,19 +51,14 @@ public class SecurityConfigApiAction extends AbstractApiAction {
 
     @Inject
     public SecurityConfigApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
 
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
-        allowPutOrPatch = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
+        super(Endpoint.CONFIG, clusterService, threadPool, securityApiDependencies);
+        allowPutOrPatch = securityApiDependencies.settings()
+            .getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
         this.requestHandlersBuilder.configureRequestHandlers(this::securityConfigApiActionRequestHandlers);
     }
 
@@ -85,11 +72,6 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         return CType.CONFIG;
     }
 
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.CONFIG;
-    }
-
     private void securityConfigApiActionRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(
             Method.PUT,
@@ -100,16 +82,16 @@ public class SecurityConfigApiAction extends AbstractApiAction {
             .override(Method.POST, methodNotImplementedHandler);
     }
 
-    private ValidationResult<RestRequest> withAllowedEndpoint(final RestRequest request) {
+    ValidationResult<RestRequest> withAllowedEndpoint(final RestRequest request) {
         if (!allowPutOrPatch) {
             return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
         }
         return ValidationResult.success(request);
     }
 
-    private ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
+    ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
         final var name = nameParam(request);
-        if (!RESOURCE_NAME.equals(name)) {
+        if (!"config".equals(name)) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
         }
         return ValidationResult.success(name);
@@ -120,18 +102,13 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         return new EndpointValidator() {
 
             @Override
-            public String resourceName() {
-                return RESOURCE_NAME;
-            }
-
-            @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
@@ -144,7 +121,7 @@ public class SecurityConfigApiAction extends AbstractApiAction {
 
                     @Override
                     public Settings settings() {
-                        return settings;
+                        return securityApiDependencies.settings();
                     }
 
                     @Override

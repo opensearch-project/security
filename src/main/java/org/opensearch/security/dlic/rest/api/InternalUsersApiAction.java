@@ -22,24 +22,18 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -53,8 +47,6 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends AbstractApiAction {
-
-    protected final static String RESOURCE_NAME = "user";
 
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
@@ -83,18 +75,12 @@ public class InternalUsersApiAction extends AbstractApiAction {
 
     @Inject
     public InternalUsersApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        UserService userService,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final UserService userService,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.INTERNALUSERS, clusterService, threadPool, securityApiDependencies);
         this.userService = userService;
         this.requestHandlersBuilder.configureRequestHandlers(this::internalUsersApiRequestHandlers);
     }
@@ -102,11 +88,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
     @Override
     public List<Route> routes() {
         return routes;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.INTERNALUSERS;
     }
 
     @Override
@@ -125,6 +106,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
                     )
                 )
                     .map(endpointValidator::entityExists)
+                    .map(endpointValidator::isAllowedToLoadOrChangeHiddenEntity)
                     .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
                     .error((status, toXContent) -> response(channel, status, toXContent))
             )
@@ -133,7 +115,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 Method.PUT,
                 request -> endpointValidator.withRequiredEntityName(nameParam(request))
                     .map(username -> loadConfigurationWithRequestContent(username, request))
-                    .map(endpointValidator::hasRightsToChangeEntity)
+                    .map(endpointValidator::isAllowedToChangeImmutableEntity)
                     .map(this::validateSecurityRoles)
                     .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
                     .map(this::validateAndUpdatePassword)
@@ -141,7 +123,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
             );
     }
 
-    private ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
+    ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
         return endpointValidator.withRequiredEntityName(nameParam(request)).map(username -> {
             // Handle auth token fetching
             if (!(request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken"))) {
@@ -151,7 +133,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         });
     }
 
-    private void generateAuthToken(final RestChannel channel, final SecurityConfiguration securityConfiguration) throws IOException {
+    void generateAuthToken(final RestChannel channel, final SecurityConfiguration securityConfiguration) throws IOException {
         try {
             final var username = securityConfiguration.entityName();
             final var authToken = userService.generateAuthToken(username);
@@ -165,11 +147,10 @@ public class InternalUsersApiAction extends AbstractApiAction {
         }
     }
 
-    private ValidationResult<SecurityConfiguration> validateSecurityRoles(final SecurityConfiguration securityConfiguration)
-        throws IOException {
+    ValidationResult<SecurityConfiguration> validateSecurityRoles(final SecurityConfiguration securityConfiguration) throws IOException {
         return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
-            final ObjectNode contentAsNode = (ObjectNode) securityConfiguration.requestContent();
-            final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+            final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+            final var securityJsonNode = new SecurityJsonNode(contentAsNode);
             // FIXME do we need to verify roles as well?
             final var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
             return endpointValidator.validateRoles(securityRoles, rolesConfiguration)
@@ -177,7 +158,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         });
     }
 
-    private ValidationResult<SecurityConfiguration> createOrUpdateAccount(
+    ValidationResult<SecurityConfiguration> createOrUpdateAccount(
         final RestRequest request,
         final SecurityConfiguration securityConfiguration
     ) throws IOException {
@@ -201,12 +182,12 @@ public class InternalUsersApiAction extends AbstractApiAction {
         }
     }
 
-    private ValidationResult<SecurityConfiguration> validateAndUpdatePassword(final SecurityConfiguration securityConfiguration) {
+    ValidationResult<SecurityConfiguration> validateAndUpdatePassword(final SecurityConfiguration securityConfiguration) {
         // when updating an existing user password hash can be blank, which means no changes
         // for existing users, hash is optional
         final var username = securityConfiguration.entityName();
-        final ObjectNode contentAsNode = (ObjectNode) securityConfiguration.requestContent();
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+        final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+        final var securityJsonNode = new SecurityJsonNode(contentAsNode);
         if (securityConfiguration.entityExists() && securityJsonNode.get("hash").asString() == null) {
             final String hash = ((Hashed) securityConfiguration.configuration().getCEntry(username)).getHash();
             if (Strings.isNullOrEmpty(hash)) {
@@ -227,18 +208,13 @@ public class InternalUsersApiAction extends AbstractApiAction {
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
             @Override
-            public String resourceName() {
-                return RESOURCE_NAME;
-            }
-
-            @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
@@ -267,7 +243,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
 
                     @Override
                     public Settings settings() {
-                        return settings;
+                        return securityApiDependencies.settings();
                     }
 
                     @Override

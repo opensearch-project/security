@@ -9,6 +9,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import static java.util.function.Predicate.not;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
@@ -18,11 +19,37 @@ import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
 public interface EndpointValidator {
 
-    String resourceName();
-
     Endpoint endpoint();
 
     RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator();
+
+    private String resourceName() {
+        if (Objects.isNull(endpoint())) {
+            return "";
+        }
+        switch (endpoint()) {
+            case ACCOUNT:
+                return "account";
+            case ACTIONGROUPS:
+                return "actiongroup";
+            case ALLOWLIST:
+            case AUDIT:
+            case CONFIG:
+                return "config";
+            case INTERNALUSERS:
+                return "user";
+            case NODESDN:
+                return "nodesdn";
+            case ROLES:
+                return "role";
+            case ROLESMAPPING:
+                return "rolesmapping";
+            case TENANTS:
+                return "tenant";
+            default:
+                return "";
+        }
+    }
 
     default boolean isCurrentUserAdmin() {
         return restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint());
@@ -54,7 +81,7 @@ public interface EndpointValidator {
         }).orElseGet(() -> ValidationResult.success(securityConfiguration));
     }
 
-    default ValidationResult<SecurityConfiguration> hasRightsToChangeEntity(final SecurityConfiguration securityConfiguration)
+    default ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(final SecurityConfiguration securityConfiguration)
         throws IOException {
         final var immutableCheck = entityImmutable(securityConfiguration);
         if (!immutableCheck.isValid() && !isCurrentUserAdmin()) {
@@ -63,7 +90,7 @@ public interface EndpointValidator {
         return ValidationResult.success(securityConfiguration);
     }
 
-    default ValidationResult<SecurityConfiguration> hasRightsToLoadOrChangeHiddenEntity(final SecurityConfiguration securityConfiguration) {
+    default ValidationResult<SecurityConfiguration> isAllowedToLoadOrChangeHiddenEntity(final SecurityConfiguration securityConfiguration) {
         final var hiddenCheck = entityHidden(securityConfiguration);
         if (!hiddenCheck.isValid() && !isCurrentUserAdmin()) {
             return hiddenCheck;
@@ -109,7 +136,7 @@ public interface EndpointValidator {
         final var rolesToCheck = roles == null ? List.<String>of() : roles;
         return rolesToCheck.stream().map(role -> withIOException(() -> {
             final var roleSecConfig = SecurityConfiguration.of(role, rolesConfiguration);
-            return entityExists("role", roleSecConfig).map(this::hasRightsToChangeEntity);
+            return entityExists("role", roleSecConfig).map(this::isAllowedToChangeImmutableEntity);
         }))
             .filter(not(ValidationResult::isValid))
             .findFirst()
@@ -119,22 +146,22 @@ public interface EndpointValidator {
             .orElseGet(() -> ValidationResult.success(rolesConfiguration));
     }
 
-    default ValidationResult<SecurityConfiguration> canChangeObjectWithRestAdminPermissions(
+    default ValidationResult<SecurityConfiguration> isAllowedToChangeEntityWithRestAdminPermissions(
         final SecurityConfiguration securityConfiguration
     ) throws IOException {
         if (securityConfiguration.entityExists()) {
             final var configuration = securityConfiguration.configuration();
-            final var existingActionGroup = configuration.getCEntry(securityConfiguration.entityName());
-            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(existingActionGroup)) {
+            final var existingEntity = configuration.getCEntry(securityConfiguration.entityName());
+            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(existingEntity)) {
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         } else {
             final var configuration = securityConfiguration.configuration();
-            final var reducedRequestContent = Utils.toConfigObject(
+            final var configEntityContent = Utils.toConfigObject(
                 securityConfiguration.requestContent(),
                 configuration.getImplementingClass()
             );
-            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(reducedRequestContent)) {
+            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(configEntityContent)) {
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         }
@@ -142,15 +169,15 @@ public interface EndpointValidator {
     }
 
     default ValidationResult<SecurityConfiguration> onConfigDelete(final SecurityConfiguration securityConfiguration) throws IOException {
-        return hasRightsToChangeEntity(securityConfiguration).map(this::entityExists);
+        return isAllowedToChangeImmutableEntity(securityConfiguration).map(this::entityExists);
     }
 
     default ValidationResult<SecurityConfiguration> onConfigLoad(final SecurityConfiguration securityConfiguration) throws IOException {
-        return hasRightsToLoadOrChangeHiddenEntity(securityConfiguration).map(this::entityExists);
+        return isAllowedToLoadOrChangeHiddenEntity(securityConfiguration).map(this::entityExists);
     }
 
     default ValidationResult<SecurityConfiguration> onConfigChange(final SecurityConfiguration securityConfiguration) throws IOException {
-        return hasRightsToChangeEntity(securityConfiguration);
+        return isAllowedToChangeImmutableEntity(securityConfiguration);
     }
 
     RequestContentValidator createRequestContentValidator(final Object... params);

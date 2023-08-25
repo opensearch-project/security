@@ -1,0 +1,177 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+package org.opensearch.security.dlic.rest.api;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.http.HttpChannel;
+import org.opensearch.http.HttpRequest;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.threadpool.ThreadPool;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.class)
+public abstract class AbstractApiActionValidationTest {
+
+    @Mock
+    ClusterService clusterService;
+
+    @Mock
+    ThreadPool threadPool;
+
+    @Mock
+    ConfigurationRepository configurationRepository;
+
+    @Mock
+    RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
+
+    SecurityApiDependencies securityApiDependencies;
+
+    @Mock
+    SecurityDynamicConfiguration<?> configuration;
+
+    @Mock
+    NamedXContentRegistry xContentRegistry;
+
+    @Mock
+    HttpChannel httpChannel;
+
+    @Mock
+    HttpRequest httpRequest;
+
+    SecurityDynamicConfiguration<?> rolesConfiguration;
+
+    ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
+
+    protected static class SomeRestRequest extends RestRequest {
+        public SomeRestRequest(
+            NamedXContentRegistry xContentRegistry,
+            Map<String, String> params,
+            String path,
+            Map<String, List<String>> headers,
+            HttpRequest httpRequest,
+            HttpChannel httpChannel
+        ) {
+            super(xContentRegistry, params, path, headers, httpRequest, httpChannel);
+        }
+    }
+
+    @Before
+    public void setup() {
+        securityApiDependencies = new SecurityApiDependencies(
+            null,
+            configurationRepository,
+            null,
+            null,
+            restApiAdminPrivilegesEvaluator,
+            null,
+            Settings.EMPTY
+        );
+    }
+
+    void setupRolesConfiguration() throws IOException {
+        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var config = objectMapper.createObjectNode();
+        config.set("_meta", objectMapper.createObjectNode().put("type", CType.ROLES.toLCString()).put("config_version", 2));
+        config.set("kibana_read_only", objectMapper.createObjectNode().put("reserved", true));
+        config.set("security_rest_api_access", objectMapper.createObjectNode().put("reserved", true));
+
+        final var array = objectMapper.createArrayNode();
+        restApiAdminPermissions().forEach(array::add);
+        config.set("rest_api_admin_role", objectMapper.createObjectNode().set("cluster_permissions", array));
+
+        config.set("regular_role", objectMapper.createObjectNode().set("cluster_permissions", objectMapper.createArrayNode().add("*")));
+
+        rolesConfiguration = SecurityDynamicConfiguration.fromJson(objectMapper.writeValueAsString(config), CType.ROLES, 2, 1, 1);
+        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false)).thenReturn(
+            Map.of(CType.ROLES, rolesConfiguration)
+        );
+    }
+
+    @Test
+    public void allCrudActionsForDefaultValidatorAreForbidden() throws Exception {
+
+        final var defaultPessimisticValidator = new AbstractApiAction(null, clusterService, threadPool, securityApiDependencies) {
+            @Override
+            protected CType getConfigType() {
+                return CType.CONFIG;
+            }
+        }.createEndpointValidator();
+
+        var result = defaultPessimisticValidator.onConfigLoad(SecurityConfiguration.of(null, configuration));
+        assertEquals(RestStatus.FORBIDDEN, result.status());
+
+        result = defaultPessimisticValidator.onConfigChange(SecurityConfiguration.of(null, configuration));
+        assertEquals(RestStatus.FORBIDDEN, result.status());
+
+        result = defaultPessimisticValidator.onConfigDelete(SecurityConfiguration.of(null, configuration));
+        assertEquals(RestStatus.FORBIDDEN, result.status());
+
+    }
+
+    protected JsonNode xContentToJsonNode(final ToXContent toXContent) throws IOException {
+        try (final var xContentBuilder = XContentFactory.jsonBuilder()) {
+            toXContent.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
+            return DefaultObjectMapper.readTree(xContentBuilder.toString());
+        }
+    }
+
+    protected RestRequest createRestRequest(final RestRequest.Method method, final Map<String, String> params) {
+        return createRestRequest(method, null, params);
+    }
+
+    protected RestRequest createRestRequest(final RestRequest.Method method, final String path, final Map<String, String> params) {
+        if (path != null) {
+            when(httpRequest.uri()).thenReturn(path);
+        }
+        if (method != null) {
+            when(httpRequest.method()).thenReturn(method);
+        }
+        return new SomeRestRequest(xContentRegistry, params, path, Map.of(), httpRequest, httpChannel);
+    }
+
+    protected List<String> restApiAdminPermissions() {
+        return List.of(
+            "restapi:admin/actiongroups",
+            "restapi:admin/allowlist",
+            "restapi:admin/internalusers",
+            "restapi:admin/nodesdn",
+            "restapi:admin/roles",
+            "restapi:admin/rolesmapping",
+            "restapi:admin/ssl/certs/info",
+            "restapi:admin/ssl/certs/reload",
+            "restapi:admin/tenants"
+        );
+    }
+
+}

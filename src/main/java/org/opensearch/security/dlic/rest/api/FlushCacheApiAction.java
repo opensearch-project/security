@@ -16,22 +16,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
@@ -53,17 +46,11 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     @Inject
     public FlushCacheApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.CACHE, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(this::flushCacheApiRequestHandlers);
     }
 
@@ -72,41 +59,38 @@ public class FlushCacheApiAction extends AbstractApiAction {
         return routes;
     }
 
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.CACHE;
-    }
-
     private void flushCacheApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented().override(Method.DELETE, (channel, request, client) -> {
-            client.execute(
-                ConfigUpdateAction.INSTANCE,
-                new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])),
-                new ActionListener<>() {
+        requestHandlersBuilder.allMethodsNotImplemented()
+            .override(
+                Method.DELETE,
+                (channel, request, client) -> client.execute(
+                    ConfigUpdateAction.INSTANCE,
+                    new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])),
+                    new ActionListener<>() {
 
-                    @Override
-                    public void onResponse(ConfigUpdateResponse configUpdateResponse) {
-                        if (configUpdateResponse.hasFailures()) {
-                            LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
-                            internalSeverError(
-                                channel,
-                                "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
-                            );
-                            return;
+                        @Override
+                        public void onResponse(ConfigUpdateResponse configUpdateResponse) {
+                            if (configUpdateResponse.hasFailures()) {
+                                LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
+                                internalSeverError(
+                                    channel,
+                                    "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
+                                );
+                                return;
+                            }
+                            LOGGER.debug("cache flushed successfully");
+                            ok(channel, "Cache flushed successfully.");
                         }
-                        LOGGER.debug("cache flushed successfully");
-                        ok(channel, "Cache flushed successfully.");
-                    }
 
-                    @Override
-                    public void onFailure(final Exception e) {
-                        LOGGER.error("Cannot flush cache due to", e);
-                        internalSeverError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
-                    }
+                        @Override
+                        public void onFailure(final Exception e) {
+                            LOGGER.error("Cannot flush cache due to", e);
+                            internalSeverError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
+                        }
 
-                }
+                    }
+                )
             );
-        });
     }
 
     @Override

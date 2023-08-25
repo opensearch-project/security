@@ -29,7 +29,6 @@ import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.CheckedSupplier;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
@@ -46,25 +45,19 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -78,7 +71,6 @@ import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public abstract class AbstractApiAction extends BaseRestHandler {
 
@@ -88,14 +80,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     private final static String supportedPatchOperationsAsString = String.join(",", supportedPatchOperations);
 
-    protected final ConfigurationRepository cl;
-    protected final ClusterService cs;
-    final ThreadPool threadPool;
-    protected String securityIndexName;
-    private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
-    protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
-    protected final AuditLog auditLog;
-    protected final Settings settings;
+    protected final ClusterService clusterService;
+
+    protected final ThreadPool threadPool;
 
     private Map<Method, RequestHandler> requestHandlers;
 
@@ -103,49 +90,28 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     protected final EndpointValidator endpointValidator;
 
+    protected final Endpoint endpoint;
+
+    protected final SecurityApiDependencies securityApiDependencies;
+
     protected AbstractApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final Endpoint endpoint,
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
         super();
-        this.settings = settings;
-        this.securityIndexName = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
-
-        this.cl = cl;
-        this.cs = cs;
+        this.endpoint = endpoint;
+        this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(
-            settings,
-            adminDNs,
-            evaluator,
-            principalExtractor,
-            configPath,
-            threadPool
-        );
-        this.restApiAdminPrivilegesEvaluator = new RestApiAdminPrivilegesEvaluator(
-            threadPool.getThreadContext(),
-            evaluator,
-            adminDNs,
-            settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
-        );
-        this.auditLog = auditLog;
+        this.securityApiDependencies = securityApiDependencies;
         this.requestHandlersBuilder = new RequestHandler.RequestHandlersBuilder();
         this.requestHandlersBuilder.configureRequestHandlers(this::buildDefaultRequestHandlers);
         this.endpointValidator = createEndpointValidator();
     }
 
     private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
-        builder.withAccessHandler(request -> isSuperAdmin())
+        builder.withAccessHandler(request -> securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint))
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
             .add(Method.POST, methodNotImplementedHandler)
             .add(Method.PATCH, methodNotImplementedHandler)
@@ -176,6 +142,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         }).orElse(ValidationResult.success(securityConfiguration)));
     }
 
+    /**
+     * Process patch requests for all types of configuration, which can be one entity in the URI or a list of entities in the request body.
+     **/
     protected final ValidationResult<SecurityConfiguration> processPatchRequest(final RestRequest request) throws IOException {
         return loadConfiguration(nameParam(request), false).map(
             securityConfiguration -> withPatchRequestContent(request).map(
@@ -221,34 +190,36 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final var entityName = securityConfiguration.entityName();
         final var configuration = securityConfiguration.configuration();
         return withIOException(
-            () -> endpointValidator.hasRightsToChangeEntity(securityConfiguration).map(endpointValidator::entityExists).map(ignore -> {
-                final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
-                final var entityAsJson = (ObjectNode) configurationAsJson.get(entityName);
-                return withJsonPatchException(
-                    () -> endpointValidator.createRequestContentValidator(entityName)
-                        .validate(request, JsonPatch.apply(patchContent, entityAsJson))
-                        .map(
-                            patchedEntity -> endpointValidator.onConfigChange(
-                                SecurityConfiguration.of(patchedEntity, entityName, configuration)
-                            ).map(sc -> ValidationResult.success(patchedEntity))
-                        )
-                        .map(patchedEntity -> {
-                            final var updatedConfigurationAsJson = configurationAsJson.deepCopy().set(entityName, patchedEntity);
-                            return ValidationResult.success(
-                                SecurityConfiguration.of(
-                                    entityName,
-                                    SecurityDynamicConfiguration.fromNode(
-                                        updatedConfigurationAsJson,
-                                        configuration.getCType(),
-                                        configuration.getVersion(),
-                                        configuration.getSeqNo(),
-                                        configuration.getPrimaryTerm()
+            () -> endpointValidator.isAllowedToChangeImmutableEntity(securityConfiguration)
+                .map(endpointValidator::entityExists)
+                .map(ignore -> {
+                    final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
+                    final var entityAsJson = (ObjectNode) configurationAsJson.get(entityName);
+                    return withJsonPatchException(
+                        () -> endpointValidator.createRequestContentValidator(entityName)
+                            .validate(request, JsonPatch.apply(patchContent, entityAsJson))
+                            .map(
+                                patchedEntity -> endpointValidator.onConfigChange(
+                                    SecurityConfiguration.of(patchedEntity, entityName, configuration)
+                                ).map(sc -> ValidationResult.success(patchedEntity))
+                            )
+                            .map(patchedEntity -> {
+                                final var updatedConfigurationAsJson = configurationAsJson.deepCopy().set(entityName, patchedEntity);
+                                return ValidationResult.success(
+                                    SecurityConfiguration.of(
+                                        entityName,
+                                        SecurityDynamicConfiguration.fromNode(
+                                            updatedConfigurationAsJson,
+                                            configuration.getCType(),
+                                            configuration.getVersion(),
+                                            configuration.getSeqNo(),
+                                            configuration.getPrimaryTerm()
+                                        )
                                     )
-                                )
-                            );
-                        })
-                );
-            })
+                                );
+                            })
+                    );
+                })
         );
     }
 
@@ -265,8 +236,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 final var beforePatchEntity = configurationAsJson.get(entityName);
                 final var patchedEntity = patchedConfigurationAsJson.get(entityName);
                 // verify we can process exising or updated entities
-                if (beforePatchEntity != null && !beforePatchEntity.equals(patchedEntity)) {
-                    final var checkEntityCanBeProcess = endpointValidator.hasRightsToChangeEntity(
+                if (beforePatchEntity != null && !Objects.equals(beforePatchEntity, patchedEntity)) {
+                    final var checkEntityCanBeProcess = endpointValidator.isAllowedToChangeImmutableEntity(
                         SecurityConfiguration.of(entityName, configuration)
                     );
                     if (!checkEntityCanBeProcess.isValid()) {
@@ -275,15 +246,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 }
                 // entity removed no need to process patched content
                 if (patchedEntity == null) {
-                    continue; // in this case entity was removed from new configuration
+                    continue;
                 }
-                // create or update case of the entity
+                // create or update case of the entity. we need to verify new JSON configuration for them
                 if ((beforePatchEntity == null) || !Objects.equals(beforePatchEntity, patchedEntity)) {
                     final var requestCheck = endpointValidator.createRequestContentValidator(entityName).validate(request, patchedEntity);
                     if (!requestCheck.isValid()) {
                         return ValidationResult.error(requestCheck.status(), requestCheck.errorMessage());
                     }
                 }
+                // verify new JSON content for each entity using same set of validator we use for PUT, PATCH and DELETE
                 final var additionalValidatorCheck = endpointValidator.onConfigChange(
                     SecurityConfiguration.of(patchedEntity, entityName, configuration)
                 );
@@ -293,7 +265,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             }
             return ValidationResult.success(
                 SecurityConfiguration.of(
-                    null,// there is no entity name in case of patch
+                    null,// there is no entity name in case of patch, since there could be more the one diff entity within configuration
                     SecurityDynamicConfiguration.fromNode(
                         patchedConfigurationAsJson,
                         configuration.getCType(),
@@ -356,7 +328,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final SecurityDynamicConfiguration<?> configuration,
         final OnSucessActionListener<IndexResponse> onSucessActionListener
     ) {
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigType(), configuration, onSucessActionListener);
+        saveAndUpdateConfigs(securityApiDependencies.securityIndexName(), client, getConfigType(), configuration, onSucessActionListener);
     }
 
     protected final String nameParam(final RestRequest request) {
@@ -402,7 +374,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             );
         }
         if (omitSensitiveData) {
-            if (!isSuperAdmin()) {
+            if (!securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint)) {
                 configuration.removeHidden();
             }
             configuration.clearHashes();
@@ -420,42 +392,52 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected EndpointValidator createEndpointValidator() {
+        // Pessimistic Validator. All CRUD actions are forbidden
         return new EndpointValidator() {
             @Override
-            public String resourceName() {
-                return null; // no resource name
-            }
-
-            @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
-            public RequestContentValidator createRequestContentValidator(final Object... params) {
+            public ValidationResult<SecurityConfiguration> onConfigDelete(SecurityConfiguration securityConfiguration) throws IOException {
+                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigLoad(SecurityConfiguration securityConfiguration) throws IOException {
+                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
                 return RequestContentValidator.NOOP_VALIDATOR;
             }
         };
     }
 
-    // protected abstract String getResourceName();
-
     protected abstract CType getConfigType();
 
     protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
-        SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent)
+        SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
+            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
             .get(config)
             .deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
     protected boolean ensureIndexExists() {
-        return cs.state().metadata().hasConcreteIndex(this.securityIndexName);
+        return clusterService.state().metadata().hasConcreteIndex(securityApiDependencies.securityIndexName());
     }
 
     abstract static class OnSucessActionListener<Response> implements ActionListener<Response> {
@@ -558,18 +540,18 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         }
 
         // check if request is authorized
-        String authError = restApiPrivilegesEvaluator.checkAccessPermissions(request, getEndpoint());
+        final String authError = securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, endpoint);
 
-        final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String userName = user == null ? null : user.getName();
         if (authError != null) {
             LOGGER.error("No permission to access REST API: " + authError);
-            auditLog.logMissingPrivileges(authError, userName, request);
+            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, request);
             // for rest request
             request.params().clear();
             return channel -> forbidden(channel, "No permission to access REST API: " + authError);
         } else {
-            auditLog.logGrantedPrivileges(userName, request);
+            securityApiDependencies.auditLog().logGrantedPrivileges(userName, request);
         }
 
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
@@ -614,12 +596,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     @Override
     public String getName() {
         return getClass().getSimpleName();
-    }
-
-    protected abstract Endpoint getEndpoint();
-
-    protected boolean isSuperAdmin() {
-        return restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(getEndpoint());
     }
 
 }

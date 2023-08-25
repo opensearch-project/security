@@ -19,9 +19,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityConfiguration;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -32,7 +34,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -49,11 +50,6 @@ public class EndpointValidatorTest {
     @Before
     public void createConfigurationValidator() {
         endpointValidator = new EndpointValidator() {
-            @Override
-            public String resourceName() {
-                return "resource";
-            }
-
             @Override
             public Endpoint endpoint() {
                 return Endpoint.INTERNALUSERS;
@@ -185,19 +181,19 @@ public class EndpointValidatorTest {
     @Test
     public void hasRightsToChangeImmutableEntity() throws Exception {
         configImmutableEntities(false);
-        var result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("hidden_entity", configuration));
+        var result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertFalse(result.isValid());
         assertEquals(RestStatus.NOT_FOUND, result.status());
 
-        result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("static_entity", configuration));
+        result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("static_entity", configuration));
         assertFalse(result.isValid());
         assertEquals(RestStatus.FORBIDDEN, result.status());
 
-        result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("reserved_entity", configuration));
+        result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("reserved_entity", configuration));
         assertFalse(result.isValid());
         assertEquals(RestStatus.FORBIDDEN, result.status());
 
-        result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("just_entity", configuration));
+        result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
     }
@@ -206,19 +202,19 @@ public class EndpointValidatorTest {
     public void hasRightsToChangeImmutableEntityForAdmin() throws Exception {
         configImmutableEntities(true);
 
-        var result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("hidden_entity", configuration));
+        var result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
 
-        result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("static_entity", configuration));
+        result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("static_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
 
-        result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("reserved_entity", configuration));
+        result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("reserved_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
 
-        result = endpointValidator.hasRightsToChangeEntity(SecurityConfiguration.of("just_entity", configuration));
+        result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
     }
@@ -227,11 +223,11 @@ public class EndpointValidatorTest {
     public void hasRightsToLoadOrChangeHiddenEntityForRegularUser() throws Exception {
         configImmutableEntities(false);
 
-        var result = endpointValidator.hasRightsToLoadOrChangeHiddenEntity(SecurityConfiguration.of("hidden_entity", configuration));
+        var result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertFalse(result.isValid());
         assertEquals(RestStatus.NOT_FOUND, result.status());
 
-        result = endpointValidator.hasRightsToLoadOrChangeHiddenEntity(SecurityConfiguration.of("just_entity", configuration));
+        result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
     }
@@ -240,11 +236,11 @@ public class EndpointValidatorTest {
     public void hasRightsToLoadOrChangeHiddenEntityForAdmin() throws Exception {
         configImmutableEntities(true);
 
-        var result = endpointValidator.hasRightsToLoadOrChangeHiddenEntity(SecurityConfiguration.of("hidden_entity", configuration));
+        var result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
 
-        result = endpointValidator.hasRightsToLoadOrChangeHiddenEntity(SecurityConfiguration.of("just_entity", configuration));
+        result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());
     }
@@ -333,8 +329,75 @@ public class EndpointValidatorTest {
     }
 
     @Test
-    public void regularUserCanNotChangeObjectWithRestAdminPermissions() throws Exception {
-        final var restAdminPermissions = List.of(
+    public void regularUserCanNotChangeObjectWithRestAdminPermissionsForExistingRoles() throws Exception {
+        final var role = new RoleV7();
+        role.setCluster_permissions(restAdminPermissions());
+
+        when(configuration.exists("some_role")).thenReturn(true);
+        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        Mockito.<Object>when(configuration.getCEntry("some_role")).thenReturn(role);
+        final var roleCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
+            SecurityConfiguration.of("some_role", configuration)
+        );
+        assertFalse(roleCheckResult.isValid());
+        assertEquals(RestStatus.FORBIDDEN, roleCheckResult.status());
+    }
+
+    @Test
+    public void regularUserCanNotChangeObjectWithRestAdminPermissionsForNewRoles() throws Exception {
+        final var role = new RoleV7();
+        role.setCluster_permissions(restAdminPermissions());
+
+        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var array = objectMapper.createArrayNode();
+        restAdminPermissions().forEach(array::add);
+
+        when(configuration.getCType()).thenReturn(CType.ROLES);
+        when(configuration.getVersion()).thenReturn(2);
+        when(configuration.getImplementingClass()).thenCallRealMethod();
+        when(configuration.exists("some_role")).thenReturn(false);
+        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        final var roleCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
+            SecurityConfiguration.of(objectMapper.createObjectNode().set("cluster_permissions", array), "some_role", configuration)
+        );
+        assertFalse(roleCheckResult.isValid());
+        assertEquals(RestStatus.FORBIDDEN, roleCheckResult.status());
+    }
+
+    @Test
+    public void regularUserCanNotChangeObjectWithRestAdminPermissionsForExitingActionGroups() throws Exception {
+        final var actionGroups = new ActionGroupsV7("some_ag", restAdminPermissions());
+        when(configuration.exists("some_ag")).thenReturn(true);
+        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        Mockito.<Object>when(configuration.getCEntry("some_ag")).thenReturn(actionGroups);
+        var agCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
+            SecurityConfiguration.of("some_ag", configuration)
+        );
+        assertFalse(agCheckResult.isValid());
+        assertEquals(RestStatus.FORBIDDEN, agCheckResult.status());
+    }
+
+    @Test
+    public void regularUserCanNotChangeObjectWithRestAdminPermissionsForMewActionGroups() throws Exception {
+        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        when(configuration.getVersion()).thenReturn(2);
+        when(configuration.getImplementingClass()).thenCallRealMethod();
+        when(configuration.exists("some_ag")).thenReturn(false);
+        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+
+        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var array = objectMapper.createArrayNode();
+        restAdminPermissions().forEach(array::add);
+
+        var agCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
+                SecurityConfiguration.of(objectMapper.createObjectNode().set("allowed_actions", array), "some_ag", configuration)
+        );
+        assertFalse(agCheckResult.isValid());
+        assertEquals(RestStatus.FORBIDDEN, agCheckResult.status());
+    }
+
+    private List<String> restAdminPermissions() {
+        return List.of(
             "restapi:admin/actiongroups",
             "restapi:admin/allowlist",
             "restapi:admin/internalusers",
@@ -345,28 +408,6 @@ public class EndpointValidatorTest {
             "restapi:admin/ssl/certs/reload",
             "restapi:admin/tenants"
         );
-
-        final var actionGroups = new ActionGroupsV7("some_ag", restAdminPermissions);
-        final var role = new RoleV7();
-        role.setCluster_permissions(restAdminPermissions);
-
-        when(configuration.exists("some_ag")).thenReturn(true);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
-        Mockito.<Object>when(configuration.getCEntry("some_ag")).thenReturn(actionGroups);
-        var agCheckResult = endpointValidator.canChangeObjectWithRestAdminPermissions(SecurityConfiguration.of("some_ag", configuration));
-        assertFalse(agCheckResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, agCheckResult.status());
-
-        reset(restApiAdminPrivilegesEvaluator, configuration);
-
-        when(configuration.exists("some_role")).thenReturn(true);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
-        Mockito.<Object>when(configuration.getCEntry("some_role")).thenReturn(role);
-        final var roleCheckResult = endpointValidator.canChangeObjectWithRestAdminPermissions(
-            SecurityConfiguration.of("some_role", configuration)
-        );
-        assertFalse(roleCheckResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, roleCheckResult.status());
     }
 
 }

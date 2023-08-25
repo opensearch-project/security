@@ -14,15 +14,10 @@ package org.opensearch.security.dlic.rest.api;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
@@ -38,11 +33,9 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
@@ -56,17 +49,11 @@ public class ValidateApiAction extends AbstractApiAction {
 
     @Inject
     public ValidateApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.VALIDATE, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(this::validateApiRequestHandlers);
     }
 
@@ -83,11 +70,6 @@ public class ValidateApiAction extends AbstractApiAction {
     @Override
     protected void consumeParameters(final RestRequest request) {
         request.paramAsBoolean("accept_invalid", false);
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.VALIDATE;
     }
 
     private void validateApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
@@ -148,11 +130,10 @@ public class ValidateApiAction extends AbstractApiAction {
     }
 
     private SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
-        SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(
-            Collections.singleton(config),
-            logComplianceEvent,
-            acceptInvalid
-        ).get(config).deepClone();
+        SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
+            .getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent, acceptInvalid)
+            .get(config)
+            .deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 

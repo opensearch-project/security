@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,24 +24,17 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesMappingApiAction extends AbstractApiAction {
-
-    protected final static String RESOURCE_NAME = "roles mapping";
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
@@ -57,17 +49,11 @@ public class RolesMappingApiAction extends AbstractApiAction {
 
     @Inject
     public RolesMappingApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.ROLESMAPPING, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(
             builder -> builder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler)
         );
@@ -79,11 +65,6 @@ public class RolesMappingApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.ROLESMAPPING;
-    }
-
-    @Override
     protected CType getConfigType() {
         return CType.ROLESMAPPING;
     }
@@ -92,18 +73,13 @@ public class RolesMappingApiAction extends AbstractApiAction {
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
             @Override
-            public String resourceName() {
-                return RESOURCE_NAME;
-            }
-
-            @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
@@ -119,21 +95,21 @@ public class RolesMappingApiAction extends AbstractApiAction {
             }
 
             @Override
-            public ValidationResult<SecurityConfiguration> hasRightsToChangeEntity(SecurityConfiguration securityConfiguration)
+            public ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(SecurityConfiguration securityConfiguration)
                 throws IOException {
-                return EndpointValidator.super.hasRightsToChangeEntity(securityConfiguration).map(
-                    this::canChangeRoleMappingWithRestAdminPermissions
+                return EndpointValidator.super.isAllowedToChangeImmutableEntity(securityConfiguration).map(
+                    this::isAllowedToChangeRoleMappingWithRestAdminPermissions
                 );
             }
 
-            public ValidationResult<SecurityConfiguration> canChangeRoleMappingWithRestAdminPermissions(
+            public ValidationResult<SecurityConfiguration> isAllowedToChangeRoleMappingWithRestAdminPermissions(
                 SecurityConfiguration securityConfiguration
             ) throws IOException {
                 return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
                     if (isCurrentUserAdmin()) {
                         return ValidationResult.success(securityConfiguration);
                     }
-                    return canChangeObjectWithRestAdminPermissions(
+                    return isAllowedToChangeEntityWithRestAdminPermissions(
                         SecurityConfiguration.of(securityConfiguration.entityName(), rolesConfiguration)
                     );
                 }).map(ignore -> ValidationResult.success(securityConfiguration));
@@ -149,7 +125,7 @@ public class RolesMappingApiAction extends AbstractApiAction {
 
                     @Override
                     public Settings settings() {
-                        return settings;
+                        return securityApiDependencies.settings();
                     }
 
                     @Override

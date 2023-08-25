@@ -22,24 +22,18 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -136,7 +130,6 @@ public class AuditApiAction extends AbstractApiAction {
         )
     );
 
-    private static final String RESOURCE_NAME = "config";
     @VisibleForTesting
     public static final String READONLY_FIELD = "_readonly";
     @VisibleForTesting
@@ -200,40 +193,44 @@ public class AuditApiAction extends AbstractApiAction {
     }
 
     public AuditApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator privilegesEvaluator,
+        final ClusterService clusterService,
         final ThreadPool threadPool,
-        final AuditLog auditLog
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
+        this(clusterService, threadPool, securityApiDependencies, readReadonlyFieldsFromFile());
+    }
+
+    private static List<String> readReadonlyFieldsFromFile() {
         try {
-            this.readonlyFields = DefaultObjectMapper.YAML_MAPPER.readValue(
-                this.getClass().getResourceAsStream(STATIC_RESOURCE),
+            final var readonlyFields = DefaultObjectMapper.YAML_MAPPER.readValue(
+                AuditApiAction.class.getResourceAsStream(STATIC_RESOURCE),
                 new TypeReference<Map<String, List<String>>>() {
                 }
             ).get(READONLY_FIELD);
-            if (!AuditConfig.FIELD_PATHS.containsAll(this.readonlyFields)) {
+            if (!AuditConfig.FIELD_PATHS.containsAll(readonlyFields)) {
                 throw new StaticResourceException("Invalid read-only field paths provided in static resource file " + STATIC_RESOURCE);
             }
+            return readonlyFields;
+
         } catch (IOException e) {
             throw new StaticResourceException("Unable to load audit static resource file", e);
         }
+    }
+
+    protected AuditApiAction(
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies,
+        final List<String> readonlyFields
+    ) {
+        super(Endpoint.AUDIT, clusterService, threadPool, securityApiDependencies);
+        this.readonlyFields = readonlyFields;
         this.requestHandlersBuilder.configureRequestHandlers(this::auditApiRequestHandlers);
     }
 
     @Override
     public List<Route> routes() {
         return routes;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.AUDIT;
     }
 
     @Override
@@ -258,16 +255,16 @@ public class AuditApiAction extends AbstractApiAction {
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
     }
 
-    private ValidationResult<RestRequest> withEnabledAuditApi(final RestRequest request) {
-        if (!cl.isAuditHotReloadingEnabled()) {
+    ValidationResult<RestRequest> withEnabledAuditApi(final RestRequest request) {
+        if (!securityApiDependencies.configurationRepository().isAuditHotReloadingEnabled()) {
             return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
         }
         return ValidationResult.success(request);
     }
 
-    private ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
+    ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
         final var name = nameParam(request);
-        if (!RESOURCE_NAME.equals(name)) {
+        if (!"config".equals(name)) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
         }
         return ValidationResult.success(name);
@@ -278,18 +275,13 @@ public class AuditApiAction extends AbstractApiAction {
         return new EndpointValidator() {
 
             @Override
-            public String resourceName() {
-                return RESOURCE_NAME;
-            }
-
-            @Override
             public Endpoint endpoint() {
-                return getEndpoint();
+                return endpoint;
             }
 
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
@@ -300,9 +292,8 @@ public class AuditApiAction extends AbstractApiAction {
             private ValidationResult<SecurityConfiguration> verifyNotReadonlyFieldUpdated(
                 final SecurityConfiguration securityConfiguration
             ) {
-                if (!restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint())) {
-                    final var existingResource = Utils.convertJsonToJackson(securityConfiguration.configuration(), false)
-                        .get(RESOURCE_NAME);
+                if (!isCurrentUserAdmin()) {
+                    final var existingResource = Utils.convertJsonToJackson(securityConfiguration.configuration(), false).get("config");
                     final var targetResource = securityConfiguration.requestContent();
                     if (readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)))) {
                         return ValidationResult.error(RestStatus.CONFLICT, conflictMessage("Attempted to update read-only property."));
@@ -321,7 +312,7 @@ public class AuditApiAction extends AbstractApiAction {
 
                     @Override
                     public Settings settings() {
-                        return settings;
+                        return securityApiDependencies.settings();
                     }
 
                     @Override

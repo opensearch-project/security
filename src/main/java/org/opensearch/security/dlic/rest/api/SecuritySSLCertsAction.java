@@ -15,25 +15,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.ssl.SecurityKeyStore;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
@@ -64,33 +57,22 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     private final boolean httpsEnabled;
 
     public SecuritySSLCertsAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator privilegesEvaluator,
+        final ClusterService clusterService,
         final ThreadPool threadPool,
-        final AuditLog auditLog,
         final SecurityKeyStore securityKeyStore,
-        final boolean certificatesReloadEnabled
+        final boolean certificatesReloadEnabled,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
+        super(Endpoint.SSL, clusterService, threadPool, securityApiDependencies);
         this.securityKeyStore = securityKeyStore;
         this.certificatesReloadEnabled = certificatesReloadEnabled;
-        this.httpsEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true);
+        this.httpsEnabled = securityApiDependencies.settings().getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true);
         this.requestHandlersBuilder.configureRequestHandlers(this::securitySSLCertsRequestHandlers);
     }
 
     @Override
     public List<Route> routes() {
         return ROUTES;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.SSL;
     }
 
     @Override
@@ -137,9 +119,9 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     private boolean accessHandler(final RestRequest request) {
         switch (request.method()) {
             case GET:
-                return restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(getEndpoint(), "certs");
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, "certs");
             case PUT:
-                return restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(getEndpoint(), "reloadcerts");
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, "reloadcerts");
             default:
                 return false;
         }

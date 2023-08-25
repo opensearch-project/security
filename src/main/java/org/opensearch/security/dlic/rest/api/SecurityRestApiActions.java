@@ -26,10 +26,10 @@ import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class SecurityRestApiActions {
 
@@ -39,8 +39,8 @@ public class SecurityRestApiActions {
         final RestController controller,
         final Client client,
         final AdminDNs adminDns,
-        final ConfigurationRepository cr,
-        final ClusterService cs,
+        final ConfigurationRepository configurationRepository,
+        final ClusterService clusterService,
         final PrincipalExtractor principalExtractor,
         final PrivilegesEvaluator evaluator,
         final ThreadPool threadPool,
@@ -49,77 +49,54 @@ public class SecurityRestApiActions {
         final UserService userService,
         final boolean certificatesReloadEnabled
     ) {
-        final List<RestHandler> handlers = new ArrayList<RestHandler>(16);
-        handlers.add(
-            new InternalUsersApiAction(
-                settings,
-                configPath,
-                adminDns,
-                cr,
-                cs,
-                principalExtractor,
+        final var securityApiDependencies = new SecurityApiDependencies(
+            adminDns,
+            configurationRepository,
+            evaluator,
+            new RestApiPrivilegesEvaluator(settings, adminDns, evaluator, principalExtractor, configPath, threadPool),
+            new RestApiAdminPrivilegesEvaluator(
+                threadPool.getThreadContext(),
                 evaluator,
-                threadPool,
-                userService,
-                auditLog
-            )
+                adminDns,
+                settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
+            ),
+            auditLog,
+            settings
         );
-        handlers.add(
-            new RolesMappingApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog)
-        );
-        handlers.add(new RolesApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(
-            new ActionGroupsApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog)
-        );
-        handlers.add(new FlushCacheApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(
-            new SecurityConfigApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog)
-        );
-        handlers.add(
+        return List.of(
+            new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies),
+            new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
+            new RolesApiAction(clusterService, threadPool, securityApiDependencies),
+            new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
+            new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies),
+            new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),
+            // FIXME Change inheritance for PermissionsInfoAction
             new PermissionsInfoAction(
                 settings,
                 configPath,
                 controller,
                 client,
                 adminDns,
-                cr,
-                cs,
+                configurationRepository,
+                clusterService,
                 principalExtractor,
                 evaluator,
                 threadPool,
                 auditLog
-            )
+            ),
+            new AuthTokenProcessorAction(clusterService, threadPool, securityApiDependencies),
+            new TenantsApiAction(clusterService, threadPool, securityApiDependencies),
+            new MigrateApiAction(clusterService, threadPool, securityApiDependencies),
+            new ValidateApiAction(clusterService, threadPool, securityApiDependencies),
+            new AccountApiAction(clusterService, threadPool, securityApiDependencies),
+            new NodesDnApiAction(clusterService, threadPool, securityApiDependencies),
+            new WhitelistApiAction(clusterService, threadPool, securityApiDependencies),
+            // FIXME change it changed as soon as WhitelistApiAction will be removed
+            new AllowlistApiAction(Endpoint.ALLOWLIST, clusterService, threadPool, securityApiDependencies),
+            new AuditApiAction(clusterService, threadPool, securityApiDependencies),
+            new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),
+            new SecuritySSLCertsAction(clusterService, threadPool, securityKeyStore, certificatesReloadEnabled, securityApiDependencies)
         );
-        handlers.add(
-            new AuthTokenProcessorAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog)
-        );
-        handlers.add(new TenantsApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new MigrateApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new ValidateApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new AccountApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new NodesDnApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new WhitelistApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new AllowlistApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new AuditApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(
-            new MultiTenancyConfigApiAction(settings, configPath, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog)
-        );
-        handlers.add(
-            new SecuritySSLCertsAction(
-                settings,
-                configPath,
-                adminDns,
-                cr,
-                cs,
-                principalExtractor,
-                evaluator,
-                threadPool,
-                auditLog,
-                securityKeyStore,
-                certificatesReloadEnabled
-            )
-        );
-        return Collections.unmodifiableCollection(handlers);
     }
 
 }

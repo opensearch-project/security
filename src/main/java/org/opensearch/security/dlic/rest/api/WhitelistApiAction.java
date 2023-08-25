@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,14 +18,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
@@ -94,17 +87,11 @@ public class WhitelistApiAction extends AllowlistApiAction {
 
     @Inject
     public WhitelistApiAction(
-        final Settings settings,
-        final Path configPath,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.WHITELIST, clusterService, threadPool, securityApiDependencies);
     }
 
     public List<Route> routes() {
@@ -114,11 +101,6 @@ public class WhitelistApiAction extends AllowlistApiAction {
     @Override
     public List<DeprecatedRoute> deprecatedRoutes() {
         return routes;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.WHITELIST;
     }
 
     @Override
