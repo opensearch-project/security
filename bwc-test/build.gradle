@@ -46,6 +46,7 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.9.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
+        common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
     }
     repositories {
         mavenLocal()
@@ -70,6 +71,7 @@ dependencies {
     testImplementation "com.google.guava:guava:${versions.guava}"
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+    testImplementation "org.opensearch:common-utils:${common_utils_version}"
 }
 
 loggerUsageCheck.enabled = false
