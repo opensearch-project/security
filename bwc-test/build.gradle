@@ -76,7 +76,7 @@ loggerUsageCheck.enabled = false
 testingConventions.enabled = false
 validateNebulaPom.enabled = false
 
-String previousVersion = System.getProperty("bwc.version.previous", "2.9.0.0")
+String previousVersion = System.getProperty("bwc.version.previous", "2.10.0.0")
 String nextVersion = System.getProperty("bwc.version.next", "2.10.0.0")
 
 String bwcVersion = previousVersion
