@@ -35,6 +35,9 @@ runs:
         arguments: |
           bwcTestSuite
           -Dtests.security.manager=false
+          -Dtests.opensearch.secure=true
+          -Dtests.opensearch.username=admin
+          -Dtests.opensearch.password=admin 
           -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
           -Dbwc.version.next=${{ steps.build-next.outputs.built-version }} -i
         build-root-directory: bwc-test
