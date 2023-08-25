@@ -289,6 +289,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     || HeaderHelper.isTrustedClusterRequest(getThreadContext())
                     || HeaderHelper.isExtensionRequest(getThreadContext()))) {
                     // CS-ENFORCE-SINGLE
+                    System.out.println("Not a trusted transport request. Erroring out.");
                     final OpenSearchException exception = ExceptionUtils.createTransportClientNoLongerSupportedException();
                     log.error(exception.toString());
                     transportChannel.sendResponse(exception);
