@@ -11,21 +11,21 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
+import org.junit.Test;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.util.FakeRestRequest;
 
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 public class AuditApiActionValidationTest extends AbstractApiActionValidationTest {
 
@@ -35,7 +35,7 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
         when(configurationRepository.isAuditHotReloadingEnabled()).thenReturn(false);
 
         for (final var m : RequestHandler.RequestHandlersBuilder.SUPPORTED_METHODS) {
-            final var result = auditApiAction.withEnabledAuditApi(createRestRequest(m, Map.of()));
+            final var result = auditApiAction.withEnabledAuditApi(FakeRestRequest.builder().withMethod(m).build());
             assertFalse(result.isValid());
             assertEquals(RestStatus.NOT_IMPLEMENTED, result.status());
         }
@@ -46,7 +46,7 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
         final var auditApiAction = new AuditApiAction(clusterService, threadPool, securityApiDependencies);
         when(configurationRepository.isAuditHotReloadingEnabled()).thenReturn(true);
         for (final var m : RequestHandler.RequestHandlersBuilder.SUPPORTED_METHODS) {
-            final var result = auditApiAction.withEnabledAuditApi(createRestRequest(m, Map.of()));
+            final var result = auditApiAction.withEnabledAuditApi(FakeRestRequest.builder().withMethod(m).build());
             assertTrue(result.isValid());
         }
     }
@@ -54,11 +54,11 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
     @Test
     public void configEntityNameOnly() {
         final var auditApiAction = new AuditApiAction(clusterService, threadPool, securityApiDependencies);
-        var result = auditApiAction.withConfigEntityNameOnly(createRestRequest(RestRequest.Method.GET, Map.of("name", "aaaaa")));
+        var result = auditApiAction.withConfigEntityNameOnly(FakeRestRequest.builder().withParams(Map.of("name", "aaaaa")).build());
         assertFalse(result.isValid());
         assertEquals(RestStatus.BAD_REQUEST, result.status());
 
-        result = auditApiAction.withConfigEntityNameOnly(createRestRequest(RestRequest.Method.GET, Map.of("name", "config")));
+        result = auditApiAction.withConfigEntityNameOnly(FakeRestRequest.builder().withParams(Map.of("name", "config")).build());
         assertTrue(result.isValid());
     }
 

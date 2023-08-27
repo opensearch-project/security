@@ -20,6 +20,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.user.UserService;
+import org.opensearch.security.util.FakeRestRequest;
 
 import java.util.Map;
 
@@ -55,13 +56,21 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
     public void withAuthTokenPath() throws Exception {
         final var internalUsersApiAction = createInternalUsersApiAction();
         var result = internalUsersApiAction.withAuthTokenPath(
-            createRestRequest(RestRequest.Method.POST, "_plugins/_security/api/internalusers/aaaa", Map.of("name", "aaaa"))
+            FakeRestRequest.builder()
+                .withMethod(RestRequest.Method.POST)
+                .withPath("_plugins/_security/api/internalusers/aaaa")
+                .withParams(Map.of("name", "aaaa"))
+                .build()
         );
         assertFalse(result.isValid());
         assertEquals(RestStatus.NOT_IMPLEMENTED, result.status());
 
         result = internalUsersApiAction.withAuthTokenPath(
-            createRestRequest(RestRequest.Method.POST, "_plugins/_security/api/internalusers/aaaa/authtoken", Map.of("name", "aaaa"))
+            FakeRestRequest.builder()
+                .withMethod(RestRequest.Method.POST)
+                .withPath("_plugins/_security/api/internalusers/aaaa/authtoken")
+                .withParams(Map.of("name", "aaaa"))
+                .build()
         );
         assertTrue(result.isValid());
         assertEquals(RestStatus.OK, result.status());

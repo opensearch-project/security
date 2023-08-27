@@ -151,7 +151,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
         return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
             final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
             final var securityJsonNode = new SecurityJsonNode(contentAsNode);
-            // FIXME do we need to verify roles as well?
             final var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
             return endpointValidator.validateRoles(securityRoles, rolesConfiguration)
                 .map(ignore -> ValidationResult.success(securityConfiguration));

@@ -22,11 +22,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.http.HttpChannel;
-import org.opensearch.http.HttpRequest;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.impl.CType;
@@ -60,31 +56,9 @@ public abstract class AbstractApiActionValidationTest {
     @Mock
     SecurityDynamicConfiguration<?> configuration;
 
-    @Mock
-    NamedXContentRegistry xContentRegistry;
-
-    @Mock
-    HttpChannel httpChannel;
-
-    @Mock
-    HttpRequest httpRequest;
-
     SecurityDynamicConfiguration<?> rolesConfiguration;
 
     ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
-
-    protected static class SomeRestRequest extends RestRequest {
-        public SomeRestRequest(
-            NamedXContentRegistry xContentRegistry,
-            Map<String, String> params,
-            String path,
-            Map<String, List<String>> headers,
-            HttpRequest httpRequest,
-            HttpChannel httpChannel
-        ) {
-            super(xContentRegistry, params, path, headers, httpRequest, httpChannel);
-        }
-    }
 
     @Before
     public void setup() {
@@ -128,13 +102,13 @@ public abstract class AbstractApiActionValidationTest {
             }
         }.createEndpointValidator();
 
-        var result = defaultPessimisticValidator.onConfigLoad(SecurityConfiguration.of(null, configuration));
-        assertEquals(RestStatus.FORBIDDEN, result.status());
-
-        result = defaultPessimisticValidator.onConfigChange(SecurityConfiguration.of(null, configuration));
+        var result = defaultPessimisticValidator.onConfigChange(SecurityConfiguration.of(null, configuration));
         assertEquals(RestStatus.FORBIDDEN, result.status());
 
         result = defaultPessimisticValidator.onConfigDelete(SecurityConfiguration.of(null, configuration));
+        assertEquals(RestStatus.FORBIDDEN, result.status());
+
+        result = defaultPessimisticValidator.onConfigLoad(SecurityConfiguration.of(null, configuration));
         assertEquals(RestStatus.FORBIDDEN, result.status());
 
     }
@@ -144,20 +118,6 @@ public abstract class AbstractApiActionValidationTest {
             toXContent.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
             return DefaultObjectMapper.readTree(xContentBuilder.toString());
         }
-    }
-
-    protected RestRequest createRestRequest(final RestRequest.Method method, final Map<String, String> params) {
-        return createRestRequest(method, null, params);
-    }
-
-    protected RestRequest createRestRequest(final RestRequest.Method method, final String path, final Map<String, String> params) {
-        if (path != null) {
-            when(httpRequest.uri()).thenReturn(path);
-        }
-        if (method != null) {
-            when(httpRequest.method()).thenReturn(method);
-        }
-        return new SomeRestRequest(xContentRegistry, params, path, Map.of(), httpRequest, httpChannel);
     }
 
     protected List<String> restApiAdminPermissions() {
