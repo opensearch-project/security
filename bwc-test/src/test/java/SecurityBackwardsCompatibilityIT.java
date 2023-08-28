@@ -10,13 +10,25 @@ package org.opensearch.security.bwc;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.http.Header;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.junit.Assume;
 import org.junit.Before;
+import org.opensearch.client.Request;
+import org.opensearch.client.WarningFailureException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import org.opensearch.Version;
@@ -25,7 +37,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 
 import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
+
+import static org.opensearch.client.RestClientBuilder.DEFAULT_MAX_CONN_PER_ROUTE;
+import static org.opensearch.client.RestClientBuilder.DEFAULT_MAX_CONN_TOTAL;
+
+import org.opensearch.common.unit.TimeValue;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -40,6 +58,10 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         CLUSTER_NAME = System.getProperty("tests.clustername");
     }
 
+    @Override
+    protected final boolean preserveClusterUponCompletion() {
+        return true;
+    }
     @Override
     protected final boolean preserveIndicesUponCompletion() {
         return true;
@@ -63,22 +85,50 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     @Override
     protected final Settings restClientSettings() {
         return Settings.builder()
-            .put(super.restClientSettings())
-            // increase the timeout here to 90 seconds to handle long waits for a green
-            // cluster health. the waits for green need to be longer than a minute to
-            // account for delayed shards
-            .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
-            .build();
+                .put(super.restClientSettings())
+                // increase the timeout here to 90 seconds to handle long waits for a green
+                // cluster health. the waits for green need to be longer than a minute to
+                // account for delayed shards
+                .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
+                .build();
     }
 
     @Override
     protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
-        String userName = System.getProperty("tests.opensearch.username");
-        String password = System.getProperty("tests.opensearch.password");
+        RestClientBuilder builder = RestClient.builder(hosts);
+        configureHttpsClient(builder, settings);
+        boolean strictDeprecationMode = settings.getAsBoolean("strictDeprecationMode", true);
+        builder.setStrictDeprecationMode(strictDeprecationMode);
+        return builder.build();
+    }
 
-        return new SecureRestClientBuilder(hosts, true, userName, password).setSocketTimeout(60000)
-                .setConnectionRequestTimeout(180000)
-                .build();
+    protected static void configureHttpsClient(RestClientBuilder builder, Settings settings) throws IOException {
+        Map<String, String> headers = ThreadContext.buildDefaultHeaders(settings);
+        Header[] defaultHeaders = new Header[headers.size()];
+        int i = 0;
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            defaultHeaders[i++] = new BasicHeader(entry.getKey(), entry.getValue());
+        }
+        builder.setDefaultHeaders(defaultHeaders);
+        builder.setHttpClientConfigCallback(httpClientBuilder -> {
+            String userName = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
+                    .orElseThrow(() -> new RuntimeException("user name is missing"));
+            String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
+                    .orElseThrow(() -> new RuntimeException("password is missing"));
+            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
+            try {
+                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
+                        // disable the certificate since our testing cluster just uses the default security configuration
+                        .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                        .setSSLContext(SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        // final TimeValue socketTimeout = TimeValue.parseTimeValue("60s");
+        // builder.setRequestConfigCallback(conf -> conf.setSocketTimeout(Math.toIntExact(socketTimeout.getMillis())));
     }
 
     public void testBasicBackwardsCompatibility() throws Exception {

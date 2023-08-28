@@ -76,7 +76,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
             if (keystore != null) {
                 // create adminDN (super-admin) client
-                File file = new File(getClass().getClassLoader().getResource(CERT_FILE_DIRECTORY).getFile());
+                File file = new File(getClass().getClassLoader().getResource(CERT_FILE_DIRECTORY).getFile().);
                 Path configPath = PathUtils.get(file.toURI()).getParent().toAbsolutePath();
                 return new SecureRestClientBuilder(settings, configPath).setSocketTimeout(60000).build();
             }

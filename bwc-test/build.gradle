@@ -44,7 +44,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.9.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.10.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
     }
@@ -135,21 +135,20 @@ def String extractVersion(versionStr) {
                 node.extraConfigFile("opensearch-security/roles_mapping.yml", file("src/test/resources/security/securityconfig/roles_mapping.yml"))
                 node.extraConfigFile("opensearch-security/tenants.yml", file("src/test/resources/security/securityconfig/tenants.yml"))
                 node.extraConfigFile("opensearch-security/whitelist.yml", file("src/test/resources/security/securityconfig/whitelist.yml"))
-                // node.setting("network.host", "0.0.0.0")
-                node.setting("network.bind_host", "0.0.0.0")
+                node.setting("network.bind_host", "127.0.0.1")
                 node.setting("network.publish_host", "127.0.0.1")
-                // node.setting("transport.publish_address", "0.0.0.0")
                 node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
                 node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
                 node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
                 node.setting("plugins.security.ssl.transport.enforce_hostname_verification", "false")
-                node.setting("plugins.security.ssl.http.enabled", "false")
+                node.setting("plugins.security.ssl.http.enabled", "true")
                 node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
                 node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")
                 node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
+                // node.setting("plugins.security.ssl.http.truststore_filepath", "truststore.jks")
+                // node.setting("plugins.security.ssl.http.truststore_password", "password")
                 node.setting("plugins.security.allow_unsafe_democertificates", "true")
                 node.setting("plugins.security.allow_default_init_securityindex", "true")
-//                node.setting("plugins.security.nodes_dn", "\"*\"")
                 node.setting("plugins.security.authcz.admin_dn", "\"CN=kirk,OU=client,O=client,L=test,C=de\"")
                 node.setting("plugins.security.audit.type", "internal_opensearch")
                 node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
