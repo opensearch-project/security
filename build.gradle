@@ -615,7 +615,7 @@ dependencies {
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.11'
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
-    testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.7.1'
+    testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.8.2'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
