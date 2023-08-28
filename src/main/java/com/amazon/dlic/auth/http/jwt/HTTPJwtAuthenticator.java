@@ -13,21 +13,14 @@ package com.amazon.dlic.auth.http.jwt;
 
 import java.nio.file.Path;
 import java.security.AccessController;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
@@ -43,6 +36,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.KeyUtils;
 
 public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
@@ -63,45 +57,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
 
-        JwtParser _jwtParser = null;
-
-        try {
-            String signingKey = settings.get("signing_key");
-
-            if (signingKey == null || signingKey.length() == 0) {
-                log.error("signingKey must not be null or empty. JWT authentication will not work");
-            } else {
-
-                signingKey = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "");
-                signingKey = signingKey.replace("-----END PUBLIC KEY-----", "");
-
-                byte[] decoded = Decoders.BASE64.decode(signingKey);
-                Key key = null;
-
-                try {
-                    key = getPublicKey(decoded, "RSA");
-                } catch (Exception e) {
-                    log.debug("No public RSA key, try other algos ({})", e.toString());
-                }
-
-                try {
-                    key = getPublicKey(decoded, "EC");
-                } catch (Exception e) {
-                    log.debug("No public ECDSA key, try other algos ({})", e.toString());
-                }
-
-                if (key != null) {
-                    _jwtParser = Jwts.parser().setSigningKey(key);
-                } else {
-                    _jwtParser = Jwts.parser().setSigningKey(decoded);
-                }
-
-            }
-        } catch (Throwable e) {
-            log.error("Error creating JWT authenticator. JWT authentication will not work", e);
-            throw new RuntimeException(e);
-        }
-
+        String signingKey = settings.get("signing_key");
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
         isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
@@ -110,15 +66,20 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         requireAudience = settings.get("required_audience");
         requireIssuer = settings.get("required_issuer");
 
-        if (requireAudience != null) {
-            _jwtParser.requireAudience(requireAudience);
-        }
+        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
+        if (jwtParserBuilder == null) {
+            jwtParser = null;
+        } else {
+            if (requireAudience != null) {
+                jwtParserBuilder = jwtParserBuilder.require("aud", requireAudience);
+            }
 
-        if (requireIssuer != null) {
-            _jwtParser.requireIssuer(requireIssuer);
-        }
+            if (requireIssuer != null) {
+                jwtParserBuilder = jwtParserBuilder.require("iss", requireIssuer);
+            }
 
-        jwtParser = _jwtParser;
+            jwtParser = jwtParserBuilder.build();
+        }
     }
 
     @Override
@@ -280,13 +241,6 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
 
         return roles;
-    }
-
-    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
-        InvalidKeySpecException {
-        X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-        KeyFactory kf = KeyFactory.getInstance(algo);
-        return kf.generatePublic(spec);
     }
 
 }

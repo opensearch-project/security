@@ -36,6 +36,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.opensearch.security.DefaultObjectMapper;
@@ -354,6 +355,53 @@ public class ConfigV6 {
                 + "]";
         }
 
+    }
+
+    public static class OnBehalfOfSettings {
+        @JsonProperty("enabled")
+        private Boolean oboEnabled = Boolean.TRUE;
+        @JsonProperty("signing_key")
+        private String signingKey;
+        @JsonProperty("encryption_key")
+        private String encryptionKey;
+
+        @JsonIgnore
+        public String configAsJson() {
+            try {
+                return DefaultObjectMapper.writeValueAsString(this, false);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Boolean getOboEnabled() {
+            return oboEnabled;
+        }
+
+        public void setOboEnabled(Boolean oboEnabled) {
+            this.oboEnabled = oboEnabled;
+        }
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public void setSigningKey(String signingKey) {
+            this.signingKey = signingKey;
+        }
+
+        public String getEncryptionKey() {
+            return encryptionKey;
+        }
+
+        public void setEncryptionKey(String encryptionKey) {
+            this.encryptionKey = encryptionKey;
+        }
+
+        @Override
+        public String toString() {
+            return "OnBehalfOfSettings [ enabled=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+        }
     }
 
 }

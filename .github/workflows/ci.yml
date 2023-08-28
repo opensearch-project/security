@@ -18,7 +18,7 @@ jobs:
       separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
     steps:
     - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 17
@@ -44,7 +44,7 @@ jobs:
 
     steps:
     - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
@@ -58,13 +58,17 @@ jobs:
         cache-disabled: true
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
-          -x test
 
     - name: Coverage
-      uses: codecov/codecov-action@v3
+      uses: Wandalen/wretry.action@v1.3.0
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./build/reports/jacoco/test/jacocoTestReport.xml
+        attempt_limit: 3
+        attempt_delay: 2000
+        action: codecov/codecov-action@v3
+        with: |
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          files: ./build/reports/jacoco/test/jacocoTestReport.xml
 
     - uses: actions/upload-artifact@v3
       if: always()
@@ -88,7 +92,7 @@ jobs:
 
     steps:
     - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
@@ -113,8 +117,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
@@ -131,8 +136,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
     - uses: github/codeql-action/init@v2
       with:
@@ -145,8 +151,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v3
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
 
     - run: |

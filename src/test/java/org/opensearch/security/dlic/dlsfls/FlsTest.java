@@ -77,7 +77,6 @@ public class FlsTest extends AbstractDlsFlsTest {
                 encodeBasicHeader("dept_manager_fls_reversed_fields", "password")
             )).getStatusCode()
         );
-        System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("customer"));
         Assert.assertFalse(res.getBody().contains("customer.name"));
         Assert.assertFalse(res.getBody().contains("zip"));
@@ -120,7 +119,6 @@ public class FlsTest extends AbstractDlsFlsTest {
             (res = rh.executeGetRequest("/deals/_mapping?pretty", encodeBasicHeader("dept_manager_fls_reversed_fields", "password")))
                 .getStatusCode()
         );
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("customer"));
         Assert.assertFalse(res.getBody().contains("name"));
         Assert.assertFalse(res.getBody().contains("zip"));

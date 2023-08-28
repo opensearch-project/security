@@ -315,7 +315,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         HttpResponse res = rh.executeGetRequest("_search?pretty", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 11"));
-        Assert.assertTrue(!res.getBody().contains(".opendistro_security"));
+        Assert.assertFalse(res.getBody().contains(".opendistro_security"));
 
         res = rh.executeGetRequest("_nodes/stats?pretty", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -325,8 +325,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("\"nodes\" : { }"));
 
         res = rh.executePostRequest("*/_upgrade", "", encodeBasicHeader("nagilum", "nagilum"));
-        System.out.println(res.getBody());
-        System.out.println(res.getStatusReason());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
         String bulkBody = "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
@@ -339,7 +337,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             + System.lineSeparator();
 
         res = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("writer", "writer"));
-        System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"errors\":false"));
         Assert.assertTrue(res.getBody().contains("\"status\":201"));
@@ -433,11 +430,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res);
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
+
         res = rh.executeGetRequest("_nodes", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res);
         assertNotContains(res, "*\"compression\":\"false\"*");
         assertContains(res, "*\"compression\":\"true\"*");
     }
@@ -454,11 +450,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res);
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
+
         res = rh.executeGetRequest("_nodes", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res);
         assertContains(res, "*\"compression\":\"false\"*");
         assertNotContains(res, "*\"compression\":\"true\"*");
     }
@@ -479,12 +474,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty=true");
-        System.out.println(resc.getBody());
         Assert.assertTrue(resc.getBody().contains("\"remote_address\" : \"")); // check pretty print
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", encodeBasicHeader("nagilum", "nagilum"));
-        System.out.println(resc.getBody());
         Assert.assertTrue(resc.getBody().contains("nagilum"));
         Assert.assertFalse(resc.getBody().contains("opendistro_security_anonymous"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -553,9 +546,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         rh.keystore = "kirk-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/_doc/y", "{}").getStatusCode());
-        HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/authinfo")).getStatusCode());
-        System.out.println(res.getBody());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_opendistro/_security/authinfo").getStatusCode());
     }
 
     @Test
@@ -858,7 +849,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
         );
 
         HttpResponse resc = rh.executeGetRequest("_cat/indices/public", encodeBasicHeader("bug108", "nagilum"));
-        System.out.println(resc.getBody());
         // Assert.assertTrue(resc.getBody().contains("green"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
@@ -887,7 +877,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             rh.executeGetRequest("kirk/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode()
         );
 
-        System.out.println("ok");
         // all
 
     }
@@ -908,7 +897,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             + System.lineSeparator();
 
         HttpResponse res = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("bulk", "nagilum"));
-        System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"errors\":false"));
         Assert.assertTrue(res.getBody().contains("\"status\":201"));
@@ -930,7 +918,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             + System.lineSeparator();
 
         HttpResponse res = rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("bulk_test_user", "nagilum"));
-        System.out.println(res.getBody());
         JsonNode jsonNode = readTree(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(jsonNode.get("errors").booleanValue());
@@ -966,7 +953,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":10}}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("starfleet_academy"));
         res = rh.executePostRequest(
@@ -974,7 +960,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
             "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":10}}}}",
             encodeBasicHeader("557", "nagilum")
         );
-        System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("starfleet_academy"));
     }
@@ -1032,13 +1017,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         final RestHelper rh = nonSslRestHelper();
 
-        System.out.println("###1");
         HttpResponse res = rh.executeGetRequest("/esb-prod-*/_search?pretty", encodeBasicHeader("itt1635", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println("###2");
         res = rh.executeGetRequest("/esb-alias-*/_search?pretty", encodeBasicHeader("itt1635", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println("###3");
         res = rh.executeGetRequest("/esb-prod-all/_search?pretty", encodeBasicHeader("itt1635", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
@@ -1120,7 +1102,6 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
 
         res = rh.executeGetRequest("_opendistro/_security/tenantinfo?pretty", encodeBasicHeader("kibanaserver", "kibanaserver"));
-        System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\".kibana_-1139640511_admin1\" : \"admin_1\""));
         Assert.assertTrue(res.getBody().contains("\".kibana_-1386441176_praxisrw\" : \"praxisrw\""));

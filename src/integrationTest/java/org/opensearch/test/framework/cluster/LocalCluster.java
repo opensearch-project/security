@@ -55,6 +55,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
+import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -468,6 +469,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder xff(XffConfig xffConfig) {
             testSecurityConfig.xff(xffConfig);
+            return this;
+        }
+
+        public Builder onBehalfOf(OnBehalfOfConfig onBehalfOfConfig) {
+            testSecurityConfig.onBehalfOf(onBehalfOfConfig);
             return this;
         }
 

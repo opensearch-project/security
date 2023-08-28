@@ -13,76 +13,77 @@ package org.opensearch.security.privileges;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.quality.Strictness;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
+@RunWith(MockitoJUnitRunner.class)
 public class RestLayerPrivilegesEvaluatorTest {
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private ClusterService clusterService;
     @Mock
     private ThreadPool threadPool;
     @Mock
-    private AtomicReference<NamedXContentRegistry> namedXContentRegistry;
-    @Mock
     private ConfigModel configModel;
-    @Mock
-    private DynamicConfigModel dcm;
-    @Mock
-    private PrivilegesEvaluatorResponse presponse;
-    @Mock
-    private Logger log;
 
     private RestLayerPrivilegesEvaluator privilegesEvaluator;
 
     private static final User TEST_USER = new User("test_user");
 
+    private void setLoggingLevel(final Level level) {
+        final Logger restLayerPrivilegesEvaluatorLogger = LogManager.getLogger(RestLayerPrivilegesEvaluator.class);
+        Configurator.setLevel(restLayerPrivilegesEvaluatorLogger, level);
+    }
+
     @Before
-    public void setUp() throws InstantiationException, IllegalAccessException {
-        MockitoAnnotations.openMocks(this);
+    public void setUp() {
+        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
 
-        ThreadContext context = new ThreadContext(Settings.EMPTY);
-        when(threadPool.getThreadContext()).thenReturn(context);
-
+        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class, withSettings().strictness(Strictness.LENIENT)));
         privilegesEvaluator = new RestLayerPrivilegesEvaluator(
             clusterService,
-            threadPool,
-            mock(AuditLog.class),
-            mock(ClusterInfoHolder.class),
-            namedXContentRegistry
+            threadPool
         );
-        privilegesEvaluator.onConfigModelChanged(configModel);
-        privilegesEvaluator.onDynamicConfigModelChanged(dcm);
+        privilegesEvaluator.onConfigModelChanged(configModel); // Defaults to the mocked config model
+        verify(threadPool).getThreadContext(); // Called during construction of RestLayerPrivilegesEvaluator
+        setLoggingLevel(Level.DEBUG); // Enable debug logging scenarios for verification
+    }
 
-        when(log.isDebugEnabled()).thenReturn(false);
+    @After
+    public void after() {
+        setLoggingLevel(Level.INFO);
     }
 
     @Test
@@ -95,28 +96,45 @@ public class RestLayerPrivilegesEvaluatorTest {
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
-        assertNotNull(response);
-        assertFalse(response.isAllowed());
-        assertFalse(response.getMissingPrivileges().isEmpty());
-        assertTrue(response.getResolvedSecurityRoles().isEmpty());
+        assertThat(response.isAllowed(), equalTo(false));
+        assertThat(response.getMissingPrivileges(), equalTo(Set.of(action)));
+        assertThat(response.getResolvedSecurityRoles(), Matchers.empty());
         verify(configModel, times(3)).getSecurityRoles();
     }
 
-    @Test(expected = OpenSearchSecurityException.class)
-    public void testEvaluate_NotInitialized_ExceptionThrown() throws Exception {
-        String action = "action";
-        privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
+    @Test
+    public void testEvaluate_NotInitialized_NullModel_ExceptionThrown() {
+        // Null out the config model
+        privilegesEvaluator.onConfigModelChanged(null);
+        final OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> privilegesEvaluator.evaluate(TEST_USER, null)
+        );
+        assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized."));
+        verify(configModel, never()).getSecurityRoles();
+    }
+
+    @Test
+    public void testEvaluate_NotInitialized_NoSecurityRoles_ExceptionThrown() {
+        final OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> privilegesEvaluator.evaluate(TEST_USER, null)
+        );
+        assertThat(exception.getMessage(), equalTo("OpenSearch Security is not initialized."));
+        verify(configModel).getSecurityRoles();
     }
 
     @Test
     public void testMapRoles_ReturnsMappedRoles() {
-        Set<String> mappedRoles = Collections.singleton("role1");
+        final User user = mock(User.class);
+        final Set<String> mappedRoles = Collections.singleton("role1");
         when(configModel.mapSecurityRoles(any(), any())).thenReturn(mappedRoles);
 
-        Set<String> result = privilegesEvaluator.mapRoles(any(), any());
+        final Set<String> result = privilegesEvaluator.mapRoles(user, null);
 
-        assertEquals(mappedRoles, result);
-        verify(configModel).mapSecurityRoles(any(), any());
+        assertThat(result, equalTo(mappedRoles));
+        verifyNoInteractions(user);
+        verify(configModel).mapSecurityRoles(user, null);
     }
 
     @Test
@@ -129,8 +147,8 @@ public class RestLayerPrivilegesEvaluatorTest {
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
-        assertTrue(response.allowed);
-        verify(securityRoles).impliesClusterPermissionPermission(any());
+        assertThat(response.allowed, equalTo(true));
+        verify(securityRoles).impliesClusterPermissionPermission(action);
     }
 
     @Test
@@ -143,8 +161,9 @@ public class RestLayerPrivilegesEvaluatorTest {
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
-        assertTrue(response.allowed);
-        verify(securityRoles).impliesClusterPermissionPermission(any());
+        assertThat(response.allowed, equalTo(true));
+        verify(securityRoles).impliesClusterPermissionPermission(action);
+        verify(configModel, times(3)).getSecurityRoles();
     }
 
     @Test
@@ -157,7 +176,7 @@ public class RestLayerPrivilegesEvaluatorTest {
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
-        assertFalse(response.allowed);
-        verify(securityRoles).impliesClusterPermissionPermission(any());
+        assertThat(response.allowed, equalTo(false));
+        verify(securityRoles).impliesClusterPermissionPermission(action);
     }
 }

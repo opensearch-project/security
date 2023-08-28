@@ -132,7 +132,6 @@ public class AuditConfigMigrater {
                     + " Please remove the deprecated keys from your opensearch.yml or replace with the generated file after reviewing."
             );
         } catch (final Exception e) {
-            e.printStackTrace();
             formatter.printHelp("audit_config_migrater.sh", options, true);
             System.exit(-1);
         }
