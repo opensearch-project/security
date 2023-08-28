@@ -25,8 +25,6 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.junit.Assume;
 import org.junit.Before;
-import org.opensearch.client.Request;
-import org.opensearch.client.WarningFailureException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
@@ -38,12 +36,6 @@ import static org.hamcrest.Matchers.hasItem;
 
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
-import org.opensearch.commons.rest.SecureRestClientBuilder;
-
-import static org.opensearch.client.RestClientBuilder.DEFAULT_MAX_CONN_PER_ROUTE;
-import static org.opensearch.client.RestClientBuilder.DEFAULT_MAX_CONN_TOTAL;
-
-import org.opensearch.common.unit.TimeValue;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -62,6 +54,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     protected final boolean preserveClusterUponCompletion() {
         return true;
     }
+
     @Override
     protected final boolean preserveIndicesUponCompletion() {
         return true;
@@ -85,12 +78,12 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     @Override
     protected final Settings restClientSettings() {
         return Settings.builder()
-                .put(super.restClientSettings())
-                // increase the timeout here to 90 seconds to handle long waits for a green
-                // cluster health. the waits for green need to be longer than a minute to
-                // account for delayed shards
-                .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
-                .build();
+            .put(super.restClientSettings())
+            // increase the timeout here to 90 seconds to handle long waits for a green
+            // cluster health. the waits for green need to be longer than a minute to
+            // account for delayed shards
+            .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
+            .build();
     }
 
     @Override
@@ -112,16 +105,16 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         builder.setDefaultHeaders(defaultHeaders);
         builder.setHttpClientConfigCallback(httpClientBuilder -> {
             String userName = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
-                    .orElseThrow(() -> new RuntimeException("user name is missing"));
+                .orElseThrow(() -> new RuntimeException("user name is missing"));
             String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
-                    .orElseThrow(() -> new RuntimeException("password is missing"));
+                .orElseThrow(() -> new RuntimeException("password is missing"));
             CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
             try {
                 return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
-                        // disable the certificate since our testing cluster just uses the default security configuration
-                        .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                        .setSSLContext(SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build());
+                    // disable the certificate since our testing cluster just uses the default security configuration
+                    .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    .setSSLContext(SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
