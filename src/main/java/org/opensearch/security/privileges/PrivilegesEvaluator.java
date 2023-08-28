@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -99,6 +100,17 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class PrivilegesEvaluator {
+
+    static final WildcardMatcher DNFOF_MATCHER = WildcardMatcher.from(
+        ImmutableList.of(
+            "indices:data/read/*",
+            "indices:admin/mappings/fields/get*",
+            "indices:admin/shards/search_shards",
+            "indices:admin/resolve/index",
+            "indices:monitor/settings/get",
+            "indices:monitor/stats"
+        )
+    );
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
 
@@ -468,7 +480,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (dnfofEnabled && isDnfofAction(action0)) {
+        if (dnfofEnabled && DNFOF_MATCHER.test(action0)) {
 
             if (requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
@@ -667,15 +679,6 @@ public class PrivilegesEvaluator {
             || (action0.equals(ReindexAction.NAME))
 
         );
-    }
-
-    static boolean isDnfofAction(String action0) {
-        return (action0.startsWith("indices:data/read/")
-            || (action0.startsWith("indices:admin/mappings/fields/get")
-                || action0.equals("indices:admin/shards/search_shards")
-                || action0.equals("indices:admin/resolve/index"))
-            || action0.equals("indices:monitor/settings/get")
-            || action0.equals("indices:monitor/stats"));
     }
 
     @SuppressWarnings("unchecked")
