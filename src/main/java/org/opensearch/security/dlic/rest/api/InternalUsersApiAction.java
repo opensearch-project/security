@@ -134,8 +134,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         String filterBy = request.param("filterBy", "all");
 
-        if (filterBy.equalsIgnoreCase("internal") || filterBy.equalsIgnoreCase("service")) {
-            userService.filterAccountsByType(configuration, filterBy);
+        if (filterBy != "all") {
+            try {
+                userService.filterAccountsByType(configuration, filterBy);
+            } catch (UserServiceException ex) {
+                badRequestResponse(channel, ex.getMessage());
+            }
         }
 
         // no specific resource requested, return complete config

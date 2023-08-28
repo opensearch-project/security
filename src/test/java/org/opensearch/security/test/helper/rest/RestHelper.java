@@ -527,7 +527,7 @@ public class RestHelper {
             }
         }
 
-        private JsonNode findObjectInJson(final String jsonDotPath) {
+        public JsonNode findObjectInJson(final String jsonDotPath) {
             // Make sure its json / then parse it
             if (!isJsonContentType()) {
                 throw new RuntimeException("Response was expected to be JSON, body was: \n" + body);

@@ -328,7 +328,12 @@ public class UserService {
      * @param requestedAccountType The type of account to be kept. Should be "service" or "internal"
      *
      */
-    public void filterAccountsByType(SecurityDynamicConfiguration<?> configuration, String requestedAccountType) {
+    public void filterAccountsByType(SecurityDynamicConfiguration<?> configuration, String requestedAccountType)
+        throws UserServiceException {
+        if (!requestedAccountType.equalsIgnoreCase(AccountType.INTERNAL.name())
+            && !requestedAccountType.equalsIgnoreCase(AccountType.SERVICE.name())) {
+            throw new UserServiceException("Invalid user type {} " + requestedAccountType);
+        }
         List<String> toBeRemoved = new ArrayList<>();
 
         for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
@@ -337,9 +342,9 @@ public class UserService {
             final String accountName = entry.getKey();
             boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
 
-            if (requestedAccountType.equalsIgnoreCase("internal") && isServiceAccount) {
+            if (requestedAccountType.equalsIgnoreCase(AccountType.INTERNAL.name()) && isServiceAccount) {
                 toBeRemoved.add(accountName);
-            } else if (requestedAccountType.equalsIgnoreCase("service") && isServiceAccount == false) {
+            } else if (requestedAccountType.equalsIgnoreCase(AccountType.SERVICE.name()) && isServiceAccount == false) {
                 toBeRemoved.add(accountName);
             }
         }
