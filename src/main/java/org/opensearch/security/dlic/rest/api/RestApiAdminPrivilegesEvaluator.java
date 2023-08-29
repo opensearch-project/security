@@ -98,7 +98,7 @@ public class RestApiAdminPrivilegesEvaluator {
         this.restapiAdminEnabled = restapiAdminEnabled;
     }
 
-    public boolean isCurrentUserRestApiAdminFor(final Endpoint endpoint, final String action) {
+    public boolean isCurrentUserAdminFor(final Endpoint endpoint, final String action) {
         final Pair<User, TransportAddress> userAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadContext);
         if (userAndRemoteAddress.getLeft() == null) {
             return false;
@@ -154,8 +154,8 @@ public class RestApiAdminPrivilegesEvaluator {
         }
     }
 
-    public boolean isCurrentUserRestApiAdminFor(final Endpoint endpoint) {
-        return isCurrentUserRestApiAdminFor(endpoint, null);
+    public boolean isCurrentUserAdminFor(final Endpoint endpoint) {
+        return isCurrentUserAdminFor(endpoint, null);
     }
 
     private static String buildEndpointActionPermission(final Endpoint endpoint, final String action) {

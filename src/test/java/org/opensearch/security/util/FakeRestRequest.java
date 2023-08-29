@@ -105,6 +105,10 @@ public class FakeRestRequest extends RestRequest {
 
     }
 
+    public static FakeRestRequest.Builder builder() {
+        return new FakeRestRequest.Builder();
+    }
+
     private static Map<String, List<String>> convert(Map<String, String> headers) {
         Map<String, List<String>> ret = new HashMap<String, List<String>>();
         for (String h : headers.keySet()) {

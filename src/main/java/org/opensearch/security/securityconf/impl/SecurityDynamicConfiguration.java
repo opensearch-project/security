@@ -270,7 +270,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public Class<?> getImplementingClass() {
-        return ctype == null ? null : ctype.getImplementationClass().get(getVersion());
+        return getCType() == null ? null : getCType().getImplementationClass().get(getVersion());
     }
 
     @JsonIgnore

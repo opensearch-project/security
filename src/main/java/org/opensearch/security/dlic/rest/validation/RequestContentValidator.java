@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
@@ -53,12 +53,12 @@ public class RequestContentValidator implements ToXContent {
         }
     }) {
         @Override
-        public ValidationResult validate(RestRequest request) {
+        public ValidationResult<JsonNode> validate(RestRequest request) {
             return ValidationResult.success(DefaultObjectMapper.objectMapper.createObjectNode());
         }
 
         @Override
-        public ValidationResult validate(RestRequest request, JsonNode jsonNode) {
+        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonNode) {
             return ValidationResult.success(DefaultObjectMapper.objectMapper.createObjectNode());
         }
     };
@@ -120,37 +120,36 @@ public class RequestContentValidator implements ToXContent {
         this.validationContext = validationContext;
     }
 
-    public ValidationResult validate(final RestRequest request) throws IOException {
+    public ValidationResult<JsonNode> validate(final RestRequest request) throws IOException {
         return parseRequestContent(request).map(this::validateContentSize).map(jsonContent -> validate(request, jsonContent));
     }
 
-    public ValidationResult validate(final RestRequest request, final JsonNode jsonContent) throws IOException {
+    public ValidationResult<JsonNode> validate(final RestRequest request, final JsonNode jsonContent) throws IOException {
         return validateContentSize(jsonContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
             .map(ignored -> validatePassword(request, jsonContent));
     }
 
-    private ValidationResult parseRequestContent(final RestRequest request) {
+    private ValidationResult<JsonNode> parseRequestContent(final RestRequest request) {
         try {
             final JsonNode jsonContent = DefaultObjectMapper.readTree(request.content().utf8ToString());
             return ValidationResult.success(jsonContent);
         } catch (final IOException ioe) {
-            LOGGER.error(ValidationError.BODY_NOT_PARSEABLE.message(), ioe);
             this.validationError = ValidationError.BODY_NOT_PARSEABLE;
-            return ValidationResult.error(this);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
     }
 
-    private ValidationResult validateContentSize(final JsonNode jsonContent) {
-        if (jsonContent.size() == 0) {
+    private ValidationResult<JsonNode> validateContentSize(final JsonNode jsonContent) {
+        if (jsonContent.isEmpty()) {
             this.validationError = ValidationError.PAYLOAD_MANDATORY;
-            return ValidationResult.error(this);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
         return ValidationResult.success(jsonContent);
     }
 
-    private ValidationResult validateJsonKeys(final JsonNode jsonContent) {
+    private ValidationResult<JsonNode> validateJsonKeys(final JsonNode jsonContent) {
         final Set<String> requestedKeys = new HashSet<>();
         jsonContent.fieldNames().forEachRemaining(requestedKeys::add);
         // mandatory settings, one of ...
@@ -166,13 +165,13 @@ public class RequestContentValidator implements ToXContent {
         invalidKeys.addAll(requestedKeys);
         if (!missingMandatoryKeys.isEmpty() || !invalidKeys.isEmpty() || !missingMandatoryOrKeys.isEmpty()) {
             this.validationError = ValidationError.INVALID_CONFIGURATION;
-            return ValidationResult.error(this);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
         return ValidationResult.success(jsonContent);
     }
 
-    private ValidationResult validateDataType(final JsonNode jsonContent) {
-        try (final JsonParser parser = new JsonFactory().createParser(jsonContent.toString())) {
+    private ValidationResult<JsonNode> validateDataType(final JsonNode jsonContent) {
+        try (final JsonParser parser = DefaultObjectMapper.objectMapper.treeAsTokens(jsonContent)) {
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
                 if (token.equals(JsonToken.FIELD_NAME)) {
@@ -203,22 +202,22 @@ public class RequestContentValidator implements ToXContent {
         } catch (final IOException ioe) {
             LOGGER.error("Couldn't create JSON for payload {}", jsonContent, ioe);
             this.validationError = ValidationError.BODY_NOT_PARSEABLE;
-            return ValidationResult.error(this);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
         if (!wrongDataTypes.isEmpty()) {
             this.validationError = ValidationError.WRONG_DATATYPE;
-            return ValidationResult.error(this);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
         return ValidationResult.success(jsonContent);
     }
 
-    private ValidationResult nullValuesInArrayValidator(final JsonNode jsonContent) {
+    private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
         for (final Map.Entry<String, DataType> allowedKey : validationContext.allowedKeys().entrySet()) {
             JsonNode value = jsonContent.get(allowedKey.getKey());
             if (value != null) {
                 if (hasNullArrayElement(value)) {
                     this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
-                    return ValidationResult.error(this);
+                    return ValidationResult.error(RestStatus.BAD_REQUEST, this);
                 }
             }
         }
@@ -240,13 +239,13 @@ public class RequestContentValidator implements ToXContent {
         return false;
     }
 
-    private ValidationResult validatePassword(final RestRequest request, final JsonNode jsonContent) {
+    private ValidationResult<JsonNode> validatePassword(final RestRequest request, final JsonNode jsonContent) {
         if (jsonContent.has("password")) {
             final PasswordValidator passwordValidator = PasswordValidator.of(validationContext.settings());
             final String password = jsonContent.get("password").asText();
             if (Strings.isNullOrEmpty(password)) {
                 this.validationError = ValidationError.INVALID_PASSWORD_TOO_SHORT;
-                return ValidationResult.error(this);
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
             final String username = Utils.coalesce(
                 request.param("name"),
@@ -257,11 +256,11 @@ public class RequestContentValidator implements ToXContent {
                     LOGGER.debug("Unable to validate username because no user is given");
                 }
                 this.validationError = ValidationError.NO_USERNAME;
-                return ValidationResult.error(this);
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
             this.validationError = passwordValidator.validate(username, password);
             if (this.validationError != ValidationError.NONE) {
-                return ValidationResult.error(this);
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
         }
         return ValidationResult.success(jsonContent);
