@@ -771,9 +771,8 @@ public class IntegrationTests extends SingleClusterTest {
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (resc = rh.executeGetRequest("_cat/_indices", encodeBasicHeader("user_a", "user_a"))).getStatusCode()
+            (resc = rh.executeGetRequest("_cat/indices", encodeBasicHeader("user_a", "user_a"))).getStatusCode()
         );
-        Assert.assertEquals(resc, (resc = rh.executeGetRequest("_cat/_indices", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
     }
