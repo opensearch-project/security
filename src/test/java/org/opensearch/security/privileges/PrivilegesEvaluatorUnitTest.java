@@ -17,7 +17,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.opensearch.security.privileges.PrivilegesEvaluator.*;
+import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_MATCHER;
 
 public class PrivilegesEvaluatorUnitTest {
 
