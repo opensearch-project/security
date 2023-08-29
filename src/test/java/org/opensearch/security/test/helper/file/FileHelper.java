@@ -172,8 +172,6 @@ public class FileHelper {
 
             br.close();
             fw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ignored) {}
     }
 }

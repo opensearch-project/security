@@ -1,0 +1,45 @@
+coverage:
+  status:
+    project:
+      # Exclusions to prevent false positives triggered
+      # Tracking with https://github.com/opensearch-project/security/issues/3137
+      default: false
+      plugin:
+        paths:
+          - "!src/main/java/com/amazon/dlic/auth/http/jwt/keybyoidc/SelfRefreshingKeySet.java"
+          - "!src/main/java/com/amazon/dlic/auth/ldap2/LDAPConnectionFactoryFactory.java"
+          - "!src/main/java/org/opensearch/security/transport/SecurityInterceptor.java"
+          - "!src/main/java/org/opensearch/security/auditlog/AuditLogSslExceptionHandler.java"
+          - "!src/main/java/org/opensearch/security/compliance/ComplianceIndexingOperationListenerImpl.java"
+          - "!src/main/java/org/opensearch/security/configuration/ConfigurationRepository.java"
+          - "!src/main/java/org/opensearch/security/configuration/StaticResourceException.java"
+          - "!src/main/java/org/opensearch/security/dlic/rest/api/AuditApiAction.java"
+          - "!src/main/java/org/opensearch/security/ssl/transport/SecuritySSLNettyTransport.java"
+          - "!src/main/java/org/opensearch/security/ssl/util/SSLConnectionTestUtil.java"
+          - "src/main"
+        target: auto
+        threshold: 0%
+      inconsistent-coverage-files:
+        paths:
+          - "src/main/java/com/amazon/dlic/auth/http/jwt/keybyoidc/SelfRefreshingKeySet.java"
+          - "src/main/java/com/amazon/dlic/auth/ldap2/LDAPConnectionFactoryFactory.java"
+          - "src/main/java/org/opensearch/security/transport/SecurityInterceptor.java"
+          - "src/main/java/org/opensearch/security/auditlog/AuditLogSslExceptionHandler.java"
+          - "src/main/java/org/opensearch/security/compliance/ComplianceIndexingOperationListenerImpl.java"
+          - "src/main/java/org/opensearch/security/configuration/ConfigurationRepository.java"
+          - "src/main/java/org/opensearch/security/configuration/StaticResourceException.java"
+          - "src/main/java/org/opensearch/security/dlic/rest/api/AuditApiAction.java"
+          - "src/main/java/org/opensearch/security/ssl/transport/SecuritySSLNettyTransport.java"
+          - "src/main/java/org/opensearch/security/ssl/util/SSLConnectionTestUtil.java"
+        target: auto
+        threshold: 50%
+      tests:
+        paths:
+          - "src/integrationTest"
+          - "src/test"
+        target: 100%
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: true

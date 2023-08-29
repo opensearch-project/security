@@ -101,12 +101,11 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     protected static boolean withRemoteCluster;
 
     static {
+        final Logger log = LogManager.getLogger(AbstractSecurityUnitTest.class);
 
-        System.out.println(
-            "OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " " + System.getProperty("os.version")
-        );
-        System.out.println("Java Version: " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
-        System.out.println(
+        log.info("OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " " + System.getProperty("os.version"));
+        log.info("Java Version: " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
+        log.info(
             "JVM Impl.: "
                 + System.getProperty("java.vm.version")
                 + " "
@@ -114,10 +113,10 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                 + " "
                 + System.getProperty("java.vm.name")
         );
-        System.out.println("Open SSL available: " + OpenSsl.isAvailable());
-        System.out.println("Open SSL version: " + OpenSsl.versionString());
+        log.info("Open SSL available: " + OpenSsl.isAvailable());
+        log.info("Open SSL version: " + OpenSsl.versionString());
         withRemoteCluster = Boolean.parseBoolean(System.getenv("TESTARG_unittests_with_remote_cluster"));
-        System.out.println("With remote cluster: " + withRemoteCluster);
+        log.info("With remote cluster: " + withRemoteCluster);
         // System.setProperty("security.display_lic_none","true");
     }
 

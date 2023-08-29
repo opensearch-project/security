@@ -88,7 +88,6 @@ public class DlsNestedTest extends AbstractDlsFlsTest {
             HttpStatus.SC_OK,
             (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
         );
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"my_nested_object\" : {"));
         Assert.assertTrue(res.getBody().contains("\"field\" : \"my_nested_object\","));
@@ -96,7 +95,6 @@ public class DlsNestedTest extends AbstractDlsFlsTest {
 
         // Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin",
         // "admin"))).getStatusCode());
-        // System.out.println(res.getBody());
         // Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n \"relation"));
         // Assert.assertTrue(res.getBody().contains("\"value\" : 1510.0"));
         // Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
