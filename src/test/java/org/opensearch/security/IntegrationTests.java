@@ -768,6 +768,13 @@ public class IntegrationTests extends SingleClusterTest {
             HttpStatus.SC_OK,
             rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (resc = rh.executeGetRequest("_cat/indices", encodeBasicHeader("user_a", "user_a"))).getStatusCode()
+        );
+        Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
+        Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
     }
 
     @Test

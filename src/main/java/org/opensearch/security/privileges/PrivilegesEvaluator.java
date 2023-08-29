@@ -35,8 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.regex.Pattern;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -101,11 +101,18 @@ import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURIT
 
 public class PrivilegesEvaluator {
 
-    private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
-
-    private static final Pattern DNFOF_PATTERNS = Pattern.compile(
-        "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index)))"
+    static final WildcardMatcher DNFOF_MATCHER = WildcardMatcher.from(
+        ImmutableList.of(
+            "indices:data/read/*",
+            "indices:admin/mappings/fields/get*",
+            "indices:admin/shards/search_shards",
+            "indices:admin/resolve/index",
+            "indices:monitor/settings/get",
+            "indices:monitor/stats"
+        )
     );
+
+    private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
 
     private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
 
@@ -474,7 +481,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (dnfofEnabled && DNFOF_PATTERNS.matcher(action0).matches()) {
+        if (dnfofEnabled && DNFOF_MATCHER.test(action0)) {
 
             if (requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
