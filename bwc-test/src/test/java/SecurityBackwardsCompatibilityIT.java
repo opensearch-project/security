@@ -37,6 +37,8 @@ import static org.hamcrest.Matchers.hasItem;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 
+import org.junit.Assert;
+
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     private ClusterType CLUSTER_TYPE;
@@ -131,6 +133,12 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         } else if (round.equals("third")) {
             assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-2/plugins");
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testWhoAmI() throws Exception {
+        Map<String, Object> responseMap = (Map<String, Object>) getAsMap("_plugins/_security/whoami");
+        Assert.assertTrue(responseMap.containsKey("dn"));
     }
 
     private enum ClusterType {
