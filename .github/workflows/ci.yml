@@ -94,6 +94,9 @@ jobs:
         plugin-previous-branch: "2.9"
         plugin-next-branch: "current_branch"
         report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
+        use-https: true
+        username: admin
+        password: admin
 
   code-ql:
     runs-on: ubuntu-latest
