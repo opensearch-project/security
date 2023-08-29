@@ -134,8 +134,6 @@ def String extractVersion(versionStr) {
                 node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
                 node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")
                 node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
-                // node.setting("plugins.security.ssl.http.truststore_filepath", "truststore.jks")
-                // node.setting("plugins.security.ssl.http.truststore_password", "password")
                 node.setting("plugins.security.allow_unsafe_democertificates", "true")
                 node.setting("plugins.security.allow_default_init_securityindex", "true")
                 node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
@@ -144,7 +142,6 @@ def String extractVersion(versionStr) {
                 node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
                 node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
                 node.setting("plugins.security.system_indices.enabled", "true")
-                node.setting("logger.org.opensearch.gradle.testclusters", "debug")
             }
 
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
