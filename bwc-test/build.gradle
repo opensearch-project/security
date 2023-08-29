@@ -78,7 +78,7 @@ loggerUsageCheck.enabled = false
 testingConventions.enabled = false
 validateNebulaPom.enabled = false
 
-String previousVersion = System.getProperty("bwc.version.previous", "2.10.0.0")
+String previousVersion = System.getProperty("bwc.version.previous", "2.9.0.0")
 String nextVersion = System.getProperty("bwc.version.next", "2.10.0.0")
 
 String bwcVersion = previousVersion
@@ -124,7 +124,6 @@ def String extractVersion(versionStr) {
                 node.extraConfigFile("esnode.pem", file("src/test/resources/security/esnode.pem"))
                 node.extraConfigFile("esnode-key.pem", file("src/test/resources/security/esnode-key.pem"))
                 node.extraConfigFile("root-ca.pem", file("src/test/resources/security/root-ca.pem"))
-                node.extraConfigFile("kirk-keystore.jks", file("src/test/resources/security/kirk-keystore.jks"))
                 node.setting("network.bind_host", "127.0.0.1")
                 node.setting("network.publish_host", "127.0.0.1")
                 node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
@@ -139,7 +138,7 @@ def String extractVersion(versionStr) {
                 // node.setting("plugins.security.ssl.http.truststore_password", "password")
                 node.setting("plugins.security.allow_unsafe_democertificates", "true")
                 node.setting("plugins.security.allow_default_init_securityindex", "true")
-                node.setting("plugins.security.authcz.admin_dn", "\"CN=kirk,OU=client,O=client,L=test,C=de\"")
+                node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
                 node.setting("plugins.security.audit.type", "internal_opensearch")
                 node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
                 node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
