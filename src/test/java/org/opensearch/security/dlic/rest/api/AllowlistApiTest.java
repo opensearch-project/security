@@ -77,7 +77,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
         }
         // FORBIDDEN FOR NON SUPER ADMIN
         if (expectedStatus == HttpStatus.SC_FORBIDDEN) {
-            assertTrue(response.getBody().contains("API allowed only for super admin."));
+            assertTrue(response.getBody().contains("Access denied"));
         }
         // CHECK PUT REQUEST
         response = rh.executePutRequest(
