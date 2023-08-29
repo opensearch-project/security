@@ -14,10 +14,6 @@ inputs:
     description: 'The name of the artifacts for this run, e.g. "BWC-2.1-to-2.4-results"'
     required: true
 
-  use-https:
-    description: 'Use HTTPS for wait for cluster health check in testClusters'
-    required: true
-
   username:
     description: 'Username to user for wait for cluster health check in testClusters'
     required: true
@@ -47,7 +43,7 @@ runs:
         arguments: |
           bwcTestSuite
           -Dtests.security.manager=false
-          -Dtests.opensearch.secure=${{ inputs.use-https }}
+          -Dtests.opensearch.secure=true
           -Dtests.opensearch.username=${{ inputs.username }}
           -Dtests.opensearch.password=${{ inputs.password }}
           -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
