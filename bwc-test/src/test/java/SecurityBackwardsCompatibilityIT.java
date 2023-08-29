@@ -119,9 +119,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 throw new RuntimeException(e);
             }
         });
-
-        // final TimeValue socketTimeout = TimeValue.parseTimeValue("60s");
-        // builder.setRequestConfigCallback(conf -> conf.setSocketTimeout(Math.toIntExact(socketTimeout.getMillis())));
     }
 
     public void testBasicBackwardsCompatibility() throws Exception {
