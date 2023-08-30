@@ -36,6 +36,7 @@ public class RolesMapping implements ToXContentObject {
     * Backend role names
     */
     private List<String> backendRoles;
+    private List<String> hostIPs;
 
     private boolean reserved = false;
 
@@ -47,6 +48,7 @@ public class RolesMapping implements ToXContentObject {
         requireNonNull(role);
         this.roleName = requireNonNull(role.getName());
         this.backendRoles = new ArrayList<>();
+        this.hostIPs = new ArrayList<>();
     }
 
     /**
@@ -56,6 +58,16 @@ public class RolesMapping implements ToXContentObject {
     */
     public RolesMapping backendRoles(String... backendRoles) {
         this.backendRoles.addAll(Arrays.asList(backendRoles));
+        return this;
+    }
+
+    /**
+     * Defines host IP address
+     * @param hostIPs host IP address
+     * @return current {@link RolesMapping} instance
+     */
+    public RolesMapping hostIPs(String... hostIPs) {
+        this.hostIPs.addAll(Arrays.asList(hostIPs));
         return this;
     }
 
@@ -89,6 +101,7 @@ public class RolesMapping implements ToXContentObject {
         xContentBuilder.startObject();
         xContentBuilder.field("reserved", reserved);
         xContentBuilder.field("backend_roles", backendRoles);
+        xContentBuilder.field("hosts", hostIPs);
         xContentBuilder.endObject();
         return xContentBuilder;
     }

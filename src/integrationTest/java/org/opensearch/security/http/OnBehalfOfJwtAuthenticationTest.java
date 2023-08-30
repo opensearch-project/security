@@ -12,11 +12,15 @@
 package org.opensearch.security.http;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -25,7 +29,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.test.framework.OnBehalfOfConfig;
+import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -65,6 +71,8 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/generateonbehalfoftoken";
     public static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
+    public static final String HOST_MAPPING_IP = "127.0.0.1";
+    public static final String OBO_USER_NAME_WITH_HOST_MAPPING = "obo_user_with_ip_role_mapping";
     public static final String CURRENT_AND_NEW_PASSWORDS = "{ \"current_password\": \""
         + DEFAULT_PASSWORD
         + "\", \"password\": \""
@@ -79,14 +87,22 @@ public class OnBehalfOfJwtAuthenticationTest {
         new TestSecurityConfig.Role("obo_user_no_perm")
     );
 
+    private static final TestSecurityConfig.Role HOST_MAPPING_ROLE = new TestSecurityConfig.Role("host_mapping_role").clusterPermissions(
+        "security:obo/create"
+    );
+
+    protected final static TestSecurityConfig.User HOST_MAPPING_OBO_USER = new TestSecurityConfig.User(OBO_USER_NAME_WITH_HOST_MAPPING)
+        .roles(HOST_MAPPING_ROLE);
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
-        .users(ADMIN_USER, OBO_USER, OBO_USER_NO_PERM)
+        .users(ADMIN_USER, OBO_USER, OBO_USER_NO_PERM, HOST_MAPPING_OBO_USER)
         .nodeSettings(
             Map.of(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true, SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access"))
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .rolesMapping(new RolesMapping(HOST_MAPPING_ROLE).hostIPs(HOST_MAPPING_IP))
         .onBehalfOf(new OnBehalfOfConfig().oboEnabled(oboEnabled).signingKey(signingKey).encryptionKey(encryptionKey))
         .build();
 
@@ -139,6 +155,27 @@ public class OnBehalfOfJwtAuthenticationTest {
         try (TestRestClient client = cluster.getRestClient(OBO_USER_NO_PERM)) {
             assertThat(client.post(OBO_ENDPOINT_PREFIX).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
         }
+    }
+
+    @Test
+    public void shouldNotIncludeHostMappingInOBOToken() {
+        String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
+
+        String[] splitToken = oboToken.split("\\.");
+
+        String unsignedToken = splitToken[0] + "." + splitToken[1] + ".";
+        Claims claims = Jwts.parserBuilder().build().parseClaimsJwt(unsignedToken).getBody();
+        Object er = claims.get("er");
+        EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+        String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
+        List<String> roles = Arrays.stream(rolesClaim.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toUnmodifiableList());
+
+        Assert.assertTrue(roles.contains("host_mapping_role"));
+        Assert.assertFalse(roles.contains(HOST_MAPPING_IP));
+
     }
 
     private String generateOboToken(String username, String password) {
