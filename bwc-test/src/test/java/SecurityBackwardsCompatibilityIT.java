@@ -7,13 +7,27 @@
  */
 package org.opensearch.security.bwc;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.http.Header;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.junit.Assume;
 import org.junit.Before;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
@@ -21,6 +35,11 @@ import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
+
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+
+import org.junit.Assert;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -33,6 +52,11 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         Assume.assumeTrue("Test cannot be run outside the BWC gradle task 'bwcTestSuite' or its dependent tasks", bwcsuiteString != null);
         CLUSTER_TYPE = ClusterType.parse(bwcsuiteString);
         CLUSTER_NAME = System.getProperty("tests.clustername");
+    }
+
+    @Override
+    protected final boolean preserveClusterUponCompletion() {
+        return true;
     }
 
     @Override
@@ -51,6 +75,11 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
     @Override
+    protected String getProtocol() {
+        return "https";
+    }
+
+    @Override
     protected final Settings restClientSettings() {
         return Settings.builder()
             .put(super.restClientSettings())
@@ -59,6 +88,41 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             // account for delayed shards
             .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
             .build();
+    }
+
+    @Override
+    protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
+        RestClientBuilder builder = RestClient.builder(hosts);
+        configureHttpsClient(builder, settings);
+        boolean strictDeprecationMode = settings.getAsBoolean("strictDeprecationMode", true);
+        builder.setStrictDeprecationMode(strictDeprecationMode);
+        return builder.build();
+    }
+
+    protected static void configureHttpsClient(RestClientBuilder builder, Settings settings) throws IOException {
+        Map<String, String> headers = ThreadContext.buildDefaultHeaders(settings);
+        Header[] defaultHeaders = new Header[headers.size()];
+        int i = 0;
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            defaultHeaders[i++] = new BasicHeader(entry.getKey(), entry.getValue());
+        }
+        builder.setDefaultHeaders(defaultHeaders);
+        builder.setHttpClientConfigCallback(httpClientBuilder -> {
+            String userName = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
+                .orElseThrow(() -> new RuntimeException("user name is missing"));
+            String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
+                .orElseThrow(() -> new RuntimeException("password is missing"));
+            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
+            try {
+                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
+                    // disable the certificate since our testing cluster just uses the default security configuration
+                    .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    .setSSLContext(SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void testBasicBackwardsCompatibility() throws Exception {
@@ -71,6 +135,12 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         } else if (round.equals("third")) {
             assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-2/plugins");
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testWhoAmI() throws Exception {
+        Map<String, Object> responseMap = (Map<String, Object>) getAsMap("_plugins/_security/whoami");
+        Assert.assertTrue(responseMap.containsKey("dn"));
     }
 
     private enum ClusterType {
