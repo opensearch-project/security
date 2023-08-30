@@ -45,6 +45,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
+import org.opensearch.security.user.AccountType;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
@@ -132,11 +133,11 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
 
-        String filterBy = request.param("filterBy", "all");
+        String includeIfType = request.param("filterBy", "any");
 
-        if (filterBy != "all") {
+        if (includeIfType != "any") {
             try {
-                userService.filterAccountsByType(configuration, filterBy);
+                userService.includeAccountsIfType(configuration, AccountType.valueOf(includeIfType.toUpperCase()));
             } catch (UserServiceException ex) {
                 badRequestResponse(channel, ex.getMessage());
             }
@@ -160,7 +161,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         throws IOException {
 
         final String username = request.param("name");
-
+        final boolean service = content.get("service").asBoolean();
         SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         if (!isWriteable(channel, internalUsersConfiguration, username)) {
@@ -185,8 +186,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // when updating an existing user password hash can be blank, which means no
         // changes
 
+
         try {
-            if (request.hasParam("service")) {
+            if (service) {
                 ((ObjectNode) content).put("service", request.param("service"));
             }
             if (request.hasParam("enabled")) {
@@ -365,7 +367,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                     .put("opendistro_security_roles", DataType.ARRAY)
                     .put("hash", DataType.STRING)
                     .put("password", DataType.STRING)
-                    .build();
+                    .put("service", DataType.STRING)
+                     .build();
             }
         });
     }

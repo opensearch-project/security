@@ -328,26 +328,38 @@ public class UserService {
      * @param requestedAccountType The type of account to be kept. Should be "service" or "internal"
      *
      */
-    public void filterAccountsByType(SecurityDynamicConfiguration<?> configuration, String requestedAccountType)
+    public void includeAccountsIfType(SecurityDynamicConfiguration<?> configuration, AccountType requestedAccountType)
         throws UserServiceException {
-        if (!requestedAccountType.equalsIgnoreCase(AccountType.INTERNAL.name())
-            && !requestedAccountType.equalsIgnoreCase(AccountType.SERVICE.name())) {
+        if (requestedAccountType != AccountType.INTERNAL && requestedAccountType != AccountType.SERVICE) {
             throw new UserServiceException("Invalid user type {} " + requestedAccountType);
         }
         List<String> toBeRemoved = new ArrayList<>();
 
-        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
-            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-            final Map accountAttributes = internalUserEntry.getAttributes();
-            final String accountName = entry.getKey();
-            boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
+        if (requestedAccountType == AccountType.SERVICE) {
+            for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
+                final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
+                final Map accountAttributes = internalUserEntry.getAttributes();
+                final String accountName = entry.getKey();
+                final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
 
-            if (requestedAccountType.equalsIgnoreCase(AccountType.INTERNAL.name()) && isServiceAccount) {
-                toBeRemoved.add(accountName);
-            } else if (requestedAccountType.equalsIgnoreCase(AccountType.SERVICE.name()) && isServiceAccount == false) {
-                toBeRemoved.add(accountName);
+                if (isServiceAccount == false) {
+                    toBeRemoved.add(accountName);
+                }
+            }
+        }
+        else if (requestedAccountType == AccountType.INTERNAL) {
+
+            for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
+                final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
+                final Map accountAttributes = internalUserEntry.getAttributes();
+                final String accountName = entry.getKey();
+                final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
+
+                if (isServiceAccount == true) {
+                    toBeRemoved.add(accountName);
+                }
             }
         }
         configuration.remove(toBeRemoved);
-    }
+        }
 }

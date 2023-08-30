@@ -58,7 +58,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY = "{"
         + " \"attributes\": { \"service\": \"true\", "
-        + "\"enabled\": \"true\"}"
+        + " \"enabled   \": \"true\"},"
+        + " \"service\": \"true\" "
         + " }\n";
 
     private static final String DISABLED_SERVICE_ACCOUNT_BODY = "{"
@@ -157,6 +158,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         final String serviceAccountName = "JohnDoeService";
         HttpResponse response;
 
+
+
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
 
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
@@ -170,6 +173,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         response = rh.executePutRequest(ENDPOINT + "/internalusers/" + serviceAccountName, ENABLED_SERVICE_ACCOUNT_BODY);
 
+
         // repeat assertions after adding the service account
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
@@ -182,7 +186,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         list = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, list.size());
-        assertThat(response.findObjectInJson(serviceAccountName), Matchers.notNullValue());
+        assertThat(response.findValueInJson(serviceAccountName), Matchers.notNullValue());
         assertThat(response.findValueInJson(serviceAccountName + ".attributes.service"), containsString("true"));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=ssas");
