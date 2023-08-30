@@ -49,15 +49,31 @@ public class PrivilegesEvaluatorTest {
         new Role("search_template_role").indexPermissions("read").on("services").clusterPermissions("cluster_composite_ops")
     );
 
+    protected final static TestSecurityConfig.User ALIAS = new TestSecurityConfig.User("search_template_user").roles(
+        new Role("search_template_role").indexPermissions("*").on("services").clusterPermissions("cluster_monitor")
+    );
+
     private String TEST_QUERY =
         "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}";
 
     private String TEST_DOC = "{\"source\": {\"title\": \"Spirited Away\"}}";
 
+    private String SERVICES_INDEX_TEMPLATE =
+        "{\"index_patterns\": [ \"services\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+
+    private String SERVICES_DATA_STREAM =
+        "{\"index_patterns\": [ \"services\" ], \"data_stream\": {\"timestamp_field\": {\"name\": \"request_time\"} }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+
+    private String MOVIES_INDEX_TEMPLATE =
+        "{\"index_patterns\": [ \"movies\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+
+    private String MOVIES_DATA_STREAM =
+        "{\"index_patterns\": [ \"movies\" ], \"data_stream\": {\"timestamp_field\": {\"name\": \"request_time\"} }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN)
+        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN, ALIAS)
         .plugin(MustacheModulePlugin.class)
         .build();
 
@@ -116,6 +132,52 @@ public class PrivilegesEvaluatorTest {
             final String searchTemplateOnAllIndices = "_search/template";
             final TestRestClient.HttpResponse searchOnAllIndicesResponse = client.getWithJsonBody(searchTemplateOnAllIndices, TEST_QUERY);
             assertThat(searchOnAllIndicesResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
+    public void testGetAliasShouldSucceedWithIndexPermissionsFailWithout() {
+        try (TestRestClient client = cluster.getRestClient(ALIAS)) {
+            final String catAliasesOnServices = "_cat/aliases/services";
+            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.get(catAliasesOnServices);
+            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+
+        try (TestRestClient client = cluster.getRestClient(ALIAS)) {
+            final String catAliasesOnAll = "_cat/aliases";
+            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.get(catAliasesOnAll);
+            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
+    public void testRolloverShouldSucceedWithIndexPermissionsFailWithout() {
+        try (TestRestClient client = cluster.getRestClient(TestSecurityConfig.User.USER_ADMIN)) {
+
+            client.putJson("_index_template/services-template", SERVICES_INDEX_TEMPLATE);
+
+            client.putJson("_data_stream/services", SERVICES_DATA_STREAM);
+
+            client.putJson("_index_template/movies-template", MOVIES_INDEX_TEMPLATE);
+
+            client.putJson("_data_stream/movies", MOVIES_DATA_STREAM);
+            final String catAliasesOnServices = "services/_rollover";
+            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.post(catAliasesOnServices);
+            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            final String moviescatAliasesOnServices = "movies/_rollover";
+            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponsem = client.post(moviescatAliasesOnServices);
+            assertThat(searchTemplateOnAuthorizedIndexResponsem.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+
+        try (TestRestClient client = cluster.getRestClient(ALIAS)) {
+            final String catAliasesOnAll = "services/_rollover";
+            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.post(catAliasesOnAll);
+            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            final String catAliasesOnAlla = "movies/_rollover";
+            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponsea = client.post(catAliasesOnAlla);
+            assertThat(searchTemplateOnAuthorizedIndexResponsea.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 }

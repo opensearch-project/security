@@ -53,10 +53,12 @@ import org.opensearch.action.OriginalIndices;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.action.admin.indices.rollover.RolloverRequest;
 import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
@@ -750,11 +752,16 @@ public class IndexResolverReplacer {
             }
             ((IndexRequest) request).index(newIndices.length != 1 ? null : newIndices[0]);
         } else if (request instanceof Replaceable) {
-            String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
-            if (checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
+            String[] newIndicesOrAliases;
+            if (request instanceof GetAliasesRequest) {
+                newIndicesOrAliases = provider.provide(((GetAliasesRequest) request).aliases(), request, true);
+            } else {
+                newIndicesOrAliases = provider.provide(((Replaceable) request).indices(), request, true);
+            }
+            if (checkIndices(request, newIndicesOrAliases, false, allowEmptyIndices) == false) {
                 return false;
             }
-            ((Replaceable) request).indices(newIndices);
+            ((Replaceable) request).indices(newIndicesOrAliases);
         } else if (request instanceof BulkShardRequest) {
             provider.provide(((ReplicationRequest) request).indices(), request, false);
             // replace not supported?
@@ -781,6 +788,8 @@ public class IndexResolverReplacer {
         } else if (request instanceof ReindexRequest) {
             result = getOrReplaceAllIndices(((ReindexRequest) request).getDestination(), provider, false) && result;
             result = getOrReplaceAllIndices(((ReindexRequest) request).getSearchRequest(), provider, false) && result;
+        } else if (request instanceof RolloverRequest) {
+            provider.provide(new String[] { ((RolloverRequest) request).getRolloverTarget() }, request, true);
         } else if (request instanceof BaseNodesRequest) {
             // do nothing
         } else if (request instanceof MainRequest) {
