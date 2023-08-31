@@ -72,13 +72,19 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
         var result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("aaa", configuration));
         assertFalse(result.isValid());
         assertEquals(RestStatus.NOT_FOUND, result.status());
-        //reserved role is not ok
+        //static role is ok
+        result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("all_access", configuration));
+        assertTrue(result.isValid());
+        //reserved role is ok
         result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("kibana_read_only", configuration));
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertTrue(result.isValid());
         //just regular_role
         result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("regular_role", configuration));
         assertTrue(result.isValid());
+        //hidden role is not ok
+        result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("some_hidden_role", configuration));
+        assertFalse(result.isValid());
+        assertEquals(RestStatus.NOT_FOUND, result.status());
     }
 
 }

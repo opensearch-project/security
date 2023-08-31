@@ -28,6 +28,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -268,7 +269,7 @@ public class EndpointValidatorTest {
     }
 
     @Test
-    public void validateRolesForAdmin() {
+    public void validateRolesForAdmin() throws IOException {
         configureRoles(true);
         final var expectedResultForRoles = List.of(
             Triple.of("valid_role", true, RestStatus.OK),
@@ -287,12 +288,12 @@ public class EndpointValidatorTest {
     }
 
     @Test
-    public void validateRolesForRegularUser() {
+    public void validateRolesForRegularUser() throws IOException {
         configureRoles(false);
         final var expectedResultForRoles = List.of(
             Triple.of("valid_role", true, RestStatus.OK),
-            Triple.of("reserved_role", false, RestStatus.FORBIDDEN),
-            Triple.of("static_role", false, RestStatus.FORBIDDEN),
+            Triple.of("reserved_role", true, RestStatus.OK),
+            Triple.of("static_role", true, RestStatus.OK),
             Triple.of("hidden_role", false, RestStatus.NOT_FOUND),
             Triple.of("non_existing_role", false, RestStatus.NOT_FOUND)
         );
@@ -315,17 +316,12 @@ public class EndpointValidatorTest {
 
         when(configuration.exists("static_role")).thenReturn(true);
         when(configuration.isHidden("static_role")).thenReturn(false);
-        when(configuration.isStatic("static_role")).thenReturn(true);
 
         when(configuration.exists("reserved_role")).thenReturn(true);
         when(configuration.isHidden("reserved_role")).thenReturn(false);
-        when(configuration.isStatic("reserved_role")).thenReturn(false);
-        when(configuration.isReserved("reserved_role")).thenReturn(true);
 
         when(configuration.exists("valid_role")).thenReturn(true);
         when(configuration.isHidden("valid_role")).thenReturn(false);
-        when(configuration.isStatic("valid_role")).thenReturn(false);
-        when(configuration.isReserved("valid_role")).thenReturn(false);
     }
 
     @Test
