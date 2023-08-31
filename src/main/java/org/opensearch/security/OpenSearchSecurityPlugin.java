@@ -318,6 +318,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         demoCertHashes.add("3e839e2b059036a99ee4f742814995f2fb0ced7e9d68a47851f43a3c630b5324");
         demoCertHashes.add("9b13661c073d864c28ad7b13eda67dcb6cbc2f04d116adc7c817c20b4c7ed361");
 
+        // new certs 08/2023 - added IPv6 loopback to node certificate
+        demoCertHashes.add("069beaf566b9cf631e3676b82da8c60a191c4d4ab2832ad18efe3a5bd2a875d6"); // kirk
+        demoCertHashes.add("25e34a9a5d4f1dceed1666eb624397bf3fe5787a7133cd32838ace0381bce1f7"); // kirk-key
+        demoCertHashes.add("dd3cf88e72e9e1a803bd12f4bafb4f29e642110db26c39ed5f2ef2e9351bc61c"); // esnode
+        demoCertHashes.add("ba9c5a61065f7f6115188128ffbdaa18fca34562b78b811f082439e2bef1d282"); // esnode-key
+        demoCertHashes.add("9948688bc4c7a198f2a0db1d91f4f54499b8626902d03361b6d43e822d3691e4"); // root-ca
+
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {

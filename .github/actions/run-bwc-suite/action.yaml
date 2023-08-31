@@ -14,6 +14,14 @@ inputs:
     description: 'The name of the artifacts for this run, e.g. "BWC-2.1-to-2.4-results"'
     required: true
 
+  username:
+    description: 'Username to use for cluster health check in testClusters'
+    required: true
+
+  password:
+    description: 'Password to use for cluster health check in testClusters'
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -35,6 +43,9 @@ runs:
         arguments: |
           bwcTestSuite
           -Dtests.security.manager=false
+          -Dtests.opensearch.secure=true
+          -Dtests.opensearch.username=${{ inputs.username }}
+          -Dtests.opensearch.password=${{ inputs.password }}
           -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
           -Dbwc.version.next=${{ steps.build-next.outputs.built-version }} -i
         build-root-directory: bwc-test
