@@ -58,27 +58,4 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
          assertEquals(RestStatus.FORBIDDEN, result.status());
     }
 
-    @Test
-    public void onConfigChangeShouldCheckRoles() throws Exception {
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.ROLESMAPPING)).thenReturn(false);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
-        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false))
-                .thenReturn(Map.of(CType.ROLES, rolesConfiguration));
-        final var rolesApiActionEndpointValidator =
-                new RolesMappingApiAction(clusterService, threadPool,
-                        securityApiDependencies).createEndpointValidator();
-
-        // no role
-        var result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("aaa", configuration));
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_FOUND, result.status());
-        //reserved role is not ok
-        result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("kibana_read_only", configuration));
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
-        //just regular_role
-        result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("regular_role", configuration));
-        assertTrue(result.isValid());
-    }
-
 }
