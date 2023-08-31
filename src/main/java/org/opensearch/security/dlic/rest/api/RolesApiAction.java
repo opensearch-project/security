@@ -11,11 +11,11 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.ReadContext;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
@@ -34,6 +34,8 @@ import org.opensearch.threadpool.ThreadPool;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.StreamSupport;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -51,11 +53,11 @@ public class RolesApiAction extends AbstractApiAction {
         )
     );
 
-    public static class RoleValidator extends RequestContentValidator {
+    public static class RoleRequestContentValidator extends RequestContentValidator {
 
         private static final Salt SALT = new Salt(new byte[] { 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 });
 
-        protected RoleValidator(ValidationContext validationContext) {
+        protected RoleRequestContentValidator(ValidationContext validationContext) {
             super(validationContext);
         }
 
@@ -70,27 +72,29 @@ public class RolesApiAction extends AbstractApiAction {
         }
 
         private ValidationResult<JsonNode> validateMaskedFields(final JsonNode content) {
-            final ReadContext ctx = JsonPath.parse(content.toString());
-            final List<String> maskedFields = ctx.read("$..masked_fields[*]");
-            if (maskedFields != null) {
-                for (String mf : maskedFields) {
-                    if (!validateMaskedFieldSyntax(mf)) {
-                        this.validationError = ValidationError.WRONG_DATATYPE;
-                        return ValidationResult.error(RestStatus.BAD_REQUEST, this);
-                    }
-                }
+            StreamSupport.stream(content.withArray(JsonPointer.compile("/index_permissions")).spliterator(), false)
+                .flatMap(
+                    indexPermissionsNode -> StreamSupport.stream(indexPermissionsNode.withArray("/masked_fields").spliterator(), false)
+                )
+                .map(this::validateMaskedFieldSyntax)
+                .filter(Objects::nonNull)
+                .forEach(wrongMaskedField -> {
+                    this.validationError = ValidationError.WRONG_DATATYPE;
+                    wrongDataTypes.put("Masked field not valid: " + wrongMaskedField.getLeft(), wrongMaskedField.getRight());
+                });
+            if (validationError != ValidationError.NONE) {
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
             return ValidationResult.success(content);
         }
 
-        private boolean validateMaskedFieldSyntax(String mf) {
+        private Pair<String, String> validateMaskedFieldSyntax(final JsonNode maskedFieldNode) {
             try {
-                new MaskedField(mf, SALT).isValid();
+                new MaskedField(maskedFieldNode.asText(), SALT).isValid();
             } catch (Exception e) {
-                wrongDataTypes.put("Masked field not valid: " + mf, e.getMessage());
-                return false;
+                return Pair.of(maskedFieldNode.asText(), e.getMessage());
             }
-            return true;
+            return null;
         }
 
     }
@@ -146,7 +150,7 @@ public class RolesApiAction extends AbstractApiAction {
 
             @Override
             public RequestContentValidator createRequestContentValidator(Object... params) {
-                return new RoleValidator(new RequestContentValidator.ValidationContext() {
+                return new RoleRequestContentValidator(new RequestContentValidator.ValidationContext() {
                     @Override
                     public Object[] params() {
                         return params;
