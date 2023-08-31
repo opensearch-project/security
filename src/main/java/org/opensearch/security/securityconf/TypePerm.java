@@ -19,7 +19,7 @@ public class TypePerm {
     protected final WildcardMatcher typeMatcher;
     private final Set<String> perms = new HashSet<>();
 
-    TypePerm(String typePattern) {
+    TypePerm() {
         this.typeMatcher = WildcardMatcher.ANY;
     }
 

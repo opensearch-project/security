@@ -253,7 +253,7 @@ public class ConfigModelV6 extends ConfigModel {
                         _indexPatternV6.addMaskedFields(maskedFields);
 
                         for (Entry<String, List<String>> type : permittedAliasesIndex.getValue().getTypes().entrySet()) {
-                            TypePerm typePerm = new TypePerm(type.getKey());
+                            TypePerm typePerm = new TypePerm();
                             final List<String> perms = type.getValue();
                             typePerm.addPerms(agr.resolvedActions(perms));
                             _indexPatternV6.addTypePerms(typePerm);

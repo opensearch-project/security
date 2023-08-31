@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -190,6 +191,22 @@ public class SecurityRolesPermissionsTest {
             );
             assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.SSL, sslAllowRole);
         }
+    }
+
+    @Test
+    public void testTypePerms() {
+        TypePerm typePerm = new TypePerm();
+        TypePerm typePerm2 = new TypePerm();
+        TypePerm emptyTypePerm = new TypePerm();
+
+        List perms = Arrays.asList("be", "asas");
+        typePerm.addPerms(perms);
+        typePerm2.addPerms(perms);
+
+        Assert.assertEquals(typePerm, typePerm2);
+        Assert.assertEquals(typePerm.hashCode(), typePerm2.hashCode());
+        Assert.assertNotEquals(typePerm, emptyTypePerm);
+
     }
 
     void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final SecurityRoles allowOnlyRoleForRole) {
