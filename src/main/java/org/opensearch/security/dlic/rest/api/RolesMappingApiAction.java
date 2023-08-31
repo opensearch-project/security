@@ -89,9 +89,7 @@ public class RolesMappingApiAction extends AbstractApiAction {
 
             private ValidationResult<SecurityConfiguration> validateRoleForMapping(final SecurityConfiguration securityConfiguration)
                 throws IOException {
-                return loadConfiguration(CType.ROLES, false, false).map(
-                    rolesConfiguration -> validateRoles(List.of(securityConfiguration.entityName()), rolesConfiguration)
-                ).map(ignore -> ValidationResult.success(securityConfiguration));
+                return loadConfiguration(CType.ROLES, false, false).map(ignore -> ValidationResult.success(securityConfiguration));
             }
 
             @Override
