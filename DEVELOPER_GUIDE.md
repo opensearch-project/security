@@ -79,6 +79,45 @@ mv config/* $OPENSEARCH_HOME/config/opensearch-security/
 rm -rf config/
 ```
 
+### Refreshing demo certificates
+
+1. Use the following commands to generate new demo certificates:
+
+```zsh
+## ROOT
+
+openssl genrsa -out root-ca-key.pem 2048
+openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "/DC=com/DC=example/O=Example Com Inc./OU=Example Com Inc. Root CA/CN=Example Com Inc. Root CA" -addext "basicConstraints = critical,CA:TRUE" -addext "keyUsage = critical, digitalSignature, keyCertSign, cRLSign" -addext "subjectKeyIdentifier = hash" -addext "authorityKeyIdentifier = keyid:always,issuer:always" -out root-ca.pem
+
+
+## NODE
+
+openssl genrsa -out esnode-key-temp.pem 2048
+openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
+openssl req -new -key esnode-key.pem -subj "/C=de/L=test/O=node/OU=node/CN=node-0.example.com" -out esnode.csr
+openssl x509 -req -in esnode.csr -out esnode.pem -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -days 3650 -extfile <(printf "subjectAltName = RID:1.2.3.4.5.5, DNS:node-0.example.com, DNS:localhost, IP:::1, IP:127.0.0.1\nkeyUsage = digitalSignature, nonRepudiation, keyEncipherment\nextendedKeyUsage = serverAuth, clientAuth\nbasicConstraints = critical,CA:FALSE")
+
+
+## ADMIN
+
+openssl req -new -newkey rsa:2048 -keyout kirk-key.pem -out kirk.csr -nodes -subj "/C=de/L=test/O=client/OU=client/CN=kirk"
+openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -out kirk.pem -days 3650 -extfile <(printf "basicConstraints = critical,CA:FALSE\nkeyUsage = critical,digitalSignature,nonRepudiation,keyEncipherment\nextendedKeyUsage = critical,clientAuth\nauthorityKeyIdentifier = keyid,issuer:always\nsubjectKeyIdentifier = hash")
+
+## Remove root-ca-key.pem and other temp keys
+
+## Generate new jks for sanity-tests which use demo certs
+#### kirk-root-chain.pem is chain certificate of kirk.pem followed by root-ca.pem
+openssl pkcs12 -export -in kirk-root-chain.pem -inkey kirk-key.pem -out kirk.p12 -name kirk
+keytool -importkeystore -srckeystore kirk.p12 -srcstoretype PKCS12 -destkeystore kirk.jks -deststoretype JKS
+```
+
+2. Update `install_demo_configuration.sh` and `install_demo_configuration.bat` with these new certificates.
+3. Add the SHA256 hashes for newly generated certs in OpenSearchSecurityPlugin.java
+```zsh
+cd <cert-folder>
+cat <cert>.pem | sha256sum
+```
+
 ### Installing demo extension users and roles
 
 If you are working with an extension and want to set up demo users for the Hello-World extension, append following items to files inside `$OPENSEARCH_HOME/config/opensearch-security/`:
