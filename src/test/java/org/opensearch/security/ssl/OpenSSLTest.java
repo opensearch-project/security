@@ -124,7 +124,6 @@ public class OpenSSLTest extends SSLTest {
 
         // Set<String> openSSLAvailCiphers = new
         // HashSet<>(OpenSsl.availableCipherSuites());
-        // System.out.println("OpenSSL available ciphers: "+openSSLAvailCiphers);
         // ECDHE-RSA-AES256-SHA, ECDH-ECDSA-AES256-SHA, DH-DSS-DES-CBC-SHA,
         // ADH-AES256-SHA256, ADH-CAMELLIA128-SHA
 
@@ -135,7 +134,6 @@ public class OpenSSLTest extends SSLTest {
             }
         }
 
-        System.out.println("OpenSSL secure ciphers: " + openSSLSecureCiphers);
         Assert.assertTrue(openSSLSecureCiphers.size() > 0);
     }
 

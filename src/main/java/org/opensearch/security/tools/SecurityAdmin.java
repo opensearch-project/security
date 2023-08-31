@@ -1657,7 +1657,6 @@ public class SecurityAdmin {
 
         } catch (Exception e) {
             System.out.println("ERR: Unable to migrate config files due to " + e);
-            e.printStackTrace();
             return -1;
         }
 
@@ -1890,7 +1889,6 @@ public class SecurityAdmin {
 
             return value;
         } catch (Exception e) {
-            e.printStackTrace();
             return "ERR: Unable to handle response due to " + e;
         }
     }

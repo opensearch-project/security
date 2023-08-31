@@ -102,12 +102,12 @@ public class DefaultObjectMapper {
         );
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T getOrDefault(Map<String, Object> properties, String key, T defaultValue) {
         T value = (T) properties.get(key);
         return value != null ? value : defaultValue;
     }
 
-    @SuppressWarnings("removal")
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -117,12 +117,7 @@ public class DefaultObjectMapper {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<T>() {
-                @Override
-                public T run() throws Exception {
-                    return objectMapper.treeToValue(node, clazz);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.treeToValue(node, clazz));
         } catch (final PrivilegedActionException e) {
             throw (IOException) e.getCause();
         }
@@ -138,12 +133,7 @@ public class DefaultObjectMapper {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<T>() {
-                @Override
-                public T run() throws Exception {
-                    return objectMapper.readValue(string, clazz);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.readValue(string, clazz));
         } catch (final PrivilegedActionException e) {
             throw (IOException) e.getCause();
         }
@@ -159,12 +149,7 @@ public class DefaultObjectMapper {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<JsonNode>() {
-                @Override
-                public JsonNode run() throws Exception {
-                    return objectMapper.readTree(string);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> objectMapper.readTree(string));
         } catch (final PrivilegedActionException e) {
             throw (IOException) e.getCause();
         }
@@ -180,12 +165,11 @@ public class DefaultObjectMapper {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<String>() {
-                @Override
-                public String run() throws Exception {
-                    return (omitDefaults ? defaulOmittingObjectMapper : objectMapper).writeValueAsString(value);
-                }
-            });
+            return AccessController.doPrivileged(
+                (PrivilegedExceptionAction<String>) () -> (omitDefaults ? defaulOmittingObjectMapper : objectMapper).writeValueAsString(
+                    value
+                )
+            );
         } catch (final PrivilegedActionException e) {
             throw (JsonProcessingException) e.getCause();
         }
@@ -224,12 +208,7 @@ public class DefaultObjectMapper {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<T>() {
-                @Override
-                public T run() throws Exception {
-                    return objectMapper.readValue(string, jt);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.readValue(string, jt));
         } catch (final PrivilegedActionException e) {
             throw (IOException) e.getCause();
         }

@@ -37,9 +37,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         if (mockIdpServer != null) {
             try {
                 mockIdpServer.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) {}
         }
     }
 
@@ -314,7 +312,6 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
         long expiringDate = 20 + System.currentTimeMillis() / 1000;
         long notBeforeDate = 5 + System.currentTimeMillis() / 1000;
-        ;
 
         AuthCredentials creds = jwtAuth.extractCredentials(
             new FakeRestRequest(

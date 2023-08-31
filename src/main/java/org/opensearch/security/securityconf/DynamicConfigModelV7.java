@@ -57,6 +57,9 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
+import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authc;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
@@ -80,13 +83,21 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
+    private final ClusterInfoHolder cih;
 
-    public DynamicConfigModelV7(ConfigV7 config, Settings opensearchSettings, Path configPath, InternalAuthenticationBackend iab) {
+    public DynamicConfigModelV7(
+        ConfigV7 config,
+        Settings opensearchSettings,
+        Path configPath,
+        InternalAuthenticationBackend iab,
+        ClusterInfoHolder cih
+    ) {
         super();
         this.config = config;
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
         this.iab = iab;
+        this.cih = cih;
         buildAAA();
     }
 
@@ -208,6 +219,13 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     @Override
     public Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries() {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
+    }
+
+    @Override
+    public Settings getDynamicOnBehalfOfSettings() {
+        return Settings.builder()
+            .put(Settings.builder().loadFromSource(config.dynamic.on_behalf_of.configAsJson(), XContentType.JSON).build())
+            .build();
     }
 
     private void buildAAA() {
@@ -356,6 +374,23 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                 }
 
             }
+        }
+
+        /*
+         * If the OnBehalfOf (OBO) authentication is configured:
+         * Add the OBO authbackend in to the auth domains
+         * Challenge: false - no need to iterate through the auth domains again when OBO authentication failed
+         * order: -1 - prioritize the OBO authentication when it gets enabled
+         */
+        Settings oboSettings = getDynamicOnBehalfOfSettings();
+        if (oboSettings.get("signing_key") != null && oboSettings.get("encryption_key") != null) {
+            final AuthDomain _ad = new AuthDomain(
+                new NoOpAuthenticationBackend(Settings.EMPTY, null),
+                new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),
+                false,
+                -1
+            );
+            restAuthDomains0.add(_ad);
         }
 
         List<Destroyable> originalDestroyableComponents = destroyableComponents;

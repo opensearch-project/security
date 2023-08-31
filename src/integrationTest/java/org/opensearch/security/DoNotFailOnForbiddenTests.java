@@ -9,7 +9,11 @@
 */
 package org.opensearch.security;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.hamcrest.Matchers;
@@ -31,6 +35,8 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.client.Client;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.User;
@@ -38,12 +44,7 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.aMapWithSize;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
@@ -102,7 +103,9 @@ public class DoNotFailOnForbiddenTests {
         new TestSecurityConfig.Role("limited-role").clusterPermissions(
             "indices:data/read/mget",
             "indices:data/read/msearch",
-            "indices:data/read/scroll"
+            "indices:data/read/scroll",
+            "cluster:monitor/state",
+            "cluster:monitor/health"
         )
             .indexPermissions(
                 "indices:data/read/search",
@@ -110,7 +113,9 @@ public class DoNotFailOnForbiddenTests {
                 "indices:data/read/field_caps",
                 "indices:data/read/field_caps*",
                 "indices:data/read/msearch",
-                "indices:data/read/scroll"
+                "indices:data/read/scroll",
+                "indices:monitor/settings/get",
+                "indices:monitor/stats"
             )
             .on(MARVELOUS_SONGS)
     );
@@ -405,6 +410,20 @@ public class DoNotFailOnForbiddenTests {
             SearchRequest searchRequest = statsAggregationRequest(HORRIBLE_SONGS, aggregationName, FIELD_STARS);
 
             assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+        }
+    }
+
+    @Test
+    public void shouldPerformCatIndices_positive() throws IOException {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+            Request getIndicesRequest = new Request("GET", "/_cat/indices");
+            // High level client doesn't support _cat/_indices API
+            Response getIndicesResponse = restHighLevelClient.getLowLevelClient().performRequest(getIndicesRequest);
+            List<String> indexes = new BufferedReader(new InputStreamReader(getIndicesResponse.getEntity().getContent())).lines()
+                .collect(Collectors.toList());
+
+            assertThat(indexes.size(), equalTo(1));
+            assertThat(indexes.get(0), containsString("marvelous_songs"));
         }
     }
 

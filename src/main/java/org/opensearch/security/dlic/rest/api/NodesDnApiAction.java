@@ -12,38 +12,32 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -59,7 +53,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *
  * See {@link NodesDnApiTest} for usage examples.
  */
-public class NodesDnApiAction extends PatchableResourceApiAction {
+public class NodesDnApiAction extends AbstractApiAction {
+
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
@@ -76,88 +71,46 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
 
     @Inject
     public NodesDnApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
-        this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList());
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
+        super(Endpoint.NODESDN, clusterService, threadPool, securityApiDependencies);
+        this.staticNodesDnFromEsYml = securityApiDependencies.settings().getAsList(ConfigConstants.SECURITY_NODES_DN, List.of());
+        this.requestHandlersBuilder.configureRequestHandlers(this::nodesDnApiRequestHandlers);
     }
 
     @Override
     public List<Route> routes() {
-        if (settings.getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
+        if (securityApiDependencies.settings().getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
             return routes;
         }
         return Collections.emptyList();
     }
 
     @Override
-    protected void handleApiRequest(RestChannel channel, RestRequest request, Client client) throws IOException {
-        if (!isSuperAdmin()) {
-            forbidden(channel, "API allowed only for admin.");
-            return;
-        }
-        super.handleApiRequest(channel, request, client);
+    protected CType getConfigType() {
+        return CType.NODESDN;
     }
 
+    @Override
     protected void consumeParameters(final RestRequest request) {
         request.param("name");
         request.param("show_all");
     }
 
-    @Override
-    protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        if (STATIC_OPENSEARCH_YML_NODES_DN.equals(name)) {
-            return true;
-        }
-        return super.isReadOnly(existingConfiguration, name);
-    }
-
-    @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-        final String resourcename = request.param("name");
-
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-        filter(configuration);
-
-        // no specific resource requested, return complete config
-        if (resourcename == null || resourcename.length() == 0) {
-            final Boolean showAll = request.paramAsBoolean("show_all", Boolean.FALSE);
-            if (showAll) {
-                putStaticEntry(configuration);
+    private void nodesDnApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.verifyAccessForAllMethods().onGetRequest(request -> processGetRequest(request).map(securityConfiguration -> {
+            if (request.paramAsBoolean("show_all", false)) {
+                final var configuration = securityConfiguration.configuration();
+                addStaticNodesDn(configuration);
             }
-            successResponse(channel, configuration);
-            return;
-        }
-
-        if (!configuration.exists(resourcename)) {
-            notFound(channel, "Resource '" + resourcename + "' not found.");
-            return;
-        }
-
-        configuration.removeOthers(resourcename);
-        successResponse(channel, configuration);
+            return ValidationResult.success(securityConfiguration);
+        })).onChangeRequest(Method.PATCH, this::processPatchRequest);
     }
 
-    private void putStaticEntry(SecurityDynamicConfiguration<?> configuration) {
+    @SuppressWarnings("unchecked")
+    private void addStaticNodesDn(SecurityDynamicConfiguration<?> configuration) {
         if (NodesDn.class.equals(configuration.getImplementingClass())) {
             NodesDn nodesDn = new NodesDn();
             nodesDn.setNodesDn(staticNodesDnFromEsYml);
@@ -168,42 +121,56 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.NODESDN;
-    }
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
 
-    @Override
-    protected String getResourceName() {
-        return "nodesdn";
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return CType.NODESDN;
-    }
-
-    @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
             @Override
-            public Object[] params() {
-                return params;
+            public Endpoint endpoint() {
+                return endpoint;
             }
 
             @Override
-            public Settings settings() {
-                return settings;
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
             }
 
             @Override
-            public Set<String> mandatoryKeys() {
-                return ImmutableSet.of("nodes_dn");
+            public ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(SecurityConfiguration securityConfiguration)
+                throws IOException {
+                if (STATIC_OPENSEARCH_YML_NODES_DN.equals(securityConfiguration.entityName())) {
+                    return ValidationResult.error(
+                        RestStatus.FORBIDDEN,
+                        forbiddenMessage("Resource '" + STATIC_OPENSEARCH_YML_NODES_DN + "' is read-only.")
+                    );
+                }
+                return EndpointValidator.super.isAllowedToChangeImmutableEntity(securityConfiguration);
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
-                return ImmutableMap.of("nodes_dn", DataType.ARRAY);
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return securityApiDependencies.settings();
+                    }
+
+                    @Override
+                    public Set<String> mandatoryKeys() {
+                        return ImmutableSet.of("nodes_dn");
+                    }
+
+                    @Override
+                    public Map<String, DataType> allowedKeys() {
+                        return ImmutableMap.of("nodes_dn", DataType.ARRAY);
+                    }
+                });
             }
-        });
+        };
     }
+
 }

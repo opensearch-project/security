@@ -175,8 +175,7 @@ public class SSLRequestHelper {
                     }
                     principal = principalExtractor == null ? null : principalExtractor.extractPrincipal(x509Certs[0], Type.HTTP);
                 } else if (engine.getNeedClientAuth()) {
-                    final OpenSearchException ex = new OpenSearchException("No client certificates found but such are needed (SG 9).");
-                    throw ex;
+                    throw new OpenSearchException("No client certificates found but such are needed (SG 9).");
                 }
 
             } catch (final SSLPeerUnverifiedException e) {

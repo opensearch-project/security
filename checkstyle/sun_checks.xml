@@ -222,4 +222,5 @@
     <property name="checkFormat" value="$1"/>
   </module>
 
+  <module name="PrintlnModule"/>
 </module>

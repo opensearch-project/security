@@ -60,10 +60,15 @@ jobs:
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
     - name: Coverage
-      uses: codecov/codecov-action@v3
+      uses: Wandalen/wretry.action@v1.3.0
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./build/reports/jacoco/test/jacocoTestReport.xml
+        attempt_limit: 3
+        attempt_delay: 2000
+        action: codecov/codecov-action@v3
+        with: |
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          files: ./build/reports/jacoco/test/jacocoTestReport.xml
 
     - uses: actions/upload-artifact@v3
       if: always()

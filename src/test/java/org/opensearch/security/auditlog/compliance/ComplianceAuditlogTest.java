@@ -125,7 +125,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         try {
             messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
                 rh.executePutRequest("emp/_doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
-                System.out.println(rh.executeGetRequest("_cat/shards?v"));
+                rh.executeGetRequest("_cat/shards?v");
             }, 7);
         } catch (final MessagesNotFoundException ex) {
             // indices:admin/mapping/auto_put can be logged twice, this handles if they were not found

@@ -128,6 +128,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final Settings opensearchSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
+    private final ClusterInfoHolder cih;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -143,6 +144,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.cr = cr;
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
+        this.cih = cih;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -244,8 +246,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             log.debug("Static roles loaded ({})", staticRoles.getCEntries().size());
 
             if (actionGroups.containsAny(staticActionGroups)) {
-                System.out.println("static: " + actionGroups.getCEntries());
-                System.out.println("Static Action Groups:" + staticActionGroups.getCEntries());
                 throw new StaticResourceException("Cannot override static action groups");
             }
             if (!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
@@ -271,7 +271,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             );
 
             // rebuild v7 Models
-            dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab);
+            dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
             ium = new InternalUsersModelV7(
                 (SecurityDynamicConfiguration<InternalUserV7>) internalusers,
                 (SecurityDynamicConfiguration<RoleV7>) roles,
