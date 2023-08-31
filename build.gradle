@@ -507,10 +507,6 @@ dependencies {
     //Password generation
     implementation 'org.passay:passay:1.6.3'
 
-    //JSON path
-    implementation 'com.jayway.jsonpath:json-path:2.8.0'
-    implementation 'net.minidev:json-smart:2.5.0'
-
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
     runtimeOnly 'net.minidev:accessors-smart:2.5.0'

@@ -11,11 +11,7 @@
 
 package org.opensearch.security.ssl;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
-import net.minidev.json.parser.JSONParser;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -48,8 +44,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
     private final String HTTP_CERTIFICATES_LIST_KEY = "http_certificates_list";
     private final String TRANSPORT_CERTIFICATES_LIST_KEY = "transport_certificates_list";
 
-    private final List<Map<String, String>> NODE_CERT_DETAILS = ImmutableList.of(
-        ImmutableMap.of(
+    private final List<Map<String, String>> NODE_CERT_DETAILS = List.of(
+        Map.of(
             "issuer_dn",
             "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
             "subject_dn",
@@ -63,8 +59,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         )
     );
 
-    private final List<Map<String, String>> NEW_NODE_CERT_DETAILS = ImmutableList.of(
-        ImmutableMap.of(
+    private final List<Map<String, String>> NEW_NODE_CERT_DETAILS = List.of(
+        Map.of(
             "issuer_dn",
             "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
             "subject_dn",
@@ -96,12 +92,11 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper rh = getRestHelperAdminUser();
 
         String clusterHealthResponse = rh.executeSimpleRequest("_cluster/health");
-        JSONParser parser = new JSONParser();
-        JSONObject clusterHealthResponseJson = (JSONObject) parser.parse(clusterHealthResponse);
-        Assert.assertEquals("green", clusterHealthResponseJson.get("status"));
+        final var clusterHealthResponseJson = DefaultObjectMapper.readTree(clusterHealthResponse);
+        Assert.assertEquals("green", clusterHealthResponseJson.get("status").asText());
 
         String catNodesResponse = rh.executeSimpleRequest("_cat/nodes?format=json");
-        JSONArray catNodesResponseJson = (JSONArray) parser.parse(catNodesResponse);
+        final var catNodesResponseJson = DefaultObjectMapper.readTree(catNodesResponse);// (JSONArray) parser.parse(catNodesResponse);
         Assert.assertEquals(clusterConfiguration.getNodes(), catNodesResponseJson.size());
     }
 
@@ -111,8 +106,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper rh = getRestHelperAdminUser();
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
 
-        JSONObject expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+        final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
+        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
 
         // Test Valid Case: Change transport file details to "ssl/pem/node-new.crt.pem" and "ssl/pem/node-new.key.pem"
         updateFiles(newCertFilePath, pemCertFilePath);
@@ -128,8 +123,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper rh = getRestHelperAdminUser();
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        JSONObject expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+        final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
+        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
 
         // Test Valid Case: Change rest file details to "ssl/pem/node-new.crt.pem" and "ssl/pem/node-new.key.pem"
         updateFiles(newCertFilePath, pemCertFilePath);
@@ -162,8 +157,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
 
-        JSONObject expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+        final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
+        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
 
         // Test Valid Case: Reload same certificate
         updateFiles(defaultCertFilePath, pemCertFilePath);
@@ -178,8 +173,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper rh = getRestHelperAdminUser();
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        JSONObject expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+        final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
+        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
 
         // Test Valid Case: Reload same certificate
         updateFiles(defaultCertFilePath, pemCertFilePath);
@@ -196,37 +191,47 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
      * @return True if all assertions pass
      * @throws Exception if rest api failed
      */
-    private void assertReloadCertificateSuccess(RestHelper rh, String updateChannel, JSONObject expectedCertResponse) throws Exception {
+    private void assertReloadCertificateSuccess(RestHelper rh, String updateChannel, JsonNode expectedCertResponse) throws Exception {
         String reloadEndpoint = updateChannel.equals("http") ? RELOAD_HTTP_CERTS_ENDPOINT : RELOAD_TRANSPORT_CERTS_ENDPOINT;
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(reloadEndpoint, null);
         Assert.assertEquals(200, reloadCertsResponse.getStatusCode());
-        JSONObject expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("message", String.format("updated %s certs", updateChannel));
+        final var expectedJsonResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        expectedJsonResponse.put("message", String.format("updated %s certs", updateChannel));
         Assert.assertEquals(expectedJsonResponse.toString(), reloadCertsResponse.getBody());
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        Assert.assertEquals(expectedCertResponse.toString(), certDetailsResponse);
+        Assert.assertEquals(expectedCertResponse, DefaultObjectMapper.readTree(certDetailsResponse));
     }
 
     private void updateFiles(String srcFile, String dstFile) {
         FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath(srcFile).toString(), dstFile);
     }
 
-    private JSONObject getUpdatedCertDetailsExpectedResponse(String updateChannel) {
+    private JsonNode getUpdatedCertDetailsExpectedResponse(String updateChannel) {
         String updateKey = (Objects.equals(updateChannel, "http")) ? HTTP_CERTIFICATES_LIST_KEY : TRANSPORT_CERTIFICATES_LIST_KEY;
         String oldKey = (Objects.equals(updateChannel, "http")) ? TRANSPORT_CERTIFICATES_LIST_KEY : HTTP_CERTIFICATES_LIST_KEY;
-        JSONObject updatedCertDetailsResponse = new JSONObject();
-        updatedCertDetailsResponse.appendField(updateKey, NEW_NODE_CERT_DETAILS);
-        updatedCertDetailsResponse.appendField(oldKey, NODE_CERT_DETAILS);
+        final var updatedCertDetailsResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        updatedCertDetailsResponse.set(updateKey, buildCertsInfoNode(NEW_NODE_CERT_DETAILS));
+        updatedCertDetailsResponse.set(oldKey, buildCertsInfoNode(NODE_CERT_DETAILS));
         return updatedCertDetailsResponse;
     }
 
-    private JSONObject getInitCertDetailsExpectedResponse() {
-        JSONObject initCertDetailsResponse = new JSONObject();
-        initCertDetailsResponse.appendField(HTTP_CERTIFICATES_LIST_KEY, NODE_CERT_DETAILS);
-        initCertDetailsResponse.appendField(TRANSPORT_CERTIFICATES_LIST_KEY, NODE_CERT_DETAILS);
+    private JsonNode getInitCertDetailsExpectedResponse() {
+        final var initCertDetailsResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        initCertDetailsResponse.set(HTTP_CERTIFICATES_LIST_KEY, buildCertsInfoNode(NODE_CERT_DETAILS));
+        initCertDetailsResponse.set(TRANSPORT_CERTIFICATES_LIST_KEY, buildCertsInfoNode(NODE_CERT_DETAILS));
         return initCertDetailsResponse;
+    }
+
+    private JsonNode buildCertsInfoNode(final List<Map<String, String>> certsInfo) {
+        final var nodeCertDetailsArray = DefaultObjectMapper.objectMapper.createArrayNode();
+        certsInfo.forEach(m -> {
+            final var o = DefaultObjectMapper.objectMapper.createObjectNode();
+            m.forEach(o::put);
+            nodeCertDetailsArray.add(o);
+        });
+        return nodeCertDetailsArray;
     }
 
     /**
