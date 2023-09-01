@@ -84,11 +84,12 @@ public class RolesMappingApiAction extends AbstractApiAction {
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
-                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateRoleForMapping);
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateRole);
             }
 
-            private ValidationResult<SecurityConfiguration> validateRoleForMapping(final SecurityConfiguration securityConfiguration)
+            private ValidationResult<SecurityConfiguration> validateRole(final SecurityConfiguration securityConfiguration)
                 throws IOException {
+                // check here that role is not hidden for the mapping
                 return loadConfiguration(CType.ROLES, false, false).map(
                     rolesConfiguration -> validateRoles(List.of(securityConfiguration.entityName()), rolesConfiguration)
                 ).map(ignore -> ValidationResult.success(securityConfiguration));

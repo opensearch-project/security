@@ -12,16 +12,22 @@
 package org.opensearch.security.dlic.rest.api;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.util.FakeRestRequest;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -36,6 +42,42 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
 
     @Mock
     SecurityDynamicConfiguration<?> configuration;
+
+    @Before
+    public void setupRolesAndMappings() throws IOException {
+        setupRolesConfiguration();
+
+        final var allClusterPermissions = new RoleV7();
+        allClusterPermissions.setCluster_permissions(List.of("*"));
+        @SuppressWarnings("unchecked")
+        final var c = (SecurityDynamicConfiguration<RoleV7>) rolesConfiguration;
+        c.putCEntry("some_role_with_static_mapping", allClusterPermissions);
+        c.putCEntry("some_role_with_reserved_mapping", allClusterPermissions);
+        c.putCEntry("some_role_with_hidden_mapping", allClusterPermissions);
+
+        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var config = objectMapper.createObjectNode();
+        config.set("_meta", objectMapper.createObjectNode().put("type", CType.ROLESMAPPING.toLCString()).put("config_version", 2));
+        config.set("kibana_read_only", objectMapper.createObjectNode());
+        config.set("some_hidden_role", objectMapper.createObjectNode());
+        config.set("all_access", objectMapper.createObjectNode());
+        config.set("regular_role", objectMapper.createObjectNode());
+
+        config.set("some_role_with_static_mapping", objectMapper.createObjectNode().put("static", true));
+        config.set("some_role_with_reserved_mapping", objectMapper.createObjectNode().put("reserved", true));
+        config.set("some_role_with_hidden_mapping", objectMapper.createObjectNode().put("hidden", true));
+
+        final var rolesMappingConfiguration = SecurityDynamicConfiguration.fromJson(
+            objectMapper.writeValueAsString(config),
+            CType.ROLES,
+            2,
+            1,
+            1
+        );
+        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLESMAPPING), false)).thenReturn(
+            Map.of(CType.ROLESMAPPING, rolesMappingConfiguration)
+        );
+    }
 
     @Test
     public void replacePasswordWithHash() throws Exception {
@@ -92,6 +134,48 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         );
         assertFalse(result.isValid());
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, result.status());
+    }
+
+    @Test
+    public void validateSecurityRolesWithMutableRolesMappingConfig() throws Exception {
+        final var internalUsersApiAction = createInternalUsersApiAction();
+
+        // should ok to set regular role with mutable role mapping
+        var userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("regular_role"));
+        var result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
+        assertTrue(result.isValid());
+        // should be ok to set reserved role with mutable role mapping
+        userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("kibana_read_only"));
+        result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
+        assertTrue(result.isValid());
+        // should be ok to set static role with mutable role mapping
+        userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("all_access"));
+        result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
+        assertTrue(result.isValid());
+        // should not be ok to set hidden role with mutable role mapping
+        userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("some_hidden_role"));
+        result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
+        assertFalse(result.isValid());
+    }
+
+    @Test
+    public void validateSecurityRolesWithImmutableRolesMappingConfig() throws Exception {
+        final var internalUsersApiAction = createInternalUsersApiAction();
+        // should not be ok to set role with hidden role mapping
+        var userJson = objectMapper.createObjectNode()
+            .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_hidden_mapping"));
+        var result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
+        assertFalse(result.isValid());
+        // should not be ok to set role with reserved role mapping
+        userJson = objectMapper.createObjectNode()
+            .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_reserved_mapping"));
+        result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
+        assertFalse(result.isValid());
+        // should not be ok to set role with static role mapping
+        userJson = objectMapper.createObjectNode()
+            .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_static_mapping"));
+        result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
+        assertFalse(result.isValid());
     }
 
     private InternalUsersApiAction createInternalUsersApiAction() {
