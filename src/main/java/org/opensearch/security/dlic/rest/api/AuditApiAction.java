@@ -17,36 +17,31 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -126,7 +121,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * [{"op": "replace", "path": "/config/audit/enable_rest", "value": "true"}]
  * [{"op": "replace", "path": "/config/compliance/internal_config", "value": "true"}]
  */
-public class AuditApiAction extends PatchableResourceApiAction {
+public class AuditApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(RestRequest.Method.GET, "/audit/"),
@@ -135,14 +130,11 @@ public class AuditApiAction extends PatchableResourceApiAction {
         )
     );
 
-    private static final String RESOURCE_NAME = "config";
     @VisibleForTesting
     public static final String READONLY_FIELD = "_readonly";
     @VisibleForTesting
     public static final String STATIC_RESOURCE = "/static_config/static_audit.yml";
     private final List<String> readonlyFields;
-    private final PrivilegesEvaluator privilegesEvaluator;
-    private final ThreadContext threadContext;
 
     public static class AuditRequestContentValidator extends RequestContentValidator {
         private static final Set<AuditCategory> DISABLED_REST_CATEGORIES = ImmutableSet.of(
@@ -170,16 +162,16 @@ public class AuditApiAction extends PatchableResourceApiAction {
         }
 
         @Override
-        public ValidationResult validate(RestRequest request) throws IOException {
+        public ValidationResult<JsonNode> validate(RestRequest request) throws IOException {
             return super.validate(request).map(this::validateAuditPayload);
         }
 
         @Override
-        public ValidationResult validate(RestRequest request, JsonNode jsonContent) throws IOException {
+        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonContent) throws IOException {
             return super.validate(request, jsonContent).map(this::validateAuditPayload);
         }
 
-        private ValidationResult validateAuditPayload(final JsonNode jsonContent) {
+        private ValidationResult<JsonNode> validateAuditPayload(final JsonNode jsonContent) {
             try {
                 // try parsing to target type
                 final AuditConfig auditConfig = DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
@@ -195,48 +187,45 @@ public class AuditApiAction extends PatchableResourceApiAction {
                 // this.content is not valid json
                 this.validationError = ValidationError.BODY_NOT_PARSEABLE;
                 LOGGER.error("Invalid content passed in the request", e);
-                return ValidationResult.error(this);
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
         }
     }
 
     public AuditApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator privilegesEvaluator,
+        final ClusterService clusterService,
         final ThreadPool threadPool,
-        final AuditLog auditLog
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
-        this.privilegesEvaluator = privilegesEvaluator;
-        this.threadContext = threadPool.getThreadContext();
+        this(clusterService, threadPool, securityApiDependencies, readReadonlyFieldsFromFile());
+    }
+
+    private static List<String> readReadonlyFieldsFromFile() {
         try {
-            this.readonlyFields = DefaultObjectMapper.YAML_MAPPER.readValue(
-                this.getClass().getResourceAsStream(STATIC_RESOURCE),
+            final var readonlyFields = DefaultObjectMapper.YAML_MAPPER.readValue(
+                AuditApiAction.class.getResourceAsStream(STATIC_RESOURCE),
                 new TypeReference<Map<String, List<String>>>() {
                 }
             ).get(READONLY_FIELD);
-            if (!AuditConfig.FIELD_PATHS.containsAll(this.readonlyFields)) {
+            if (!AuditConfig.FIELD_PATHS.containsAll(readonlyFields)) {
                 throw new StaticResourceException("Invalid read-only field paths provided in static resource file " + STATIC_RESOURCE);
             }
+            return readonlyFields;
+
         } catch (IOException e) {
             throw new StaticResourceException("Unable to load audit static resource file", e);
         }
     }
 
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
+    protected AuditApiAction(
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies,
+        final List<String> readonlyFields
     ) {
-        return true;
+        super(Endpoint.AUDIT, clusterService, threadPool, securityApiDependencies);
+        this.readonlyFields = readonlyFields;
+        this.requestHandlersBuilder.configureRequestHandlers(this::auditApiRequestHandlers);
     }
 
     @Override
@@ -245,96 +234,94 @@ public class AuditApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        // if audit config doc is not available in security index,
-        // disable audit APIs
-        if (!cl.isAuditHotReloadingEnabled()) {
-            notImplemented(channel, request.method());
-            return;
-        }
-        super.handleApiRequest(channel, request, client);
-    }
-
-    @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        if (!RESOURCE_NAME.equals(request.param("name"))) {
-            badRequestResponse(channel, "name must be config");
-            return;
-        }
-        super.handlePut(channel, request, client, content);
-    }
-
-    @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) {
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-        filter(configuration);
-
-        final String resourcename = getResourceName();
-        if (!configuration.exists(resourcename)) {
-            notFound(channel, "Resource '" + resourcename + "' not found.");
-            return;
-        }
-
-        configuration.putCObject(READONLY_FIELD, readonlyFields);
-        successResponse(channel, configuration);
-    }
-
-    @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) {
-        notImplemented(channel, RestRequest.Method.POST);
-    }
-
-    @Override
-    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) {
-        notImplemented(channel, RestRequest.Method.DELETE);
-    }
-
-    @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return new AuditRequestContentValidator(new RequestContentValidator.ValidationContext() {
-            @Override
-            public Object[] params() {
-                return params;
-            }
-
-            @Override
-            public Settings settings() {
-                return settings;
-            }
-
-            @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
-            }
-        });
-    }
-
-    @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.AUDIT;
-    }
-
-    @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.AUDIT;
     }
 
-    @Override
-    protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
-        if (!isSuperAdmin()) {
-            return readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)));
+    private void auditApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.onGetRequest(
+            request -> withEnabledAuditApi(request).map(this::processGetRequest).map(securityConfiguration -> {
+                final var configuration = securityConfiguration.configuration();
+                configuration.putCObject(READONLY_FIELD, readonlyFields);
+                return ValidationResult.success(securityConfiguration);
+            })
+        )
+            .onChangeRequest(RestRequest.Method.PATCH, request -> withEnabledAuditApi(request).map(this::processPatchRequest))
+            .onChangeRequest(
+                RestRequest.Method.PUT,
+                request -> withEnabledAuditApi(request).map(this::withConfigEntityNameOnly).map(ignore -> processPutRequest(request))
+            )
+            .override(RestRequest.Method.POST, methodNotImplementedHandler)
+            .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
+    }
+
+    ValidationResult<RestRequest> withEnabledAuditApi(final RestRequest request) {
+        if (!securityApiDependencies.configurationRepository().isAuditHotReloadingEnabled()) {
+            return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
         }
-        return false;
+        return ValidationResult.success(request);
+    }
+
+    ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
+        final var name = nameParam(request);
+        if (!"config".equals(name)) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
+        }
+        return ValidationResult.success(name);
     }
 
     @Override
-    protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
-        return isReadonlyFieldUpdated(Utils.convertJsonToJackson(configuration, false).get(getResourceName()), targetResource);
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+
+            @Override
+            public Endpoint endpoint() {
+                return endpoint;
+            }
+
+            @Override
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::verifyNotReadonlyFieldUpdated);
+            }
+
+            private ValidationResult<SecurityConfiguration> verifyNotReadonlyFieldUpdated(
+                final SecurityConfiguration securityConfiguration
+            ) {
+                if (!isCurrentUserAdmin()) {
+                    final var existingResource = Utils.convertJsonToJackson(securityConfiguration.configuration(), false).get("config");
+                    final var targetResource = securityConfiguration.requestContent();
+                    if (readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)))) {
+                        return ValidationResult.error(RestStatus.CONFLICT, conflictMessage("Attempted to update read-only property."));
+                    }
+                }
+                return ValidationResult.success(securityConfiguration);
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return new AuditRequestContentValidator(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return securityApiDependencies.settings();
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
+                    }
+                });
+            }
+        };
     }
+
 }

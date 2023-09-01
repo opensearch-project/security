@@ -11,11 +11,6 @@
 
 package org.opensearch.security.ssl;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import net.minidev.json.JSONArray;
@@ -27,8 +22,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -36,6 +31,11 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
@@ -148,13 +148,11 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
-        JSONObject expectedResponse = new JSONObject();
-        expectedResponse.appendField(
-            "error",
+        Assert.assertEquals(
             "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
-                + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+                + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];",
+            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText()
         );
-        Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
     }
 
     @Test

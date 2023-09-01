@@ -11,52 +11,68 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.opensearch.common.CheckedBiConsumer;
 import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
 import java.util.Objects;
 
-public class ValidationResult {
+public class ValidationResult<C> {
 
-    private final JsonNode jsonContent;
+    private final RestStatus status;
+
+    private final C content;
 
     private final ToXContent errorMessage;
 
-    private ValidationResult(final JsonNode jsonContent, final ToXContent errorMessage) {
-        this.jsonContent = jsonContent;
+    private ValidationResult(final C jsonContent) {
+        this(RestStatus.OK, jsonContent, null);
+    }
+
+    private ValidationResult(final RestStatus status, final ToXContent errorMessage) {
+        this(status, null, errorMessage);
+    }
+
+    private ValidationResult(final RestStatus status, final C jsonContent, final ToXContent errorMessage) {
+        this.status = status;
+        this.content = jsonContent;
         this.errorMessage = errorMessage;
     }
 
-    public static ValidationResult success(final JsonNode jsonContent) {
-        return new ValidationResult(jsonContent, null);
+    public static <L> ValidationResult<L> success(final L content) {
+        return new ValidationResult<>(content);
     }
 
-    public static ValidationResult error(final ToXContent errorMessage) {
-        return new ValidationResult(null, errorMessage);
+    public static <L> ValidationResult<L> error(final RestStatus status, final ToXContent errorMessage) {
+        return new ValidationResult<>(status, errorMessage);
     }
 
-    public ValidationResult map(final CheckedFunction<JsonNode, ValidationResult, IOException> validation) throws IOException {
-        if (jsonContent != null) {
-            return Objects.requireNonNull(validation).apply(jsonContent);
+    public <L> ValidationResult<L> map(final CheckedFunction<C, ValidationResult<L>, IOException> mapper) throws IOException {
+        if (content != null) {
+            return Objects.requireNonNull(mapper).apply(content);
         } else {
-            return this;
+            return ValidationResult.error(status, errorMessage);
         }
     }
 
-    public void error(final CheckedConsumer<ToXContent, IOException> invalid) throws IOException {
+    public void error(final CheckedBiConsumer<RestStatus, ToXContent, IOException> mapper) throws IOException {
         if (errorMessage != null) {
-            Objects.requireNonNull(invalid).accept(errorMessage);
+            Objects.requireNonNull(mapper).accept(status, errorMessage);
         }
     }
 
-    public ValidationResult valid(final CheckedConsumer<JsonNode, IOException> contentHandler) throws IOException {
-        if (jsonContent != null) {
-            Objects.requireNonNull(contentHandler).accept(jsonContent);
+    public ValidationResult<C> valid(final CheckedConsumer<C, IOException> mapper) throws IOException {
+        if (content != null) {
+            Objects.requireNonNull(mapper).accept(content);
         }
         return this;
+    }
+
+    public RestStatus status() {
+        return status;
     }
 
     public boolean isValid() {
