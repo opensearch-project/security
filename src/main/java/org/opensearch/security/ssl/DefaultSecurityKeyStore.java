@@ -976,7 +976,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 }
             });
 
-            if (_trustedCerts != null) {
+            if (_trustedCerts != null && _trustedCerts.length > 0) {
                 _sslContextBuilder.trustManager(_trustedCerts);
             }
 
