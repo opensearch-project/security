@@ -13,24 +13,13 @@ opendistro_security_all_access:
       allowed_actions:
         - '*'
 
-extensions_role:
-  description: "ExtensionsRole"
+normal_role:
+  description: "Normal user Role"
   cluster_permissions:
     - '*'
   index_permissions:
     - index_patterns:
         - '.system*'
-      allowed_actions:
-        - '*'
-        - 'system:admin/system_index'
-
-extensions_role_c:
-  description: "Limited ExtensionsRole"
-  cluster_permissions:
-    - '*'
-  index_permissions:
-    - index_patterns:
-        - 'system_index_b'
       allowed_actions:
         - '*'
         - 'system:admin/system_index'

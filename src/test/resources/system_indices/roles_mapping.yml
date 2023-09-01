@@ -13,22 +13,12 @@ opendistro_security_all_access:
   and_backend_roles: []
   description: "Full index permissions"
 
-extensions_role:
+normal_role:
   reserved: false
   hidden: false
   backend_roles: []
   hosts: []
   users:
-    - "extensions_user"
+    - "normal_user"
   and_backend_roles: []
-  description: "System  index permissions"
-
-extensions_role_c:
-  reserved: false
-  hidden: false
-  backend_roles: []
-  hosts: []
-  users:
-    - "extensions_user_c"
-  and_backend_roles: []
-  description: "System  index permissions"
+  description: "System index permissions"

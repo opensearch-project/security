@@ -261,7 +261,7 @@ def setCommonTestConfig(Test task) {
                 "sun.security.jgss.*",
                 "sun.security.pkcs11.*",
                 "sun.security.smartcardio.*",
-                "sun.util.resources.provider.*",
+                "sun.util.resources.provider.*"
         ]
     }
     task.dependsOn copyExtraTestResources
