@@ -972,12 +972,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
                 @Override
                 public SslContextBuilder run() throws Exception {
-                    return configureSSLServerContextBuilder(
-                            SslContextBuilder.forServer(_key, _cert),
-                            sslProvider,
-                            ciphers,
-                            authMode
-                    );
+                    return configureSSLServerContextBuilder(SslContextBuilder.forServer(_key, _cert), sslProvider, ciphers, authMode);
                 }
             });
 
@@ -987,7 +982,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
             return buildSSLContext0(_sslContextBuilder);
         } catch (final PrivilegedActionException e) {
-            throw (SSLException) e.getCause();
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -1010,12 +1009,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
                 @Override
                 public SslContextBuilder run() throws Exception {
-                    return configureSSLServerContextBuilder(
-                            SslContextBuilder.forServer(_cert, _key, pwd),
-                            sslProvider,
-                            ciphers,
-                            authMode
-                    );
+                    return configureSSLServerContextBuilder(SslContextBuilder.forServer(_cert, _key, pwd), sslProvider, ciphers, authMode);
                 }
             });
 
@@ -1025,7 +1019,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
             return buildSSLContext0(_sslContextBuilder);
         } catch (final PrivilegedActionException e) {
-            throw (SSLException) e.getCause();
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -1118,7 +1116,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 }
             });
         } catch (final PrivilegedActionException e) {
-            throw (SSLException) e.getCause();
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
 
         return sslContext;
