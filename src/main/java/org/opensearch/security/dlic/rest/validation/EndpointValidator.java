@@ -11,11 +11,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import static java.util.function.Predicate.not;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.notFoundMessage;
-import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
 public interface EndpointValidator {
 
@@ -132,18 +130,16 @@ public interface EndpointValidator {
     default ValidationResult<SecurityDynamicConfiguration<?>> validateRoles(
         final List<String> roles,
         final SecurityDynamicConfiguration<?> rolesConfiguration
-    ) {
-        final var rolesToCheck = roles == null ? List.<String>of() : roles;
-        return rolesToCheck.stream().map(role -> withIOException(() -> {
-            final var roleSecConfig = SecurityConfiguration.of(role, rolesConfiguration);
-            return entityExists("role", roleSecConfig).map(this::isAllowedToChangeImmutableEntity);
-        }))
-            .filter(not(ValidationResult::isValid))
-            .findFirst()
-            .<ValidationResult<SecurityDynamicConfiguration<?>>>map(
-                result -> ValidationResult.error(result.status(), result.errorMessage())
-            )
-            .orElseGet(() -> ValidationResult.success(rolesConfiguration));
+    ) throws IOException {
+        for (final var role : roles) {
+            final var validRole = entityExists("role", SecurityConfiguration.of(role, rolesConfiguration)).map(
+                this::isAllowedToLoadOrChangeHiddenEntity
+            );
+            if (!validRole.isValid()) {
+                return ValidationResult.error(validRole.status(), validRole.errorMessage());
+            }
+        }
+        return ValidationResult.success(rolesConfiguration);
     }
 
     default ValidationResult<SecurityConfiguration> isAllowedToChangeEntityWithRestAdminPermissions(
