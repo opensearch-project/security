@@ -968,18 +968,27 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final ClientAuth authMode
     ) throws SSLException {
 
-        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(
-            SslContextBuilder.forServer(_key, _cert),
-            sslProvider,
-            ciphers,
-            authMode
-        );
+        try {
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
+                @Override
+                public SslContextBuilder run() throws Exception {
+                    return configureSSLServerContextBuilder(
+                            SslContextBuilder.forServer(_key, _cert),
+                            sslProvider,
+                            ciphers,
+                            authMode
+                    );
+                }
+            });
 
-        if (_trustedCerts != null && _trustedCerts.length > 0) {
-            _sslContextBuilder.trustManager(_trustedCerts);
+            if (_trustedCerts != null) {
+                _sslContextBuilder.trustManager(_trustedCerts);
+            }
+
+            return buildSSLContext0(_sslContextBuilder);
+        } catch (final PrivilegedActionException e) {
+            throw (SSLException) e.getCause();
         }
-
-        return buildSSLContext0(_sslContextBuilder);
     }
 
     private SslContext buildSSLServerContext(
@@ -1001,13 +1010,12 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
                 @Override
                 public SslContextBuilder run() throws Exception {
-                    return SslContextBuilder.forServer(_cert, _key, pwd)
-                        .ciphers(ciphers)
-                        .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                        .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
-                        .sessionCacheSize(0)
-                        .sessionTimeout(0)
-                        .sslProvider(sslProvider);
+                    return configureSSLServerContextBuilder(
+                            SslContextBuilder.forServer(_cert, _key, pwd),
+                            sslProvider,
+                            ciphers,
+                            authMode
+                    );
                 }
             });
 
