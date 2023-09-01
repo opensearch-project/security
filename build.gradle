@@ -486,7 +486,7 @@ dependencies {
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.5.0'
-    implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+    implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
 
     //JWT
@@ -567,7 +567,7 @@ dependencies {
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
     runtimeOnly 'org.checkerframework:checker-qual:3.36.0'
-    runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+    runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
