@@ -268,7 +268,7 @@ Checkstyle enforces several rules within this codebase. Sometimes it will be nec
 
 *Suppression All Checkstyle Rules*
 ```
-  // CS-SUPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
+  // CS-SUPPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
   ...
   // CS-ENFORCE-ALL
 ```
