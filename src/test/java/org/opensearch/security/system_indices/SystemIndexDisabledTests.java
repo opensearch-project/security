@@ -11,8 +11,11 @@
 
 package org.opensearch.security.system_indices;
 
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.action.admin.indices.close.CloseIndexRequest;
+import org.opensearch.client.Client;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
@@ -255,6 +258,101 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
             response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, normalUserHeader);
             allowedExceptSecurityIndex(index, response, "", normalUser);
+        }
+    }
+
+    /**
+     * SNAPSHOT get + restore
+     */
+    @Test
+    public void testSnapshotSystemIndicesAsSuperAdmin() {
+        createSnapshots();
+
+        RestHelper restHelper = superAdminRestHelper();
+        try (Client tc = getClient()) {
+            for (String index : SYSTEM_INDICES) {
+                tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
+            }
+        }
+
+        for (String index : SYSTEM_INDICES) {
+            assertEquals(HttpStatus.SC_OK, restHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1").getStatusCode());
+            assertEquals(
+                HttpStatus.SC_OK,
+                restHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "",
+                    allAccessUserHeader
+                ).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_OK,
+                restHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    allAccessUserHeader
+                ).getStatusCode()
+            );
+        }
+    }
+
+    @Test
+    public void testSnapshotSystemIndicesAsAdmin() {
+        createSnapshots();
+
+        RestHelper restHelper = sslRestHelper();
+        try (Client tc = getClient()) {
+            for (String index : SYSTEM_INDICES) {
+                tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
+            }
+        }
+
+        for (String index : SYSTEM_INDICES) {
+            String snapshotRequest = "_snapshot/" + index + "/" + index + "_1";
+            RestHelper.HttpResponse res = restHelper.executeGetRequest(snapshotRequest);
+            assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
+
+            res = restHelper.executePostRequest(snapshotRequest + "/_restore?wait_for_completion=true", "", allAccessUserHeader);
+            allowedExceptSecurityIndex(index, res, "", allAccessUser);
+
+            res = restHelper.executePostRequest(
+                snapshotRequest + "/_restore?wait_for_completion=true",
+                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                allAccessUserHeader
+            );
+            allowedExceptSecurityIndex(index, res, "", allAccessUser);
+        }
+    }
+
+    @Test
+    public void testSnapshotSystemIndicesAsNormalUser() {
+        createSnapshots();
+
+        try (Client tc = getClient()) {
+            for (String index : SYSTEM_INDICES) {
+                tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
+            }
+        }
+
+        RestHelper restHelper = sslRestHelper();
+        for (String index : SYSTEM_INDICES) {
+            String snapshotRequest = "_snapshot/" + index + "/" + index + "_1";
+            RestHelper.HttpResponse res = restHelper.executeGetRequest(snapshotRequest);
+            assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
+
+            res = restHelper.executePostRequest(snapshotRequest + "/_restore?wait_for_completion=true", "", normalUserHeader);
+            allowedExceptSecurityIndex(index, res, "", normalUser);
+
+            res = restHelper.executePostRequest(
+                snapshotRequest + "/_restore?wait_for_completion=true",
+                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                normalUserHeader
+            );
+            if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
+                validateForbiddenResponse(res, "", normalUser);
+            } else {
+                validateForbiddenResponse(res, "indices:data/write/index, indices:admin/create", normalUser);
+            }
         }
     }
 }
