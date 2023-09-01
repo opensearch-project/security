@@ -17,3 +17,11 @@ normal_user:
   backend_roles: []
   attributes: {}
   description: "User Mapped to role With Access to Admin:System:Indices "
+
+normal_user_without_system_index:
+  hash: "$2y$12$V3.ACgUpHP9TlSbV3CNekOGB1NVov1C6Rq3QtXWCvACKVeQnkBCgG"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "User Mapped to role With no access to system indices"

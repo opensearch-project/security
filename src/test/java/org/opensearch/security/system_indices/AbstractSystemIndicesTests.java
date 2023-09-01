@@ -57,6 +57,9 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     static final String normalUser = "normal_user";
     static final Header normalUserHeader = encodeBasicHeader(normalUser, normalUser);
 
+    static final String normalUserWithoutSystemIndex = "normal_user_without_system_index";
+    static final Header normalUserWithoutSystemIndexHeader = encodeBasicHeader(normalUserWithoutSystemIndex, normalUserWithoutSystemIndex);
+
     static final String createIndexSettings = "{\n"
         + "    \"settings\" : {\n"
         + "        \"index\" : {\n"
@@ -73,7 +76,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
 
         Settings systemIndexSettings = Settings.builder()
             .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, isSystemIndexEnabled)
-            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, isSystemIndexPermissionEnabled)
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, isSystemIndexPermissionEnabled)
             .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, SYSTEM_INDICES)
             .put("plugins.security.ssl.http.enabled", true)
             .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))

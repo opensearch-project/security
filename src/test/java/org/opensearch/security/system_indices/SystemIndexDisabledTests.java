@@ -11,6 +11,7 @@
 
 package org.opensearch.security.system_indices;
 
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +19,8 @@ import org.opensearch.action.admin.indices.close.CloseIndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -72,23 +75,32 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
     @Test
     public void testSearchAsNormalUser() throws Exception {
+        testSearchWithUser(normalUser, normalUserHeader);
+    }
+
+    @Test
+    public void testSearchAsNormalUserWithoutSystemIndexAccess() throws Exception {
+        testSearchWithUser(normalUserWithoutSystemIndex, normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testSearchWithUser(String user, Header header) throws IOException {
         RestHelper restHelper = sslRestHelper();
 
         // search system indices
         for (String index : SYSTEM_INDICES) {
             // security index is only accessible by super-admin
-            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", "", normalUserHeader);
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", "", header);
             if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
-                validateForbiddenResponse(response, "indices:data/read/search", normalUser);
+                validateForbiddenResponse(response, "indices:data/read/search", user);
             } else {
                 validateSearchResponse(response, 1);
             }
         }
 
         // search all indices
-        RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", "", normalUserHeader);
+        RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", "", header);
         assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
-        validateForbiddenResponse(response, "indices:data/read/search", normalUser);
+        validateForbiddenResponse(response, "indices:data/read/search", user);
     }
 
     /**
@@ -109,27 +121,28 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
     @Test
     public void testDeleteAsAdmin() {
-        RestHelper restHelper = sslRestHelper();
-
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executeDeleteRequest(index + "/_doc/document1", allAccessUserHeader);
-            allowedExceptSecurityIndex(index, response, "", allAccessUser);
-
-            response = restHelper.executeDeleteRequest(index, allAccessUserHeader);
-            allowedExceptSecurityIndex(index, response, "", allAccessUser);
-        }
+        testDeleteWithUser(allAccessUser, allAccessUserHeader);
     }
 
     @Test
     public void testDeleteAsNormalUser() {
+        testDeleteWithUser(normalUser, normalUserHeader);
+    }
+
+    @Test
+    public void testDeleteAsNormalUserWithoutSystemIndexAccess() {
+        testDeleteWithUser(normalUserWithoutSystemIndex, normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testDeleteWithUser(String user, Header header) {
         RestHelper restHelper = sslRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executeDeleteRequest(index + "/_doc/document1", normalUserHeader);
-            allowedExceptSecurityIndex(index, response, "", normalUser);
+            RestHelper.HttpResponse response = restHelper.executeDeleteRequest(index + "/_doc/document1", header);
+            allowedExceptSecurityIndex(index, response, "", user);
 
-            response = restHelper.executeDeleteRequest(index, normalUserHeader);
-            allowedExceptSecurityIndex(index, response, "", normalUser);
+            response = restHelper.executeDeleteRequest(index, header);
+            allowedExceptSecurityIndex(index, response, "", user);
         }
     }
 
@@ -157,7 +170,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
             allowedExceptSecurityIndex(index, response, "", allAccessUser);
 
-            // admin can open security index but cannot close it
+            // User can open the index but cannot close it
             response = restHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
         }
@@ -165,15 +178,24 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
     @Test
     public void testCloseOpenAsNormalUser() {
+        testCloseOpenWithUser(normalUser, normalUserHeader);
+    }
+
+    @Test
+    public void testCloseOpenAsNormalUserWithoutSystemIndexAccess() {
+        testCloseOpenWithUser(normalUserWithoutSystemIndex, normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testCloseOpenWithUser(String user, Header header) {
         RestHelper restHelper = sslRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", normalUserHeader);
-            allowedExceptSecurityIndex(index, response, "", normalUser);
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", header);
+            allowedExceptSecurityIndex(index, response, "", user);
 
-            // normal user cannot open or close security index
-            response = restHelper.executePostRequest(index + "/_open", "", normalUserHeader);
-            allowedExceptSecurityIndex(index, response, "indices:admin/open", normalUser);
+            // User can open the index but cannot close it
+            response = restHelper.executePostRequest(index + "/_open", "", header);
+            allowedExceptSecurityIndex(index, response, "indices:admin/open", user);
         }
     }
 
@@ -195,26 +217,27 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
     @Test
     public void testCreateIndexAsAdmin() {
-        RestHelper restHelper = sslRestHelper();
-
-        for (String index : INDICES_FOR_CREATE_REQUEST) {
-            RestHelper.HttpResponse responseIndex = restHelper.executePutRequest(index, createIndexSettings, allAccessUserHeader);
-            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
-
-            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", allAccessUserHeader);
-            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
-        }
+        testCreateIndexWithUser(allAccessUserHeader);
     }
 
     @Test
     public void testCreateIndexAsNormalUser() {
+        testCreateIndexWithUser(normalUserHeader);
+    }
+
+    @Test
+    public void testCreateIndexAsNormalUserWithoutSystemIndexAccess() {
+        testCreateIndexWithUser(normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testCreateIndexWithUser(Header header) {
         RestHelper restHelper = sslRestHelper();
 
         for (String index : INDICES_FOR_CREATE_REQUEST) {
-            RestHelper.HttpResponse response = restHelper.executePutRequest(index, createIndexSettings, normalUserHeader);
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index, createIndexSettings, header);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
 
-            response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", normalUserHeader);
+            response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", header);
             assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
         }
     }
@@ -237,27 +260,28 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
     @Test
     public void testUpdateMappingsAsAdmin() {
-        RestHelper restHelper = sslRestHelper();
-
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, allAccessUserHeader);
-            allowedExceptSecurityIndex(index, response, "", allAccessUser);
-
-            response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, allAccessUserHeader);
-            allowedExceptSecurityIndex(index, response, "", allAccessUser);
-        }
+        testUpdateWithUser(allAccessUser, allAccessUserHeader);
     }
 
     @Test
     public void testUpdateAsNormalUser() {
+        testUpdateWithUser(normalUser, normalUserHeader);
+    }
+
+    @Test
+    public void testUpdateAsNormalUserWithoutSystemIndexAccess() {
+        testUpdateWithUser(normalUserWithoutSystemIndex, normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testUpdateWithUser(String user, Header header) {
         RestHelper restHelper = sslRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, normalUserHeader);
-            allowedExceptSecurityIndex(index, response, "", normalUser);
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, header);
+            allowedExceptSecurityIndex(index, response, "", user);
 
-            response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, normalUserHeader);
-            allowedExceptSecurityIndex(index, response, "", normalUser);
+            response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, header);
+            allowedExceptSecurityIndex(index, response, "", user);
         }
     }
 
@@ -326,6 +350,15 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
     @Test
     public void testSnapshotSystemIndicesAsNormalUser() {
+        testSnapshotWithUser(normalUser, normalUserHeader);
+    }
+
+    @Test
+    public void testSnapshotSystemIndicesAsNormalUserWithoutSystemIndexAccess() {
+        testSnapshotWithUser(normalUserWithoutSystemIndex, normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testSnapshotWithUser(String user, Header header) {
         createSnapshots();
 
         try (Client tc = getClient()) {
@@ -340,18 +373,18 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
             RestHelper.HttpResponse res = restHelper.executeGetRequest(snapshotRequest);
             assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
 
-            res = restHelper.executePostRequest(snapshotRequest + "/_restore?wait_for_completion=true", "", normalUserHeader);
-            allowedExceptSecurityIndex(index, res, "", normalUser);
+            res = restHelper.executePostRequest(snapshotRequest + "/_restore?wait_for_completion=true", "", header);
+            allowedExceptSecurityIndex(index, res, "", user);
 
             res = restHelper.executePostRequest(
                 snapshotRequest + "/_restore?wait_for_completion=true",
                 "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                normalUserHeader
+                header
             );
             if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
-                validateForbiddenResponse(res, "", normalUser);
+                validateForbiddenResponse(res, "", user);
             } else {
-                validateForbiddenResponse(res, "indices:data/write/index, indices:admin/create", normalUser);
+                validateForbiddenResponse(res, "indices:data/write/index, indices:admin/create", user);
             }
         }
     }

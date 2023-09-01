@@ -11,6 +11,7 @@
 
 package org.opensearch.security.system_indices;
 
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,6 +88,24 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
         validateForbiddenResponse(response, "indices:data/read/search", normalUser);
     }
 
+    @Test
+    public void testSearchAsNormalUserWithoutSystemIndexAccess() {
+        RestHelper restHelper = sslRestHelper();
+
+        // search system indices
+        for (String index : SYSTEM_INDICES) {
+            // security index is only accessible by super-admin
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", "", normalUserWithoutSystemIndexHeader);
+            validateForbiddenResponse(response, "", normalUserWithoutSystemIndex);
+
+        }
+
+        // search all indices
+        RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", "", normalUserWithoutSystemIndexHeader);
+        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        validateForbiddenResponse(response, "indices:data/read/search", normalUserWithoutSystemIndex);
+    }
+
     /**
      *  DELETE document + index
      */
@@ -131,6 +150,23 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
         }
     }
 
+    @Test
+    public void testDeleteAsNormalUserWithoutSystemIndexAccess() {
+        RestHelper restHelper = sslRestHelper();
+
+        // does not allow interaction with any system index as it doesn't have the permission
+        for (String index : SYSTEM_INDICES) {
+            RestHelper.HttpResponse response = restHelper.executeDeleteRequest(
+                index + "/_doc/document1",
+                normalUserWithoutSystemIndexHeader
+            );
+            validateForbiddenResponse(response, "", normalUserWithoutSystemIndex);
+
+            response = restHelper.executeDeleteRequest(index, normalUserWithoutSystemIndexHeader);
+            validateForbiddenResponse(response, "", normalUserWithoutSystemIndex);
+        }
+    }
+
     /**
      * CLOSE-OPEN
      */
@@ -149,16 +185,7 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
 
     @Test
     public void testCloseOpenAsAdmin() {
-        RestHelper restHelper = sslRestHelper();
-
-        // admin cannot close or open any system index when system index permissions are enabled
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
-            validateForbiddenResponse(response, "", allAccessUser);
-
-            response = restHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
-            validateForbiddenResponse(response, "", allAccessUser);
-        }
+        testCloseOpenWithUser(allAccessUser, allAccessUserHeader);
     }
 
     @Test
@@ -172,6 +199,24 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
             // normal user cannot open or close security index
             response = restHelper.executePostRequest(index + "/_open", "", normalUserHeader);
             allowedExceptSecurityIndex(index, response, "", normalUser);
+        }
+    }
+
+    @Test
+    public void testCloseOpenAsNormalUserWithoutSystemIndexAccess() {
+        testCloseOpenWithUser(normalUserWithoutSystemIndex, normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testCloseOpenWithUser(String user, Header header) {
+        RestHelper restHelper = sslRestHelper();
+
+        for (String index : SYSTEM_INDICES) {
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", header);
+            validateForbiddenResponse(response, "", user);
+
+            // admin or normal user (without system index permission) cannot open or close any system index
+            response = restHelper.executePostRequest(index + "/_open", "", header);
+            validateForbiddenResponse(response, "", user);
         }
     }
 
@@ -194,26 +239,27 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
 
     @Test
     public void testCreateIndexAsAdmin() {
-        RestHelper restHelper = sslRestHelper();
-
-        for (String index : INDICES_FOR_CREATE_REQUEST) {
-            RestHelper.HttpResponse responseIndex = restHelper.executePutRequest(index, createIndexSettings, allAccessUserHeader);
-            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
-
-            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", allAccessUserHeader);
-            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
-        }
+        testCreateIndexWithUser(allAccessUserHeader);
     }
 
     @Test
     public void testCreateIndexAsNormalUser() {
+        testCreateIndexWithUser(normalUserHeader);
+    }
+
+    @Test
+    public void testCreateIndexAsNormalUserWithoutSystemIndexAccess() {
+        testCreateIndexWithUser(normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testCreateIndexWithUser(Header header) {
         RestHelper restHelper = sslRestHelper();
 
         for (String index : INDICES_FOR_CREATE_REQUEST) {
-            RestHelper.HttpResponse response = restHelper.executePutRequest(index, createIndexSettings, normalUserHeader);
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index, createIndexSettings, header);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
 
-            response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", normalUserHeader);
+            response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", header);
             assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
         }
     }
@@ -235,16 +281,8 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
     }
 
     @Test
-    public void testUpdateMappingsAsAdmin() {
-        RestHelper restHelper = sslRestHelper();
-
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, allAccessUserHeader);
-            validateForbiddenResponse(response, "", allAccessUser);
-
-            response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, allAccessUserHeader);
-            validateForbiddenResponse(response, "", allAccessUser);
-        }
+    public void testUpdateAsAdmin() {
+        testUpdateWithUser(allAccessUser, allAccessUserHeader);
     }
 
     @Test
@@ -252,11 +290,28 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
         RestHelper restHelper = sslRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, normalUserHeader);
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, normalUserHeader);
             allowedExceptSecurityIndex(index, response, "", normalUser);
 
-            response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, normalUserHeader);
+            response = restHelper.executePutRequest(index + "/_mapping", newMappings, normalUserHeader);
             allowedExceptSecurityIndex(index, response, "", normalUser);
+        }
+    }
+
+    @Test
+    public void testUpdateAsNormalUserWithoutSystemIndexAccess() {
+        testUpdateWithUser(normalUserWithoutSystemIndex, normalUserWithoutSystemIndexHeader);
+    }
+
+    private void testUpdateWithUser(String user, Header header) {
+        RestHelper restHelper = sslRestHelper();
+
+        for (String index : SYSTEM_INDICES) {
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, header);
+            validateForbiddenResponse(response, "", user);
+
+            response = restHelper.executePutRequest(index + "/_mapping", newMappings, header);
+            validateForbiddenResponse(response, "", user);
         }
     }
 
@@ -357,6 +412,41 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
                 validateForbiddenResponse(res, "", normalUser);
             } else {
                 validateForbiddenResponse(res, "indices:data/write/index, indices:admin/create", normalUser);
+            }
+        }
+    }
+
+    @Test
+    public void testSnapshotSystemIndicesAsNormalUserWithoutSystemIndexAccess() {
+        createSnapshots();
+
+        try (Client tc = getClient()) {
+            for (String index : SYSTEM_INDICES) {
+                tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
+            }
+        }
+
+        RestHelper restHelper = sslRestHelper();
+        for (String index : SYSTEM_INDICES) {
+            RestHelper.HttpResponse res = restHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1");
+            assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
+
+            res = restHelper.executePostRequest(
+                "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                "",
+                normalUserWithoutSystemIndexHeader
+            );
+            validateForbiddenResponse(res, "", normalUserWithoutSystemIndex);
+
+            res = restHelper.executePostRequest(
+                "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                normalUserWithoutSystemIndexHeader
+            );
+            if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
+                validateForbiddenResponse(res, "", normalUserWithoutSystemIndex);
+            } else {
+                validateForbiddenResponse(res, "indices:data/write/index, indices:admin/create", normalUserWithoutSystemIndex);
             }
         }
     }

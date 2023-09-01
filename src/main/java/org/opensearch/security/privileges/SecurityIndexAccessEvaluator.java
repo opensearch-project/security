@@ -62,7 +62,7 @@ public class SecurityIndexAccessEvaluator {
     private final WildcardMatcher denylistIndexMatcher;
 
     private final boolean systemIndexEnabled;
-    private boolean systemIndicesAdditionalControlFlag;
+    private final boolean systemIndicesPermissionsEnabled;
 
     public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.securityIndex = settings.get(
@@ -102,9 +102,9 @@ public class SecurityIndexAccessEvaluator {
         securityDeniedActionMatcher = WildcardMatcher.from(
             restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot
         );
-        systemIndicesAdditionalControlFlag = settings.getAsBoolean(
-            ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY,
-            ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_DEFAULT
+        systemIndicesPermissionsEnabled = settings.getAsBoolean(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT
         );
     }
 
@@ -120,7 +120,7 @@ public class SecurityIndexAccessEvaluator {
 
         // As per issue #2845, the legacy access control to indices with additional protection should be kept in place in the meantime and
         // be the default.
-        if (systemIndicesAdditionalControlFlag) {
+        if (systemIndicesPermissionsEnabled) {
             evaluateNewSecuredIndicesAccess(action, requestedResolved, request, task, presponse, securityRoles, isDebugEnabled);
         } else {
             evaluateLegacySecuredIndicesAccess(action, requestedResolved, request, task, presponse, isDebugEnabled);

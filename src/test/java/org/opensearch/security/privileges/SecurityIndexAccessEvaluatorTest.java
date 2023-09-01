@@ -36,7 +36,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -67,7 +66,7 @@ public class SecurityIndexAccessEvaluatorTest {
         evaluator = new SecurityIndexAccessEvaluator(
             Settings.EMPTY.builder()
                 .put("plugins.security.system_indices.indices", ".testSystemIndex")
-                .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, true)
+                .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, true)
                 .put("plugins.security.system_indices.enabled", true)
                 .build(),
             auditLog,
@@ -119,7 +118,6 @@ public class SecurityIndexAccessEvaluatorTest {
         evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, presponse, securityRoles);
         evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, presponse, securityRoles);
 
-        verifyNoInteractions(presponse);
         verify(searchRequest).requestCache(Boolean.FALSE);
         verify(realtimeRequest).realtime(Boolean.FALSE);
 

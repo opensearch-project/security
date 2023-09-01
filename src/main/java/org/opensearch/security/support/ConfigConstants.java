@@ -314,9 +314,8 @@ public class ConfigConstants {
     public static final String SYSTEM_INDEX_PERMISSION = "system:admin/system_index";
     public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = "plugins.security.system_indices.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
-    public static final String SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY =
-        "plugins.security.system_indices.additional_control.enabled";
-    public static final Boolean SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_DEFAULT = false;
+    public static final String SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY = "plugins.security.system_indices.permission.enabled";
+    public static final Boolean SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
 
