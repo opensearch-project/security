@@ -16,6 +16,8 @@ import java.util.List;
 
 import org.apache.hc.core5.http.Header;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -42,11 +44,12 @@ import static org.junit.Assert.assertEquals;
  *            "plugins.security.system_indices.indices";
  */
 
-public class SystemIndicesTests extends SingleClusterTest {
+public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
 
     static final String ACCESSIBLE_ONLY_BY_SUPER_ADMIN = ".opendistro_security";
-    static final String ACCESSIBLE_BY_AUTHORIZED_USER = ".opendistro-alerting";
-    static final List<String> SYSTEM_INDICES = List.of(ACCESSIBLE_BY_AUTHORIZED_USER, ACCESSIBLE_ONLY_BY_SUPER_ADMIN);
+    static final List<String> SYSTEM_INDICES = List.of(".system_index_1", ACCESSIBLE_ONLY_BY_SUPER_ADMIN);
+
+    static final List<String> INDICES_FOR_CREATE_REQUEST = List.of(".system_index_2");
     static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
     static final String allAccessUser = "admin_all_access";
     static final Header allAccessUserHeader = encodeBasicHeader(allAccessUser, allAccessUser);
@@ -55,7 +58,19 @@ public class SystemIndicesTests extends SingleClusterTest {
         allAccessUser
     );
 
-    static final String normalUser = "extensions_user";
+    static final String createIndexSettings = "{\n"
+        + "    \"settings\" : {\n"
+        + "        \"index\" : {\n"
+        + "            \"number_of_shards\" : 3, \n"
+        + "            \"number_of_replicas\" : 2 \n"
+        + "        }\n"
+        + "    }\n"
+
+        + "}";
+    static final String updateIndexSettings = "{\n" + "    \"index\" : {\n" + "        \"refresh_interval\" : null\n" + "    }\n" + "}";
+    static final String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
+
+    static final String normalUser = "normal_user";
     static final Header normalUserHeader = encodeBasicHeader(normalUser, allAccessUser);
 
     void setupWithSsl(boolean isSystemIndexEnabled, boolean isSystemIndexPermissionEnabled) throws Exception {
@@ -87,7 +102,10 @@ public class SystemIndicesTests extends SingleClusterTest {
     void createTestIndicesAndDocs() {
         try (Client tc = getClient()) {
             for (String index : SYSTEM_INDICES) {
-                tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
+                // security index is already created
+                if (!index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
+                    tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
+                }
                 tc.index(
                     new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                         .id("document1")
@@ -142,6 +160,27 @@ public class SystemIndicesTests extends SingleClusterTest {
         assertEquals(expectedHits, searchResponse.getHits().getHits().length);
         assertEquals(0, searchResponse.getFailedShards());
         assertEquals(5, searchResponse.getSuccessfulShards());
+    }
+
+    String permissionExceptionMessage(String action, String username) {
+        return "{\"type\":\"security_exception\",\"reason\":\"no permissions for ["
+            + action
+            + "] and User [name="
+            + username
+            + ", backend_roles=[], requestedTenant=null]\"}";
+    }
+
+    void validateForbiddenResponse(RestHelper.HttpResponse response, String action, String user) {
+        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        MatcherAssert.assertThat(response.getBody(), Matchers.containsStringIgnoringCase(permissionExceptionMessage(action, user)));
+    }
+
+    void allowedExceptSecurityIndex(String index, RestHelper.HttpResponse response, String action, String user) {
+        if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
+            validateForbiddenResponse(response, action, user);
+        } else {
+            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+        }
     }
 
 }
