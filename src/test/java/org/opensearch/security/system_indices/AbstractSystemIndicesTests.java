@@ -53,10 +53,9 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
     static final String allAccessUser = "admin_all_access";
     static final Header allAccessUserHeader = encodeBasicHeader(allAccessUser, allAccessUser);
-    static final String generalErrorMessage = String.format(
-        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]",
-        allAccessUser
-    );
+
+    static final String normalUser = "normal_user";
+    static final Header normalUserHeader = encodeBasicHeader(normalUser, normalUser);
 
     static final String createIndexSettings = "{\n"
         + "    \"settings\" : {\n"
@@ -69,9 +68,6 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         + "}";
     static final String updateIndexSettings = "{\n" + "    \"index\" : {\n" + "        \"refresh_interval\" : null\n" + "    }\n" + "}";
     static final String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
-
-    static final String normalUser = "normal_user";
-    static final Header normalUserHeader = encodeBasicHeader(normalUser, allAccessUser);
 
     void setupWithSsl(boolean isSystemIndexEnabled, boolean isSystemIndexPermissionEnabled) throws Exception {
 

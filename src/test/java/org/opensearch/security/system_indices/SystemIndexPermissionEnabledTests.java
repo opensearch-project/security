@@ -12,8 +12,6 @@
 package org.opensearch.security.system_indices;
 
 import org.apache.hc.core5.http.HttpStatus;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.close.CloseIndexRequest;
@@ -22,8 +20,9 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-public class SystemIndexPermissionEnabledTests extends SystemIndicesTests {
+public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTests {
 
     @Before
     public void setup() throws Exception {
@@ -31,13 +30,17 @@ public class SystemIndexPermissionEnabledTests extends SystemIndicesTests {
         createTestIndicesAndDocs();
     }
 
+    /**
+     * SEARCH
+     */
     @Test
-    public void testAccessAsSuperAdmin() throws Exception {
+    public void testSearchAsSuperAdmin() throws Exception {
         RestHelper restHelper = superAdminRestHelper();
 
         // search system indices
-        for (String idx : SYSTEM_INDICES) {
-            validateSearchResponse(restHelper.executePostRequest(idx + "/_search", matchAllQuery), 10);
+        for (String index : SYSTEM_INDICES) {
+            int expectedHits = index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN) ? 10 : 1;
+            validateSearchResponse(restHelper.executePostRequest(index + "/_search", matchAllQuery), expectedHits);
         }
 
         // search all indices
@@ -52,271 +55,279 @@ public class SystemIndexPermissionEnabledTests extends SystemIndicesTests {
         // search system indices
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", matchAllQuery, allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
-            MatcherAssert.assertThat(
-                response.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}"
-                )
-            );
+            // no system indices are searchable by admin
+            validateForbiddenResponse(response, "", allAccessUser);
         }
 
         // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
         assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+        assertFalse(response.getBody().contains(SYSTEM_INDICES.get(0)));
+        assertFalse(response.getBody().contains(ACCESSIBLE_ONLY_BY_SUPER_ADMIN));
     }
 
     @Test
     public void testSearchAsNormalUser() throws Exception {
         RestHelper restHelper = sslRestHelper();
 
+        // search system indices
         for (String index : SYSTEM_INDICES) {
-            validateSearchResponse(restHelper.executePostRequest(index + "/_search", matchAllQuery, normalUserHeader), 0);
+            // security index is only accessible by super-admin
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", "", normalUserHeader);
+            if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
+                validateForbiddenResponse(response, "", normalUser);
+            } else {
+                validateSearchResponse(response, 0);
+            }
         }
 
+        // search all indices
+        RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", "", normalUserHeader);
+        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        validateForbiddenResponse(response, "indices:data/read/search", normalUser);
     }
 
-    /***************************************************************************************************************************
-     * Delete index and Delete doc
-     ***************************************************************************************************************************/
-
+    /**
+     *  DELETE document + index
+     */
     @Test
     public void testDeleteAsSuperAdmin() {
-        RestHelper keyStoreRestHelper = superAdminRestHelper();
+        RestHelper restHelper = superAdminRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse responseDoc = keyStoreRestHelper.executeDeleteRequest(index + "/_doc/document1");
+            RestHelper.HttpResponse responseDoc = restHelper.executeDeleteRequest(index + "/_doc/document1");
             assertEquals(RestStatus.OK.getStatus(), responseDoc.getStatusCode());
 
-            RestHelper.HttpResponse responseIndex = keyStoreRestHelper.executeDeleteRequest(index);
+            RestHelper.HttpResponse responseIndex = restHelper.executeDeleteRequest(index);
             assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
         }
     }
 
     @Test
     public void testDeleteAsAdmin() {
-        RestHelper sslRestHelper = sslRestHelper();
+        RestHelper restHelper = sslRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse responseDoc = sslRestHelper.executeDeleteRequest(index + "/_doc/document1", allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), responseDoc.getStatusCode());
-            MatcherAssert.assertThat(
-                responseDoc.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}]"
-                )
-            );
+            RestHelper.HttpResponse response = restHelper.executeDeleteRequest(index + "/_doc/document1", allAccessUserHeader);
+            validateForbiddenResponse(response, "", allAccessUser);
 
-            RestHelper.HttpResponse responseIndex = sslRestHelper.executeDeleteRequest(index, allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), responseIndex.getStatusCode());
-            MatcherAssert.assertThat(
-                responseDoc.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}]"
-                )
-            );
+            response = restHelper.executeDeleteRequest(index, allAccessUserHeader);
+            validateForbiddenResponse(response, "", allAccessUser);
         }
     }
 
-    /***************************************************************************************************************************
-     * open and close index
-     ***************************************************************************************************************************/
+    @Test
+    public void testDeleteAsNormalUser() {
+        RestHelper restHelper = sslRestHelper();
 
+        // allows interacting with the index it has access to: `.system_index_1` with `.system*` pattern and `system:admin/system_index`
+        // permission
+        for (String index : SYSTEM_INDICES) {
+            RestHelper.HttpResponse response = restHelper.executeDeleteRequest(index + "/_doc/document1", normalUserHeader);
+            allowedExceptSecurityIndex(index, response, "", normalUser);
+
+            response = restHelper.executeDeleteRequest(index, normalUserHeader);
+            allowedExceptSecurityIndex(index, response, "", normalUser);
+        }
+    }
+
+    /**
+     * CLOSE-OPEN
+     */
     @Test
     public void testCloseOpenAsSuperAdmin() {
-        RestHelper keyStoreRestHelper = superAdminRestHelper();
+        RestHelper restHelper = superAdminRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse responseClose = keyStoreRestHelper.executePostRequest(index + "/_close", "");
+            RestHelper.HttpResponse responseClose = restHelper.executePostRequest(index + "/_close", "");
             assertEquals(RestStatus.OK.getStatus(), responseClose.getStatusCode());
-            MatcherAssert.assertThat(responseClose.getBody(), Matchers.containsStringIgnoringCase("{\"closed\":true}"));
 
-            RestHelper.HttpResponse responseOpen = keyStoreRestHelper.executePostRequest(index + "/_open", "");
+            RestHelper.HttpResponse responseOpen = restHelper.executePostRequest(index + "/_open", "");
             assertEquals(RestStatus.OK.getStatus(), responseOpen.getStatusCode());
         }
-
     }
 
     @Test
     public void testCloseOpenAsAdmin() {
-        RestHelper sslRestHelper = sslRestHelper();
+        RestHelper restHelper = sslRestHelper();
 
+        // admin cannot close or open any system index when system index permissions are enabled
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse responseClose = sslRestHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), responseClose.getStatusCode());
-            MatcherAssert.assertThat(
-                responseClose.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}"
-                )
-            );
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
+            validateForbiddenResponse(response, "", allAccessUser);
 
-            RestHelper.HttpResponse responseOpen = sslRestHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), responseOpen.getStatusCode());
-            MatcherAssert.assertThat(
-                responseOpen.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}"
-                )
-            );
-
+            response = restHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
+            validateForbiddenResponse(response, "", allAccessUser);
         }
     }
 
     @Test
     public void testCloseOpenAsNormalUser() {
-        RestHelper sslRestHelper = sslRestHelper();
+        RestHelper restHelper = sslRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse responseClose = sslRestHelper.executePostRequest(index + "/_close", "", normalUserHeader);
-            assertEquals(RestStatus.OK.getStatus(), responseClose.getStatusCode());
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", normalUserHeader);
+            allowedExceptSecurityIndex(index, response, "", normalUser);
 
-            RestHelper.HttpResponse responseOpen = sslRestHelper.executePostRequest(index + "/_open", "", normalUserHeader);
-            assertEquals(RestStatus.OK.getStatus(), responseOpen.getStatusCode());
+            // normal user cannot open or close security index
+            response = restHelper.executePostRequest(index + "/_open", "", normalUserHeader);
+            allowedExceptSecurityIndex(index, response, "", normalUser);
         }
     }
 
-    /***************************************************************************************************************************
-     * Update Index Settings
-     ***************************************************************************************************************************/
+    /**
+     * CREATE
+     * should be allowed as any user
+     */
+    @Test
+    public void testCreateIndexAsSuperAdmin() {
+        RestHelper restHelper = superAdminRestHelper();
 
+        for (String index : INDICES_FOR_CREATE_REQUEST) {
+            RestHelper.HttpResponse responseIndex = restHelper.executePutRequest(index, createIndexSettings);
+            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
+
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}");
+            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAsAdmin() {
+        RestHelper restHelper = sslRestHelper();
+
+        for (String index : INDICES_FOR_CREATE_REQUEST) {
+            RestHelper.HttpResponse responseIndex = restHelper.executePutRequest(index, createIndexSettings, allAccessUserHeader);
+            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
+
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", allAccessUserHeader);
+            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAsNormalUser() {
+        RestHelper restHelper = sslRestHelper();
+
+        for (String index : INDICES_FOR_CREATE_REQUEST) {
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index, createIndexSettings, normalUserHeader);
+            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+
+            response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", normalUserHeader);
+            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
+        }
+    }
+
+    /**
+     * UPDATE settings + mappings
+     */
     @Test
     public void testUpdateAsSuperAdmin() {
-        RestHelper keyStoreRestHelper = superAdminRestHelper();
-        RestHelper sslRestHelper = sslRestHelper();
+        RestHelper restHelper = superAdminRestHelper();
 
-        String indexSettings = "{\n" + "    \"index\" : {\n" + "        \"refresh_interval\" : null\n" + "    }\n" + "}";
-
-        // as super-admin
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = keyStoreRestHelper.executePutRequest(index + "/_settings", indexSettings);
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
-        }
-        // as admin
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_settings", indexSettings, allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
-            MatcherAssert.assertThat(
-                response.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\""
-                )
-            );
-
-        }
-    }
-
-    /***************************************************************************************************************************
-     * Index mappings. indices:admin/mapping/put
-     ************************************************************************************************************************** */
-
-    @Test
-    public void testUpdateMappingsAsSuperAdmin() {
-        RestHelper keyStoreRestHelper = superAdminRestHelper();
-        RestHelper sslRestHelper = sslRestHelper();
-
-        String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
-
-        // as super-admin
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = keyStoreRestHelper.executePutRequest(index + "/_mapping", newMappings);
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
 
-        }
-        // as admin
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_mapping", newMappings, allAccessUserHeader);
+            response = restHelper.executePutRequest(index + "/_mapping", newMappings);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
         }
     }
 
     @Test
     public void testUpdateMappingsAsAdmin() {
-        RestHelper keyStoreRestHelper = superAdminRestHelper();
-        RestHelper sslRestHelper = sslRestHelper();
+        RestHelper restHelper = sslRestHelper();
 
-        String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
-
-        // as super-admin
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = keyStoreRestHelper.executePutRequest(index + "/_mapping", newMappings);
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, allAccessUserHeader);
+            validateForbiddenResponse(response, "", allAccessUser);
 
-        }
-        // as admin
-        for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_mapping", newMappings, allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
-            MatcherAssert.assertThat(response.getBody(), Matchers.containsStringIgnoringCase(generalErrorMessage));
+            response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, allAccessUserHeader);
+            validateForbiddenResponse(response, "", allAccessUser);
         }
     }
 
-    /***************************************************************************************************************************
-     * Create index and Create doc
-     ***************************************************************************************************************************/
-
     @Test
-    public void testCreateIndexAsAdmin() {
-        RestHelper sslRestHelper = sslRestHelper();
-
-        String indexSettings = "{\n"
-            + "    \"settings\" : {\n"
-            + "        \"index\" : {\n"
-            + "            \"number_of_shards\" : 3, \n"
-            + "            \"number_of_replicas\" : 2 \n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
+    public void testUpdateAsNormalUser() {
+        RestHelper restHelper = sslRestHelper();
 
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), responseIndex.getStatusCode());
-            MatcherAssert.assertThat(
-                responseIndex.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}"
-                )
+            RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, normalUserHeader);
+            allowedExceptSecurityIndex(index, response, "", normalUser);
+
+            response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, normalUserHeader);
+            allowedExceptSecurityIndex(index, response, "", normalUser);
+        }
+    }
+
+    /**
+     * SNAPSHOT get + restore
+     */
+    @Test
+    public void testSnapshotSystemIndicesAsSuperAdmin() {
+        createSnapshots();
+
+        RestHelper restHelper = superAdminRestHelper();
+        try (Client tc = getClient()) {
+            for (String index : SYSTEM_INDICES) {
+                tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
+            }
+        }
+
+        for (String index : SYSTEM_INDICES) {
+            assertEquals(HttpStatus.SC_OK, restHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1").getStatusCode());
+            assertEquals(
+                HttpStatus.SC_OK,
+                restHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "",
+                    allAccessUserHeader
+                ).getStatusCode()
             );
-
-            RestHelper.HttpResponse response = sslRestHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", allAccessUserHeader);
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
-            MatcherAssert.assertThat(
-                responseIndex.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}]"
-                )
+            assertEquals(
+                HttpStatus.SC_OK,
+                restHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    allAccessUserHeader
+                ).getStatusCode()
             );
-
         }
     }
 
     @Test
-    public void testCreateIndexAsNormalUser() {
-        RestHelper sslRestHelper = sslRestHelper();
+    public void testSnapshotSystemIndicesAsAdmin() {
+        createSnapshots();
 
-        String indexSettings = "{\n"
-            + "    \"settings\" : {\n"
-            + "        \"index\" : {\n"
-            + "            \"number_of_shards\" : 3, \n"
-            + "            \"number_of_replicas\" : 2 \n"
-            + "        }\n"
-            + "    }\n"
+        RestHelper restHelper = sslRestHelper();
+        try (Client tc = getClient()) {
+            for (String index : SYSTEM_INDICES) {
+                tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
+            }
+        }
 
-            + "}";
         for (String index : SYSTEM_INDICES) {
-            RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, normalUserHeader);
-            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
+            RestHelper.HttpResponse res = restHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1");
+            assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
 
-            RestHelper.HttpResponse response = sslRestHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", normalUserHeader);
-            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
+            res = restHelper.executePostRequest(
+                "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                "",
+                allAccessUserHeader
+            );
+            validateForbiddenResponse(res, "", allAccessUser);
+
+            res = restHelper.executePostRequest(
+                "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                allAccessUserHeader
+            );
+            allowedExceptSecurityIndex(index, res, "", allAccessUser);
         }
     }
 
-    /***************************************************************************************************************************
-     * snapshot : since snapshot takes more time, we are testing only Enabled case.
-     ***************************************************************************************************************************/
     @Test
-    public void testSnapshotWithSystemIndices() {
+    public void testSnapshotSystemIndicesAsNormalUser() {
         createSnapshots();
 
         try (Client tc = getClient()) {
@@ -325,29 +336,28 @@ public class SystemIndexPermissionEnabledTests extends SystemIndicesTests {
             }
         }
 
-        RestHelper sslRestHelper = sslRestHelper();
-        // as admin
+        RestHelper restHelper = sslRestHelper();
         for (String index : SYSTEM_INDICES) {
-            assertEquals(
-                HttpStatus.SC_UNAUTHORIZED,
-                sslRestHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1").getStatusCode()
+            RestHelper.HttpResponse res = restHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1");
+            assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
+
+            res = restHelper.executePostRequest(
+                "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                "",
+                normalUserHeader
             );
-            assertEquals(
-                HttpStatus.SC_FORBIDDEN,
-                sslRestHelper.executePostRequest(
-                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
-                    "",
-                    allAccessUserHeader
-                ).getStatusCode()
+            allowedExceptSecurityIndex(index, res, "", normalUser);
+
+            res = restHelper.executePostRequest(
+                "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                normalUserHeader
             );
-            assertEquals(
-                HttpStatus.SC_OK,
-                sslRestHelper.executePostRequest(
-                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
-                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                    allAccessUserHeader
-                ).getStatusCode()
-            );
+            if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
+                validateForbiddenResponse(res, "", normalUser);
+            } else {
+                validateForbiddenResponse(res, "indices:data/write/index, indices:admin/create", normalUser);
+            }
         }
     }
 }
