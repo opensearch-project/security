@@ -61,6 +61,8 @@ public class DefaultObjectMapper {
         // if jackson cant parse the entity, e.g. passwords, hashes and so on,
         // but provides which property is unknown
         objectMapper.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
+        defaulOmittingObjectMapper.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
+        YAML_MAPPER.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
         // objectMapper.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
         objectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
         defaulOmittingObjectMapper.setSerializationInclusion(Include.NON_DEFAULT);

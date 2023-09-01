@@ -78,12 +78,13 @@ public abstract class AbstractApiActionValidationTest {
         final var config = objectMapper.createObjectNode();
         config.set("_meta", objectMapper.createObjectNode().put("type", CType.ROLES.toLCString()).put("config_version", 2));
         config.set("kibana_read_only", objectMapper.createObjectNode().put("reserved", true));
+        config.set("some_hidden_role", objectMapper.createObjectNode().put("hidden", true));
+        config.set("all_access", objectMapper.createObjectNode().put("static", true)); // it reserved as well
         config.set("security_rest_api_access", objectMapper.createObjectNode().put("reserved", true));
 
         final var array = objectMapper.createArrayNode();
         restApiAdminPermissions().forEach(array::add);
         config.set("rest_api_admin_role", objectMapper.createObjectNode().set("cluster_permissions", array));
-
         config.set("regular_role", objectMapper.createObjectNode().set("cluster_permissions", objectMapper.createArrayNode().add("*")));
 
         rolesConfiguration = SecurityDynamicConfiguration.fromJson(objectMapper.writeValueAsString(config), CType.ROLES, 2, 1, 1);

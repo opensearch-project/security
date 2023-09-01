@@ -45,6 +45,7 @@ public class NonValidatingObjectMapper {
     private static final ObjectMapper nonValidatingObjectMapper = new ObjectMapper();
 
     static {
+        nonValidatingObjectMapper.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
         nonValidatingObjectMapper.setSerializationInclusion(Include.NON_NULL);
         nonValidatingObjectMapper.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, false);
         nonValidatingObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -65,12 +66,7 @@ public class NonValidatingObjectMapper {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<T>() {
-                @Override
-                public T run() throws Exception {
-                    return nonValidatingObjectMapper.readValue(string, jt);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> nonValidatingObjectMapper.readValue(string, jt));
         } catch (final PrivilegedActionException e) {
             throw (IOException) e.getCause();
         }
