@@ -37,7 +37,6 @@ grant {
   permission java.util.PropertyPermission "*","read,write";
 
   //Enable when we switch to UnboundID LDAP SDK
-  //permission java.util.PropertyPermission "*", "read,write";
   //permission java.lang.RuntimePermission "setFactory";
   //permission javax.net.ssl.SSLPermission "setHostnameVerifier";
 
@@ -60,11 +59,12 @@ grant {
   permission java.security.SecurityPermission "putProviderProperty.BC";
   permission java.security.SecurityPermission "insertProvider.BC";
   permission java.security.SecurityPermission "removeProviderProperty.BC";
+  permission java.security.SecurityPermission "getProperty.org.bouncycastle.rsa.max_size";
+  permission java.security.SecurityPermission "getProperty.org.bouncycastle.rsa.max_mr_tests";
 
   permission java.lang.RuntimePermission "accessUserInformation";
   
   permission java.security.SecurityPermission "org.apache.xml.security.register";
-  permission java.util.PropertyPermission "org.apache.xml.security.ignoreLineBreaks", "write";
   
   permission java.lang.RuntimePermission "createClassLoader";
   

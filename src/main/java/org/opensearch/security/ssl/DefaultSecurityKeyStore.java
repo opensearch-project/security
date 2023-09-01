@@ -991,19 +991,34 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final SslProvider sslProvider,
         final ClientAuth authMode
     ) throws SSLException {
+        final SecurityManager sm = System.getSecurityManager();
 
-        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(
-            SslContextBuilder.forServer(_cert, _key, pwd),
-            sslProvider,
-            ciphers,
-            authMode
-        );
-
-        if (_trustedCerts != null) {
-            _sslContextBuilder.trustManager(_trustedCerts);
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
         }
 
-        return buildSSLContext0(_sslContextBuilder);
+        try {
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
+                @Override
+                public SslContextBuilder run() throws Exception {
+                    return SslContextBuilder.forServer(_cert, _key, pwd)
+                        .ciphers(ciphers)
+                        .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
+                        .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
+                        .sessionCacheSize(0)
+                        .sessionTimeout(0)
+                        .sslProvider(sslProvider);
+                }
+            });
+
+            if (_trustedCerts != null) {
+                _sslContextBuilder.trustManager(_trustedCerts);
+            }
+
+            return buildSSLContext0(_sslContextBuilder);
+        } catch (final PrivilegedActionException e) {
+            throw (SSLException) e.getCause();
+        }
     }
 
     private SslContextBuilder configureSSLServerContextBuilder(
