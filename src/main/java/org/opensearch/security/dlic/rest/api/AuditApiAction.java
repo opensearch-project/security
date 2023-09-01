@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
@@ -137,7 +136,7 @@ public class AuditApiAction extends AbstractApiAction {
     private final List<String> readonlyFields;
 
     public static class AuditRequestContentValidator extends RequestContentValidator {
-        private static final Set<AuditCategory> DISABLED_REST_CATEGORIES = ImmutableSet.of(
+        public static final Set<AuditCategory> DISABLED_REST_CATEGORIES = Set.of(
             AuditCategory.BAD_HEADERS,
             AuditCategory.SSL_EXCEPTION,
             AuditCategory.AUTHENTICATED,
@@ -146,7 +145,7 @@ public class AuditApiAction extends AbstractApiAction {
             AuditCategory.MISSING_PRIVILEGES
         );
 
-        private static final Set<AuditCategory> DISABLED_TRANSPORT_CATEGORIES = ImmutableSet.of(
+        public static final Set<AuditCategory> DISABLED_TRANSPORT_CATEGORIES = Set.of(
             AuditCategory.BAD_HEADERS,
             AuditCategory.SSL_EXCEPTION,
             AuditCategory.AUTHENTICATED,
