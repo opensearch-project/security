@@ -159,7 +159,7 @@ public class SecurityIndexAccessEvaluator {
             .map(IndexPattern::getNonWildCardPerms)
             .collect(Collectors.toSet());
 
-        for (WildcardMatcher userPermission : userPermissions.stream().collect(Collectors.toSet())) {
+        for (WildcardMatcher userPermission : userPermissions) {
             if (userPermission.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)) {
                 return true;
             }

@@ -498,22 +498,22 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         RestHelper rh = nonSslRestHelper();
-        HttpResponse res = rh.executePostRequest(
-            "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
-            "{\"query\" : {\"match_all\" : {}}}",
-            encodeBasicHeader("nagilum", "nagilum")
+        HttpResponse res;
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest(
+                "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
+                "{\"query\" : {\"match_all\" : {}}}",
+                encodeBasicHeader("nagilum", "nagilum")
+            )).getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
 
     }
 
     @Test
     public void testUpdate() throws Exception {
-        final Settings settings = Settings.builder()
-            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
-            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false)
-            .build();
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
 
@@ -1001,7 +1001,7 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testSecurityIndexSecurity() throws Exception {
-        setup(Settings.builder().put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false).build());
+        setup();
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executePutRequest(
