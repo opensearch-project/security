@@ -19,7 +19,7 @@
   To suppress certain violations please review suppression filters.
   Finally, it is worth reading the documentation.
 -->
-
+<!-- exSUN codestyle check with the additional check for System.out.ptintln -->
 <module name="Checker">
   <!--
       If you set the basedir property below, then all reported file
@@ -35,6 +35,13 @@
   <!-- See https://checkstyle.org/config_filefilters.html -->
   <module name="BeforeExecutionExclusionFileFilter">
     <property name="fileNamePattern" value="module\-info\.java$"/>
+  </module>
+  <!-- System.out.ptintln -->
+  <module name="BeforeExecutionExclusionFileFilter">
+    <property name="fileNamePattern" value="src/main/java/org/opensearch/security/tools/*"/>
+  </module>
+  <module name="BeforeExecutionExclusionFileFilter">
+    <property name="fileNamePattern" value="src/main/java/com/amazon/dlic/auth/http/kerberos/HTTPSpnegoAuthenticator.java"/>
   </module>
 
   <!-- https://checkstyle.org/config_filters.html#SuppressionFilter -->
@@ -188,6 +195,14 @@
       <property name="optional" value="true"/>
     </module>
 
+    <!-- System.out.println -->
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="System.out.println"/>
+      <property name="ignoreCase" value="true"/>
+      <property name="message" value="Do not use System.out.println" />
+      <property name="severity" value="error"/>
+    </module>
+
   </module>
 
   <module name="RegexpSingleline">
@@ -222,5 +237,4 @@
     <property name="checkFormat" value="$1"/>
   </module>
 
-  <module name="PrintlnModule"/>
 </module>
