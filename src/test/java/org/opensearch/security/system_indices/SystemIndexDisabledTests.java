@@ -20,6 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Adds test for scenario when system index feature is disabled
+ */
 public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
     @Before
