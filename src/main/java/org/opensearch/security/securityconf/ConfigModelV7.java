@@ -76,7 +76,7 @@ public class ConfigModelV7 extends ConfigModel {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
     private ActionGroupResolver agr = null;
-    private SecurityRoles securityRoles = null;
+    private SecurityRolesV7 securityRoles = null;
     private TenantHolder tenantHolder;
     private RoleMappingHolder roleMappingHolder;
     private SecurityDynamicConfiguration<RoleV7> roles;
@@ -195,17 +195,17 @@ public class ConfigModelV7 extends ConfigModel {
         };
     }
 
-    private SecurityRoles reload(SecurityDynamicConfiguration<RoleV7> settings) {
+    private SecurityRolesV7 reload(SecurityDynamicConfiguration<RoleV7> settings) {
 
-        final Set<Future<SecurityRoleV7>> futures = new HashSet<>(5000);
+        final Set<Future<SecurityRole>> futures = new HashSet<>(5000);
         final ExecutorService execs = Executors.newFixedThreadPool(10);
 
         for (Entry<String, RoleV7> securityRole : settings.getCEntries().entrySet()) {
 
-            Future<SecurityRoleV7> future = execs.submit(new Callable<SecurityRoleV7>() {
+            Future<SecurityRole> future = execs.submit(new Callable<SecurityRole>() {
 
                 @Override
-                public SecurityRoleV7 call() throws Exception {
+                public SecurityRole call() throws Exception {
                     SecurityRoleV7.Builder _securityRole = new SecurityRoleV7.Builder(securityRole.getKey());
 
                     if (securityRole.getValue() == null) {
@@ -235,11 +235,11 @@ public class ConfigModelV7 extends ConfigModel {
                         final List<String> maskedFields = permittedAliasesIndex.getMasked_fields();
 
                         for (String pat : permittedAliasesIndex.getIndex_patterns()) {
-                            IndexPatternV7 _indexPatternV7 = new IndexPatternV7(pat);
-                            _indexPatternV7.setDlsQuery(dls);
-                            _indexPatternV7.addFlsFields(fls);
-                            _indexPatternV7.addMaskedFields(maskedFields);
-                            _indexPatternV7.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
+                            IndexPattern _indexPattern = new IndexPatternV7(pat);
+                            _indexPattern.setDlsQuery(dls);
+                            _indexPattern.addFlsFields(fls);
+                            _indexPattern.addMaskedFields(maskedFields);
+                            _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
 
                             /*for(Entry<String, List<String>> type: permittedAliasesIndex.getValue().getTypes(-).entrySet()) {
                                 TypePerm typePerm = new TypePerm(type.getKey());
@@ -248,7 +248,7 @@ public class ConfigModelV7 extends ConfigModel {
                                 _indexPattern.addTypePerms(typePerm);
                             }*/
 
-                            _securityRole.addIndexPattern(_indexPatternV7);
+                            _securityRole.addIndexPattern(_indexPattern);
 
                         }
 
@@ -271,8 +271,8 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         try {
-            SecurityRoles _securityRoles = new SecurityRoles(futures.size());
-            for (Future<SecurityRoleV7> future : futures) {
+            SecurityRolesV7 _securityRoles = new SecurityRolesV7(futures.size());
+            for (Future<SecurityRole> future : futures) {
                 _securityRoles.addSecurityRole(future.get());
             }
 
@@ -289,21 +289,20 @@ public class ConfigModelV7 extends ConfigModel {
 
     // beans
 
-    public static class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
+    public static class SecurityRolesV7 implements SecurityRoles {
 
         protected final Logger log = LogManager.getLogger(this.getClass());
 
-        final Set<SecurityRoleV7> roles;
+        final Set<SecurityRole> roles;
 
-        private SecurityRoles(int roleCount) {
+        private SecurityRolesV7(int roleCount) {
             roles = new HashSet<>(roleCount);
         }
 
-        private SecurityRoles addSecurityRole(SecurityRoleV7 securityRoleV7) {
-            if (securityRoleV7 != null) {
-                this.roles.add(securityRoleV7);
+        public void addSecurityRole(SecurityRole securityRole) {
+            if (securityRole != null) {
+                this.roles.add(securityRole);
             }
-            return this;
         }
 
         @Override
@@ -319,7 +318,7 @@ public class ConfigModelV7 extends ConfigModel {
             if (this == obj) return true;
             if (obj == null) return false;
             if (getClass() != obj.getClass()) return false;
-            SecurityRoles other = (SecurityRoles) obj;
+            SecurityRolesV7 other = (SecurityRolesV7) obj;
             if (roles == null) {
                 if (other.roles != null) return false;
             } else if (!roles.equals(other.roles)) return false;
@@ -331,7 +330,7 @@ public class ConfigModelV7 extends ConfigModel {
             return "roles=" + roles;
         }
 
-        public Set<org.opensearch.security.securityconf.SecurityRole> getRoles() {
+        public Set<SecurityRole> getRoles() {
             return Collections.unmodifiableSet(roles);
         }
 
@@ -340,8 +339,8 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         public SecurityRoles filter(Set<String> keep) {
-            final SecurityRoles retVal = new SecurityRoles(roles.size());
-            for (SecurityRoleV7 sr : roles) {
+            final SecurityRoles retVal = new SecurityRolesV7(roles.size());
+            for (SecurityRole sr : roles) {
                 if (keep.contains(sr.getName())) {
                     retVal.addSecurityRole(sr);
                 }
@@ -378,7 +377,7 @@ public class ConfigModelV7 extends ConfigModel {
             Set<String> noFlsConcreteIndices = new HashSet<>();
             Set<String> noMaskedFieldConcreteIndices = new HashSet<>();
 
-            for (SecurityRoleV7 role : roles) {
+            for (SecurityRole role : roles) {
                 for (IndexPattern ip : role.getIpatterns()) {
                     final Set<String> concreteIndices = ip.concreteIndexNames(user, resolver, cs);
                     String dls = ip.getDlsQuery(user);
@@ -462,7 +461,7 @@ public class ConfigModelV7 extends ConfigModel {
             ClusterService cs
         ) {
             Set<String> retVal = new HashSet<>();
-            for (SecurityRoleV7 sr : roles) {
+            for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs));
                 retVal.addAll(resolved.getRemoteIndices());
             }
@@ -472,7 +471,7 @@ public class ConfigModelV7 extends ConfigModel {
         // dnfof only
         public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
-            for (SecurityRoleV7 sr : roles) {
+            for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
             }
             if (log.isDebugEnabled()) {
@@ -483,7 +482,7 @@ public class ConfigModelV7 extends ConfigModel {
 
         // return true on success
         public boolean get(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
-            for (SecurityRoleV7 sr : roles) {
+            for (SecurityRole sr : roles) {
                 if (ConfigModelV7.impliesTypePerm(sr.getIpatterns(), resolved, user, actions, resolver, cs)) {
                     return true;
                 }
@@ -499,9 +498,8 @@ public class ConfigModelV7 extends ConfigModel {
         @Override
         public boolean hasExplicitClusterPermissionPermission(String action) {
             return roles.stream()
-                .map(r -> r.clusterPerms == WildcardMatcher.ANY ? WildcardMatcher.NONE : r.clusterPerms)
-                .filter(m -> m.test(action))
-                .count() > 0;
+                .map(r -> r.getClusterPermsMatchers() == WildcardMatcher.ANY ? WildcardMatcher.NONE : r.getClusterPermsMatchers())
+                .anyMatch(m -> m.test(action));
         }
 
         // rolespan
@@ -512,7 +510,7 @@ public class ConfigModelV7 extends ConfigModel {
             IndexNameExpressionResolver resolver,
             ClusterService cs
         ) {
-            Set<IndexPattern> ipatterns = new HashSet<IndexPattern>();
+            Set<IndexPattern> ipatterns = new HashSet<>();
             roles.stream().forEach(p -> ipatterns.addAll(p.getIpatterns()));
             return ConfigModelV7.impliesTypePerm(ipatterns, resolved, user, actions, resolver, cs);
         }
@@ -530,22 +528,22 @@ public class ConfigModelV7 extends ConfigModel {
         }
     }
 
-    public static class SecurityRoleV7 implements org.opensearch.security.securityconf.SecurityRole {
+    public static class SecurityRoleV7 implements SecurityRole {
         private final String name;
-        private final Set<IndexPatternV7> ipatterns;
+        private final Set<IndexPattern> ipatterns;
         private final WildcardMatcher clusterPerms;
 
         public static final class Builder {
             private final String name;
             private final Set<String> clusterPerms = new HashSet<>();
-            private final Set<IndexPatternV7> ipatterns = new HashSet<>();
+            private final Set<IndexPattern> ipatterns = new HashSet<>();
 
             public Builder(String name) {
                 this.name = Objects.requireNonNull(name);
             }
 
-            public Builder addIndexPattern(IndexPatternV7 indexPatternV7) {
-                this.ipatterns.add(indexPatternV7);
+            public Builder addIndexPattern(IndexPattern indexPattern) {
+                this.ipatterns.add(indexPattern);
                 return this;
             }
 
@@ -556,18 +554,17 @@ public class ConfigModelV7 extends ConfigModel {
                 return this;
             }
 
-            public SecurityRoleV7 build() {
+            public SecurityRole build() {
                 return new SecurityRoleV7(name, ipatterns, WildcardMatcher.from(clusterPerms));
             }
         }
 
-        private SecurityRoleV7(String name, Set<IndexPatternV7> ipatterns, WildcardMatcher clusterPerms) {
+        private SecurityRoleV7(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
             this.name = Objects.requireNonNull(name);
             this.ipatterns = ipatterns;
             this.clusterPerms = clusterPerms;
         }
 
-        @Override
         public boolean impliesClusterPermission(String action) {
             return clusterPerms.test(action);
 
@@ -575,7 +572,6 @@ public class ConfigModelV7 extends ConfigModel {
 
         // get indices which are permitted for the given types and actions
         // dnfof + opensearchDashboards special only
-        @Override
         public Set<String> getAllResolvedPermittedIndices(
             Resolved resolved,
             User user,
@@ -585,7 +581,7 @@ public class ConfigModelV7 extends ConfigModel {
         ) {
 
             final Set<String> retVal = new HashSet<>();
-            for (IndexPatternV7 p : ipatterns) {
+            for (IndexPattern p : ipatterns) {
                 // what if we cannot resolve one (for create purposes)
                 final boolean patternMatch = p.getPerms().matchAll(actions);
 
@@ -678,20 +674,34 @@ public class ConfigModelV7 extends ConfigModel {
         // return Collections.unmodifiableSet(tenants);
         // }
 
-        @Override
-        public Set<org.opensearch.security.securityconf.IndexPattern> getIpatterns() {
+        public Set<IndexPattern> getIpatterns() {
             return Collections.unmodifiableSet(ipatterns);
         }
 
+        public Set<String> getClusterPerms() {
+            // we will use clusterPerms wildcard matchers for v7
+            return null;
+        }
+
         @Override
+        public WildcardMatcher getClusterPermsMatchers() {
+            return clusterPerms;
+        }
+
         public String getName() {
             return name;
         }
 
+        public void addClusterPerms(Collection<String> permittedClusterActions) {}
+
+        public void addTenant(ConfigModelV6.Tenant tenant) {}
+
+        public void addIndexPattern(IndexPattern indexPattern) {}
+
     }
 
     // sg roles
-    public static class IndexPatternV7 implements org.opensearch.security.securityconf.IndexPattern {
+    public static class IndexPatternV7 implements IndexPattern {
         private final String indexPattern;
         private String dlsQuery;
         private final Set<String> fls = new HashSet<>();
@@ -717,19 +727,19 @@ public class ConfigModelV7 extends ConfigModel {
             return this;
         }
 
-        public IndexPatternV7 addPerm(Set<String> perms) {
+        public void addPerm(Set<String> perms) {
             if (perms != null) {
                 this.perms.addAll(perms);
             }
-            return this;
         }
 
-        public IndexPatternV7 setDlsQuery(String dlsQuery) {
+        public void setDlsQuery(String dlsQuery) {
             if (dlsQuery != null) {
                 this.dlsQuery = dlsQuery;
             }
-            return this;
         }
+
+        public void addTypePerms(TypePerm typePerm) {}
 
         @Override
         public int hashCode() {
@@ -797,12 +807,10 @@ public class ConfigModelV7 extends ConfigModel {
             return getResolvedIndexPattern(user, resolver, cs, true);
         }
 
-        @Override
         public Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
             return null;
         }
 
-        @Override
         public Set<TypePerm> getTypePerms() {
             return null;
         }
@@ -883,8 +891,7 @@ public class ConfigModelV7 extends ConfigModel {
             return WildcardMatcher.from(perms);
         }
 
-        @Override
-        public Set<String> getStringPerm() {
+        public Set<String> getPermsAsCollection() {
             return perms;
         }
 
@@ -1013,12 +1020,12 @@ public class ConfigModelV7 extends ConfigModel {
         IndexMatcherAndPermissions[] indexMatcherAndPermissions;
         if (resolved.isLocalAll()) {
             indexMatcherAndPermissions = ipatterns.stream()
-                .filter(indexPatternV7 -> "*".equals(indexPatternV7.getUnresolvedIndexPattern(user)))
-                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.getStringPerm()))
+                .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
+                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.getPermsAsCollection()))
                 .toArray(IndexMatcherAndPermissions[]::new);
         } else {
             indexMatcherAndPermissions = ipatterns.stream()
-                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.getStringPerm()))
+                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.getPermsAsCollection()))
                 .toArray(IndexMatcherAndPermissions[]::new);
         }
         return resolvedRequestedIndices.stream()

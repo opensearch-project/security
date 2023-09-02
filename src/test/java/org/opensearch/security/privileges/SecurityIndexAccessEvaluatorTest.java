@@ -27,7 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.ConfigModelV7;
+import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.tasks.Task;
 
@@ -64,7 +64,7 @@ public class SecurityIndexAccessEvaluatorTest {
 
     private static final String SECURITY_INDEX = ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
     @Mock
-    ConfigModelV7.SecurityRoles securityRoles;
+    SecurityRoles securityRoles;
 
     public void setup(boolean isSystemIndexEnabled, boolean isSystemIndexPermissionsEnabled) {
         evaluator = new SecurityIndexAccessEvaluator(

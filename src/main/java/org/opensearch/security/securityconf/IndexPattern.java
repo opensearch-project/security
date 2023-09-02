@@ -26,7 +26,7 @@ public interface IndexPattern {
 
     WildcardMatcher getPerms();
 
-    Set<String> getStringPerm();
+    Set<String> getPermsAsCollection();
 
     WildcardMatcher getNonWildCardPerms();
 
@@ -51,4 +51,10 @@ public interface IndexPattern {
     Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs);
 
     Set<TypePerm> getTypePerms();
+
+    void setDlsQuery(String dls);
+
+    void addTypePerms(TypePerm typePerm);
+
+    void addPerm(Set<String> strings);
 }

@@ -43,6 +43,8 @@ public interface SecurityRoles {
 
     Set<String> getRoleNames();
 
+    void addSecurityRole(SecurityRole securityRole);
+
     Set<String> reduce(
         Resolved requestedResolved,
         User user,
@@ -86,5 +88,4 @@ public interface SecurityRoles {
     SecurityRoles filter(Set<String> roles);
 
     Set<SecurityRole> getRoles();
-
 }

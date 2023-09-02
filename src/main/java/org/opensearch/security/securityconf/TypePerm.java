@@ -25,11 +25,18 @@ public class TypePerm {
         this.typeMatcher = WildcardMatcher.ANY;
     }
 
-    protected TypePerm addPerms(Collection<String> perms) {
+    public WildcardMatcher getTypeMatcher() {
+        return typeMatcher;
+    }
+
+    public WildcardMatcher getPermsMatcher() {
+        return WildcardMatcher.from(perms);
+    }
+
+    protected void addPerms(Collection<String> perms) {
         if (perms != null) {
             this.perms.addAll(perms);
         }
-        return this;
     }
 
     @Override
@@ -58,15 +65,6 @@ public class TypePerm {
 
     @Override
     public String toString() {
-        return System.lineSeparator() + "             typePattern=" + typeMatcher + System.lineSeparator() + "             perms=" + perms;
+        return "TypePerm{" + "typeMatcher=" + typeMatcher + ", perms=" + perms + '}';
     }
-
-    public WildcardMatcher getTypeMatcher() {
-        return typeMatcher;
-    }
-
-    public WildcardMatcher getPerms() {
-        return WildcardMatcher.from(perms);
-    }
-
 }
