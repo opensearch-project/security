@@ -675,19 +675,17 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         @Override
-        public IndexPatternV6 addFlsFields(List<String> flsFields) {
+        public void addFlsFields(List<String> flsFields) {
             if (flsFields != null) {
                 this.fls.addAll(flsFields);
             }
-            return this;
         }
 
         @Override
-        public IndexPatternV6 addMaskedFields(List<String> maskedFields) {
+        public void addMaskedFields(List<String> maskedFields) {
             if (maskedFields != null) {
                 this.maskedFields.addAll(maskedFields);
             }
-            return this;
         }
 
         public void addTypePerms(TypePerm typePerm) {

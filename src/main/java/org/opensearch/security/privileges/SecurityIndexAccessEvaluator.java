@@ -127,7 +127,7 @@ public class SecurityIndexAccessEvaluator {
     ) {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        evaluateSecuredIndicesAccess(action, requestedResolved, request, task, presponse, isDebugEnabled, securityRoles);
+        evaluateSystemIndicesAccess(action, requestedResolved, request, task, presponse, isDebugEnabled, securityRoles);
 
         if (requestedResolved.isLocalAll()
             || requestedResolved.getAllIndices().contains(securityIndex)
@@ -151,12 +151,13 @@ public class SecurityIndexAccessEvaluator {
     }
 
     /**
-     * Checks whether user has `system:admin/system_index` as an allowed action under any of its mapped roles
+     * Checks whether user has `system:admin/system_index` explicitly specified
+     * as an allowed action under any of its mapped roles
      * @param securityRoles roles in which the permission needs to be checked
      * @return true if user does not have permission, false otherwise
      */
     private boolean isSystemIndexAccessProhibitedForUser(SecurityRoles securityRoles) {
-        // Excluding `*` allowed action as it doesn't grant system index privilege
+        // Excluding `*` allowed action as it shouldn't grant system index privilege
         Set<WildcardMatcher> userPermissions = securityRoles.getRoles()
             .stream()
             .flatMap(role -> role.getIpatterns().stream())
@@ -220,13 +221,23 @@ public class SecurityIndexAccessEvaluator {
     /**
      * Is the current action allowed to be performed on security index
      * @param action request action on security index
-     * @return
+     * @return true if action is allowed, false otherwise
      */
     private boolean isActionAllowed(String action) {
         return deniedActionsMatcher.test(action);
     }
 
-    private void evaluateSecuredIndicesAccess(
+    /**
+     * Perform access check on requested indices and actions for those indices
+     * @param action action to be performed on request indices
+     * @param requestedResolved this object contains all indices this request is resolved to
+     * @param request the action request to be used for audit logging
+     * @param task task in which this access check will be performed
+     * @param presponse the pre-response object that will eventually become a response and returned to the requester
+     * @param isDebugEnabled flag to indicate whether debug logging is enabled
+     * @param securityRoles user's roles which will be used for access evaluation
+     */
+    private void evaluateSystemIndicesAccess(
         String action,
         Resolved requestedResolved,
         ActionRequest request,
@@ -235,11 +246,12 @@ public class SecurityIndexAccessEvaluator {
         Boolean isDebugEnabled,
         SecurityRoles securityRoles
     ) {
-        // is the request trying to access a protected system index
+        // Perform access check is system index permissions are enabled
+        boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
+
         if (isSystemIndexPermissionEnabled) {
             boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
-            boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
-            if (requestContainsAnyProtectedSystemIndices(requestedResolved)) {
+            if (containsProtectedIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (log.isInfoEnabled()) {
                     log.info(
@@ -252,7 +264,7 @@ public class SecurityIndexAccessEvaluator {
                 presponse.allowed = false;
                 presponse.markComplete();
                 return;
-            } else if (requestContainsAnySystemIndices(requestedResolved) && isSystemIndexAccessProhibitedForUser(securityRoles)) {
+            } else if (containsSystemIndex && isSystemIndexAccessProhibitedForUser(securityRoles)) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (log.isInfoEnabled()) {
                     log.info(
@@ -262,30 +274,6 @@ public class SecurityIndexAccessEvaluator {
                         String.join(", ", getAllSystemIndices(requestedResolved))
                     );
                 }
-                presponse.allowed = false;
-                presponse.markComplete();
-                return;
-            }
-
-            if (containsProtectedIndex || (containsSystemIndex && isSystemIndexAccessProhibitedForUser(securityRoles))) {
-                auditLog.logSecurityIndexAttempt(request, action, task);
-
-                if (log.isInfoEnabled()) {
-                    String indices = String.join(
-                        ", ",
-                        containsProtectedIndex ? getAllProtectedSystemIndices(requestedResolved) : getAllSystemIndices(requestedResolved)
-                    );
-
-                    log.info(
-                        containsProtectedIndex
-                            ? "{} not permitted for a regular user {} on protected system indices {}"
-                            : "No {} permission for user roles {} to System Indices {}",
-                        action,
-                        securityRoles,
-                        indices
-                    );
-                }
-
                 presponse.allowed = false;
                 presponse.markComplete();
                 return;
@@ -307,16 +295,13 @@ public class SecurityIndexAccessEvaluator {
                     }
                 } else {
                     auditLog.logSecurityIndexAttempt(request, action, task);
-                    log.info("{} for '_all' indices is not allowed for a regular user", action);
+                    log.warn("{} for '_all' indices is not allowed for a regular user", action);
                     presponse.allowed = false;
                     presponse.markComplete();
                 }
-            } else if (requestContainsAnySystemIndices(requestedResolved)) {
+            } else if (containsSystemIndex && !isSystemIndexPermissionEnabled) {
                 // if system index is enabled and system index permissions are enabled we don't need to perform any further
                 // checks as it has already been performed via isSystemIndexAccessProhibitedForUser
-                if (isSystemIndexPermissionEnabled) {
-                    return;
-                }
 
                 if (filterSecurityIndex) {
                     Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
@@ -342,7 +327,5 @@ public class SecurityIndexAccessEvaluator {
                 }
             }
         }
-
     }
-
 }

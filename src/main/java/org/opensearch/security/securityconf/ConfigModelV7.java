@@ -295,7 +295,7 @@ public class ConfigModelV7 extends ConfigModel {
 
         final Set<SecurityRole> roles;
 
-        private SecurityRolesV7(int roleCount) {
+        public SecurityRolesV7(int roleCount) {
             roles = new HashSet<>(roleCount);
         }
 
@@ -542,16 +542,14 @@ public class ConfigModelV7 extends ConfigModel {
                 this.name = Objects.requireNonNull(name);
             }
 
-            public Builder addIndexPattern(IndexPattern indexPattern) {
+            public void addIndexPattern(IndexPattern indexPattern) {
                 this.ipatterns.add(indexPattern);
-                return this;
             }
 
-            public Builder addClusterPerms(Collection<String> clusterPerms) {
+            public void addClusterPerms(Collection<String> clusterPerms) {
                 if (clusterPerms != null) {
                     this.clusterPerms.addAll(clusterPerms);
                 }
-                return this;
             }
 
             public SecurityRole build() {
@@ -713,18 +711,16 @@ public class ConfigModelV7 extends ConfigModel {
             this.indexPattern = Objects.requireNonNull(indexPattern);
         }
 
-        public IndexPatternV7 addFlsFields(List<String> flsFields) {
+        public void addFlsFields(List<String> flsFields) {
             if (flsFields != null) {
                 this.fls.addAll(flsFields);
             }
-            return this;
         }
 
-        public IndexPatternV7 addMaskedFields(List<String> maskedFields) {
+        public void addMaskedFields(List<String> maskedFields) {
             if (maskedFields != null) {
                 this.maskedFields.addAll(maskedFields);
             }
-            return this;
         }
 
         public void addPerm(Set<String> perms) {

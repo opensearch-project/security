@@ -21,7 +21,16 @@ import java.util.Collection;
 import java.util.Set;
 
 public interface SecurityRole {
+
+    void addClusterPerms(Collection<String> permittedClusterActions);
+
+    void addTenant(ConfigModelV6.Tenant tenant);
+
+    void addIndexPattern(IndexPattern indexPattern);
+
     boolean impliesClusterPermission(String action);
+
+    String getName();
 
     Set<String> getAllResolvedPermittedIndices(
         IndexResolverReplacer.Resolved resolved,
@@ -31,17 +40,9 @@ public interface SecurityRole {
         ClusterService cs
     );
 
-    Set<IndexPattern> getIpatterns();
-
     Set<String> getClusterPerms();
 
+    Set<IndexPattern> getIpatterns();
+
     WildcardMatcher getClusterPermsMatchers();
-
-    String getName();
-
-    void addClusterPerms(Collection<String> permittedClusterActions);
-
-    void addTenant(ConfigModelV6.Tenant tenant);
-
-    void addIndexPattern(IndexPattern indexPattern);
 }
