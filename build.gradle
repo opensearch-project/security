@@ -487,7 +487,7 @@ dependencies {
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
-    implementation 'org.ldaptive:ldaptive:1.2.3'
+    implementation 'org.ldaptive:ldaptive:1.3.3'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
