@@ -567,12 +567,12 @@ dependencies {
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
     runtimeOnly 'org.checkerframework:checker-qual:3.36.0'
-    runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
     implementation 'org.apache.commons:commons-lang3:3.13.0'
+    implementation "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
