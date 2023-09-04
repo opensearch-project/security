@@ -586,7 +586,7 @@ dependencies {
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
