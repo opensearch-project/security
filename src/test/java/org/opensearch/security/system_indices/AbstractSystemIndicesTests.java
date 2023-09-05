@@ -47,7 +47,12 @@ import static org.junit.Assert.assertEquals;
 public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
 
     static final String ACCESSIBLE_ONLY_BY_SUPER_ADMIN = ".opendistro_security";
-    static final List<String> SYSTEM_INDICES = List.of(".system_index_1", ACCESSIBLE_ONLY_BY_SUPER_ADMIN);
+    static final String SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS = "random_system_index";
+    static final List<String> SYSTEM_INDICES = List.of(
+        ".system_index_1",
+        SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS,
+        ACCESSIBLE_ONLY_BY_SUPER_ADMIN
+    );
 
     static final List<String> INDICES_FOR_CREATE_REQUEST = List.of(".system_index_2");
     static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
@@ -174,9 +179,12 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         MatcherAssert.assertThat(response.getBody(), Matchers.containsStringIgnoringCase(permissionExceptionMessage(action, user)));
     }
 
-    void allowedExceptSecurityIndex(String index, RestHelper.HttpResponse response, String action, String user) {
-        if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
-            validateForbiddenResponse(response, action, user);
+    void shouldBeAllowedOnlyForAuthorizedIndices(String index, RestHelper.HttpResponse response, String action, String user) {
+        boolean isSecurityIndexRequest = index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN);
+        boolean isRequestingAccessToNonAuthorizedSystemIndex = (!user.equals(allAccessUser)
+            && index.equals(SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS));
+        if (isSecurityIndexRequest || isRequestingAccessToNonAuthorizedSystemIndex) {
+            validateForbiddenResponse(response, isSecurityIndexRequest ? "" : action, user);
         } else {
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
         }

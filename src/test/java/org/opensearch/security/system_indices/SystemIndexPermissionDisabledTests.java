@@ -88,7 +88,7 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
         for (String index : SYSTEM_INDICES) {
             // security index is only accessible by super-admin
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", "", header);
-            if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
+            if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN) || index.equals(SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS)) {
                 validateForbiddenResponse(response, "indices:data/read/search", user);
             } else {
                 // got 0 hits because system index permissions are not enabled
@@ -194,7 +194,11 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
 
             // normal user cannot open or close security index
             response = restHelper.executePostRequest(index + "/_open", "", header);
-            allowedExceptSecurityIndex(index, response, "indices:admin/open", user);
+            if (index.startsWith(".system")) {
+                assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            } else {
+                validateForbiddenResponse(response, "indices:admin/open", user);
+            }
         }
     }
 
@@ -347,7 +351,7 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
                 "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
                 allAccessUserHeader
             );
-            allowedExceptSecurityIndex(index, res, "", allAccessUser);
+            shouldBeAllowedOnlyForAuthorizedIndices(index, res, "", allAccessUser);
         }
     }
 

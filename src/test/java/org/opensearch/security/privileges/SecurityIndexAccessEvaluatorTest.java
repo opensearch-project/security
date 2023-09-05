@@ -27,23 +27,17 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.tasks.Task;
-
-import java.util.List;
-import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SecurityIndexAccessEvaluatorTest {
@@ -107,12 +101,12 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // Action
         // final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-        //     request,
-        //     null,
-        //     UNPROTECTED_ACTION,
-        //     resolved,
-        //     presponse,
-        //     securityRoles
+        // request,
+        // null,
+        // UNPROTECTED_ACTION,
+        // resolved,
+        // presponse,
+        // securityRoles
         // );
         // verifyNoInteractions(presponse);
         // assertThat(response, is(presponse));
@@ -127,12 +121,12 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // Action
         // final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-        //     request,
-        //     null,
-        //     UNPROTECTED_ACTION,
-        //     resolved,
-        //     presponse,
-        //     securityRoles
+        // request,
+        // null,
+        // UNPROTECTED_ACTION,
+        // resolved,
+        // presponse,
+        // securityRoles
         // );
         // verifyNoInteractions(presponse);
         // assertThat(response, is(presponse));
@@ -147,12 +141,12 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // Action
         // final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-        //     request,
-        //     null,
-        //     UNPROTECTED_ACTION,
-        //     resolved,
-        //     presponse,
-        //     securityRoles
+        // request,
+        // null,
+        // UNPROTECTED_ACTION,
+        // resolved,
+        // presponse,
+        // securityRoles
         // );
         // verifyNoInteractions(presponse);
         // assertThat(response, is(presponse));
@@ -167,12 +161,12 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // Action
         // final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-        //     request,
-        //     null,
-        //     UNPROTECTED_ACTION,
-        //     resolved,
-        //     presponse,
-        //     securityRoles
+        // request,
+        // null,
+        // UNPROTECTED_ACTION,
+        // resolved,
+        // presponse,
+        // securityRoles
         // );
         // verifyNoInteractions(presponse);
         // assertThat(response, is(presponse));
@@ -187,12 +181,12 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // Action
         // final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-        //     request,
-        //     null,
-        //     UNPROTECTED_ACTION,
-        //     resolved,
-        //     presponse,
-        //     securityRoles
+        // request,
+        // null,
+        // UNPROTECTED_ACTION,
+        // resolved,
+        // presponse,
+        // securityRoles
         // );
         // verifyNoInteractions(presponse);
         // assertThat(response, is(presponse));
@@ -207,12 +201,12 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // Action
         // final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-        //     request,
-        //     null,
-        //     UNPROTECTED_ACTION,
-        //     resolved,
-        //     presponse,
-        //     securityRoles
+        // request,
+        // null,
+        // UNPROTECTED_ACTION,
+        // resolved,
+        // presponse,
+        // securityRoles
         // );
         // verify(presponse).markComplete();
         // assertThat(response, is(presponse));
@@ -230,12 +224,12 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // Action
         // final PrivilegesEvaluatorResponse response = evaluator.evaluate(
-        //     request,
-        //     null,
-        //     UNPROTECTED_ACTION,
-        //     resolved,
-        //     presponse,
-        //     securityRoles
+        // request,
+        // null,
+        // UNPROTECTED_ACTION,
+        // resolved,
+        // presponse,
+        // securityRoles
         // );
         // assertThat(response, is(presponse));
         // unprotected action is not allowed on a system index

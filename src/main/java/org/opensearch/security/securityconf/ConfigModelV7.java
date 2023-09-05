@@ -499,10 +499,7 @@ public class ConfigModelV7 extends ConfigModel {
 
         @Override
         public boolean hasExplicitClusterPermissionPermission(String action) {
-            return roles.stream()
-                .map(r -> matchExplicitly(r.clusterPerms))
-                .filter(m -> m.test(action))
-                .count() > 0;
+            return roles.stream().map(r -> matchExplicitly(r.clusterPerms)).filter(m -> m.test(action)).count() > 0;
         }
 
         private static WildcardMatcher matchExplicitly(final WildcardMatcher matcher) {
@@ -510,7 +507,13 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         @Override
-        public boolean hasExplicitIndexPermission(final Resolved resolved, final User user, final String[] actions, final IndexNameExpressionResolver resolver, final ClusterService cs) {
+        public boolean hasExplicitIndexPermission(
+            final Resolved resolved,
+            final User user,
+            final String[] actions,
+            final IndexNameExpressionResolver resolver,
+            final ClusterService cs
+        ) {
 
             final Set<String> indicesForRequest = new HashSet<>(resolved.getAllIndicesResolved(cs, resolver));
             if (indicesForRequest.isEmpty()) {
@@ -520,11 +523,15 @@ public class ConfigModelV7 extends ConfigModel {
 
             final Set<String> explicitlyAllowedIndices = roles.stream()
                 .map(role -> role.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, SecurityRoles::matchExplicitly))
-                .flatMap(s -> s.stream())
+                .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 
             if (log.isDebugEnabled()) {
-                log.debug("ExplicitIndexPermission check indices for request {}, explicitly allowed indices {}", indicesForRequest.toString(), explicitlyAllowedIndices.toString());
+                log.debug(
+                    "ExplicitIndexPermission check indices for request {}, explicitly allowed indices {}",
+                    indicesForRequest.toString(),
+                    explicitlyAllowedIndices.toString()
+                );
             }
 
             indicesForRequest.removeAll(explicitlyAllowedIndices);

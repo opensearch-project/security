@@ -45,7 +45,13 @@ public interface SecurityRoles {
      * Determines if the actions are explicitly granted for indices
      * @return if all indices in the request have an explicit grant for all actions
      */
-    boolean hasExplicitIndexPermission(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs);
+    boolean hasExplicitIndexPermission(
+        Resolved resolved,
+        User user,
+        String[] actions,
+        IndexNameExpressionResolver resolver,
+        ClusterService cs
+    );
 
     Set<String> getRoleNames();
 

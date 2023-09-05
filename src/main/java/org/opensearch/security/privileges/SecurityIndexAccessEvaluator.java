@@ -247,20 +247,27 @@ public class SecurityIndexAccessEvaluator {
                 presponse.allowed = false;
                 presponse.markComplete();
                 return;
-            } else if (containsSystemIndex && !securityRoles.hasExplicitIndexPermission(requestedResolved, user, new String[] {ConfigConstants.SYSTEM_INDEX_PERMISSION}, resolver, clusterService)) {
-                auditLog.logSecurityIndexAttempt(request, action, task);
-                if (log.isInfoEnabled()) {
-                    log.info(
-                        "No {} permission for user roles {} to System Indices {}",
-                        action,
-                        securityRoles,
-                        String.join(", ", getAllSystemIndices(requestedResolved))
-                    );
+            } else if (containsSystemIndex
+                && !securityRoles.hasExplicitIndexPermission(
+                    requestedResolved,
+                    user,
+                    new String[] { ConfigConstants.SYSTEM_INDEX_PERMISSION },
+                    resolver,
+                    clusterService
+                )) {
+                    auditLog.logSecurityIndexAttempt(request, action, task);
+                    if (log.isInfoEnabled()) {
+                        log.info(
+                            "No {} permission for user roles {} to System Indices {}",
+                            action,
+                            securityRoles,
+                            String.join(", ", getAllSystemIndices(requestedResolved))
+                        );
+                    }
+                    presponse.allowed = false;
+                    presponse.markComplete();
+                    return;
                 }
-                presponse.allowed = false;
-                presponse.markComplete();
-                return;
-            }
         }
 
         if (isActionAllowed(action)) {
