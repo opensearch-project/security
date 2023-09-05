@@ -116,7 +116,7 @@ public class DoNotFailOnForbiddenTests {
                 "indices:data/read/scroll",
                 "indices:monitor/settings/get",
                 "indices:monitor/stats",
-                    "indices:admin/aliases/get"
+                "indices:admin/aliases/get"
             )
             .on(MARVELOUS_SONGS)
     );
@@ -435,7 +435,7 @@ public class DoNotFailOnForbiddenTests {
             // High level client doesn't support _cat/_indices API
             Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
             List<String> aliases = new BufferedReader(new InputStreamReader(getAliasesResponse.getEntity().getContent())).lines()
-                    .collect(Collectors.toList());
+                .collect(Collectors.toList());
 
             // Does not fail on forbidden, but alias response only contains index which user has access to
             assertThat(getAliasesResponse.getStatusLine().getStatusCode(), equalTo(200));
