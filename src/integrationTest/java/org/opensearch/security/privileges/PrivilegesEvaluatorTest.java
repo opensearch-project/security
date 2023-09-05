@@ -49,8 +49,8 @@ public class PrivilegesEvaluatorTest {
         new Role("search_template_role").indexPermissions("read").on("services").clusterPermissions("cluster_composite_ops")
     );
 
-    protected final static TestSecurityConfig.User ALIAS = new TestSecurityConfig.User("search_template_user").roles(
-        new Role("search_template_role").indexPermissions("*").on("services").clusterPermissions("cluster_monitor")
+    protected final static TestSecurityConfig.User LIMITED_USER = new TestSecurityConfig.User("limited*_user").roles(
+        new Role("limited*_user").indexPermissions("*").on("limited*").clusterPermissions("cluster_monitor")
     );
 
     private String TEST_QUERY =
@@ -58,22 +58,22 @@ public class PrivilegesEvaluatorTest {
 
     private String TEST_DOC = "{\"source\": {\"title\": \"Spirited Away\"}}";
 
-    private String SERVICES_INDEX_TEMPLATE =
-        "{\"index_patterns\": [ \"services\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+    private String LIMITED_LOGS_INDEX_TEMPLATE =
+        "{\"index_patterns\": [ \"limited-logs\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
 
-    private String SERVICES_DATA_STREAM =
-        "{\"index_patterns\": [ \"services\" ], \"data_stream\": {\"timestamp_field\": {\"name\": \"request_time\"} }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+    private String LIMITED_LOGS_DATA_STREAM =
+        "{\"index_patterns\": [ \"limited-logs\" ], \"data_stream\": {\"timestamp_field\": {\"name\": \"request_time\"} }, \"priority\": 200, \"template\": {\"settings\": { } } }";
 
-    private String MOVIES_INDEX_TEMPLATE =
-        "{\"index_patterns\": [ \"movies\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+    private String UNLIMITED_LOGS_INDEX_TEMPLATE =
+        "{\"index_patterns\": [ \"unlimited-logs\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
 
-    private String MOVIES_DATA_STREAM =
-        "{\"index_patterns\": [ \"movies\" ], \"data_stream\": {\"timestamp_field\": {\"name\": \"request_time\"} }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+    private String UNLIMITED_LOGS_DATA_STREAM =
+        "{\"index_patterns\": [ \"unlimited-logs\" ], \"data_stream\": {\"timestamp_field\": {\"name\": \"request_time\"} }, \"priority\": 200, \"template\": {\"settings\": { } } }";
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN, ALIAS)
+        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN, LIMITED_USER)
         .plugin(MustacheModulePlugin.class)
         .build();
 
@@ -137,13 +137,15 @@ public class PrivilegesEvaluatorTest {
 
     @Test
     public void testGetAliasShouldSucceedWithIndexPermissionsFailWithout() {
-        try (TestRestClient client = cluster.getRestClient(ALIAS)) {
-            final String catAliasesOnServices = "_cat/aliases/services";
+        // Get aliases following a pattern they have access to should succeed
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            final String catAliasesOnServices = "_cat/aliases/limited*";
             final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.get(catAliasesOnServices);
             assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
-        try (TestRestClient client = cluster.getRestClient(ALIAS)) {
+        // Get all aliases should fail
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
             final String catAliasesOnAll = "_cat/aliases";
             final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.get(catAliasesOnAll);
             assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
@@ -152,32 +154,35 @@ public class PrivilegesEvaluatorTest {
 
     @Test
     public void testRolloverShouldSucceedWithIndexPermissionsFailWithout() {
+        // Create two data streams and verify admin can rollover both of them
         try (TestRestClient client = cluster.getRestClient(TestSecurityConfig.User.USER_ADMIN)) {
 
-            client.putJson("_index_template/services-template", SERVICES_INDEX_TEMPLATE);
+            client.putJson("_index_template/limited-logs-template", LIMITED_LOGS_INDEX_TEMPLATE);
 
-            client.putJson("_data_stream/services", SERVICES_DATA_STREAM);
+            client.putJson("_data_stream/limited-logs", LIMITED_LOGS_DATA_STREAM);
 
-            client.putJson("_index_template/movies-template", MOVIES_INDEX_TEMPLATE);
+            client.putJson("_index_template/unlimited-logs-template", UNLIMITED_LOGS_INDEX_TEMPLATE);
 
-            client.putJson("_data_stream/movies", MOVIES_DATA_STREAM);
-            final String catAliasesOnServices = "services/_rollover";
+            client.putJson("_data_stream/unlimited-logs", UNLIMITED_LOGS_DATA_STREAM);
+            final String catAliasesOnServices = "limited-logs/_rollover";
             final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.post(catAliasesOnServices);
             assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-            final String moviescatAliasesOnServices = "movies/_rollover";
+            final String moviescatAliasesOnServices = "unlimited-logs/_rollover";
             final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponsem = client.post(moviescatAliasesOnServices);
             assertThat(searchTemplateOnAuthorizedIndexResponsem.getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
-        try (TestRestClient client = cluster.getRestClient(ALIAS)) {
-            final String catAliasesOnAll = "services/_rollover";
-            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.post(catAliasesOnAll);
-            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            // Limited user can rollover limited-logs
+            final String rolloverLimitedLogs = "limited-logs/_rollover";
+            final TestRestClient.HttpResponse rolloverLimitedLogsResponse = client.post(rolloverLimitedLogs);
+            assertThat(rolloverLimitedLogsResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-            final String catAliasesOnAlla = "movies/_rollover";
-            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponsea = client.post(catAliasesOnAlla);
-            assertThat(searchTemplateOnAuthorizedIndexResponsea.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+            // Limited user cannot rollover unlimited-logs
+            final String rolloverUnlimitedLogs = "unlimited-logs/_rollover";
+            final TestRestClient.HttpResponse rolloverUnlimitedLogsResponse = client.post(rolloverUnlimitedLogs);
+            assertThat(rolloverUnlimitedLogsResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 }

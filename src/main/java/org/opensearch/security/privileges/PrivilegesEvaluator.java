@@ -108,7 +108,8 @@ public class PrivilegesEvaluator {
             "indices:admin/shards/search_shards",
             "indices:admin/resolve/index",
             "indices:monitor/settings/get",
-            "indices:monitor/stats"
+            "indices:monitor/stats",
+            "indices:admin/aliases/get"
         )
     );
 
