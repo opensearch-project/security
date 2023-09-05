@@ -115,7 +115,8 @@ public class DoNotFailOnForbiddenTests {
                 "indices:data/read/msearch",
                 "indices:data/read/scroll",
                 "indices:monitor/settings/get",
-                "indices:monitor/stats"
+                "indices:monitor/stats",
+                    "indices:admin/aliases/get"
             )
             .on(MARVELOUS_SONGS)
     );
@@ -424,6 +425,24 @@ public class DoNotFailOnForbiddenTests {
 
             assertThat(indexes.size(), equalTo(1));
             assertThat(indexes.get(0), containsString("marvelous_songs"));
+        }
+    }
+
+    @Test
+    public void shouldPerformCatAliases_positive() throws IOException {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+            Request getAliasesRequest = new Request("GET", "/_cat/aliases");
+            // High level client doesn't support _cat/_indices API
+            Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
+            List<String> aliases = new BufferedReader(new InputStreamReader(getAliasesResponse.getEntity().getContent())).lines()
+                    .collect(Collectors.toList());
+
+            // Does not fail on forbidden, but alias response only contains index which user has access to
+            assertThat(getAliasesResponse.getStatusLine().getStatusCode(), equalTo(200));
+            assertThat(aliases.size(), equalTo(1));
+            assertThat(aliases.get(0), containsString("marvelous_songs"));
+            assertThat(aliases.get(0), not(containsString("horrible_songs")));
+
         }
     }
 
