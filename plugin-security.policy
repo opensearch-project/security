@@ -56,11 +56,6 @@ grant {
   permission java.net.NetPermission "getProxySelector";
   permission java.net.SocketPermission "*", "connect,accept,resolve";
 
-  // BouncyCastle permissions
-  permission java.security.SecurityPermission "putProviderProperty.BC";
-  permission java.security.SecurityPermission "insertProvider.BC";
-  permission java.security.SecurityPermission "removeProviderProperty.BC";
-
   permission java.lang.RuntimePermission "accessUserInformation";
   
   permission java.security.SecurityPermission "org.apache.xml.security.register";
