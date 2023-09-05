@@ -575,7 +575,7 @@ dependencies {
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
-    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
