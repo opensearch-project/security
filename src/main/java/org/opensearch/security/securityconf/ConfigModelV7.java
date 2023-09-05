@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -463,7 +464,7 @@ public class ConfigModelV7 extends ConfigModel {
         ) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
-                retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs));
+                retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs, Function.identity()));
                 retVal.addAll(resolved.getRemoteIndices());
             }
             return Collections.unmodifiableSet(retVal);
@@ -473,7 +474,7 @@ public class ConfigModelV7 extends ConfigModel {
         public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
-                retVal.addAll(sr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
+                retVal.addAll(sr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, Function.identity()));
             }
             if (log.isDebugEnabled()) {
                 log.debug("Reduced requested resolved indices {} to permitted indices {}.", resolved, retVal.toString());
@@ -499,9 +500,35 @@ public class ConfigModelV7 extends ConfigModel {
         @Override
         public boolean hasExplicitClusterPermissionPermission(String action) {
             return roles.stream()
-                .map(r -> r.clusterPerms == WildcardMatcher.ANY ? WildcardMatcher.NONE : r.clusterPerms)
+                .map(r -> matchExplicitly(r.clusterPerms))
                 .filter(m -> m.test(action))
                 .count() > 0;
+        }
+
+        private static WildcardMatcher matchExplicitly(final WildcardMatcher matcher) {
+            return matcher == WildcardMatcher.ANY ? WildcardMatcher.NONE : matcher;
+        }
+
+        @Override
+        public boolean hasExplicitIndexPermission(final Resolved resolved, final User user, final String[] actions, final IndexNameExpressionResolver resolver, final ClusterService cs) {
+
+            final Set<String> indicesForRequest = new HashSet<>(resolved.getAllIndicesResolved(cs, resolver));
+            if (indicesForRequest.isEmpty()) {
+                // If no indices could be found on the request there is no way to check for the explicit permissions
+                return false;
+            }
+
+            final Set<String> explicitlyAllowedIndices = roles.stream()
+                .map(role -> role.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, SecurityRoles::matchExplicitly))
+                .flatMap(s -> s.stream())
+                .collect(Collectors.toSet());
+
+            if (log.isDebugEnabled()) {
+                log.debug("ExplicitIndexPermission check indices for request {}, explicitly allowed indices {}", indicesForRequest.toString(), explicitlyAllowedIndices.toString());
+            }
+
+            indicesForRequest.removeAll(explicitlyAllowedIndices);
+            return indicesForRequest.isEmpty();
         }
 
         // rolespan
@@ -578,13 +605,14 @@ public class ConfigModelV7 extends ConfigModel {
             User user,
             String[] actions,
             IndexNameExpressionResolver resolver,
-            ClusterService cs
+            ClusterService cs,
+            Function<WildcardMatcher, WildcardMatcher> matcherModification
         ) {
 
             final Set<String> retVal = new HashSet<>();
             for (IndexPattern p : ipatterns) {
                 // what if we cannot resolve one (for create purposes)
-                final boolean patternMatch = p.getPerms().matchAll(actions);
+                final boolean patternMatch = matcherModification.apply(p.getPerms()).matchAll(actions);
 
                 // final Set<TypePerm> tperms = p.getTypePerms();
                 // for (TypePerm tp : tperms) {

@@ -448,6 +448,11 @@ public class ConfigModelV6 extends ConfigModel {
             return new EvaluatedDlsFlsConfig(dlsQueries, flsFields, maskedFieldsMap);
         }
 
+        public boolean hasExplicitIndexPermission(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+            // TODO: Handle this scenario in V6 config
+            return false;
+        }
+
         // opensearchDashboards special only, terms eval
         public Set<String> getAllPermittedIndicesForDashboards(
             Resolved resolved,

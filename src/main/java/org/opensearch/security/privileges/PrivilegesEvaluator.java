@@ -314,7 +314,7 @@ public class PrivilegesEvaluator {
         }
 
         // Security index access
-        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
+        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles, user, resolver, clusterService).isComplete()) {
             return presponse;
         }
 

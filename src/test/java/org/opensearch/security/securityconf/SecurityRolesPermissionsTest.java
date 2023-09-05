@@ -193,22 +193,6 @@ public class SecurityRolesPermissionsTest {
         }
     }
 
-    @Test
-    public void testTypePerms() {
-        TypePerm typePerm = new TypePerm();
-        TypePerm typePerm2 = new TypePerm();
-        TypePerm emptyTypePerm = new TypePerm();
-
-        List perms = Arrays.asList("be", "asas");
-        typePerm.addPerms(perms);
-        typePerm2.addPerms(perms);
-
-        Assert.assertEquals(typePerm, typePerm2);
-        Assert.assertEquals(typePerm.hashCode(), typePerm2.hashCode());
-        Assert.assertNotEquals(typePerm, emptyTypePerm);
-
-    }
-
     void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final SecurityRoles allowOnlyRoleForRole) {
         final Collection<Endpoint> noPermissionEndpoints = ENDPOINTS_WITH_PERMISSIONS.keySet()
             .stream()

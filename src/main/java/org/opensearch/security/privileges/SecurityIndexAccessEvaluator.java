@@ -31,14 +31,16 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.IndexPattern;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
 import java.util.ArrayList;
@@ -123,11 +125,12 @@ public class SecurityIndexAccessEvaluator {
         final String action,
         final Resolved requestedResolved,
         final PrivilegesEvaluatorResponse presponse,
-        final SecurityRoles securityRoles
+        final SecurityRoles securityRoles,
+        final User user,
+        final IndexNameExpressionResolver resolver,
+        final ClusterService clusterService
     ) {
-        final boolean isDebugEnabled = log.isDebugEnabled();
-
-        evaluateSystemIndicesAccess(action, requestedResolved, request, task, presponse, isDebugEnabled, securityRoles);
+        evaluateSystemIndicesAccess(action, requestedResolved, request, task, presponse, securityRoles, user, resolver, clusterService);
 
         if (requestedResolved.isLocalAll()
             || requestedResolved.getAllIndices().contains(securityIndex)
@@ -135,41 +138,19 @@ public class SecurityIndexAccessEvaluator {
 
             if (request instanceof SearchRequest) {
                 ((SearchRequest) request).requestCache(Boolean.FALSE);
-                if (isDebugEnabled) {
+                if (log.isDebugEnabled()) {
                     log.debug("Disable search request cache for this request");
                 }
             }
 
             if (request instanceof RealtimeRequest) {
                 ((RealtimeRequest) request).realtime(Boolean.FALSE);
-                if (isDebugEnabled) {
+                if (log.isDebugEnabled()) {
                     log.debug("Disable realtime for this request");
                 }
             }
         }
         return presponse;
-    }
-
-    /**
-     * Checks whether user has `system:admin/system_index` explicitly specified
-     * as an allowed action under any of its mapped roles
-     * @param securityRoles roles in which the permission needs to be checked
-     * @return true if user does not have permission, false otherwise
-     */
-    private boolean isSystemIndexAccessProhibitedForUser(SecurityRoles securityRoles) {
-        // Excluding `*` allowed action as it shouldn't grant system index privilege
-        Set<WildcardMatcher> userPermissions = securityRoles.getRoles()
-            .stream()
-            .flatMap(role -> role.getIpatterns().stream())
-            .map(IndexPattern::getNonWildCardPerms)
-            .collect(Collectors.toSet());
-
-        for (WildcardMatcher userPermission : userPermissions) {
-            if (userPermission.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -238,13 +219,15 @@ public class SecurityIndexAccessEvaluator {
      * @param securityRoles user's roles which will be used for access evaluation
      */
     private void evaluateSystemIndicesAccess(
-        String action,
-        Resolved requestedResolved,
-        ActionRequest request,
-        Task task,
-        PrivilegesEvaluatorResponse presponse,
-        Boolean isDebugEnabled,
-        SecurityRoles securityRoles
+        final String action,
+        final Resolved requestedResolved,
+        final ActionRequest request,
+        final Task task,
+        final PrivilegesEvaluatorResponse presponse,
+        SecurityRoles securityRoles,
+        final User user,
+        final IndexNameExpressionResolver resolver,
+        final ClusterService clusterService
     ) {
         // Perform access check is system index permissions are enabled
         boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
@@ -264,7 +247,7 @@ public class SecurityIndexAccessEvaluator {
                 presponse.allowed = false;
                 presponse.markComplete();
                 return;
-            } else if (containsSystemIndex && isSystemIndexAccessProhibitedForUser(securityRoles)) {
+            } else if (containsSystemIndex && !securityRoles.hasExplicitIndexPermission(requestedResolved, user, new String[] {ConfigConstants.SYSTEM_INDEX_PERMISSION}, resolver, clusterService)) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (log.isInfoEnabled()) {
                     log.info(
@@ -284,7 +267,7 @@ public class SecurityIndexAccessEvaluator {
             if (requestedResolved.isLocalAll()) {
                 if (filterSecurityIndex) {
                     irr.replace(request, false, "*", "-" + securityIndex);
-                    if (isDebugEnabled) {
+                    if (log.isDebugEnabled()) {
                         log.debug(
                             "Filtered '{}' from {}, resulting list with *,-{} is {}",
                             securityIndex,
@@ -307,7 +290,7 @@ public class SecurityIndexAccessEvaluator {
                     Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                     allWithoutSecurity.remove(securityIndex);
                     if (allWithoutSecurity.isEmpty()) {
-                        if (isDebugEnabled) {
+                        if (log.isDebugEnabled()) {
                             log.debug("Filtered '{}' but resulting list is empty", securityIndex);
                         }
                         presponse.allowed = false;
@@ -315,7 +298,7 @@ public class SecurityIndexAccessEvaluator {
                         return;
                     }
                     irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
-                    if (isDebugEnabled) {
+                    if (log.isDebugEnabled()) {
                         log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
                     }
                 } else {
