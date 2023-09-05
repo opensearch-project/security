@@ -22,13 +22,13 @@ If you have an issue you'd like to bring forth please consider getting a link to
 
 Meetings is 60 minutes and structured as follows:
 
-1. Wait for quorum: As we gather and waiting for at least three maintainers to join, feel free to turn on video and have informal and open-to-all conversation.  Once quorum is reached, a volunteer will share their screen and proceed with the agenda.
+1. Initial Gathering: As we gather, feel free to turn on video and engage in informal and open-to-all conversation.  After a bit a volunteer will share their screen and proceed with the agenda.
 2. Announcements: If there are any announcements to be made they will happen at the start of the meeting.
-3. Review of new issues: The meetings always start with reviewing all untriaged [issues](https://github.com/search?q=label%3Auntriaged+is%3Aopen++repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=issues&ref=advsearch&s=created&o=desc) for the security and security-dashboards repositories.
-4. Member requests: Opportunity for any meeting member to ask for consideration of an issue or pull request.
-5. Untriaged items: Review any [issues](https://github.com/search?q=-label%3Atriaged+is%3Aopen++is%3Aissue+repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=issues) that might have had the 'untriaged' label removed but require additional triage discussion.
-6. Pull request discussion: Then, we review the status of outstanding [pull requests](https://github.com/search?q=+is%3Aopen++repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=pullrequests&ref=advsearch) from the security and security-dashboards repositories.
-7. Open discussion: Allow for members of the meeting to surface any topics without issues filed or pull request created.
+3. Review of New Issues: The meetings always start with reviewing all untriaged [issues](https://github.com/search?q=label%3Auntriaged+is%3Aopen++repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=issues&ref=advsearch&s=created&o=desc) for the security and security-dashboards repositories.
+4. Member Requests: Opportunity for any meeting member to ask for consideration of an issue or pull request.
+5. Untriaged Items: Review any [issues](https://github.com/search?q=-label%3Atriaged+is%3Aopen++is%3Aissue+repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=issues) that might have had the 'untriaged' label removed but require additional triage discussion.
+6. Pull Request Discussion: Then, we review the status of outstanding [pull requests](https://github.com/search?q=+is%3Aopen++repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=pullrequests&ref=advsearch) from the security and security-dashboards repositories.
+7. Open Discussion: Allow for members of the meeting to surface any topics without issues filed or pull request created.
 
 
 There is no specific ordering within each category.
