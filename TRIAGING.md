@@ -20,7 +20,7 @@ If you have an issue you'd like to bring forth please consider getting a link to
 
 ### Is there an agenda for each week?
 
-Meetings is 60 minutes and structured as follows:
+Meetings are 60 minutes and structured as follows:
 
 1. Initial Gathering: As we gather, feel free to turn on video and engage in informal and open-to-all conversation.  After a bit a volunteer will share their screen and proceed with the agenda.
 2. Announcements: If there are any announcements to be made they will happen at the start of the meeting.
