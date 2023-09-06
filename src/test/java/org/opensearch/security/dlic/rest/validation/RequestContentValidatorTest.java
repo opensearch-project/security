@@ -85,7 +85,7 @@ public class RequestContentValidatorTest {
             }
         });
         when(httpRequest.content()).thenReturn(new BytesArray("{`a`: `b`}"));
-        final ValidationResult validationResult = validator.validate(request);
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertFalse(validationResult.isValid());
         assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE);
     }
@@ -109,7 +109,7 @@ public class RequestContentValidatorTest {
             }
         });
         when(httpRequest.content()).thenReturn(new BytesArray(""));
-        ValidationResult validationResult = validator.validate(request);
+        ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertFalse(validationResult.isValid());
         assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.PAYLOAD_MANDATORY);
 
@@ -147,7 +147,7 @@ public class RequestContentValidatorTest {
 
         final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", 1).put("b", "[]").put("c", "{}");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
-        final ValidationResult validationResult = validator.validate(request);
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
 
         final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
         assertFalse(validationResult.isValid());
@@ -184,7 +184,7 @@ public class RequestContentValidatorTest {
 
         final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("c", "aaa").put("d", "aaa");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
-        final ValidationResult validationResult = validator.validate(request);
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
         final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
         assertErrorMessage(errorMessage, RequestContentValidator.ValidationError.INVALID_CONFIGURATION);
 
@@ -218,7 +218,7 @@ public class RequestContentValidatorTest {
         final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode().putObject("a");
         payload.putArray("a").add(NullNode.getInstance()).add("b").add("c");
         when(request.content()).thenReturn(new BytesArray(payload.toString()));
-        final ValidationResult validationResult = validator.validate(request);
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT);
     }
 
@@ -247,7 +247,7 @@ public class RequestContentValidatorTest {
         });
         ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("password", "a");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
-        ValidationResult validationResult = validator.validate(request);
+        ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.NO_USERNAME);
 
         when(httpRequest.uri()).thenReturn("/aaaa?name=a");
@@ -292,7 +292,7 @@ public class RequestContentValidatorTest {
         payload.putObject("c");
 
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
-        final ValidationResult validationResult = validator.validate(request);
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertTrue(validationResult.isValid());
         assertNull(validationResult.errorMessage());
     }

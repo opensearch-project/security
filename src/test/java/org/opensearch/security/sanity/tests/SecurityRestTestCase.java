@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.hc.core5.http.HttpHost;
 
@@ -32,8 +33,6 @@ import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH;
 
 /**
  * Overrides OpenSearchRestTestCase to fit the use-case for testing
@@ -55,14 +54,18 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
     }
 
     @Override
+    protected String getProtocol() {
+        return "https";
+    }
+
+    @Override
     protected Settings restAdminSettings() {
         return Settings.builder()
             .put("http.port", 9200)
             .put(SECURITY_SSL_HTTP_ENABLED, isHttps())
-            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "opensearch-node.pem")
-            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, CERT_FILE_DIRECTORY + "opensearch-node-key.pem")
-            .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, CERT_FILE_DIRECTORY + "root-ca.pem")
-            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "test-kirk.jks")
+            // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
+            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "root-ca.pem")
+            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "kirk-keystore.jks")
             .put(SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.insecurePropertyName, "changeit")
             .put(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.insecurePropertyName, "changeit")
             .build();
@@ -76,7 +79,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
             if (keystore != null) {
                 // create adminDN (super-admin) client
-                File file = new File(getClass().getClassLoader().getResource(CERT_FILE_DIRECTORY).getFile());
+                File file = new File(Objects.requireNonNull(getClass().getClassLoader().getResource(CERT_FILE_DIRECTORY)).getFile());
                 Path configPath = PathUtils.get(file.toURI()).getParent().toAbsolutePath();
                 return new SecureRestClientBuilder(settings, configPath).setSocketTimeout(60000)
                     .setConnectionRequestTimeout(180000)

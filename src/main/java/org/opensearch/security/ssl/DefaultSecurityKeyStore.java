@@ -968,18 +968,26 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final ClientAuth authMode
     ) throws SSLException {
 
-        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(
-            SslContextBuilder.forServer(_key, _cert),
-            sslProvider,
-            ciphers,
-            authMode
-        );
+        try {
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
+                @Override
+                public SslContextBuilder run() throws Exception {
+                    return configureSSLServerContextBuilder(SslContextBuilder.forServer(_key, _cert), sslProvider, ciphers, authMode);
+                }
+            });
 
-        if (_trustedCerts != null && _trustedCerts.length > 0) {
-            _sslContextBuilder.trustManager(_trustedCerts);
+            if (_trustedCerts != null && _trustedCerts.length > 0) {
+                _sslContextBuilder.trustManager(_trustedCerts);
+            }
+
+            return buildSSLContext0(_sslContextBuilder);
+        } catch (final PrivilegedActionException e) {
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
-
-        return buildSSLContext0(_sslContextBuilder);
     }
 
     private SslContext buildSSLServerContext(
@@ -991,19 +999,32 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final SslProvider sslProvider,
         final ClientAuth authMode
     ) throws SSLException {
+        final SecurityManager sm = System.getSecurityManager();
 
-        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(
-            SslContextBuilder.forServer(_cert, _key, pwd),
-            sslProvider,
-            ciphers,
-            authMode
-        );
-
-        if (_trustedCerts != null) {
-            _sslContextBuilder.trustManager(_trustedCerts);
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
         }
 
-        return buildSSLContext0(_sslContextBuilder);
+        try {
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
+                @Override
+                public SslContextBuilder run() throws Exception {
+                    return configureSSLServerContextBuilder(SslContextBuilder.forServer(_cert, _key, pwd), sslProvider, ciphers, authMode);
+                }
+            });
+
+            if (_trustedCerts != null) {
+                _sslContextBuilder.trustManager(_trustedCerts);
+            }
+
+            return buildSSLContext0(_sslContextBuilder);
+        } catch (final PrivilegedActionException e) {
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private SslContextBuilder configureSSLServerContextBuilder(
@@ -1095,7 +1116,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 }
             });
         } catch (final PrivilegedActionException e) {
-            throw (SSLException) e.getCause();
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
 
         return sslContext;
