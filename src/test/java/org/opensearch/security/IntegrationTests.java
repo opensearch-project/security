@@ -1047,7 +1047,7 @@ public class IntegrationTests extends SingleClusterTest {
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         res = rh.executePostRequest(".opendistro_security/_freeze", "", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertTrue(res.getStatusCode() >= 400);
+        Assert.assertEquals(400, res.getStatusCode());
 
         String bulkBody = "{ \"index\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"1\" } }\n"
             + "{ \"field1\" : \"value1\" }\n"

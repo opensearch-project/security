@@ -82,7 +82,7 @@ public class SecurityIndexAccessEvaluator {
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
         );
-        this.protectedSystemIndexMatcher = WildcardMatcher.from(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.protectedSystemIndexMatcher = WildcardMatcher.from(this.securityIndex);
         this.isSystemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
@@ -215,8 +215,10 @@ public class SecurityIndexAccessEvaluator {
      * @param request the action request to be used for audit logging
      * @param task task in which this access check will be performed
      * @param presponse the pre-response object that will eventually become a response and returned to the requester
-     * @param isDebugEnabled flag to indicate whether debug logging is enabled
      * @param securityRoles user's roles which will be used for access evaluation
+     * @param user this user's permissions will be looked up
+     * @param resolver the index expression resolver
+     * @param clusterService required to fetch cluster state metadata
      */
     private void evaluateSystemIndicesAccess(
         final String action,
@@ -289,10 +291,10 @@ public class SecurityIndexAccessEvaluator {
                     presponse.allowed = false;
                     presponse.markComplete();
                 }
-            } else if (containsSystemIndex && !isSystemIndexPermissionEnabled) {
-                // if system index is enabled and system index permissions are enabled we don't need to perform any further
-                // checks as it has already been performed via isSystemIndexAccessProhibitedForUser
-
+            }
+            // if system index is enabled and system index permissions are enabled we don't need to perform any further
+            // checks as it has already been performed via hasExplicitIndexPermission
+            else if (containsSystemIndex && !isSystemIndexPermissionEnabled) {
                 if (filterSecurityIndex) {
                     Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                     allWithoutSecurity.remove(securityIndex);
