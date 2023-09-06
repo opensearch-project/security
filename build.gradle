@@ -322,8 +322,8 @@ jacocoTestReport {
 }
 
 checkstyle {
-    configFile file("checkstyle/sun_checks.xml")
-    configFile file("checkstyle/println_checks.xml")
+    toolVersion "10.3.3"
+    configDirectory.set(rootProject.file("checkstyle/"))
 }
 
 opensearchplugin {
