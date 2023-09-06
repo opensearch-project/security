@@ -577,7 +577,7 @@ public class ConfigModelV6 extends ConfigModel {
                 final Set<TypePerm> tperms = p.getTypePerms();
                 for (TypePerm tp : tperms) {
                     // if matchExplicitly is true we don't want to match against `*` pattern
-                    WildcardMatcher matcher = matchExplicitly && (tp.getTypeMatcher() == WildcardMatcher.ANY)
+                    WildcardMatcher matcher = matchExplicitly && (tp.getPerms() == WildcardMatcher.ANY)
                         ? WildcardMatcher.NONE
                         : tp.getTypeMatcher();
                     if (matcher.matchAny(resolved.getTypes())) {
