@@ -65,7 +65,7 @@ public class SecurityIndexAccessEvaluator {
     private final boolean filterSecurityIndex;
     // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
-    private final WildcardMatcher protectedSystemIndexMatcher;
+    private final WildcardMatcher superAdminAccessOnlyIndexMatcher;
     private final WildcardMatcher deniedActionsMatcher;
 
     private final boolean isSystemIndexEnabled;
@@ -82,7 +82,7 @@ public class SecurityIndexAccessEvaluator {
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
         );
-        this.protectedSystemIndexMatcher = WildcardMatcher.from(this.securityIndex);
+        this.superAdminAccessOnlyIndexMatcher = WildcardMatcher.from(this.securityIndex);
         this.isSystemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
@@ -92,14 +92,14 @@ public class SecurityIndexAccessEvaluator {
             false
         );
 
-        final List<String> securityIndexDeniedActionPatternsList = deniedActionPatterns();
+        final List<String> deniedActionPatternsList = deniedActionPatterns();
 
-        final List<String> securityIndexDeniedActionPatternsListNoSnapshot = new ArrayList<>(securityIndexDeniedActionPatternsList);
-        securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
-        securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
+        final List<String> deniedActionPatternsListNoSnapshot = new ArrayList<>(deniedActionPatternsList);
+        deniedActionPatternsListNoSnapshot.add("indices:admin/close*");
+        deniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
         deniedActionsMatcher = WildcardMatcher.from(
-            restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot
+            restoreSecurityIndexEnabled ? deniedActionPatternsList : deniedActionPatternsListNoSnapshot
         );
         isSystemIndexPermissionEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY,
@@ -196,7 +196,7 @@ public class SecurityIndexAccessEvaluator {
      * @return the list of protected system indices present in the request
      */
     private List<String> getAllProtectedSystemIndices(final Resolved requestedResolved) {
-        return new ArrayList<>(protectedSystemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
+        return new ArrayList<>(superAdminAccessOnlyIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
     }
 
     /**
