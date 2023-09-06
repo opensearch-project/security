@@ -79,20 +79,24 @@ public class OnBehalfOfJwtAuthenticationTest {
         + NEW_PASSWORD
         + "\" }";
 
-    protected final static TestSecurityConfig.User OBO_USER = new TestSecurityConfig.User(OBO_USER_NAME_WITH_PERM).roles(
-        new TestSecurityConfig.Role("obo_access_role").clusterPermissions("security:obo/create")
-    );
-
-    protected final static TestSecurityConfig.User OBO_USER_NO_PERM = new TestSecurityConfig.User(OBO_USER_NAME_NO_PERM).roles(
-        new TestSecurityConfig.Role("obo_user_no_perm")
-    );
-
-    private static final TestSecurityConfig.Role HOST_MAPPING_ROLE = new TestSecurityConfig.Role("host_mapping_role").clusterPermissions(
+    private static final TestSecurityConfig.Role ROLE_WITH_OBO_PERM = new TestSecurityConfig.Role("obo_access_role").clusterPermissions(
         "security:obo/create"
     );
 
+    private static final TestSecurityConfig.Role ROLE_WITH_NO_OBO_PERM = new TestSecurityConfig.Role("obo_user_no_perm");
+
+    protected final static TestSecurityConfig.User OBO_USER = new TestSecurityConfig.User(OBO_USER_NAME_WITH_PERM).roles(
+        ROLE_WITH_OBO_PERM
+    );
+
+    protected final static TestSecurityConfig.User OBO_USER_NO_PERM = new TestSecurityConfig.User(OBO_USER_NAME_NO_PERM).roles(
+        ROLE_WITH_NO_OBO_PERM
+    );
+
+    private static final TestSecurityConfig.Role HOST_MAPPING_ROLE = new TestSecurityConfig.Role("host_mapping_role");
+
     protected final static TestSecurityConfig.User HOST_MAPPING_OBO_USER = new TestSecurityConfig.User(OBO_USER_NAME_WITH_HOST_MAPPING)
-        .roles(HOST_MAPPING_ROLE);
+        .roles(HOST_MAPPING_ROLE, ROLE_WITH_OBO_PERM);
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -173,9 +177,7 @@ public class OnBehalfOfJwtAuthenticationTest {
             .filter(s -> !s.isEmpty())
             .collect(Collectors.toUnmodifiableList());
 
-        Assert.assertTrue(roles.contains("host_mapping_role"));
-        Assert.assertFalse(roles.contains(HOST_MAPPING_IP));
-
+        Assert.assertFalse(roles.contains("host_mapping_role"));
     }
 
     private String generateOboToken(String username, String password) {
