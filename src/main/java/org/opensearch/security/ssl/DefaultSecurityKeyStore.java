@@ -958,19 +958,32 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final ClientAuth authMode
     ) throws SSLException {
 
-        final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_key, _cert)
-            .ciphers(ciphers)
-            .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-            .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
-            .sessionCacheSize(0)
-            .sessionTimeout(0)
-            .sslProvider(sslProvider);
+        try {
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
+                @Override
+                public SslContextBuilder run() throws Exception {
+                    return SslContextBuilder.forServer(_key, _cert)
+                        .ciphers(ciphers)
+                        .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
+                        .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
+                        .sessionCacheSize(0)
+                        .sessionTimeout(0)
+                        .sslProvider(sslProvider);
+                }
+            });
 
-        if (_trustedCerts != null && _trustedCerts.length > 0) {
-            _sslContextBuilder.trustManager(_trustedCerts);
+            if (_trustedCerts != null && _trustedCerts.length > 0) {
+                _sslContextBuilder.trustManager(_trustedCerts);
+            }
+
+            return buildSSLContext0(_sslContextBuilder);
+        } catch (final PrivilegedActionException e) {
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
-
-        return buildSSLContext0(_sslContextBuilder);
     }
 
     private SslContext buildSSLServerContext(
@@ -982,20 +995,38 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final SslProvider sslProvider,
         final ClientAuth authMode
     ) throws SSLException {
+        final SecurityManager sm = System.getSecurityManager();
 
-        final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_cert, _key, pwd)
-            .ciphers(ciphers)
-            .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-            .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
-            .sessionCacheSize(0)
-            .sessionTimeout(0)
-            .sslProvider(sslProvider);
-
-        if (_trustedCerts != null) {
-            _sslContextBuilder.trustManager(_trustedCerts);
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
         }
 
-        return buildSSLContext0(_sslContextBuilder);
+        try {
+            final SslContextBuilder _sslContextBuilder = AccessController.doPrivileged(new PrivilegedExceptionAction<SslContextBuilder>() {
+                @Override
+                public SslContextBuilder run() throws Exception {
+                    return SslContextBuilder.forServer(_cert, _key, pwd)
+                        .ciphers(ciphers)
+                        .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
+                        .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
+                        .sessionCacheSize(0)
+                        .sessionTimeout(0)
+                        .sslProvider(sslProvider);
+                }
+            });
+
+            if (_trustedCerts != null) {
+                _sslContextBuilder.trustManager(_trustedCerts);
+            }
+
+            return buildSSLContext0(_sslContextBuilder);
+        } catch (final PrivilegedActionException e) {
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private SslContext buildSSLClientContext(
@@ -1059,7 +1090,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 }
             });
         } catch (final PrivilegedActionException e) {
-            throw (SSLException) e.getCause();
+            if (e.getCause() instanceof SSLException) {
+                throw (SSLException) e.getCause();
+            } else {
+                throw new RuntimeException(e);
+            }
         }
 
         return sslContext;
