@@ -53,6 +53,7 @@ public class OnBehalfOfConfig implements ToXContentObject {
         this.algorithm = algorithm;
         return this;
     }
+
     public OnBehalfOfConfig encryptionKey(String encryption_key) {
         this.encryption_key = encryption_key;
         return this;
