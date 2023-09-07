@@ -256,7 +256,7 @@ Checkstyle enforced several rules within this codebase.  Sometimes exceptions wi
 
 *Suppression All Checkstyle Rules*
 ```
-  // CS-SUPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
+  // CS-SUPPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
   ...
   // CS-ENFORCE-ALL
 ```

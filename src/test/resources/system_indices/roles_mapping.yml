@@ -1,0 +1,34 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "admin_all_access"
+  and_backend_roles: []
+  description: "Full index permissions"
+
+normal_role:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "normal_user"
+  and_backend_roles: []
+  description: "System index permissions"
+
+normal_role_without_system_index:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "normal_user_without_system_index"
+  and_backend_roles: []
+  description: "No access to System index permissions"
