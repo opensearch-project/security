@@ -101,14 +101,14 @@ public class JwtVendorTest {
         // try default algorithm: HS512
         Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
-        JsonWebKey jwk = JwtVendor.createJwkFromSettings(settings);
+        JsonWebKey jwk = JwkUtil.createJwkFromSettings(settings);
         Assert.assertEquals("HS512", jwk.getAlgorithm());
         Assert.assertEquals("sig", jwk.getPublicKeyUse().toString());
         Assert.assertEquals("abc123", jwk.getProperty("k"));
 
         settings = Settings.builder().put(ALGORITHM, "HS512").put("signing_key", "abc123").build();
 
-        jwk = JwtVendor.createJwkFromSettings(settings);
+        jwk = JwkUtil.createJwkFromSettings(settings);
         Assert.assertEquals("HS512", jwk.getAlgorithm());
         Assert.assertEquals("sig", jwk.getPublicKeyUse().toString());
         Assert.assertEquals("abc123", jwk.getProperty("k"));
@@ -119,7 +119,7 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("jwt", "").build();
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
             try {
-                JwtVendor.createJwkFromSettings(settings);
+                JwkUtil.createJwkFromSettings(settings);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -205,7 +205,7 @@ public class JwtVendorTest {
     public void testCreateHMACJwkFromSettingsWithoutProperConfig() {
         Settings settings = Settings.builder().build();
 
-        Exception e = assertThrows(Exception.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Exception e = assertThrows(Exception.class, () -> JwkUtil.createJwkFromSettings(settings));
         assertEquals(
             "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.",
             e.getMessage()
@@ -213,7 +213,7 @@ public class JwtVendorTest {
 
         e = assertThrows(
             Exception.class,
-            () -> JwtVendor.createJwkFromSettings(Settings.builder().put(settings).put(ALGORITHM, "HS512").build())
+            () -> JwkUtil.createJwkFromSettings(Settings.builder().put(settings).put(ALGORITHM, "HS512").build())
         );
         assertEquals(
             "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.",
@@ -221,7 +221,7 @@ public class JwtVendorTest {
         );
 
         // correct config at this point
-        JwtVendor.createJwkFromSettings(
+        JwkUtil.createJwkFromSettings(
             Settings.builder().put(settings).put(ALGORITHM, "HS512").put("signing_key", "secret_signing_key").build()
         );
     }
@@ -283,7 +283,7 @@ public class JwtVendorTest {
             .put(ENCRYPTION_KEY, claimsEncryptionKey)
             .build();
 
-        JsonWebKey jwk = JwtVendor.createJwkFromSettings(settings);
+        JsonWebKey jwk = JwkUtil.createJwkFromSettings(settings);
         Assert.assertEquals("sig", jwk.getPublicKeyUse().toString());
         Assert.assertEquals(EC_CURVE_P521, jwk.getProperty("crv"));
         Assert.assertEquals(KeyType.EC, jwk.getKeyType());
@@ -388,11 +388,11 @@ public class JwtVendorTest {
         String privateKey = "-----BEGIN EC PRIVATE KEY-----\n" + "INCORRECT KEY" + "-----END EC PRIVATE KEY-----\n";
 
         Settings keyBasedSettings = Settings.builder().put(ALGORITHM, "ES256").put("ec_private_key", privateKey).build();
-        Exception e = assertThrows(Exception.class, () -> JwtVendor.createJwkFromSettings(keyBasedSettings));
+        Exception e = assertThrows(Exception.class, () -> JwkUtil.createJwkFromSettings(keyBasedSettings));
         assertEquals("Unable to read EC private key.", e.getMessage());
 
         Settings settings = Settings.builder().put(ALGORITHM, "ES256").build();
-        e = assertThrows(Exception.class, () -> JwtVendor.createJwkFromSettings(settings));
+        e = assertThrows(Exception.class, () -> JwkUtil.createJwkFromSettings(settings));
         assertEquals(
             "Settings for EC private key is missing. Please specify ec_private with required x and y coordinates.",
             e.getMessage()
@@ -400,7 +400,7 @@ public class JwtVendorTest {
 
         e = assertThrows(
             Exception.class,
-            () -> JwtVendor.createJwkFromSettings(
+            () -> JwkUtil.createJwkFromSettings(
                 Settings.builder().put(settings).put(EC_PRIVATE, RandomStringUtils.randomAlphanumeric(88)).build()
             )
         );
@@ -408,7 +408,7 @@ public class JwtVendorTest {
 
         e = assertThrows(
             Exception.class,
-            () -> JwtVendor.createJwkFromSettings(
+            () -> JwkUtil.createJwkFromSettings(
                 Settings.builder()
                     .put(settings)
                     .put(EC_PRIVATE, RandomStringUtils.randomAlphanumeric(88))
@@ -419,7 +419,7 @@ public class JwtVendorTest {
         assertEquals("Settings for EC y coordinate is missing.", e.getMessage());
 
         // correct config at this point
-        JwtVendor.createJwkFromSettings(
+        JwkUtil.createJwkFromSettings(
             Settings.builder()
                 .put(settings)
                 .put(EC_PRIVATE, RandomStringUtils.randomAlphanumeric(88))
@@ -721,7 +721,7 @@ public class JwtVendorTest {
             .put(ALGORITHM, "RS256")
             .put("rsa_private_key", privateKey)
             .build();
-        Exception e = assertThrows(Exception.class, () -> JwtVendor.createJwkFromSettings(settings1));
+        Exception e = assertThrows(Exception.class, () -> JwkUtil.createJwkFromSettings(settings1));
         assertEquals("Unable to read RSA private key.", e.getMessage());
 
         Settings settings2 = Settings.builder()
@@ -733,12 +733,12 @@ public class JwtVendorTest {
                 "X4cTteJY_gn4FYPsXB8rdXix5vwsg1FLN5E3EaG6RJoVH-HLLKD9M7dx5oo7GURknchnrRweUkC7hT5fJLM0WbFAKNLWY2vv7B6NqXSzUvxT0_YSfqijwp3RTzlBaCxWp4doFk5N2o8Gy_nHNKroADIkJ46pRUohsXywbReAdYaMwFs9tv8d_cPVY3i07a3t8MN6TNwm0dSawm9v47UiCl3Sk5ZiG7xojPLu4sbg1U2jx4IBTNBznbJSzFHK66jT8bgkuqsk0GjskDJk19Z4qwjwbsnn4j2WBii3RL-Us2lGVkY8fkFzme1z0HbIkfz0Y6mqnOYtqc0X4jfcKoAC8Q"
             )
             .build();
-        e = assertThrows(Exception.class, () -> JwtVendor.createJwkFromSettings(settings2));
+        e = assertThrows(Exception.class, () -> JwkUtil.createJwkFromSettings(settings2));
         assertEquals("Settings for RSA modulus is missing. Please specify rsa_modulus.", e.getMessage());
 
         final Exception finalE = assertThrows(
             Exception.class,
-            () -> JwtVendor.createJwkFromSettings(
+            () -> JwkUtil.createJwkFromSettings(
                 Settings.builder()
                     .put(settings2)
                     .put(RSA_MODULUS, "83i-7IvMGXoMXCskv73TKr8637FiO7Z27zv8oj6pbWUQyLPQBQxtPVnwD20R")
