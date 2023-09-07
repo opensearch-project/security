@@ -162,13 +162,11 @@ public class OnBehalfOfJwtAuthenticationTest {
     }
 
     @Test
-    public void shouldNotIncludeHostMappingInOBOToken() {
+    public void shouldNotIncludeRolesFromHostMappingInOBOToken() {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
 
-        String[] splitToken = oboToken.split("\\.");
+        Claims claims = Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(oboToken).getBody();
 
-        String unsignedToken = splitToken[0] + "." + splitToken[1] + ".";
-        Claims claims = Jwts.parserBuilder().build().parseClaimsJwt(unsignedToken).getBody();
         Object er = claims.get("er");
         EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
         String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
