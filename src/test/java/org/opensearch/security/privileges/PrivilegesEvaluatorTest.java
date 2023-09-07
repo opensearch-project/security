@@ -14,6 +14,7 @@ package org.opensearch.security.privileges;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -25,6 +26,7 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
     private static final Header NegativeLookaheadUserHeader = encodeBasicHeader("negative_lookahead_user", "negative_lookahead_user");
     private static final Header NegatedRegexUserHeader = encodeBasicHeader("negated_regex_user", "negated_regex_user");
 
+    @Before
     public void setupSettingsIndexPattern() throws Exception {
         Settings settings = Settings.builder().build();
         setup(
@@ -39,7 +41,6 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
 
     @Test
     public void testNegativeLookaheadPattern() throws Exception {
-        setupSettingsIndexPattern();
 
         RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse response = rh.executeGetRequest("*/_search", NegativeLookaheadUserHeader);
@@ -50,8 +51,6 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
 
     @Test
     public void testRegexPattern() throws Exception {
-        setupSettingsIndexPattern();
-
         RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse response = rh.executeGetRequest("*/_search", NegatedRegexUserHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());

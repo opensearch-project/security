@@ -309,8 +309,11 @@ public class ConfigConstants {
         "opendistro_security_injected_roles_validation_header";
 
     // System indices settings
+    public static final String SYSTEM_INDEX_PERMISSION = "system:admin/system_index";
     public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = "plugins.security.system_indices.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
+    public static final String SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY = "plugins.security.system_indices.permission.enabled";
+    public static final Boolean SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
 

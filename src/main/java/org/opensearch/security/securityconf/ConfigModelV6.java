@@ -448,6 +448,36 @@ public class ConfigModelV6 extends ConfigModel {
             return new EvaluatedDlsFlsConfig(dlsQueries, flsFields, maskedFieldsMap);
         }
 
+        public boolean hasExplicitIndexPermission(
+            Resolved resolved,
+            User user,
+            String[] actions,
+            IndexNameExpressionResolver resolver,
+            ClusterService cs
+        ) {
+            final Set<String> indicesForRequest = new HashSet<>(resolved.getAllIndicesResolved(cs, resolver));
+            if (indicesForRequest.isEmpty()) {
+                // If no indices could be found on the request there is no way to check for the explicit permissions
+                return false;
+            }
+
+            final Set<String> explicitlyAllowedIndices = roles.stream()
+                .map(role -> role.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, true))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
+
+            if (log.isDebugEnabled()) {
+                log.debug(
+                    "ExplicitIndexPermission check indices for request {}, explicitly allowed indices {}",
+                    indicesForRequest.toString(),
+                    explicitlyAllowedIndices.toString()
+                );
+            }
+
+            indicesForRequest.removeAll(explicitlyAllowedIndices);
+            return indicesForRequest.isEmpty();
+        }
+
         // opensearchDashboards special only, terms eval
         public Set<String> getAllPermittedIndicesForDashboards(
             Resolved resolved,
@@ -458,7 +488,7 @@ public class ConfigModelV6 extends ConfigModel {
         ) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
-                retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs));
+                retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs, false));
                 retVal.addAll(resolved.getRemoteIndices());
             }
             return Collections.unmodifiableSet(retVal);
@@ -468,7 +498,7 @@ public class ConfigModelV6 extends ConfigModel {
         public Set<String> reduce(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
-                retVal.addAll(sr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
+                retVal.addAll(sr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, false));
             }
             if (log.isDebugEnabled()) {
                 log.debug("Reduced requested resolved indices {} to permitted indices {}.", resolved, retVal.toString());
@@ -536,7 +566,8 @@ public class ConfigModelV6 extends ConfigModel {
             User user,
             String[] actions,
             IndexNameExpressionResolver resolver,
-            ClusterService cs
+            ClusterService cs,
+            boolean matchExplicitly
         ) {
 
             final Set<String> retVal = new HashSet<>();
@@ -545,7 +576,11 @@ public class ConfigModelV6 extends ConfigModel {
                 boolean patternMatch = false;
                 final Set<TypePerm> tperms = p.getTypePerms();
                 for (TypePerm tp : tperms) {
-                    if (tp.typeMatcher.matchAny(resolved.getTypes())) {
+                    // if matchExplicitly is true we don't want to match against `*` pattern
+                    WildcardMatcher matcher = matchExplicitly && (tp.getPerms() == WildcardMatcher.ANY)
+                        ? WildcardMatcher.NONE
+                        : tp.getTypeMatcher();
+                    if (matcher.matchAny(resolved.getTypes())) {
                         patternMatch = tp.getPerms().matchAll(actions);
                     }
                 }

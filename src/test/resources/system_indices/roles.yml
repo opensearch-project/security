@@ -1,0 +1,35 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+
+opendistro_security_all_access:
+  description: "All access role"
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - '*'
+
+normal_role:
+  description: "Normal user Role"
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - '.system*'
+      allowed_actions:
+        - '*'
+        - 'system:admin/system_index'
+
+normal_role_without_system_index:
+  description: "Normal user Role"
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - '.system*'
+      allowed_actions:
+        - '*'

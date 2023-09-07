@@ -1017,6 +1017,7 @@ public class IntegrationTests extends SingleClusterTest {
             encodeBasicHeader("nagilum", "nagilum")
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+
         res = rh.executePutRequest(
             "*dis*rit*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
@@ -1052,9 +1053,8 @@ public class IntegrationTests extends SingleClusterTest {
             encodeBasicHeader("nagilum", "nagilum")
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
-        // res = rh.executePostRequest(".opendistro_security/_freeze", "",
-        // encodeBasicHeader("nagilum", "nagilum"));
-        // Assert.assertTrue(res.getStatusCode() >= 400);
+        res = rh.executePostRequest(".opendistro_security/_freeze", "", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(400, res.getStatusCode());
 
         String bulkBody = "{ \"index\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"1\" } }\n"
             + "{ \"field1\" : \"value1\" }\n"
