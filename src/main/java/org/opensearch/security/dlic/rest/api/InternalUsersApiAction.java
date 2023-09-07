@@ -148,13 +148,28 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     ValidationResult<SecurityConfiguration> validateSecurityRoles(final SecurityConfiguration securityConfiguration) throws IOException {
-        return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
-            final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
-            final var securityJsonNode = new SecurityJsonNode(contentAsNode);
-            final var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-            return endpointValidator.validateRoles(securityRoles, rolesConfiguration)
-                .map(ignore -> ValidationResult.success(securityConfiguration));
-        });
+        // check here that all roles are not hidden and all mappings are mutable (not static, reserved or hidden)
+        return loadConfiguration(CType.ROLES, false, false).map(
+            rolesConfiguration -> loadConfiguration(CType.ROLESMAPPING, false, false).map(roleMappingsConfiguration -> {
+                final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+                final var securityJsonNode = new SecurityJsonNode(contentAsNode);
+                var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
+                securityRoles = securityRoles == null ? List.of() : securityRoles;
+                final var rolesValid = endpointValidator.validateRoles(securityRoles, rolesConfiguration);
+                if (!rolesValid.isValid()) {
+                    return ValidationResult.error(rolesValid.status(), rolesValid.errorMessage());
+                }
+                for (final var role : securityRoles) {
+                    final var roleMappingValid = endpointValidator.isAllowedToChangeImmutableEntity(
+                        SecurityConfiguration.of(role, roleMappingsConfiguration)
+                    );
+                    if (!roleMappingValid.isValid()) {
+                        return ValidationResult.error(roleMappingValid.status(), roleMappingValid.errorMessage());
+                    }
+                }
+                return ValidationResult.success(securityConfiguration);
+            })
+        );
     }
 
     ValidationResult<SecurityConfiguration> createOrUpdateAccount(
