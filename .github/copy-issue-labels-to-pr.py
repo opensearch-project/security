@@ -21,7 +21,7 @@ def get_pr(event):
     # SHA that *is* there.
 
     # Get head SHA from event JSON
-    pr_head_sha = event["check_suite"]["head_sha"]
+    pr_head_sha = event["pull_request"]["head"]["sha"]
 
     # Find the repo PR that matches the head SHA we found
     return {pr.head.sha: pr for pr in repo.get_pulls()}[pr_head_sha]
