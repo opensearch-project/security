@@ -61,7 +61,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.20.0'
+    id 'com.diffplug.spotless' version '6.21.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.4.0"
     id "org.gradle.test-retry" version "1.5.4"
@@ -494,7 +494,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON flattener
-    implementation ("com.github.wnameless.json:json-base:2.4.1") {
+    implementation ("com.github.wnameless.json:json-base:2.4.2") {
         exclude group: "org.glassfish", module: "jakarta.json"
         exclude group: "com.google.code.gson", module: "gson"
         exclude group: "org.json", module: "json"
@@ -571,7 +571,7 @@ dependencies {
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
-    implementation 'org.apache.commons:commons-lang3:3.13.0'
+    implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     implementation "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
@@ -586,7 +586,7 @@ dependencies {
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
