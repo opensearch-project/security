@@ -1,4 +1,4 @@
-name: Apply issue labels to PR
+name: Apply all issue labels to PR
 
 on:
   pull_request:
