@@ -9,11 +9,11 @@ Compatible with OpenSearch 2.10.0
 * Add geospatial ip2geo to the demo configuration system indices and roles ([#3051](https://github.com/opensearch-project/security/pull/3051))
 * Make invalid password message clearer ([#3057](https://github.com/opensearch-project/security/pull/3057))
 * Service Accounts password is randomly generated ([#3077](https://github.com/opensearch-project/security/pull/3077))
-* [Refactor] Adopt request builder patterns for SecurityRestApiActions for consistency and clarity ([#3123](https://github.com/opensearch-project/security/pull/3123))
 * Exclude sensitive info from the jackson serialization stacktraces ([#3195](https://github.com/opensearch-project/security/pull/3195))
 * Prevent raw request body as output in serialization error messages ([#3205](https://github.com/opensearch-project/security/pull/3205))
 * Command cat/indices will filter results per the Do Not Fail On Forbidden setting ([#3236](https://github.com/opensearch-project/security/pull/3236))
 * Generate new demo certs with IPv6 loopback added to SAN in node certificate ([#3268](https://github.com/opensearch-project/security/pull/3268))
+* System index permissions ([#2887](https://github.com/opensearch-project/security/pull/2887))
 
 
 ### Bug Fixes
@@ -22,9 +22,10 @@ Compatible with OpenSearch 2.10.0
 * Resolve a class of ConcurrentModificationException from during bulk requests ([#3094](https://github.com/opensearch-project/security/pull/3094))
 * Fix Document GET with DLS terms query ([#3136](https://github.com/opensearch-project/security/pull/3136))
 * Send log messages to log4j systems instead of system out / error ([#3231](https://github.com/opensearch-project/security/pull/3231))
+* Fix roles verification for roles mapping and internal users ([#3278](https://github.com/opensearch-project/security/pull/3278))
+* Prevent raw request body as output in serialization error messages ([#3205](https://github.com/opensearch-project/security/pull/3205))
+* Fix permissions issues while reading keys in PKCS#1 format ([#3289](https://github.com/opensearch-project/security/pull/3289))
 
-
- 
 ### Maintenance
 * [Build Break] Update imports for files refactored in core PR #8157 ([#3003](https://github.com/opensearch-project/security/pull/3003))
 * [Build Break] Fix build after Lucene upgrade and breaking XContentFactory changes ([#3069](https://github.com/opensearch-project/security/pull/3069))
@@ -32,10 +33,11 @@ Compatible with OpenSearch 2.10.0
 * [Build Break] React to changes in ActionListener and ActionResponse from #9082 ([#3153](https://github.com/opensearch-project/security/pull/3153))
 * [Build Break] Disable gradlew build cache to ensure most up-to-date dependencies ([#3186](https://github.com/opensearch-project/security/pull/3186))
 * bump com.carrotsearch.randomizedtesting:randomizedtesting-runner from 2.7.1 to 2.8.1 ([#3109](https://github.com/opensearch-project/security/pull/3109))
-* bump com.diffplug.spotless from 6.19.0 to 6.20.0 ([#3108](https://github.com/opensearch-project/security/pull/3108))
+* bump com.diffplug.spotless from 6.19.0 to 6.21.0 ([#3108](https://github.com/opensearch-project/security/pull/3108))
 * bump com.fasterxml.woodstox:woodstox-core from 6.4.0 to 6.5.1 ([#3148](https://github.com/opensearch-project/security/pull/3148))
 * bump com.github.spotbugs from 5.0.14 to 5.1.3 ([#3251](https://github.com/opensearch-project/security/pull/3251))
-* bump com.github.wnameless.json:json-base from 2.4.0 to 2.4.1 ([#3062](https://github.com/opensearch-project/security/pull/3062))
+* bump com.github.wnameless.json:json-base from 2.4.0 to 2.4.2 ([#3062](https://github.com/opensearch-project/security/pull/3062))
+* bump com.github.wnameless.json:json-flattener from 0.16.4 to 0.16.5 ([#3296](https://github.com/opensearch-project/security/pull/3296))
 * bump com.google.errorprone:error_prone_annotations from 2.3.4 to 2.20.0 ([#3023](https://github.com/opensearch-project/security/pull/3023))
 * bump com.google.guava:guava from 32.1.1-jre to 32.1.2-jre ([#3149](https://github.com/opensearch-project/security/pull/3149))
 * bump commons-io:commons-io from 2.11.0 to 2.13.0 ([#3074](https://github.com/opensearch-project/security/pull/3074))
@@ -67,3 +69,7 @@ Compatible with OpenSearch 2.10.0
 * Add code coverage exclusions on false positives ([#3196](https://github.com/opensearch-project/security/pull/3196))
 * Enable jarhell check ([#3227](https://github.com/opensearch-project/security/pull/3227))
 * Retry code coverage upload on failure ([#3242](https://github.com/opensearch-project/security/pull/3242))
+* [Refactor] Adopt request builder patterns for SecurityRestApiActions for consistency and clarity ([#3123](https://github.com/opensearch-project/security/pull/3123))
+* [Refactor] Remove json-path from deps and use JsonPointer instead ([#3262](https://github.com/opensearch-project/security/pull/3262))
+* Use version of org.apache.commons:commons-lang3 defined in core ([#3306](https://github.com/opensearch-project/security/pull/3306))
+* Fix checkstyle #3283
