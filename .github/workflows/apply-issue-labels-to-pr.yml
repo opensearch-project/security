@@ -20,6 +20,11 @@ jobs:
     name: Copy labels from linked issues
     steps:
       - name: copy-labels
-        uses: michalvankodev/copy-issue-labels@v1.2.1
+        uses: DarshitChanpura/copy-issue-labels@v1.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          labels-to-copy: |
+            documentation
+            enhancement
+          labels-to-exclude: |
+            untriaged
