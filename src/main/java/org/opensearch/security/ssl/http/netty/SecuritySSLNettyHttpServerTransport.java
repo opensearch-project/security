@@ -60,7 +60,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         SharedGroupFactory sharedGroupFactory,
         Tracer tracer
     ) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory, tracer);
         this.sks = sks;
         this.errorHandler = errorHandler;
     }
