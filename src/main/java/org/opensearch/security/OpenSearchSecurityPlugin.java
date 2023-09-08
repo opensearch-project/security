@@ -901,7 +901,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     xContentRegistry,
                     validatingDispatcher,
                     clusterSettings,
-                    sharedGroupFactory
+                    sharedGroupFactory,
+                    tracer
                 );
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
@@ -916,7 +917,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         xContentRegistry,
                         dispatcher,
                         clusterSettings,
-                        sharedGroupFactory
+                        sharedGroupFactory,
+                        tracer
                     )
                 );
             }
