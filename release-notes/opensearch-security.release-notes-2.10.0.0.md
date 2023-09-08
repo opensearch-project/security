@@ -73,3 +73,4 @@ Compatible with OpenSearch 2.10.0
 * [Refactor] Remove json-path from deps and use JsonPointer instead ([#3262](https://github.com/opensearch-project/security/pull/3262))
 * Use version of org.apache.commons:commons-lang3 defined in core ([#3306](https://github.com/opensearch-project/security/pull/3306))
 * Fix checkstyle #3283
+* Demo Configuration changes ([#3330](https://github.com/opensearch-project/security/pull/3330))
