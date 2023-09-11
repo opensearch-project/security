@@ -48,6 +48,7 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
@@ -78,7 +79,8 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
         NamedXContentRegistry xContentRegistry,
         NetworkService networkService,
         Dispatcher dispatcher,
-        ClusterSettings clusterSettings
+        ClusterSettings clusterSettings,
+        Tracer tracer
     ) {
 
         final UserInjectingDispatcher validatingDispatcher = new UserInjectingDispatcher(dispatcher);
@@ -92,7 +94,8 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
                 xContentRegistry,
                 validatingDispatcher,
                 clusterSettings,
-                sharedGroupFactory
+                sharedGroupFactory,
+                tracer
             )
         );
     }
@@ -107,9 +110,20 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
             final NamedXContentRegistry namedXContentRegistry,
             final Dispatcher dispatcher,
             ClusterSettings clusterSettings,
-            SharedGroupFactory sharedGroupFactory
+            SharedGroupFactory sharedGroupFactory,
+            Tracer tracer
         ) {
-            super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
+            super(
+                settings,
+                networkService,
+                bigArrays,
+                threadPool,
+                namedXContentRegistry,
+                dispatcher,
+                clusterSettings,
+                sharedGroupFactory,
+                tracer
+            );
         }
     }
 
