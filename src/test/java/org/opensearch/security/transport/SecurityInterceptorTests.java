@@ -33,6 +33,7 @@ import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.test.transport.MockTransport;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
@@ -122,7 +123,8 @@ public class SecurityInterceptorTests {
             TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             boundTransportAddress -> clusterService.state().nodes().get(SecurityInterceptor.class.getSimpleName()),
             null,
-            emptySet()
+            emptySet(),
+            mock(Tracer.class)
         );
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
