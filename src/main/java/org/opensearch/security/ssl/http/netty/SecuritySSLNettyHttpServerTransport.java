@@ -38,6 +38,7 @@ import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
@@ -56,9 +57,20 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         final ValidatingDispatcher dispatcher,
         final SslExceptionHandler errorHandler,
         ClusterSettings clusterSettings,
-        SharedGroupFactory sharedGroupFactory
+        SharedGroupFactory sharedGroupFactory,
+        Tracer tracer
     ) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
+        super(
+            settings,
+            networkService,
+            bigArrays,
+            threadPool,
+            namedXContentRegistry,
+            dispatcher,
+            clusterSettings,
+            sharedGroupFactory,
+            tracer
+        );
         this.sks = sks;
         this.errorHandler = errorHandler;
     }
