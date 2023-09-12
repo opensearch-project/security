@@ -35,6 +35,7 @@ import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
@@ -50,7 +51,8 @@ public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTrans
         final NamedXContentRegistry namedXContentRegistry,
         final ValidatingDispatcher dispatcher,
         final ClusterSettings clusterSettings,
-        SharedGroupFactory sharedGroupFactory
+        SharedGroupFactory sharedGroupFactory,
+        Tracer tracer
     ) {
         super(
             settings,
@@ -62,7 +64,8 @@ public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTrans
             dispatcher,
             sslExceptionHandler,
             clusterSettings,
-            sharedGroupFactory
+            sharedGroupFactory,
+            tracer
         );
     }
 }

@@ -80,6 +80,7 @@ import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.transport.SecuritySSLTransportInterceptor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 import org.opensearch.transport.Transport;
@@ -242,7 +243,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         NamedXContentRegistry xContentRegistry,
         NetworkService networkService,
         Dispatcher dispatcher,
-        ClusterSettings clusterSettings
+        ClusterSettings clusterSettings,
+        Tracer tracer
     ) {
 
         if (!client && httpSSLEnabled) {
@@ -264,7 +266,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 validatingDispatcher,
                 NOOP_SSL_EXCEPTION_HANDLER,
                 clusterSettings,
-                sharedGroupFactory
+                sharedGroupFactory,
+                tracer
             );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
