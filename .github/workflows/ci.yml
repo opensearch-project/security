@@ -55,10 +55,15 @@ jobs:
           -x test
 
     - name: Coverage
-      uses: codecov/codecov-action@v1
+      uses: Wandalen/wretry.action@v1.3.0
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./build/reports/jacoco/test/jacocoTestReport.xml
+        attempt_limit: 3
+        attempt_delay: 2000
+        action: codecov/codecov-action@v3
+        with: |
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          files: ./build/reports/jacoco/test/jacocoTestReport.xml
 
     - uses: actions/upload-artifact@v3
       if: always()
@@ -91,9 +96,11 @@ jobs:
     - id: build-previous
       uses: ./.github/actions/run-bwc-suite
       with:
-        plugin-previous-branch: "2.9"
+        plugin-previous-branch: "2.10"
         plugin-next-branch: "current_branch"
         report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
+        username: admin
+        password: admin
 
   code-ql:
     runs-on: ubuntu-latest

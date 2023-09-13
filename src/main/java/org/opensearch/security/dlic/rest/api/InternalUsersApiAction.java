@@ -11,47 +11,43 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
-
 import com.google.common.collect.ImmutableMap;
-import org.opensearch.action.index.IndexResponse;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
-public class InternalUsersApiAction extends PatchableResourceApiAction {
+public class InternalUsersApiAction extends AbstractApiAction {
+
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
@@ -79,30 +75,14 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
     @Inject
     public InternalUsersApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        UserService userService,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final UserService userService,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.INTERNALUSERS, clusterService, threadPool, securityApiDependencies);
         this.userService = userService;
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
+        this.requestHandlersBuilder.configureRequestHandlers(this::internalUsersApiRequestHandlers);
     }
 
     @Override
@@ -111,222 +91,192 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.INTERNALUSERS;
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-
-        final String username = request.param("name");
-
-        SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-
-        if (!isWriteable(channel, internalUsersConfiguration, username)) {
-            return;
-        }
-
-        final ObjectNode contentAsNode = (ObjectNode) content;
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
-
-        // Don't allow user to add non-existent role or a role for which role-mapping is hidden or reserved
-        final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-        if (securityRoles != null) {
-            for (final String role : securityRoles) {
-                if (!isValidRolesMapping(channel, role)) {
-                    return;
-                }
-            }
-        }
-
-        final boolean userExisted = internalUsersConfiguration.exists(username);
-
-        // when updating an existing user password hash can be blank, which means no
-        // changes
-
-        try {
-            if (request.hasParam("service")) {
-                ((ObjectNode) content).put("service", request.param("service"));
-            }
-            if (request.hasParam("enabled")) {
-                ((ObjectNode) content).put("enabled", request.param("enabled"));
-            }
-            ((ObjectNode) content).put("name", username);
-            internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
-        } catch (UserServiceException ex) {
-            badRequestResponse(channel, ex.getMessage());
-
-            return;
-        } catch (IOException ex) {
-            throw new IOException(ex);
-        }
-
-        // for existing users, hash is optional
-        if (userExisted && securityJsonNode.get("hash").asString() == null) {
-            // sanity check, this should usually not happen
-            final String hash = ((Hashed) internalUsersConfiguration.getCEntry(username)).getHash();
-            if (hash == null || hash.length() == 0) {
-                internalErrorResponse(
-                    channel,
-                    "Existing user " + username + " has no password, and no new password or hash was specified."
-                );
-                return;
-            }
-            contentAsNode.put("hash", hash);
-        }
-
-        internalUsersConfiguration.remove(username);
-
-        // checks complete, create or update the user
-        Object userData = DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass());
-        internalUsersConfiguration.putCObject(username, userData);
-
-        saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            CType.INTERNALUSERS,
-            internalUsersConfiguration,
-            new OnSucessActionListener<IndexResponse>(channel) {
-
-                @Override
-                public void onResponse(IndexResponse response) {
-                    if (userExisted) {
-                        successResponse(channel, "'" + username + "' updated.");
-                    } else {
-                        createdResponse(channel, "'" + username + "' created.");
-                    }
-
-                }
-            }
-        );
-    }
-
-    /**
-     * Overrides the GET request functionality to allow for the special case of requesting an auth token.
-     *
-     * @param channel The channel the request is coming through
-     * @param request The request itself
-     * @param client The client executing the request
-     * @param content The content of the request parsed into a node
-     * @throws IOException when parsing of configuration files fails (should not happen)
-     */
-    @Override
-    protected void handlePost(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-
-        final String username = request.param("name");
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), true);
-        filter(internalUsersConfiguration); // Hides hashes
-
-        // no specific resource requested
-        if (username == null || username.length() == 0) {
-
-            notImplemented(channel, Method.POST);
-            return;
-        }
-
-        final boolean userExisted = internalUsersConfiguration.exists(username);
-
-        if (!userExisted) {
-            notFound(channel, "Resource '" + username + "' not found.");
-            return;
-        }
-
-        String authToken = "";
-        try {
-            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {  // Handle
-                                                                                                                                // auth
-                                                                                                                                // token
-                                                                                                                                // fetching
-
-                authToken = userService.generateAuthToken(username);
-            } else { // Not an auth token request
-
-                notImplemented(channel, Method.POST);
-                return;
-            }
-        } catch (UserServiceException ex) {
-            badRequestResponse(channel, ex.getMessage());
-            return;
-        } catch (IOException ex) {
-            throw new IOException(ex);
-        }
-
-        if (!authToken.isEmpty()) {
-            createdResponse(channel, "'" + username + "' authtoken generated " + authToken);
-        } else {
-            badRequestResponse(channel, "'" + username + "' authtoken failed to be created.");
-        }
-    }
-
-    @Override
-    protected void filter(SecurityDynamicConfiguration<?> builder) {
-        super.filter(builder);
-        // replace password hashes in addition. We must not remove them from the
-        // Builder since this would remove users completely if they
-        // do not have any addition properties like roles or attributes
-        builder.clearHashes();
-    }
-
-    @Override
-    protected ValidationResult postProcessApplyPatchResult(
-        RestChannel channel,
-        RestRequest request,
-        JsonNode existingResourceAsJsonNode,
-        JsonNode updatedResourceAsJsonNode,
-        String resourceName
-    ) throws IOException {
-        RequestContentValidator retVal = null;
-        JsonNode passwordNode = updatedResourceAsJsonNode.get("password");
-        if (passwordNode != null) {
-            String plainTextPassword = passwordNode.asText();
-            final JsonNode passwordObject = DefaultObjectMapper.objectMapper.createObjectNode().put("password", plainTextPassword);
-            final ValidationResult validationResult = createValidator(resourceName).validate(request, passwordObject);
-            ((ObjectNode) updatedResourceAsJsonNode).remove("password");
-            ((ObjectNode) updatedResourceAsJsonNode).set("hash", new TextNode(hash(plainTextPassword.toCharArray())));
-            return validationResult;
-        }
-        return null;
-    }
-
-    @Override
-    protected String getResourceName() {
-        return "user";
-    }
-
-    @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.INTERNALUSERS;
     }
 
-    @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
-            @Override
-            public Object[] params() {
-                return params;
-            }
+    private void internalUsersApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder
+            // Overrides the GET request functionality to allow for the special case of requesting an auth token.
+            .override(
+                Method.POST,
+                (channel, request, client) -> withAuthTokenPath(request).map(
+                    username -> loadConfiguration(getConfigType(), true, false).map(
+                        configuration -> ValidationResult.success(SecurityConfiguration.of(username, configuration))
+                    )
+                )
+                    .map(endpointValidator::entityExists)
+                    .map(endpointValidator::isAllowedToLoadOrChangeHiddenEntity)
+                    .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
+                    .error((status, toXContent) -> response(channel, status, toXContent))
+            )
+            .onChangeRequest(Method.PATCH, this::processPatchRequest)
+            .onChangeRequest(
+                Method.PUT,
+                request -> endpointValidator.withRequiredEntityName(nameParam(request))
+                    .map(username -> loadConfigurationWithRequestContent(username, request))
+                    .map(endpointValidator::isAllowedToChangeImmutableEntity)
+                    .map(this::validateSecurityRoles)
+                    .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
+                    .map(this::validateAndUpdatePassword)
+                    .map(this::addEntityToConfig)
+            );
+    }
 
-            @Override
-            public Settings settings() {
-                return settings;
+    ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
+        return endpointValidator.withRequiredEntityName(nameParam(request)).map(username -> {
+            // Handle auth token fetching
+            if (!(request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken"))) {
+                return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
             }
-
-            @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
-                if (isSuperAdmin()) {
-                    allowedKeys.put("reserved", DataType.BOOLEAN);
-                }
-                return allowedKeys.put("backend_roles", DataType.ARRAY)
-                    .put("attributes", DataType.OBJECT)
-                    .put("description", DataType.STRING)
-                    .put("opendistro_security_roles", DataType.ARRAY)
-                    .put("hash", DataType.STRING)
-                    .put("password", DataType.STRING)
-                    .build();
-            }
+            return ValidationResult.success(username);
         });
     }
+
+    void generateAuthToken(final RestChannel channel, final SecurityConfiguration securityConfiguration) throws IOException {
+        try {
+            final var username = securityConfiguration.entityName();
+            final var authToken = userService.generateAuthToken(username);
+            if (!Strings.isNullOrEmpty(authToken)) {
+                ok(channel, "'" + username + "' authtoken generated " + authToken);
+            } else {
+                badRequest(channel, "'" + username + "' authtoken failed to be created.");
+            }
+        } catch (final UserServiceException e) {
+            badRequest(channel, e.getMessage());
+        }
+    }
+
+    ValidationResult<SecurityConfiguration> validateSecurityRoles(final SecurityConfiguration securityConfiguration) throws IOException {
+        // check here that all roles are not hidden and all mappings are mutable (not static, reserved or hidden)
+        return loadConfiguration(CType.ROLES, false, false).map(
+            rolesConfiguration -> loadConfiguration(CType.ROLESMAPPING, false, false).map(roleMappingsConfiguration -> {
+                final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+                final var securityJsonNode = new SecurityJsonNode(contentAsNode);
+                var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
+                securityRoles = securityRoles == null ? List.of() : securityRoles;
+                final var rolesValid = endpointValidator.validateRoles(securityRoles, rolesConfiguration);
+                if (!rolesValid.isValid()) {
+                    return ValidationResult.error(rolesValid.status(), rolesValid.errorMessage());
+                }
+                for (final var role : securityRoles) {
+                    final var roleMappingValid = endpointValidator.isAllowedToChangeImmutableEntity(
+                        SecurityConfiguration.of(role, roleMappingsConfiguration)
+                    );
+                    if (!roleMappingValid.isValid()) {
+                        return ValidationResult.error(roleMappingValid.status(), roleMappingValid.errorMessage());
+                    }
+                }
+                return ValidationResult.success(securityConfiguration);
+            })
+        );
+    }
+
+    ValidationResult<SecurityConfiguration> createOrUpdateAccount(
+        final RestRequest request,
+        final SecurityConfiguration securityConfiguration
+    ) throws IOException {
+        try {
+            final var username = securityConfiguration.entityName();
+            final var content = (ObjectNode) securityConfiguration.requestContent();
+            if (request.hasParam("service")) {
+                content.put("service", request.param("service"));
+            }
+            if (request.hasParam("enabled")) {
+                content.put("enabled", request.param("enabled"));
+            }
+            content.put("name", username);
+            // FIXME add better solution for account and internal users
+            final var updateConfiguration = userService.createOrUpdateAccount(content);
+            // remove extra user in case we deal with the new one. not nice better to redesign account users.
+            if (!securityConfiguration.entityExists()) updateConfiguration.remove(securityConfiguration.entityName());
+            return ValidationResult.success(SecurityConfiguration.of(content, username, updateConfiguration));
+        } catch (UserServiceException ex) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(ex.getMessage()));
+        }
+    }
+
+    ValidationResult<SecurityConfiguration> validateAndUpdatePassword(final SecurityConfiguration securityConfiguration) {
+        // when updating an existing user password hash can be blank, which means no changes
+        // for existing users, hash is optional
+        final var username = securityConfiguration.entityName();
+        final var contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+        final var securityJsonNode = new SecurityJsonNode(contentAsNode);
+        if (securityConfiguration.entityExists() && securityJsonNode.get("hash").asString() == null) {
+            final String hash = ((Hashed) securityConfiguration.configuration().getCEntry(username)).getHash();
+            if (Strings.isNullOrEmpty(hash)) {
+                return ValidationResult.error(
+                    RestStatus.INTERNAL_SERVER_ERROR,
+                    payload(
+                        RestStatus.INTERNAL_SERVER_ERROR,
+                        "Existing user " + username + " has no password, and no new password or hash was specified."
+                    )
+                );
+            }
+            contentAsNode.put("hash", hash);
+        }
+        return ValidationResult.success(securityConfiguration);
+    }
+
+    @Override
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+            @Override
+            public Endpoint endpoint() {
+                return endpoint;
+            }
+
+            @Override
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+                // this method will be called only for PATCH
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::generateHashForPassword);
+            }
+
+            private ValidationResult<SecurityConfiguration> generateHashForPassword(final SecurityConfiguration securityConfiguration) {
+                final var content = (ObjectNode) securityConfiguration.requestContent();
+                if (content.has("password")) {
+                    final var plainTextPassword = content.get("password").asText();
+                    content.remove("password");
+                    content.put("hash", hash(plainTextPassword.toCharArray()));
+                }
+                return ValidationResult.success(securityConfiguration);
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return securityApiDependencies.settings();
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                        if (isCurrentUserAdmin()) {
+                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                        }
+                        return allowedKeys.put("backend_roles", DataType.ARRAY)
+                            .put("attributes", DataType.OBJECT)
+                            .put("description", DataType.STRING)
+                            .put("opendistro_security_roles", DataType.ARRAY)
+                            .put("hash", DataType.STRING)
+                            .put("password", DataType.STRING)
+                            .build();
+                    }
+                });
+            }
+        };
+    }
+
 }

@@ -12,19 +12,12 @@
 package org.opensearch.security.dlic.rest.api;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-
-import org.opensearch.LegacyESVersion;
-import org.opensearch.Version;
-import org.opensearch.core.action.ActionListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.LegacyESVersion;
+import org.opensearch.Version;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
 import org.opensearch.action.bulk.BulkResponse;
@@ -34,23 +27,18 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.Settings.Builder;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
@@ -67,9 +55,15 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 // CS-ENFORCE-SINGLE
 
@@ -80,19 +74,12 @@ public class MigrateApiAction extends AbstractApiAction {
 
     @Inject
     public MigrateApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        super(Endpoint.MIGRATE, clusterService, threadPool, securityApiDependencies);
+        this.requestHandlersBuilder.configureRequestHandlers(this::migrateApiRequestHandlers);
     }
 
     @Override
@@ -101,34 +88,33 @@ public class MigrateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.MIGRATE;
+    protected CType getConfigType() {
+        return null;
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
+    protected void consumeParameters(final RestRequest request) {
+        // not needed
+    }
+
+    private void migrateApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.POST, (channel, request, client) -> migrate(channel, client));
     }
 
     @SuppressWarnings("unchecked")
-    @Override
-    protected void handlePost(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
+    protected void migrate(final RestChannel channel, final Client client) throws IOException {
 
-        final Version oldestNodeVersion = cs.state().getNodes().getMinNodeVersion();
+        final Version oldestNodeVersion = clusterService.state().getNodes().getMinNodeVersion();
 
         if (oldestNodeVersion.before(LegacyESVersion.V_7_0_0)) {
-            badRequestResponse(channel, "Can not migrate configuration because cluster is not fully migrated.");
+            badRequest(channel, "Can not migrate configuration because cluster is not fully migrated.");
             return;
         }
 
         final SecurityDynamicConfiguration<?> loadedConfig = load(CType.CONFIG, true);
 
         if (loadedConfig.getVersion() != 1) {
-            badRequestResponse(channel, "Can not migrate configuration because it was already migrated.");
+            badRequest(channel, "Can not migrate configuration because it was already migrated.");
             return;
         }
 
@@ -176,10 +162,10 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
         builder.add(auditConfigV7);
 
-        final int replicas = cs.state().metadata().index(securityIndexName).getNumberOfReplicas();
-        final String autoExpandReplicas = cs.state()
+        final int replicas = clusterService.state().metadata().index(securityApiDependencies.securityIndexName()).getNumberOfReplicas();
+        final String autoExpandReplicas = clusterService.state()
             .metadata()
-            .index(securityIndexName)
+            .index(securityApiDependencies.securityIndexName())
             .getSettings()
             .get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS);
 
@@ -193,138 +179,102 @@ public class MigrateApiAction extends AbstractApiAction {
 
         securityIndexSettings.put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1);
 
-        client.admin().indices().prepareDelete(this.securityIndexName).execute(new ActionListener<AcknowledgedResponse>() {
+        client.admin()
+            .indices()
+            .prepareDelete(securityApiDependencies.securityIndexName())
+            .execute(new ActionListener<AcknowledgedResponse>() {
 
-            @Override
-            public void onResponse(AcknowledgedResponse response) {
+                @Override
+                public void onResponse(AcknowledgedResponse response) {
 
-                if (response.isAcknowledged()) {
-                    LOGGER.debug("opendistro_security index deleted successfully");
+                    if (response.isAcknowledged()) {
+                        LOGGER.debug("opendistro_security index deleted successfully");
 
-                    client.admin()
-                        .indices()
-                        .prepareCreate(securityIndexName)
-                        .setSettings(securityIndexSettings)
-                        .execute(new ActionListener<CreateIndexResponse>() {
+                        client.admin()
+                            .indices()
+                            .prepareCreate(securityApiDependencies.securityIndexName())
+                            .setSettings(securityIndexSettings)
+                            .execute(new ActionListener<CreateIndexResponse>() {
 
-                            @Override
-                            public void onResponse(CreateIndexResponse response) {
-                                final List<SecurityDynamicConfiguration<?>> dynamicConfigurations = builder.build();
-                                final ImmutableList.Builder<String> cTypes = ImmutableList.builderWithExpectedSize(
-                                    dynamicConfigurations.size()
-                                );
-                                final BulkRequestBuilder br = client.prepareBulk(securityIndexName);
-                                br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-                                try {
-                                    for (SecurityDynamicConfiguration dynamicConfiguration : dynamicConfigurations) {
-                                        final String id = dynamicConfiguration.getCType().toLCString();
-                                        final BytesReference xContent = XContentHelper.toXContent(
-                                            dynamicConfiguration,
-                                            XContentType.JSON,
-                                            false
-                                        );
-                                        br.add(new IndexRequest().id(id).source(id, xContent));
-                                        cTypes.add(id);
+                                @Override
+                                public void onResponse(CreateIndexResponse response) {
+                                    final List<SecurityDynamicConfiguration<?>> dynamicConfigurations = builder.build();
+                                    final ImmutableList.Builder<String> cTypes = ImmutableList.builderWithExpectedSize(
+                                        dynamicConfigurations.size()
+                                    );
+                                    final BulkRequestBuilder br = client.prepareBulk(securityApiDependencies.securityIndexName());
+                                    br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
+                                    try {
+                                        for (SecurityDynamicConfiguration<?> dynamicConfiguration : dynamicConfigurations) {
+                                            final String id = dynamicConfiguration.getCType().toLCString();
+                                            final BytesReference xContent = XContentHelper.toXContent(
+                                                dynamicConfiguration,
+                                                XContentType.JSON,
+                                                false
+                                            );
+                                            br.add(new IndexRequest().id(id).source(id, xContent));
+                                            cTypes.add(id);
+                                        }
+                                    } catch (final IOException e1) {
+                                        LOGGER.error("Unable to create bulk request " + e1, e1);
+                                        internalSeverError(channel, "Unable to create bulk request.");
+                                        return;
                                     }
-                                } catch (final IOException e1) {
-                                    LOGGER.error("Unable to create bulk request " + e1, e1);
-                                    internalErrorResponse(channel, "Unable to create bulk request.");
-                                    return;
-                                }
 
-                                br.execute(
-                                    new ConfigUpdatingActionListener(
-                                        cTypes.build().toArray(new String[0]),
-                                        client,
-                                        new ActionListener<BulkResponse>() {
+                                    br.execute(
+                                        new ConfigUpdatingActionListener(
+                                            cTypes.build().toArray(new String[0]),
+                                            client,
+                                            new ActionListener<BulkResponse>() {
 
-                                            @Override
-                                            public void onResponse(BulkResponse response) {
-                                                if (response.hasFailures()) {
-                                                    LOGGER.error(
-                                                        "Unable to upload migrated configuration because of "
-                                                            + response.buildFailureMessage()
-                                                    );
-                                                    internalErrorResponse(
-                                                        channel,
-                                                        "Unable to upload migrated configuration (bulk index failed)."
-                                                    );
-                                                } else {
-                                                    LOGGER.debug("Migration completed");
-                                                    successResponse(channel, "Migration completed.");
+                                                @Override
+                                                public void onResponse(BulkResponse response) {
+                                                    if (response.hasFailures()) {
+                                                        LOGGER.error(
+                                                            "Unable to upload migrated configuration because of "
+                                                                + response.buildFailureMessage()
+                                                        );
+                                                        internalSeverError(
+                                                            channel,
+                                                            "Unable to upload migrated configuration (bulk index failed)."
+                                                        );
+                                                    } else {
+                                                        LOGGER.debug("Migration completed");
+                                                        ok(channel, "Migration completed.");
+                                                    }
+
                                                 }
 
+                                                @Override
+                                                public void onFailure(Exception e) {
+                                                    LOGGER.error("Unable to upload migrated configuration because of " + e, e);
+                                                    internalSeverError(channel, "Unable to upload migrated configuration.");
+                                                }
                                             }
+                                        )
+                                    );
 
-                                            @Override
-                                            public void onFailure(Exception e) {
-                                                LOGGER.error("Unable to upload migrated configuration because of " + e, e);
-                                                internalErrorResponse(channel, "Unable to upload migrated configuration.");
-                                            }
-                                        }
-                                    )
-                                );
+                                }
 
-                            }
+                                @Override
+                                public void onFailure(Exception e) {
+                                    LOGGER.error("Unable to create opendistro_security index because of " + e, e);
+                                    internalSeverError(channel, "Unable to create opendistro_security index.");
+                                }
+                            });
 
-                            @Override
-                            public void onFailure(Exception e) {
-                                LOGGER.error("Unable to create opendistro_security index because of " + e, e);
-                                internalErrorResponse(channel, "Unable to create opendistro_security index.");
-                            }
-                        });
-
-                } else {
-                    LOGGER.error("Unable to create opendistro_security index.");
+                    } else {
+                        LOGGER.error("Unable to create opendistro_security index.");
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Exception e) {
-                LOGGER.error("Unable to delete opendistro_security index because of " + e, e);
-                internalErrorResponse(channel, "Unable to delete opendistro_security index.");
-            }
-        });
+                @Override
+                public void onFailure(Exception e) {
+                    LOGGER.error("Unable to delete opendistro_security index because of " + e, e);
+                    internalSeverError(channel, "Unable to delete opendistro_security index.");
+                }
+            });
 
-    }
-
-    @Override
-    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.POST);
-    }
-
-    @Override
-    protected void handleGet(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.GET);
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.PUT);
-    }
-
-    @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.NOOP_VALIDATOR;
-    }
-
-    @Override
-    protected String getResourceName() {
-        // not needed
-        return null;
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return null;
-    }
-
-    @Override
-    protected void consumeParameters(final RestRequest request) {
-        // not needed
     }
 
 }

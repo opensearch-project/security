@@ -11,312 +11,436 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Objects;
-
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.flipkart.zjsonpatch.JsonPatch;
+import com.flipkart.zjsonpatch.JsonPatchApplicationException;
+import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.ExceptionsHelper;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
+import org.opensearch.common.CheckedSupplier;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.Strings;
+import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.conflict;
+import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
+import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
 public abstract class AbstractApiAction extends BaseRestHandler {
 
     private final static Logger LOGGER = LogManager.getLogger(AbstractApiAction.class);
 
-    protected final ConfigurationRepository cl;
-    protected final ClusterService cs;
-    final ThreadPool threadPool;
-    protected String securityIndexName;
-    private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
-    protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
-    protected final AuditLog auditLog;
-    protected final Settings settings;
+    private final static Set<String> supportedPatchOperations = Set.of("add", "replace", "remove");
+
+    private final static String supportedPatchOperationsAsString = String.join(",", supportedPatchOperations);
+
+    protected final ClusterService clusterService;
+
+    protected final ThreadPool threadPool;
+
+    private Map<Method, RequestHandler> requestHandlers;
+
+    protected final RequestHandler.RequestHandlersBuilder requestHandlersBuilder;
+
+    protected final EndpointValidator endpointValidator;
+
+    protected final Endpoint endpoint;
+
+    protected final SecurityApiDependencies securityApiDependencies;
 
     protected AbstractApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final Endpoint endpoint,
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
         super();
-        this.settings = settings;
-        this.securityIndexName = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
-
-        this.cl = cl;
-        this.cs = cs;
+        this.endpoint = endpoint;
+        this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(
-            settings,
-            adminDNs,
-            evaluator,
-            principalExtractor,
-            configPath,
-            threadPool
-        );
-        this.restApiAdminPrivilegesEvaluator = new RestApiAdminPrivilegesEvaluator(
-            threadPool.getThreadContext(),
-            evaluator,
-            adminDNs,
-            settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
-        );
-        this.auditLog = auditLog;
+        this.securityApiDependencies = securityApiDependencies;
+        this.requestHandlersBuilder = new RequestHandler.RequestHandlersBuilder();
+        this.requestHandlersBuilder.configureRequestHandlers(this::buildDefaultRequestHandlers);
+        this.endpointValidator = createEndpointValidator();
     }
 
-    protected abstract RequestContentValidator createValidator(final Object... params);
+    private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
+        builder.withAccessHandler(request -> securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint))
+            .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
+            .add(Method.POST, methodNotImplementedHandler)
+            .add(Method.PATCH, methodNotImplementedHandler)
+            .onGetRequest(this::processGetRequest)
+            .onChangeRequest(Method.DELETE, this::processDeleteRequest)
+            .onChangeRequest(Method.PUT, this::processPutRequest);
+    }
 
-    protected abstract String getResourceName();
+    protected final ValidationResult<SecurityConfiguration> processDeleteRequest(final RestRequest request) throws IOException {
+        return endpointValidator.withRequiredEntityName(nameParam(request))
+            .map(entityName -> loadConfiguration(entityName, false))
+            .map(endpointValidator::onConfigDelete)
+            .map(this::removeEntityFromConfig);
+    }
 
-    protected abstract CType getConfigName();
+    protected final ValidationResult<SecurityConfiguration> removeEntityFromConfig(final SecurityConfiguration securityConfiguration) {
+        final var configuration = securityConfiguration.configuration();
+        configuration.remove(securityConfiguration.entityName());
+        return ValidationResult.success(securityConfiguration);
+    }
 
-    protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
+    protected final ValidationResult<SecurityConfiguration> processGetRequest(final RestRequest request) throws IOException {
+        return loadConfiguration(getConfigType(), true, true).map(
+            configuration -> ValidationResult.success(SecurityConfiguration.of(nameParam(request), configuration))
+        ).map(endpointValidator::onConfigLoad).map(securityConfiguration -> securityConfiguration.maybeEntityName().map(entityName -> {
+            securityConfiguration.configuration().removeOthers(entityName);
+            return ValidationResult.success(securityConfiguration);
+        }).orElse(ValidationResult.success(securityConfiguration)));
+    }
 
+    /**
+     * Process patch requests for all types of configuration, which can be one entity in the URI or a list of entities in the request body.
+     **/
+    protected final ValidationResult<SecurityConfiguration> processPatchRequest(final RestRequest request) throws IOException {
+        return loadConfiguration(nameParam(request), false).map(
+            securityConfiguration -> withPatchRequestContent(request).map(
+                patchContent -> securityConfiguration.maybeEntityName()
+                    .map(entityName -> patchEntity(request, patchContent, securityConfiguration))
+                    .orElseGet(() -> patchEntities(request, patchContent, securityConfiguration))
+            )
+        );
+    }
+
+    protected final ValidationResult<JsonNode> withPatchRequestContent(final RestRequest request) {
         try {
-            switch (request.method()) {
-                case DELETE:
-                    handleDelete(channel, request, client, null);
-                    break;
-                case POST:
-                    createValidator().validate(request)
-                        .valid(jsonContent -> handlePost(channel, request, client, jsonContent))
-                        .error(toXContent -> requestContentInvalid(request, channel, toXContent));
-                    break;
-                case PUT:
-                    createValidator().validate(request)
-                        .valid(jsonContent -> handlePut(channel, request, client, jsonContent))
-                        .error(toXContent -> requestContentInvalid(request, channel, toXContent));
-                    break;
-                case GET:
-                    handleGet(channel, request, client, null);
-                    break;
-                default:
-                    throw new IllegalArgumentException(request.method() + " not supported");
+            final var parsedPatchRequestContent = Utils.toJsonNode(request.content().utf8ToString());
+            if (!(parsedPatchRequestContent instanceof ArrayNode)) {
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Wrong request body"));
             }
-        } catch (JsonMappingException jme) {
-            throw jme;
-            // TODO strip source
-            // if(jme.getLocation() == null || jme.getLocation().getSourceRef() == null) {
-            // throw jme;
-            // } else throw new JsonMappingException(null, jme.getMessage());
-        }
-    }
-
-    protected void requestContentInvalid(final RestRequest request, final RestChannel channel, final ToXContent toXContent) {
-        request.params().clear();
-        badRequestResponse(channel, toXContent);
-    }
-
-    protected void handleDelete(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final String name = request.param("name");
-
-        if (name == null || name.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
-
-        final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
-
-        if (!isWriteable(channel, existingConfiguration, name)) {
-            return;
-        }
-
-        boolean existed = existingConfiguration.exists(name);
-        existingConfiguration.remove(name);
-
-        if (existed) {
-            AbstractApiAction.saveAndUpdateConfigs(
-                this.securityIndexName,
-                client,
-                getConfigName(),
-                existingConfiguration,
-                new OnSucessActionListener<IndexResponse>(channel) {
-
-                    @Override
-                    public void onResponse(IndexResponse response) {
-                        successResponse(channel, "'" + name + "' deleted.");
-                    }
-                }
-            );
-
-        } else {
-            notFound(channel, getResourceName() + " " + name + " not found.");
-        }
-    }
-
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final String name = request.param("name");
-        if (name == null || name.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
-        final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
-        if (existingConfiguration.getSeqNo() < 0) {
-            forbidden(
-                channel,
-                "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate."
-            );
-            return;
-        }
-
-        if (!isWriteable(channel, existingConfiguration, name)) {
-            return;
-        }
-
-        if (isReadonlyFieldUpdated(existingConfiguration, content)) {
-            conflict(channel, "Attempted to update read-only property.");
-            return;
-        }
-
-        if (LOGGER.isTraceEnabled() && content != null) {
-            LOGGER.trace(content.toString());
-        }
-
-        boolean existed = existingConfiguration.exists(name);
-        final Object newContent = DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass());
-        if (!hasPermissionsToCreate(existingConfiguration, newContent, getResourceName())) {
-            forbidden(channel, "No permissions");
-            return;
-        }
-        existingConfiguration.putCObject(name, newContent);
-
-        AbstractApiAction.saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            getConfigName(),
-            existingConfiguration,
-            new OnSucessActionListener<IndexResponse>(channel) {
-
-                @Override
-                public void onResponse(IndexResponse response) {
-                    if (existed) {
-                        successResponse(channel, "'" + name + "' updated.");
-                    } else {
-                        createdResponse(channel, "'" + name + "' created.");
-                    }
-
+            final var operations = patchOperations(parsedPatchRequestContent);
+            if (operations.isEmpty()) {
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Wrong request body"));
+            }
+            for (final var patchOperation : operations) {
+                if (!supportedPatchOperations.contains(patchOperation)) {
+                    return ValidationResult.error(
+                        RestStatus.BAD_REQUEST,
+                        badRequestMessage(
+                            "Unsupported patch operation: " + patchOperation + ". Supported are: " + supportedPatchOperationsAsString
+                        )
+                    );
                 }
             }
+            return ValidationResult.success(parsedPatchRequestContent);
+        } catch (final IOException e) {
+            LOGGER.debug("Error while parsing JSON patch", e);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Error in JSON patch: " + e.getMessage()));
+        }
+    }
+
+    protected final ValidationResult<SecurityConfiguration> patchEntity(
+        final RestRequest request,
+        final JsonNode patchContent,
+        final SecurityConfiguration securityConfiguration
+    ) {
+        final var entityName = securityConfiguration.entityName();
+        final var configuration = securityConfiguration.configuration();
+        return withIOException(
+            () -> endpointValidator.isAllowedToChangeImmutableEntity(securityConfiguration)
+                .map(endpointValidator::entityExists)
+                .map(ignore -> {
+                    final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
+                    final var entityAsJson = (ObjectNode) configurationAsJson.get(entityName);
+                    return withJsonPatchException(
+                        () -> endpointValidator.createRequestContentValidator(entityName)
+                            .validate(request, JsonPatch.apply(patchContent, entityAsJson))
+                            .map(
+                                patchedEntity -> endpointValidator.onConfigChange(
+                                    SecurityConfiguration.of(patchedEntity, entityName, configuration)
+                                ).map(sc -> ValidationResult.success(patchedEntity))
+                            )
+                            .map(patchedEntity -> {
+                                final var updatedConfigurationAsJson = configurationAsJson.deepCopy().set(entityName, patchedEntity);
+                                return ValidationResult.success(
+                                    SecurityConfiguration.of(
+                                        entityName,
+                                        SecurityDynamicConfiguration.fromNode(
+                                            updatedConfigurationAsJson,
+                                            configuration.getCType(),
+                                            configuration.getVersion(),
+                                            configuration.getSeqNo(),
+                                            configuration.getPrimaryTerm()
+                                        )
+                                    )
+                                );
+                            })
+                    );
+                })
         );
-
     }
 
-    protected void handlePost(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.POST);
+    protected final ValidationResult<SecurityConfiguration> patchEntities(
+        final RestRequest request,
+        final JsonNode patchContent,
+        final SecurityConfiguration securityConfiguration
+    ) {
+        final var configuration = securityConfiguration.configuration();
+        final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
+        return withIOException(() -> withJsonPatchException(() -> {
+            final var patchedConfigurationAsJson = JsonPatch.apply(patchContent, configurationAsJson);
+            for (final var entityName : patchEntityNames(patchContent)) {
+                final var beforePatchEntity = configurationAsJson.get(entityName);
+                final var patchedEntity = patchedConfigurationAsJson.get(entityName);
+                // verify we can process exising or updated entities
+                if (beforePatchEntity != null && !Objects.equals(beforePatchEntity, patchedEntity)) {
+                    final var checkEntityCanBeProcess = endpointValidator.isAllowedToChangeImmutableEntity(
+                        SecurityConfiguration.of(entityName, configuration)
+                    );
+                    if (!checkEntityCanBeProcess.isValid()) {
+                        return checkEntityCanBeProcess;
+                    }
+                }
+                // entity removed no need to process patched content
+                if (patchedEntity == null) {
+                    continue;
+                }
+                // create or update case of the entity. we need to verify new JSON configuration for them
+                if ((beforePatchEntity == null) || !Objects.equals(beforePatchEntity, patchedEntity)) {
+                    final var requestCheck = endpointValidator.createRequestContentValidator(entityName).validate(request, patchedEntity);
+                    if (!requestCheck.isValid()) {
+                        return ValidationResult.error(requestCheck.status(), requestCheck.errorMessage());
+                    }
+                }
+                // verify new JSON content for each entity using same set of validator we use for PUT, PATCH and DELETE
+                final var additionalValidatorCheck = endpointValidator.onConfigChange(
+                    SecurityConfiguration.of(patchedEntity, entityName, configuration)
+                );
+                if (!additionalValidatorCheck.isValid()) {
+                    return additionalValidatorCheck;
+                }
+            }
+            return ValidationResult.success(
+                SecurityConfiguration.of(
+                    null,// there is no entity name in case of patch, since there could be more the one diff entity within configuration
+                    SecurityDynamicConfiguration.fromNode(
+                        patchedConfigurationAsJson,
+                        configuration.getCType(),
+                        configuration.getVersion(),
+                        configuration.getSeqNo(),
+                        configuration.getPrimaryTerm()
+                    )
+                )
+            );
+        }));
     }
 
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
+    private ValidationResult<SecurityConfiguration> withJsonPatchException(
+        final CheckedSupplier<ValidationResult<SecurityConfiguration>, IOException> action
     ) throws IOException {
-        return false;
+        try {
+            return action.get();
+        } catch (final JsonPatchApplicationException e) {
+            LOGGER.debug("Error while applying JSON patch", e);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(e.getMessage()));
+        }
     }
 
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-        final String resourcename = request.param("name");
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-        filter(configuration);
-        // no specific resource requested, return complete config
-        if (resourcename == null || resourcename.length() == 0) {
-
-            successResponse(channel, configuration);
-            return;
+    protected final Set<String> patchOperations(final JsonNode patchRequestContent) {
+        final var operations = ImmutableSet.<String>builder();
+        for (final JsonNode node : patchRequestContent) {
+            if (node.has("op")) operations.add(node.get("op").asText());
         }
-        if (!configuration.exists(resourcename)) {
-            notFound(channel, "Resource '" + resourcename + "' not found.");
-            return;
-        }
-        configuration.removeOthers(resourcename);
-        successResponse(channel, configuration);
+        return operations.build();
     }
+
+    protected final Set<String> patchEntityNames(final JsonNode patchRequestContent) {
+        final var patchedResourceNames = ImmutableSet.<String>builder();
+        for (final JsonNode node : patchRequestContent) {
+            if (node.has("path")) {
+                final var s = JsonPointer.compile(node.get("path").asText());
+                patchedResourceNames.add(s.getMatchingProperty());
+            }
+        }
+        return patchedResourceNames.build();
+    }
+
+    protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
+        return endpointValidator.withRequiredEntityName(nameParam(request))
+            .map(entityName -> loadConfigurationWithRequestContent(entityName, request))
+            .map(endpointValidator::onConfigChange)
+            .map(this::addEntityToConfig);
+    }
+
+    protected final ValidationResult<SecurityConfiguration> addEntityToConfig(final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        final var configuration = securityConfiguration.configuration();
+        final var entityObjectConfig = Utils.toConfigObject(securityConfiguration.requestContent(), configuration.getImplementingClass());
+        configuration.putCObject(securityConfiguration.entityName(), entityObjectConfig);
+        return ValidationResult.success(securityConfiguration);
+    }
+
+    final void saveOrUpdateConfiguration(
+        final Client client,
+        final SecurityDynamicConfiguration<?> configuration,
+        final OnSucessActionListener<IndexResponse> onSucessActionListener
+    ) {
+        saveAndUpdateConfigs(securityApiDependencies.securityIndexName(), client, getConfigType(), configuration, onSucessActionListener);
+    }
+
+    protected final String nameParam(final RestRequest request) {
+        final String name = request.param("name");
+        if (Strings.isNullOrEmpty(name)) {
+            return null;
+        }
+        return name;
+    }
+
+    protected final ValidationResult<SecurityConfiguration> loadConfigurationWithRequestContent(
+        final String entityName,
+        final RestRequest request
+    ) throws IOException {
+        return endpointValidator.createRequestContentValidator()
+            .validate(request)
+            .map(
+                content -> loadConfiguration(getConfigType(), false, false).map(
+                    configuration -> ValidationResult.success(SecurityConfiguration.of(content, entityName, configuration))
+                )
+            );
+    }
+
+    protected final ValidationResult<SecurityConfiguration> loadConfiguration(final String entityName, final boolean logComplianceEvent)
+        throws IOException {
+        return loadConfiguration(getConfigType(), false, logComplianceEvent).map(
+            configuration -> ValidationResult.success(SecurityConfiguration.of(entityName, configuration))
+        );
+    }
+
+    protected final ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
+        final CType cType,
+        boolean omitSensitiveData,
+        final boolean logComplianceEvent
+    ) {
+        final var configuration = load(cType, logComplianceEvent);
+        if (configuration.getSeqNo() < 0) {
+            return ValidationResult.error(
+                RestStatus.FORBIDDEN,
+                forbiddenMessage(
+                    "Security index need to be updated to support '" + getConfigType().toLCString() + "'. Use SecurityAdmin to populate."
+                )
+            );
+        }
+        if (omitSensitiveData) {
+            if (!securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint)) {
+                configuration.removeHidden();
+            }
+            configuration.clearHashes();
+            configuration.set_meta(null);
+        }
+        return ValidationResult.success(configuration);
+    }
+
+    protected final ValidationResult<Pair<User, TransportAddress>> withUserAndRemoteAddress() {
+        final var userAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
+        if (userAndRemoteAddress.getLeft() == null) {
+            return ValidationResult.error(RestStatus.UNAUTHORIZED, payload(RestStatus.UNAUTHORIZED, "Unauthorized"));
+        }
+        return ValidationResult.success(userAndRemoteAddress);
+    }
+
+    protected EndpointValidator createEndpointValidator() {
+        // Pessimistic Validator. All CRUD actions are forbidden
+        return new EndpointValidator() {
+            @Override
+            public Endpoint endpoint() {
+                return endpoint;
+            }
+
+            @Override
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigDelete(SecurityConfiguration securityConfiguration) throws IOException {
+                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigLoad(SecurityConfiguration securityConfiguration) throws IOException {
+                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+                return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(Object... params) {
+                return RequestContentValidator.NOOP_VALIDATOR;
+            }
+        };
+    }
+
+    protected abstract CType getConfigType();
 
     protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
-        SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent)
+        SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
+            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
             .get(config)
             .deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
     protected boolean ensureIndexExists() {
-        if (!cs.state().metadata().hasConcreteIndex(this.securityIndexName)) {
-            return false;
-        }
-        return true;
+        return clusterService.state().metadata().hasConcreteIndex(securityApiDependencies.securityIndexName());
     }
 
-    protected void filter(SecurityDynamicConfiguration<?> builder) {
-        if (!isSuperAdmin()) {
-            builder.removeHidden();
-        }
-        builder.set_meta(null);
-    }
-
-    protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
-        // Default is false. Override function for additional logic
-        return false;
-    }
-
-    protected boolean isReadonlyFieldUpdated(final SecurityDynamicConfiguration<?> configuration, final JsonNode targetResource) {
-        // Default is false. Override function for additional logic
-        return false;
-    }
-
-    abstract class OnSucessActionListener<Response> implements ActionListener<Response> {
+    abstract static class OnSucessActionListener<Response> implements ActionListener<Response> {
 
         private final RestChannel channel;
 
@@ -330,7 +454,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                 conflict(channel, e.getMessage());
             } else {
-                internalErrorResponse(channel, "Error " + e.getMessage());
+                internalSeverError(channel, "Error " + e.getMessage());
             }
         }
 
@@ -412,36 +536,39 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
-            return channel -> internalErrorResponse(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
+            return channel -> internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
         }
 
         // check if request is authorized
-        String authError = restApiPrivilegesEvaluator.checkAccessPermissions(request, getEndpoint());
+        final String authError = securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, endpoint);
 
-        final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String userName = user == null ? null : user.getName();
         if (authError != null) {
             LOGGER.error("No permission to access REST API: " + authError);
-            auditLog.logMissingPrivileges(authError, userName, request);
+            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, request);
             // for rest request
             request.params().clear();
             return channel -> forbidden(channel, "No permission to access REST API: " + authError);
         } else {
-            auditLog.logGrantedPrivileges(userName, request);
+            securityApiDependencies.auditLog().logGrantedPrivileges(userName, request);
         }
 
-        final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final Object originalRemoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
         final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
 
         return channel -> threadPool.generic().submit(() -> {
             try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
                 threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUser);
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
+                threadPool.getThreadContext()
+                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+                threadPool.getThreadContext()
+                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalUserAndRemoteAddress.getRight());
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
 
-                handleApiRequest(channel, request, client);
+                requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
+                final var requestHandler = requestHandlers.getOrDefault(request.method(), methodNotImplementedHandler);
+                requestHandler.handle(channel, request, client);
             } catch (Exception e) {
                 LOGGER.error("Error processing request {}", request, e);
                 try {
@@ -451,89 +578,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 }
             }
         });
-    }
-
-    protected static XContentBuilder convertToJson(RestChannel channel, ToXContent toxContent) {
-        try {
-            XContentBuilder builder = channel.newBuilder();
-            toxContent.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            return builder;
-        } catch (IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
-
-    protected void response(RestChannel channel, RestStatus status, String message) {
-        try {
-            final XContentBuilder builder = channel.newBuilder();
-            builder.startObject();
-            builder.field("status", status.name());
-            builder.field("message", message);
-            builder.endObject();
-            channel.sendResponse(new BytesRestResponse(status, builder));
-        } catch (IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
-
-    protected void successResponse(RestChannel channel, SecurityDynamicConfiguration<?> response) {
-        channel.sendResponse(new BytesRestResponse(RestStatus.OK, convertToJson(channel, response)));
-    }
-
-    protected void successResponse(RestChannel channel) {
-        try {
-            final XContentBuilder builder = channel.newBuilder();
-            builder.startObject();
-            builder.endObject();
-            channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
-        } catch (IOException e) {
-            internalErrorResponse(channel, "Unable to fetch license: " + e.getMessage());
-            LOGGER.error("Cannot fetch convert license to XContent due to", e);
-        }
-    }
-
-    protected void badRequestResponse(RestChannel channel, ToXContent validationResult) {
-        channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, convertToJson(channel, validationResult)));
-    }
-
-    protected void successResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.OK, message);
-    }
-
-    protected void createdResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.CREATED, message);
-    }
-
-    protected void badRequestResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.BAD_REQUEST, message);
-    }
-
-    protected void notFound(RestChannel channel, String message) {
-        response(channel, RestStatus.NOT_FOUND, message);
-    }
-
-    protected void forbidden(RestChannel channel, String message) {
-        response(channel, RestStatus.FORBIDDEN, message);
-    }
-
-    protected void internalErrorResponse(RestChannel channel, String message) {
-        response(channel, RestStatus.INTERNAL_SERVER_ERROR, message);
-    }
-
-    protected void conflict(RestChannel channel, String message) {
-        response(channel, RestStatus.CONFLICT, message);
-    }
-
-    protected void notImplemented(RestChannel channel, Method method) {
-        response(channel, RestStatus.NOT_IMPLEMENTED, "Method " + method.name() + " not supported for this action.");
-    }
-
-    protected final boolean isReserved(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-        return configuration.isStatic(resourceName) || configuration.isReserved(resourceName);
-    }
-
-    protected final boolean isHidden(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-        return configuration.isHidden(resourceName) && !isSuperAdmin();
     }
 
     /**
@@ -554,57 +598,4 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return getClass().getSimpleName();
     }
 
-    protected abstract Endpoint getEndpoint();
-
-    protected boolean isSuperAdmin() {
-        return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint());
-    }
-
-    /**
-     * Resource is readonly if it is reserved and user is not super admin.
-     * @param existingConfiguration Configuration
-     * @param name
-     * @return True if resource readonly
-     */
-    protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        return !isSuperAdmin() && isReserved(existingConfiguration, name);
-    }
-
-    /**
-     * Checks if it is valid to add role to opendistro_security_roles or rolesmapping.
-     * Role can be mapped to user if it exists. Only superadmin can add hidden or reserved roles.
-     *
-     * @param channel	Rest Channel for response
-     * @param role		Name of the role
-     * @return True if role can be mapped
-     */
-    protected boolean isValidRolesMapping(final RestChannel channel, final String role) {
-        final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
-        final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, false);
-
-        if (!rolesConfiguration.exists(role)) {
-            notFound(channel, "Role '" + role + "' is not available for role-mapping.");
-            return false;
-        }
-
-        if (isHidden(rolesConfiguration, role)) {
-            notFound(channel, "Role '" + role + "' is not available for role-mapping.");
-            return false;
-        }
-
-        return isWriteable(channel, rolesMappingConfiguration, role);
-    }
-
-    boolean isWriteable(final RestChannel channel, final SecurityDynamicConfiguration<?> configuration, final String resourceName) {
-        if (isHidden(configuration, resourceName)) {
-            notFound(channel, "Resource '" + resourceName + "' is not available.");
-            return false;
-        }
-
-        if (isReadOnly(configuration, resourceName)) {
-            forbidden(channel, "Resource '" + resourceName + "' is read-only.");
-            return false;
-        }
-        return true;
-    }
 }

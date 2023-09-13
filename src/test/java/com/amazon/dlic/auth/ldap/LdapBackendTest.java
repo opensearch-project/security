@@ -1081,7 +1081,6 @@ public class LdapBackendTest {
         );
         Assert.assertNotNull(user);
         Assert.assertEquals("cn=cabc,ou=people,o=TEST", user.getName());
-        System.out.println(user.getUserEntry().getAttribute("cn"));
     }
 
     @AfterClass

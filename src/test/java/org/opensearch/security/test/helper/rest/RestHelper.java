@@ -400,16 +400,6 @@ public class RestHelper {
                 + "]";
         }
 
-        private static void findArrayAccessor(String input) {
-            final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
-            final Matcher m = r.matcher(input);
-            if (m.find()) {
-                System.out.println("'" + input + "'\t Name was: " + m.group(1) + ",\t index position: " + m.group(2));
-            } else {
-                System.out.println("'" + input + "'\t No Match");
-            }
-        }
-
         /**
          * Given a json path with dots delimiated returns the object at the leaf
          */

@@ -24,9 +24,7 @@ public class SlowSink extends AuditLogSink {
     public boolean doStore(AuditMessage msg) {
         try {
             Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        } catch (InterruptedException ignored) {}
 
         return true;
     }

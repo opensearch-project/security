@@ -1,6 +1,5 @@
 # Developer Guide
-
-So you want to contribute code to OpenSearch Security? Excellent! We're glad you're here. Here's what you need to do.
+So you want to contribute code to this project? Excellent! We're glad you're here. Here's what you need to do.
 
 - [Developer Guide](#developer-guide)
   - [Prerequisites](#prerequisites)
@@ -18,17 +17,16 @@ So you want to contribute code to OpenSearch Security? Excellent! We're glad you
 
 > Please make sure to follow the OpenSearch [Install Prerequisites](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#install-prerequisites) before starting for the first time.
 
-OpenSearch Security runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install the Security plugin there. However, we will compile OpenSearch Security using source code so that we are pulling in changes from the latest commit.
+This project runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install this plugin there. However, we will compile it using source code so that we are pulling in changes from the latest commit.
 
 ### Native platforms
+Not all platforms natively support OpenSearch, to check distribution avaliability please check these [issues](https://github.com/opensearch-project/opensearch-build/labels/distributions).
 
-Not all platforms natively support OpenSearch, to view distribution availability please check these [issues](https://github.com/opensearch-project/opensearch-build/issues?q=label%3Adistributions).
+On MacOS / PC the OpenSearch distribution can be run with docker.  This distribution contains the released version of OpenSearch including the security plugin.  For development we do not recommend using this docker image.
 
-On MacOS / PC the OpenSearch distribution can be run with Docker. This distribution contains the released version of OpenSearch including the security plugin. If you wish to use the Docker image for development, you will need to follow the steps found on the [Developing with Docker](DEVELOPING_WITH_DOCKER.md) guide.
+To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. Reach to the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
 
-To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. You should follow the steps until you reach the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
-
-Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running the OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
+Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
 ```bash
 export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-*
 export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-*
@@ -44,28 +42,20 @@ cd $OPENSEARCH_HOME
 ./bin/opensearch
 ```
 
-The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are now ready to install the security plugin.
-
+The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are ready to install the security plugin.
 
 >Worth noting:\
-> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `3.0.0.0-SNAPSHOT` compatible with OpenSearch `3.0.0`. Check the expected compatible version in `build.gradle` file [here](https://github.com/opensearch-project/security/blob/main/build.gradle) and make sure you get the correct branch from OpenSearch when building that project.
->
-> The line to look for: `opensearch_version = System.getProperty("opensearch.version", "x")`
->
-> Alternatively, you can find the compatible version of OpenSearch by running in project root folder
-> ```
-> ./gradlew properties -q | grep -E '^version:' | awk '{print $2}'
-> ```
+> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT` compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
 
 ## Building
 
-First create a fork of this repo and clone it locally. You should then change to the directory containing the clone and run this to build the project:
+First create a fork of this repo and clone it locally. Changing to directory containing this clone and run this to build the project:
 
 ```bash
 ./gradlew clean assemble
 ```
 
-To install the built plugin into the OpenSearch server run:
+Install the built plugin into the OpenSearch server:
 
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
@@ -77,6 +67,45 @@ rm opensearch-security-*.zip
 mkdir $OPENSEARCH_HOME/config/opensearch-security
 mv config/* $OPENSEARCH_HOME/config/opensearch-security/
 rm -rf config/
+```
+
+### Refreshing demo certificates
+
+1. Use the following commands to generate new demo certificates:
+
+```zsh
+## ROOT
+
+openssl genrsa -out root-ca-key.pem 2048
+openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "/DC=com/DC=example/O=Example Com Inc./OU=Example Com Inc. Root CA/CN=Example Com Inc. Root CA" -addext "basicConstraints = critical,CA:TRUE" -addext "keyUsage = critical, digitalSignature, keyCertSign, cRLSign" -addext "subjectKeyIdentifier = hash" -addext "authorityKeyIdentifier = keyid:always,issuer:always" -out root-ca.pem
+
+
+## NODE
+
+openssl genrsa -out esnode-key-temp.pem 2048
+openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
+openssl req -new -key esnode-key.pem -subj "/C=de/L=test/O=node/OU=node/CN=node-0.example.com" -out esnode.csr
+openssl x509 -req -in esnode.csr -out esnode.pem -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -days 3650 -extfile <(printf "subjectAltName = RID:1.2.3.4.5.5, DNS:node-0.example.com, DNS:localhost, IP:::1, IP:127.0.0.1\nkeyUsage = digitalSignature, nonRepudiation, keyEncipherment\nextendedKeyUsage = serverAuth, clientAuth\nbasicConstraints = critical,CA:FALSE")
+
+
+## ADMIN
+
+openssl req -new -newkey rsa:2048 -keyout kirk-key.pem -out kirk.csr -nodes -subj "/C=de/L=test/O=client/OU=client/CN=kirk"
+openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -out kirk.pem -days 3650 -extfile <(printf "basicConstraints = critical,CA:FALSE\nkeyUsage = critical,digitalSignature,nonRepudiation,keyEncipherment\nextendedKeyUsage = critical,clientAuth\nauthorityKeyIdentifier = keyid,issuer:always\nsubjectKeyIdentifier = hash")
+
+## Remove root-ca-key.pem and other temp keys
+
+## Generate new jks for sanity-tests which use demo certs
+#### kirk-root-chain.pem is chain certificate of kirk.pem followed by root-ca.pem
+openssl pkcs12 -export -in kirk-root-chain.pem -inkey kirk-key.pem -out kirk.p12 -name kirk
+keytool -importkeystore -srckeystore kirk.p12 -srcstoretype PKCS12 -destkeystore kirk.jks -deststoretype JKS
+```
+
+2. Update `install_demo_configuration.sh` and `install_demo_configuration.bat` with these new certificates.
+3. Add the SHA256 hashes for newly generated certs in OpenSearchSecurityPlugin.java
+```zsh
+cd <cert-folder>
+cat <cert>.pem | sha256sum
 ```
 
 ### Installing demo extension users and roles
@@ -126,6 +155,7 @@ extension_hw_greet:
 
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
+
 ```bash
 ./tools/install_demo_configuration.sh
 OpenSearch Security Demo Installer
@@ -159,7 +189,7 @@ Detected OpenSearch Security Version: *
 ```
 
 Now if we start our server again and try the original `curl localhost:9200`, it will fail.
-Try this command instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
+Try this one instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
 
 You can also make this call to return the authenticated user details:
 
@@ -196,17 +226,15 @@ Launch IntelliJ IDEA, choose **Project from Existing Sources**, and select direc
 
 ## Running integration tests
 
-Locally these can be run with `./gradlew test` with detailed results being available at `${project-root}/build/reports/tests/test/index.html`. You can also run tests through an IDEs JUnit test runner.
+Locally these can be run with `./gradlew test` with detailed results being avaliable at `${project-root}/build/reports/tests/test/index.html`, or run through an IDEs JUnit test runner.
 
-Integration tests are automatically run on all pull requests for all supported versions of the JDK. These must pass for change(s) to be merged. Detailed logs of these test results are available by going to the GitHub Actions workflow summary view and downloading the workflow run of the tests. If you see multiple tests listed with different JDK versions, you can download the version with whichever JDK you are interested in. After extracting the test file on your local machine, integration tests results can be found at `./tests/tests/index.html`.
+Integration tests are automatically run on all pull requests for all supported versions of the JDK.  These must pass for change(s) to be merged.  Detailed logs of these test results are avaliable by going to the GitHub action workflow's summary view and downloading the associated jdk version run of the tests, after extracting this file onto your local machine integration tests results are at `./tests/tests/index.html`.
 
 ### Bulk test runs
-
-To collect reliability data on test runs, there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
+To collect reliability data on test runs there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
 
 ### Checkstyle Violations
-
-Checkstyle enforces several rules within this codebase. Sometimes it will be necessary for exceptions to be made when dealing with components that are set for deprecation. This can happen when the new version of a deprecation-path component is unavailable. There are two formats of suppression that can be used when dealing with violations of this nature, one for disabling a single rule, or another for disabling all rules. It is best to only disable specific rules when possible.
+Checkstyle enforced several rules within this codebase.  Sometimes exceptions will be necessary for components that are set for deprecation but the new version is unavailable.  There are two formats of suppression that can be used when dealing with violations of this nature, one for disabling a single rule, or another for disabling all rules - its best to be as specific as possible.
 
 *Execute Checkstyle*
 ```
@@ -229,7 +257,7 @@ Checkstyle enforces several rules within this codebase. Sometimes it will be nec
 
 *Suppression All Checkstyle Rules*
 ```
-  // CS-SUPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
+  // CS-SUPPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
   ...
   // CS-ENFORCE-ALL
 ```

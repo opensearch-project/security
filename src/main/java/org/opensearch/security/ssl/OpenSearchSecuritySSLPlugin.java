@@ -80,6 +80,7 @@ import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.transport.SecuritySSLTransportInterceptor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 import org.opensearch.transport.Transport;
@@ -158,8 +159,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             final String renegoMsg =
                 "Client side initiated TLS renegotiation enabled. This can open a vulnerablity for DoS attacks through client side initiated TLS renegotiation.";
             log.warn(renegoMsg);
-            System.out.println(renegoMsg);
-            System.err.println(renegoMsg);
         } else {
             if (!rejectClientInitiatedRenegotiation) {
 
@@ -225,8 +224,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
         if (!httpSSLEnabled && !transportSSLEnabled) {
             log.error("SSL not activated for http and/or transport.");
-            System.out.println("SSL not activated for http and/or transport.");
-            System.err.println("SSL not activated for http and/or transport.");
         }
 
         if (ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
@@ -246,7 +243,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         NamedXContentRegistry xContentRegistry,
         NetworkService networkService,
         Dispatcher dispatcher,
-        ClusterSettings clusterSettings
+        ClusterSettings clusterSettings,
+        Tracer tracer
     ) {
 
         if (!client && httpSSLEnabled) {
@@ -268,7 +266,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 validatingDispatcher,
                 NOOP_SSL_EXCEPTION_HANDLER,
                 clusterSettings,
-                sharedGroupFactory
+                sharedGroupFactory,
+                tracer
             );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
