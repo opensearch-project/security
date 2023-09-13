@@ -76,6 +76,7 @@ echo Basedir: %BASE_DIR%
 
 set "OPENSEARCH_CONF_FILE=%BASE_DIR%config\opensearch.yml"
 set "INTERNAL_USERS_FILE"=%BASE_DIR%config\internal_users.yml"
+set "ADMIN_PASSWORD_FILE"=%BASE_DIR%config\admin_password.txt"
 set "OPENSEARCH_CONF_DIR=%BASE_DIR%config\"
 set "OPENSEARCH_BIN_DIR=%BASE_DIR%bin\"
 set "OPENSEARCH_PLUGINS_DIR=%BASE_DIR%plugins\"
@@ -321,8 +322,12 @@ echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"] >> "%OPENSEARCH_CONF_FILE%"
 
 
-for /f "tokens=2 delims=: " %%a in ('findstr /r "plugins.security.bootstrap.admin.password:" "%OPENSEARCH_CONF_FILE%"') do (
-    set "ADMIN_PASSWORD=%%a"
+REM Initialize the variable
+set "ADMIN_PASSWORD="
+
+REM Read the content of admin_password.txt into the ADMIN_PASSWORD variable
+for /f "usebackq" %%i in ("%ADMIN_PASSWORD_FILE%") do (
+    set "ADMIN_PASSWORD=%%i"
 )
 
 REM If ADMIN_PASSWORD is empty, check the environment variable as a fallback
@@ -330,7 +335,7 @@ if not defined ADMIN_PASSWORD (
     if defined ENV_ADMIN_PASSWORD (
         set "ADMIN_PASSWORD=!ENV_ADMIN_PASSWORD!"
     ) else (
-        echo Admin password not found in %OPENSEARCH_CONF_FILE% and ENV_ADMIN_PASSWORD is not set.
+        echo Unable to find admin password for cluster, please run "set ENV_ADMIN_PASSWORD=<your_password>" or create a file {OPENSEARCH_ROOT}\admin_password.txt with a single line that contains the password followed by a newline.
         exit /b 1
     )
 )

@@ -110,6 +110,7 @@ else
 fi
 OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
 INTERNAL_USERS_FILE = "$BASE_DIR/config/internal_users.yml"
+ADMIN_PASSWORD_FILE="$BASE_DIR/config/admin_password.txt"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
@@ -388,13 +389,13 @@ echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
-ADMIN_PASSWORD=$(grep -oP 'plugins.security.bootstrap.admin.password:\s*\K.+' "$OPENSEARCH_CONF_FILE" | awk '{print $1}'
+ADMIN_PASSWORD=$(cat "$ADMIN_PASSWORD_FILE")
 
 if [ -z "$ADMIN_PASSWORD" ]; then
   if [ -n "$ENV_ADMIN_PASSWORD" ]; then
     ADMIN_PASSWORD="$ENV_ADMIN_PASSWORD"
   else
-    echo "Admin password not found in $OPENSEARCH_YML_PATH and ENV_ADMIN_PASSWORD is not set."
+    echo "Unable to find admin password for cluster, please run `export ENV_ADMIN_PASSWORD=<your_password>>` or create a file {OPENSEARCH_ROOT}/admin_password.txt with a single line that contains the password followed by a newline"
     exit 1
   fi
 fi
