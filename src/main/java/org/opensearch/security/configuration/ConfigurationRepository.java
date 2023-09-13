@@ -215,20 +215,19 @@ public class ConfigurationRepository {
                     }
                 }
 
-                while (!dynamicConfigFactory.isInitialized()) {
+                // wait for DCF to be initialized
+                dynamicConfigFactory.waitForInit();
+
+                try {
+                    LOGGER.debug("Try to load config ...");
+                    reloadConfiguration(Arrays.asList(CType.values()));
+                } catch (Exception e) {
+                    LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
                     try {
-                        LOGGER.debug("Try to load config ...");
-                        reloadConfiguration(Arrays.asList(CType.values()));
-                        break;
-                    } catch (Exception e) {
-                        LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
-                        try {
-                            Thread.sleep(3000);
-                        } catch (InterruptedException e1) {
-                            Thread.currentThread().interrupt();
-                            LOGGER.debug("Thread was interrupted so we cancel initialization");
-                            break;
-                        }
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
+                        LOGGER.debug("Thread was interrupted so we cancel initialization");
                     }
                 }
 
@@ -381,7 +380,7 @@ public class ConfigurationRepository {
                     LOCK.unlock();
                 }
             } else {
-                throw new ConfigUpdateAlreadyInProgressException("A config update is already imn progress");
+                throw new ConfigUpdateAlreadyInProgressException("A config update is already in progress");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

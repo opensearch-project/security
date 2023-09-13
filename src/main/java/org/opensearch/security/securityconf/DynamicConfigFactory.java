@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -73,8 +74,9 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 
-public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
+public class DynamicConfigFactory implements ConfigurationChangeListener {
 
+    private final CountDownLatch initializationLatch = new CountDownLatch(1);
     public static final EventBusBuilder EVENT_BUS_BUILDER = EventBus.builder();
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty();
@@ -313,7 +315,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         initialized.set(true);
-
+        initializationLatch.countDown();
     }
 
     private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {
@@ -328,9 +330,10 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         return c.getCEntry("config");
     }
 
-    @Override
-    public final boolean isInitialized() {
-        return initialized.get();
+    public void waitForInit() throws InterruptedException {
+        // wait for DCF to completely initialized
+        initializationLatch.await();
+
     }
 
     public void registerDCFListener(Object listener) {
