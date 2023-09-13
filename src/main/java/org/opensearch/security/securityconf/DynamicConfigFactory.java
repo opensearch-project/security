@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
@@ -125,7 +124,6 @@ public class DynamicConfigFactory implements ConfigurationChangeListener {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ConfigurationRepository cr;
-    private final AtomicBoolean initialized = new AtomicBoolean();
     private final EventBus eventBus = EVENT_BUS_BUILDER.logger(new JavaLogger(DynamicConfigFactory.class.getCanonicalName())).build();
     private final Settings opensearchSettings;
     private final Path configPath;
@@ -160,6 +158,7 @@ public class DynamicConfigFactory implements ConfigurationChangeListener {
 
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
+        initializationLatch.countDown();
     }
 
     @Override
@@ -314,7 +313,6 @@ public class DynamicConfigFactory implements ConfigurationChangeListener {
             eventBus.post(audit);
         }
 
-        initialized.set(true);
         initializationLatch.countDown();
     }
 
@@ -333,7 +331,6 @@ public class DynamicConfigFactory implements ConfigurationChangeListener {
     public void waitForInit() throws InterruptedException {
         // wait for DCF to completely initialized
         initializationLatch.await();
-
     }
 
     public void registerDCFListener(Object listener) {
