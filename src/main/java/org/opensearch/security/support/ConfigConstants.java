@@ -139,7 +139,6 @@ public class ConfigConstants {
     public static final String SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "plugins.security.cert.intercluster_request_evaluator_class";
     public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX + "action_name";
 
-    public static final String SECURITY_BOOTSTRAP_ADMIN_DEFAULT_PASSWORD = "plugins.security.bootstrap.admin.password";
     public static final String SECURITY_AUTHCZ_ADMIN_DN = "plugins.security.authcz.admin_dn";
     public static final String SECURITY_CONFIG_INDEX_NAME = "plugins.security.config_index_name";
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = "plugins.security.authcz.impersonation_dn";
