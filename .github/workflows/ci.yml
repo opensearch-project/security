@@ -67,7 +67,7 @@ jobs:
         action: codecov/codecov-action@v3
         with: |
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           files: ./build/reports/jacoco/test/jacocoTestReport.xml
 
     - uses: actions/upload-artifact@v3
