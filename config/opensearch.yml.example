@@ -40,7 +40,7 @@ plugins.security.roles_mapping_resolution: MAPPING_ONLY
 
 # Specify the default password for the admin user
 # Note: This setting is required for using the default admin user account
-plugins.security.bootstrap.admin.password:
+plugins.security.bootstrap.admin.password: test
 
 ############## REST Management API configuration settings ##############
 # Enable or disable role based access to the REST management API
