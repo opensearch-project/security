@@ -289,12 +289,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         transportPassiveAuthSetting = new TransportPassiveAuthSetting(settings);
 
-        if (settings.get(ConfigConstants.SECURITY_BOOTSTRAP_ADMIN_DEFAULT_PASSWORD) == null) {
-            throw new RuntimeException("A default admin password must be provided in the opensearch.yml file.");
-        }
-        System.setProperty(ConfigConstants.SECURITY_BOOTSTRAP_ADMIN_DEFAULT_PASSWORD, settings.get(ConfigConstants.SECURITY_BOOTSTRAP_ADMIN_DEFAULT_PASSWORD));
-        runAdminTool();
-
         if (disabled) {
             this.sslCertReloadEnabled = false;
             log.warn(
@@ -1211,10 +1205,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             ); // not filtered here
 
-            settings.add(
-                    Setting.simpleString(ConfigConstants.SECURITY_BOOTSTRAP_ADMIN_DEFAULT_PASSWORD, Property.NodeScope, Property.Filtered)
-            );
-
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN + ".", Property.NodeScope)); // not filtered
                                                                                                                             // here
@@ -1928,46 +1918,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
         return field;
     }
-
-    public static void runAdminTool() {
-
-        System.out.println("Checking OS");
-        boolean isWindows = (System.getProperty("os.name").toLowerCase().contains("win"));
-        // Specify the path to your shell script
-        String scriptPath = "../../../tools/admin_password_tool" + (isWindows ? ".bat" : ".sh");
-
-        System.out.println("Script path is " + scriptPath);
-
-        try {
-            // Create a ProcessBuilder for the shell script
-            ProcessBuilder processBuilder = new ProcessBuilder();
-
-            if (isWindows) {
-                processBuilder.command("cmd.exe", "/c", scriptPath);
-            } else {
-                processBuilder.command("sh", scriptPath);
-            }
-
-            System.out.println("Processor has command array of: " + Arrays.stream(processBuilder.command().toArray()).map(Object::toString).collect(Collectors.joining(" ")));
-
-            // Start the process
-            Process process = processBuilder.start();
-            System.out.println("Process started");
-
-
-            // Wait for the process to complete
-            int exitCode = process.waitFor();
-
-            if (exitCode == 0) {
-                System.out.println("Shell script executed successfully.");
-            } else {
-                System.err.println("Shell script execution failed with exit code " + exitCode);
-            }
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
 
     public static class GuiceHolder implements LifecycleComponent {
 
