@@ -20,7 +20,7 @@ jobs:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test
 

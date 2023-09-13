@@ -592,7 +592,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
-    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.11'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.12'
     testImplementation 'org.springframework:spring-beans:5.3.20'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
