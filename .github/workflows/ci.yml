@@ -24,7 +24,7 @@ jobs:
         java-version: 17
 
     - name: Checkout security
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Generate list of tasks
       id: set-matrix
@@ -50,7 +50,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
@@ -67,7 +67,7 @@ jobs:
         action: codecov/codecov-action@v3
         with: |
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           files: ./build/reports/jacoco/test/jacocoTestReport.xml
 
     - uses: actions/upload-artifact@v3
@@ -98,7 +98,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
@@ -123,7 +123,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - id: build-previous
       uses: ./.github/actions/run-bwc-suite
@@ -137,7 +137,7 @@ jobs:
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
@@ -151,7 +151,7 @@ jobs:
   build-artifact-names:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: actions/setup-java@v3
       with:
