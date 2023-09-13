@@ -109,6 +109,7 @@ else
     echo "DEBUG: basedir does not exist"
 fi
 OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
+INTERNAL_USERS_FILE = "$BASE_DIR/config/internal_users.yml"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
@@ -386,6 +387,29 @@ echo "plugins.security.check_snapshot_restore_write_privileges: true" | $SUDO_CM
 echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+
+ADMIN_PASSWORD=$(grep -oP 'plugins.security.bootstrap.admin.password:\s*\K.+' "$OPENSEARCH_CONF_FILE" | awk '{print $1}'
+
+if [ -z "$ADMIN_PASSWORD" ]; then
+  if [ -n "$ENV_ADMIN_PASSWORD" ]; then
+    ADMIN_PASSWORD="$ENV_ADMIN_PASSWORD"
+  else
+    echo "Admin password not found in $OPENSEARCH_YML_PATH and ENV_ADMIN_PASSWORD is not set."
+    exit 1
+  fi
+fi
+
+salt=$(openssl rand -hex 8)
+
+# Generate the hash using OpenBSD-style Blowfish-based bcrypt
+HASHED_ADMIN_PASSWORD=$(openssl passwd -bcrypt -salt $salt "$ADMIN_PASSWORD")
+
+# Clear the clearTextPassword variable
+unset ADMIN_PASSWORD
+
+ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
+
+sed -i "${ADMIN_HASH_LINE}s/.*/  hash: \"$HASHED_ADMIN_PASSWORD\"/" "$INTERNAL_USERS_FILE"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then

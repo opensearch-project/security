@@ -289,6 +289,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         transportPassiveAuthSetting = new TransportPassiveAuthSetting(settings);
 
+        if (settings.get(ConfigConstants.SECURITY_BOOTSTRAP_ADMIN_DEFAULT_PASSWORD) == null) {
+            throw new RuntimeException("A default admin password must be provided in the opensearch.yml file.");
+        }
+
         if (disabled) {
             this.sslCertReloadEnabled = false;
             log.warn(
@@ -1204,6 +1208,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.NodeScope
                 )
             ); // not filtered here
+
+            settings.add(
+                    Setting.simpleString(ConfigConstants.SECURITY_BOOTSTRAP_ADMIN_DEFAULT_PASSWORD, Property.NodeScope, Property.Filtered)
+            );
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN + ".", Property.NodeScope)); // not filtered
