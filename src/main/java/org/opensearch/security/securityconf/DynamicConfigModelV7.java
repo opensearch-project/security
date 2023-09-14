@@ -389,10 +389,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
         final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new OnBehalfOfAuthenticator(DEMO_SETTINGS),
+                new OnBehalfOfAuthenticator(DEMO_SETTINGS, this.cih.getClusterName()),
                 false,
                 -1
         );
+
+
         restAuthDomains0.add(_ad);
 
         List<Destroyable> originalDestroyableComponents = destroyableComponents;

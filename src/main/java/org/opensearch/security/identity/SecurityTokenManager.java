@@ -81,7 +81,7 @@ public class SecurityTokenManager implements TokenManager {
 	@Override
 	public AuthToken issueServiceAccountToken(String extensionUniqueId) throws OpenSearchSecurityException {
 		try {
-			return new BearerAuthToken(jwtVendor.issueServiceAccountToken(cs.getClusterName().value(), extensionUniqueId, null));
+			return new BearerAuthToken(UserService.issueServiceAccountToken(cs.getClusterName().value(), extensionUniqueId, null));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

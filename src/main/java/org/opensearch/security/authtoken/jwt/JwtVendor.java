@@ -12,6 +12,7 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
@@ -30,7 +31,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.extensions.ExtensionsSettings;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.ssl.util.ExceptionUtils;
+import static org.opensearch.security.OpenSearchSecurityPlugin.SEND_BACKEND_ROLES_SETTING;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
@@ -163,6 +167,77 @@ public class JwtVendor {
                     + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
                     + "\n"
                     + JwtUtils.claimsToJson(jwt.getClaims())
+            );
+        }
+
+        return encodedJwt;
+    }
+
+    public String issueOnBehalfOfToken(
+            String issuer,
+            String subject,
+            String audience,
+            Integer expirySeconds,
+            Collection<String> roles,
+            Collection<String> backendRoles
+    ) throws Exception {
+        long timeMillis = timeProvider.getAsLong();
+        Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
+
+        jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
+        JwtClaims jwtClaims = new JwtClaims();
+        JwtToken jwt = new JwtToken(jwtClaims);
+
+        jwtClaims.setIssuer(issuer);
+
+        jwtClaims.setIssuedAt(timeMillis);
+
+        jwtClaims.setSubject(subject);
+
+        jwtClaims.setAudience(audience);
+
+        jwtClaims.setNotBefore(timeMillis);
+
+        if (expirySeconds == null) {
+            long expiryTime = timeProvider.getAsLong() + 300;
+            jwtClaims.setExpiryTime(expiryTime);
+        } else if (expirySeconds > 0) {
+            long expiryTime = timeProvider.getAsLong() + expirySeconds;
+            jwtClaims.setExpiryTime(expiryTime);
+        } else {
+            throw new Exception("The expiration time should be a positive integer");
+        }
+
+        Optional<ExtensionsSettings.Extension> matchingExtension = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager()
+                .lookupExtensionSettingsById(audience);
+        if (matchingExtension.isPresent()) {
+            boolean sendBackendRoles = (boolean) matchingExtension.get().getAdditionalSettings().get(SEND_BACKEND_ROLES_SETTING);
+            System.out.println("sendBackendRoles: " + sendBackendRoles);
+            System.out.println("backendRoles: " + backendRoles);
+            if (sendBackendRoles) {
+                jwtClaims.setProperty("br", backendRoles);
+            }
+        }
+
+        if (roles != null) {
+            String listOfRoles = String.join(",", roles);
+            jwtClaims.setProperty("er", this.encryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
+        } else {
+            throw new Exception("Roles cannot be null");
+        }
+
+        /* TODO: If the backendRoles is not null and the BWC Mode is on, put them into the "dbr" claim */
+
+        String encodedJwt = jwtProducer.processJwt(jwt);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug(
+                    "Created JWT: "
+                            + encodedJwt
+                            + "\n"
+                            + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
+                            + "\n"
+                            + JwtUtils.claimsToJson(jwt.getClaims())
             );
         }
 

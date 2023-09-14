@@ -22,7 +22,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.security.WeakKeyException;
-import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,7 +36,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.util.KeyUtils;
+import org.opensearch.security.util.KeyUtil;
 
 public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
@@ -66,7 +66,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         requireAudience = settings.get("required_audience");
         requireIssuer = settings.get("required_issuer");
 
-        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
+        JwtParserBuilder jwtParserBuilder = KeyUtil.createJwtParserBuilderFromSigningKey(signingKey, log);
         if (jwtParserBuilder == null) {
             jwtParser = null;
         } else {

@@ -69,4 +69,6 @@ public class EncryptionDecryptionUtil {
             this.opmode = opmode;
         }
     }
+
+    //TODO: RYAN PUT YOUR LOGIC HERE TO CONNECT WITH https://raw.githubusercontent.com/cwperks/security/bf22d4a4e7e716f818e4ce48767590a9f0e53f38/src/main/java/org/opensearch/security/authtoken/jwt/EncryptionDecryptionUtil.java
 }
