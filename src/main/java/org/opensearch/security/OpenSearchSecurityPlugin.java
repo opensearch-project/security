@@ -180,6 +180,7 @@ import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.Transport;
@@ -860,7 +861,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         NamedXContentRegistry xContentRegistry,
         NetworkService networkService,
         Dispatcher dispatcher,
-        ClusterSettings clusterSettings
+        ClusterSettings clusterSettings,
+        Tracer tracer
     ) {
 
         if (SSLConfig.isSslOnlyMode()) {
@@ -873,7 +875,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 xContentRegistry,
                 networkService,
                 dispatcher,
-                clusterSettings
+                clusterSettings,
+                tracer
             );
         }
 
@@ -898,7 +901,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     xContentRegistry,
                     validatingDispatcher,
                     clusterSettings,
-                    sharedGroupFactory
+                    sharedGroupFactory,
+                    tracer
                 );
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
@@ -913,7 +917,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         xContentRegistry,
                         dispatcher,
                         clusterSettings,
-                        sharedGroupFactory
+                        sharedGroupFactory,
+                        tracer
                     )
                 );
             }

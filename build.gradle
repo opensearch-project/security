@@ -418,7 +418,7 @@ configurations {
         resolutionStrategy {
             force 'commons-codec:commons-codec:1.16.0'
             force 'org.slf4j:slf4j-api:1.7.36'
-            force 'org.scala-lang:scala-library:2.13.11'
+            force 'org.scala-lang:scala-library:2.13.12'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
@@ -548,7 +548,7 @@ dependencies {
     runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
 
-    implementation "com.nulab-inc:zxcvbn:1.8.0"
+    implementation "com.nulab-inc:zxcvbn:1.8.2"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
@@ -592,8 +592,8 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
-    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.11'
-    testImplementation 'org.springframework:spring-beans:5.3.20'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.12'
+    testImplementation 'org.springframework:spring-beans:5.3.29'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
@@ -608,7 +608,7 @@ dependencies {
     testRuntimeOnly ('org.springframework:spring-core:5.3.29') {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.11'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.12'
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.7.1'
