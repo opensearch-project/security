@@ -207,6 +207,11 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
     }
 
+    @Override
+    public Settings getDynamicOnBehalfOfSettings() {
+        return Settings.EMPTY;
+    }
+    
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();

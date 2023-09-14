@@ -105,6 +105,7 @@ import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -117,6 +118,7 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -191,7 +193,7 @@ import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
+public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin, ExtensionAwarePlugin {
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -211,6 +213,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
     private volatile AuditLog auditLog;
+    private volatile DynamicConfigFactory dcf;
     private volatile BackendRegistry backendRegistry;
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
@@ -538,6 +541,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         principalExtractor
                     )
                 );
+                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool, Objects.requireNonNull(cs));
+                dcf.registerDCFListener(cobot);
+                handlers.add(cobot);
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -953,7 +959,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         // Register opensearch dynamic settings
         transportPassiveAuthSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
 
-        final ClusterInfoHolder cih = new ClusterInfoHolder();
+        final ClusterInfoHolder cih = new ClusterInfoHolder(this.cs.getClusterName().value());
         this.cs.addListener(cih);
         this.salt = Salt.from(settings);
 
@@ -1041,7 +1047,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             compatConfig
         );
 
-        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);

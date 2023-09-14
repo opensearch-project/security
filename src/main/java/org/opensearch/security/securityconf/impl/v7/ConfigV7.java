@@ -41,6 +41,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 
 public class ConfigV7 {
@@ -64,6 +65,7 @@ public class ConfigV7 {
         dynamic.multi_rolespan_enabled = c6.dynamic.multi_rolespan_enabled;
         dynamic.hosts_resolver_mode = c6.dynamic.hosts_resolver_mode;
         dynamic.transport_userrname_attribute = c6.dynamic.transport_userrname_attribute;
+
 
         dynamic.kibana = new Kibana();
 
@@ -133,6 +135,7 @@ public class ConfigV7 {
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
+        public ConfigModelV7.OnBehalfOfSettings on_behalf_of = new ConfigModelV7.OnBehalfOfSettings();
 
         @Override
         public String toString() {
