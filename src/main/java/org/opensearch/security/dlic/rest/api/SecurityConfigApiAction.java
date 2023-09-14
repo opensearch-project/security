@@ -11,12 +11,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableList;
-
 import com.google.common.collect.ImmutableMap;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -32,8 +27,11 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -43,7 +41,7 @@ public class SecurityConfigApiAction extends AbstractApiAction {
 
     private static final List<Route> allRoutes = new ImmutableList.Builder<Route>().addAll(getRoutes)
         .addAll(
-            addRoutesPrefix(ImmutableList.of(new Route(Method.PUT, "/securityconfig/{name}"), new Route(Method.PATCH, "/securityconfig/")))
+            addRoutesPrefix(ImmutableList.of(new Route(Method.PUT, "/securityconfig/config"), new Route(Method.PATCH, "/securityconfig/")))
         )
         .build();
 
@@ -72,10 +70,13 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         return CType.CONFIG;
     }
 
+    @Override
+    protected void consumeParameters(RestRequest request) {}
+
     private void securityConfigApiActionRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(
             Method.PUT,
-            request -> withAllowedEndpoint(request).map(this::withConfigEntityNameOnly).map(ignore -> processPutRequest(request))
+            request -> withAllowedEndpoint(request).map(ignore -> processPutRequest("config", request))
         )
             .onChangeRequest(Method.PATCH, request -> withAllowedEndpoint(request).map(this::processPatchRequest))
             .override(Method.DELETE, methodNotImplementedHandler)
@@ -87,14 +88,6 @@ public class SecurityConfigApiAction extends AbstractApiAction {
             return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
         }
         return ValidationResult.success(request);
-    }
-
-    ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
-        final var name = nameParam(request);
-        if (!"config".equals(name)) {
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
-        }
-        return ValidationResult.success(name);
     }
 
     @Override
