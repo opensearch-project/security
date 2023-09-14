@@ -294,7 +294,7 @@ public class ConfigModelV7 extends ConfigModel {
 
     // beans
 
-    public static class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
+    public class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
 
         protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -334,6 +334,59 @@ public class ConfigModelV7 extends ConfigModel {
         @Override
         public String toString() {
             return "roles=" + roles;
+        }
+
+        @Override
+        public void addRole(Role role) {
+            if (role == null) {
+                return;
+            }
+
+            RoleV7 roleToAdd = (RoleV7) role;
+            SecurityRole.Builder _securityRole = new SecurityRole.Builder("ephemeral");
+
+            final Set<String> permittedClusterActions = agr.resolvedActions(roleToAdd.getCluster_permissions());
+            _securityRole.addClusterPerms(permittedClusterActions);
+
+            /*for(RoleV7.Tenant tenant: securityRole.getValue().getTenant_permissions()) {
+                //if(tenant.equals(user.getName())) {
+                //    continue;
+                //}
+                if(isTenantsRw(tenant)) {
+                    _securityRole.addTenant(new Tenant(tenant.getKey(), true));
+                } else {
+                    _securityRole.addTenant(new Tenant(tenant.getKey(), false));
+                }
+            }*/
+
+            for (final Index permittedAliasesIndex : roleToAdd.getIndex_permissions()) {
+
+                final String dls = permittedAliasesIndex.getDls();
+                final List<String> fls = permittedAliasesIndex.getFls();
+                final List<String> maskedFields = permittedAliasesIndex.getMasked_fields();
+
+                for (String pat : permittedAliasesIndex.getIndex_patterns()) {
+                    IndexPattern _indexPattern = new IndexPattern(pat);
+                    _indexPattern.setDlsQuery(dls);
+                    _indexPattern.addFlsFields(fls);
+                    _indexPattern.addMaskedFields(maskedFields);
+                    _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
+
+                    /*for(Entry<String, List<String>> type: permittedAliasesIndex.getValue().getTypes(-).entrySet()) {
+                        TypePerm typePerm = new TypePerm(type.getKey());
+                        final List<String> perms = type.getValue();
+                        typePerm.addPerms(agr.resolvedActions(perms));
+                        _indexPattern.addTypePerms(typePerm);
+                    }*/
+
+                    _securityRole.addIndexPattern(_indexPattern);
+
+                }
+
+            }
+
+            SecurityRole newRole = _securityRole.build();
+            this.roles.add(newRole);
         }
 
         public Set<SecurityRole> getRoles() {

@@ -38,10 +38,11 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.opensearch.security.securityconf.Hideable;
+import org.opensearch.security.securityconf.Role;
 import org.opensearch.security.securityconf.StaticDefinable;
 import org.opensearch.security.securityconf.impl.v6.RoleV6;
 
-public class RoleV7 implements Hideable, StaticDefinable {
+public class RoleV7 implements Hideable, StaticDefinable, Role {
 
     private boolean reserved;
     private boolean hidden;

@@ -1,3 +1,4 @@
+
 /*
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -11,12 +12,9 @@
 
 package org.opensearch.security.util;
 
-import io.jsonwebtoken.JwtParserBuilder;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.core.common.Strings;
 
 import java.security.AccessController;
 import java.security.Key;
@@ -29,62 +27,54 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Objects;
 
-public class KeyUtils {
+public class KeyUtil {
 
-    public static JwtParserBuilder createJwtParserBuilderFromSigningKey(final String signingKey, final Logger log) {
-        final SecurityManager sm = System.getSecurityManager();
-
-        JwtParserBuilder jwtParserBuilder = null;
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        jwtParserBuilder = AccessController.doPrivileged(new PrivilegedAction<JwtParserBuilder>() {
-            @Override
-            public JwtParserBuilder run() {
-                if (Strings.isNullOrEmpty(signingKey)) {
-                    log.error("Unable to find signing key");
-                    return null;
-                } else {
-                    try {
+    public static JwtParser keyAlgorithmCheck(final String signingKey, final Logger log) {
+        if (signingKey == null || signingKey.length() == 0) {
+            log.error("Unable to find signing key");
+            return null;
+        } else {
+            try {
+                JwtParser parser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
+                    @Override
+                    public JwtParser run() {
                         Key key = null;
 
                         final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
-                            .replace("-----END PUBLIC KEY-----", "");
+                                .replace("-----END PUBLIC KEY-----", "");
 
                         final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
 
                         try {
                             key = getPublicKey(decoded, "RSA");
-                        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                        } catch (Exception e) {
                             log.debug("No public RSA key, try other algos ({})", e.toString());
                         }
 
                         try {
                             key = getPublicKey(decoded, "EC");
-                        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                        } catch (final Exception e) {
                             log.debug("No public ECDSA key, try other algos ({})", e.toString());
                         }
 
                         if (Objects.nonNull(key)) {
-                            return Jwts.parserBuilder().setSigningKey(key);
+                            return Jwts.parser().setSigningKey(key);
                         }
 
-                        return Jwts.parserBuilder().setSigningKey(decoded);
-                    } catch (Throwable e) {
-                        log.error("Error while creating JWT authenticator", e);
-                        throw new OpenSearchSecurityException(e.toString(), e);
+                        return Jwts.parser().setSigningKey(decoded);
                     }
-                }
-            }
-        });
+                });
 
-        return jwtParserBuilder;
+                return parser;
+            } catch (Throwable e) {
+                log.error("Error while creating JWT authenticator", e);
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
-        InvalidKeySpecException {
+            InvalidKeySpecException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);

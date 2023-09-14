@@ -29,6 +29,7 @@ package org.opensearch.security.user;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,6 +95,18 @@ public final class AuthCredentials {
      */
     public AuthCredentials(final String username, String... backendRoles) {
         this(username, null, null, backendRoles);
+    }
+
+    /**
+     * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
+     * @param username The username, must not be null or empty
+     * @param securityRoles The internal roles the user has been mapped to
+     * @param backendRoles set of roles this user is a member of
+     * @throws IllegalArgumentException if username is null or empty
+     */
+    public AuthCredentials(final String username, Collection<String> securityRoles, String... backendRoles) {
+        this(username, null, null, backendRoles);
+        this.securityRoles.addAll(securityRoles);
     }
 
     /**
@@ -214,9 +227,8 @@ public final class AuthCredentials {
      * @return Defensive copy of the security roles this user is member of.
      */
     public Set<String> getSecurityRoles() {
-        return Set.copyOf(securityRoles);
+        return new HashSet<String>(securityRoles);
     }
-
     /**
      *
      * @return Defensive copy of the roles this user is member of.

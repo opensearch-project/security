@@ -46,6 +46,8 @@ import com.google.common.collect.Multimaps;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
+import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthenticationBackend;
@@ -63,6 +65,8 @@ import org.opensearch.security.support.ReflectionHelper;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.http.OnBehalfOfAuthenticator;
+
+import static org.opensearch.security.identity.SecurityTokenManager.DEMO_SETTINGS;
 
 public class DynamicConfigModelV7 extends DynamicConfigModel {
 
@@ -382,6 +386,14 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                     -1 );
             restAuthDomains0.add(_ad);
         }
+
+        final AuthDomain _ad = new AuthDomain(
+                new NoOpAuthenticationBackend(Settings.EMPTY, null),
+                new OnBehalfOfAuthenticator(DEMO_SETTINGS),
+                false,
+                -1
+        );
+        restAuthDomains0.add(_ad);
 
         List<Destroyable> originalDestroyableComponents = destroyableComponents;
 
