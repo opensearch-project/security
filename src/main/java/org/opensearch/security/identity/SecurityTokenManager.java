@@ -66,19 +66,20 @@ public class SecurityTokenManager implements TokenManager {
 
 		Set<String> mappedRoles = mapRoles(user, caller);
 		String encodedJwt = null;
+
 		try {
-			encodedJwt = jwtVendor.issueOnBehalfOfToken(
+			encodedJwt = jwtVendor.createJwt(
 					cs.getClusterName().value(),
 					user.getName(),
 					claims.getAudience(),
-					null,
+					300,
 					mappedRoles,
-					user.getRoles()
+					user.getRoles(),
+					false
 			);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-
 		return new BearerAuthToken(encodedJwt);
 	}
 

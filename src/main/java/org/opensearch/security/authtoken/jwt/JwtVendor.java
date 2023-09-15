@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
@@ -94,7 +95,7 @@ public class JwtVendor {
 
             if (jwkSettings.isEmpty()) {
                 throw new Exception(
-                    "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
+                        "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
                 );
             }
 
@@ -109,13 +110,13 @@ public class JwtVendor {
     }
 
     public String createJwt(
-        String issuer,
-        String subject,
-        String audience,
-        Integer expirySeconds,
-        List<String> roles,
-        List<String> backendRoles,
-        boolean roleSecurityMode
+            String issuer,
+            String subject,
+            String audience,
+            Integer expirySeconds,
+            Set<String> roles,
+            Set<String> backendRoles,
+            boolean roleSecurityMode
     ) throws Exception {
         final long nowAsMillis = timeProvider.getAsLong();
         final Instant nowAsInstant = Instant.ofEpochMilli(timeProvider.getAsLong());
@@ -156,77 +157,6 @@ public class JwtVendor {
             String listOfBackendRoles = String.join(",", backendRoles);
             jwtClaims.setProperty("br", listOfBackendRoles);
         }
-
-        String encodedJwt = jwtProducer.processJwt(jwt);
-
-        if (logger.isDebugEnabled()) {
-            logger.debug(
-                "Created JWT: "
-                    + encodedJwt
-                    + "\n"
-                    + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
-                    + "\n"
-                    + JwtUtils.claimsToJson(jwt.getClaims())
-            );
-        }
-
-        return encodedJwt;
-    }
-
-    public String issueOnBehalfOfToken(
-            String issuer,
-            String subject,
-            String audience,
-            Integer expirySeconds,
-            Collection<String> roles,
-            Collection<String> backendRoles
-    ) throws Exception {
-        long timeMillis = timeProvider.getAsLong();
-        Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
-
-        jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
-        JwtClaims jwtClaims = new JwtClaims();
-        JwtToken jwt = new JwtToken(jwtClaims);
-
-        jwtClaims.setIssuer(issuer);
-
-        jwtClaims.setIssuedAt(timeMillis);
-
-        jwtClaims.setSubject(subject);
-
-        jwtClaims.setAudience(audience);
-
-        jwtClaims.setNotBefore(timeMillis);
-
-        if (expirySeconds == null) {
-            long expiryTime = timeProvider.getAsLong() + 300;
-            jwtClaims.setExpiryTime(expiryTime);
-        } else if (expirySeconds > 0) {
-            long expiryTime = timeProvider.getAsLong() + expirySeconds;
-            jwtClaims.setExpiryTime(expiryTime);
-        } else {
-            throw new Exception("The expiration time should be a positive integer");
-        }
-
-        Optional<ExtensionsSettings.Extension> matchingExtension = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager()
-                .lookupExtensionSettingsById(audience);
-        if (matchingExtension.isPresent()) {
-            boolean sendBackendRoles = (boolean) matchingExtension.get().getAdditionalSettings().get(SEND_BACKEND_ROLES_SETTING);
-            System.out.println("sendBackendRoles: " + sendBackendRoles);
-            System.out.println("backendRoles: " + backendRoles);
-            if (sendBackendRoles) {
-                jwtClaims.setProperty("br", backendRoles);
-            }
-        }
-
-        if (roles != null) {
-            String listOfRoles = String.join(",", roles);
-            jwtClaims.setProperty("er", this.encryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
-        } else {
-            throw new Exception("Roles cannot be null");
-        }
-
-        /* TODO: If the backendRoles is not null and the BWC Mode is on, put them into the "dbr" claim */
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 
