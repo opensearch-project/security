@@ -131,6 +131,8 @@ jobs:
         plugin-previous-branch: "2.x"
         plugin-next-branch: "current_branch"
         report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
+        username: admin
+        password: admin
 
   code-ql:
     runs-on: ubuntu-latest

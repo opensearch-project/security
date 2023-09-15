@@ -11,28 +11,13 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
@@ -48,9 +33,15 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ValidateApiAction extends AbstractApiAction {
@@ -58,28 +49,12 @@ public class ValidateApiAction extends AbstractApiAction {
 
     @Inject
     public ValidateApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
+        super(Endpoint.VALIDATE, clusterService, threadPool, securityApiDependencies);
+        this.requestHandlersBuilder.configureRequestHandlers(this::validateApiRequestHandlers);
     }
 
     @Override
@@ -88,20 +63,28 @@ public class ValidateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.VALIDATE;
+    protected CType getConfigType() {
+        return null;
+    }
+
+    @Override
+    protected void consumeParameters(final RestRequest request) {
+        request.paramAsBoolean("accept_invalid", false);
+    }
+
+    private void validateApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.GET, (channel, request, client) -> validate(channel, request));
     }
 
     @SuppressWarnings("unchecked")
-    @Override
-    protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
+    protected void validate(RestChannel channel, RestRequest request) throws IOException {
 
         final boolean acceptInvalid = request.paramAsBoolean("accept_invalid", false);
 
         final SecurityDynamicConfiguration<?> loadedConfig = load(CType.CONFIG, true, acceptInvalid);
 
         if (loadedConfig.getVersion() != 1) {
-            badRequestResponse(channel, "Can not migrate configuration because it was already migrated.");
+            badRequest(channel, "Can not migrate configuration because it was already migrated.");
             return;
         }
 
@@ -140,57 +123,17 @@ public class ValidateApiAction extends AbstractApiAction {
             final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
             final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
 
-            successResponse(channel, "OK.");
+            ok(channel, "OK.");
         } catch (Exception e) {
-            internalErrorResponse(channel, "Configuration is not valid.");
+            internalSeverError(channel, "Configuration is not valid.");
         }
     }
 
-    @Override
-    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.POST);
-    }
-
-    @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.GET);
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.PUT);
-    }
-
-    @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.NOOP_VALIDATOR;
-    }
-
-    @Override
-    protected String getResourceName() {
-        // not needed
-        return null;
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return null;
-    }
-
-    @Override
-    protected void consumeParameters(final RestRequest request) {
-        request.paramAsBoolean("accept_invalid", false);
-    }
-
-    private final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
-        SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(
-            Collections.singleton(config),
-            logComplianceEvent,
-            acceptInvalid
-        ).get(config).deepClone();
+    private SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
+        SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
+            .getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent, acceptInvalid)
+            .get(config)
+            .deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 

@@ -27,34 +27,26 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class TenantsApiAction extends PatchableResourceApiAction {
+public class TenantsApiAction extends AbstractApiAction {
+
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/tenants/{name}"),
@@ -68,28 +60,12 @@ public class TenantsApiAction extends PatchableResourceApiAction {
 
     @Inject
     public TenantsApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
     ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
-    }
-
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
-        return true;
+        super(Endpoint.TENANTS, clusterService, threadPool, securityApiDependencies);
+        this.requestHandlersBuilder.configureRequestHandlers(builder -> builder.onChangeRequest(Method.PATCH, this::processPatchRequest));
     }
 
     @Override
@@ -98,47 +74,47 @@ public class TenantsApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.TENANTS;
-    }
-
-    @Override
-    protected RequestContentValidator createValidator(final Object... params) {
-        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
-            @Override
-            public Object[] params() {
-                return params;
-            }
-
-            @Override
-            public Settings settings() {
-                return settings;
-            }
-
-            @Override
-            public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
-                if (isSuperAdmin()) {
-                    allowedKeys.put("reserved", DataType.BOOLEAN);
-                }
-                return allowedKeys.put("description", DataType.STRING).build();
-            }
-        });
-    }
-
-    @Override
-    protected CType getConfigName() {
+    protected CType getConfigType() {
         return CType.TENANTS;
     }
 
     @Override
-    protected String getResourceName() {
-        return "tenant";
-    }
+    protected EndpointValidator createEndpointValidator() {
+        return new EndpointValidator() {
+            @Override
+            public Endpoint endpoint() {
+                return endpoint;
+            }
 
-    @Override
-    protected void consumeParameters(final RestRequest request) {
-        request.param("name");
+            @Override
+            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
+                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            }
+
+            @Override
+            public RequestContentValidator createRequestContentValidator(final Object... params) {
+                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+                    @Override
+                    public Object[] params() {
+                        return params;
+                    }
+
+                    @Override
+                    public Settings settings() {
+                        return securityApiDependencies.settings();
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                        if (isCurrentUserAdmin()) {
+                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                        }
+                        return allowedKeys.put("description", DataType.STRING).build();
+                    }
+                });
+            }
+        };
     }
 
 }

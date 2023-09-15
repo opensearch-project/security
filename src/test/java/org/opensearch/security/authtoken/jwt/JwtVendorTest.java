@@ -11,10 +11,6 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.function.LongSupplier;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
@@ -23,6 +19,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.function.LongSupplier;
 
 public class JwtVendorTest {
 
@@ -99,7 +99,9 @@ public class JwtVendorTest {
         Settings settings = Settings.builder()
             .put("signing_key", "abc123")
             .put("encryption_key", claimsEncryptionKey)
-            .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
+            // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+            .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, "true")
+            // CS-ENFORCE-SINGLE
             .build();
         Long expectedExp = currentTime.getAsLong() + expirySeconds;
 

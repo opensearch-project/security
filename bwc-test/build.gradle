@@ -46,6 +46,7 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
+        common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
     }
     repositories {
         mavenLocal()
@@ -70,6 +71,7 @@ dependencies {
     testImplementation "com.google.guava:guava:${versions.guava}"
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+    testImplementation "org.opensearch:common-utils:${common_utils_version}"
 }
 
 loggerUsageCheck.enabled = false
@@ -86,9 +88,6 @@ String projectVersion = nextVersion
 
 String previousOpenSearch  = extractVersion(previousVersion) + "-SNAPSHOT";
 String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT";
-
-println previousOpenSearch + nextOpenSearch;
-
 
 // Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
 def String extractVersion(versionStr) {
@@ -125,7 +124,8 @@ def String extractVersion(versionStr) {
                 node.extraConfigFile("esnode.pem", file("src/test/resources/security/esnode.pem"))
                 node.extraConfigFile("esnode-key.pem", file("src/test/resources/security/esnode-key.pem"))
                 node.extraConfigFile("root-ca.pem", file("src/test/resources/security/root-ca.pem"))
-                node.setting("plugins.security.disabled", "true")
+                node.setting("network.bind_host", "127.0.0.1")
+                node.setting("network.publish_host", "127.0.0.1")
                 node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
                 node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
                 node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
@@ -137,7 +137,7 @@ def String extractVersion(versionStr) {
                 node.setting("plugins.security.allow_unsafe_democertificates", "true")
                 node.setting("plugins.security.allow_default_init_securityindex", "true")
                 node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
-                node.setting("plugins.security.audit.type", "internal_elasticsearch")
+                node.setting("plugins.security.audit.type", "internal_opensearch")
                 node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
                 node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
                 node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")

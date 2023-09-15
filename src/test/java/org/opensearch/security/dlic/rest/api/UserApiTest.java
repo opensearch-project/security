@@ -294,7 +294,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'non_existent' is not available for role-mapping.");
+        Assert.assertEquals(settings.get("message"), "role 'non_existent' not found.");
 
         // Wrong config keys
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}", header);
@@ -413,7 +413,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {\"password\": \"bla bla bla password 42\", \"backend_roles\": [\"vulcan\"] } }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/bulknew1", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
@@ -1021,7 +1021,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Resource 'opendistro_security_reserved' is read-only.");
+        Assert.assertEquals(settings.get("message"), "Resource 'opendistro_security_reserved' is reserved.");
 
         // Patch single hidden user
         response = rh.executePatchRequest(
