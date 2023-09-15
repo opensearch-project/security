@@ -150,6 +150,7 @@ import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecuritySubject;
+import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.resolver.IndexResolverReplacer;
@@ -1024,9 +1025,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
         subject.setThreadContext(threadPool.getThreadContext());
-        tokenManager = new SecurityTokenManager(cs, threadPool);
 
         userService = new UserService(cs, cr, settings, localClient);
+
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);

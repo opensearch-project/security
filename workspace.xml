@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="47f69621-53a4-4b6b-9b5f-465d412385f7" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExportToHTMLSettings">
+    <option name="printScope" value="1" />
+    <option name="OUTPUT_DIRECTORY" value="$PROJECT_DIR$/exportToHTML" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+    <projectState path="$PROJECT_DIR$/src/bwcTest">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="opensearch-security" type="f1a62948:ProjectNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="opensearch-security" type="f1a62948:ProjectNode" />
+                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="opensearch-security" type="f1a62948:ProjectNode" />
+                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
+                <item name="compileClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="opensearch-security" type="f1a62948:ProjectNode" />
+                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
+                <item name="integrationTestCompileClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="opensearch-security" type="f1a62948:ProjectNode" />
+                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
+                <item name="integrationTestRuntimeClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="opensearch-security" type="f1a62948:ProjectNode" />
+                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
+                <item name="runtimeClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="opensearch-security" type="f1a62948:ProjectNode" />
+                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
+                <item name="testRuntimeClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="1.x" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/main/java/org/opensearch/security/privileges/PrivilegesEvaluator.java" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectId" id="2G5MREPgt0yTWgA58mXBjO4KxWI" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="autoscrollFromSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+    <option name="showMembers" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;OBOAndServiceAccounts&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/steecraw/security&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.43498272&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.sourceCode.YAML&quot;,
+    &quot;settings.editor.splitter.proportion&quot;: &quot;0.20115416&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;3bd99c9598736b395ed4632e00810d0b&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/bwc-test/src/test/resources/security" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/src/test/resources/ssl/reload" />
+      <recent name="$PROJECT_DIR$/.github/workflows" />
+      <recent name="$PROJECT_DIR$/.github/actions/start-opensearch-dashboards" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/bwcTest" />
+      <recent name="$PROJECT_DIR$/src" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/src/bwcTest/java" />
+      <recent name="$PROJECT_DIR$/src/bwcTest/java/org/opensearch/security" />
+    </key>
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="org.opensearch.security.http" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="org.opensearch.security" />
+    </key>
+  </component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="gradle spotlessApply" />
+    </option>
+  </component>
+  <component name="RunAnythingContextRecentDirectoryCache">
+    <option name="paths">
+      <recentPaths value="$PROJECT_DIR$/src/main/java/com/amazon/dlic/auth" />
+    </option>
+  </component>
+  <component name="RunManager" selected="Gradle.InitializationIntegrationTests.testDefaultConfig">
+    <configuration name="InitializationIntegrationTests" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":test" />
+            <option value="--tests" />
+            <option value="&quot;org.opensearch.security.InitializationIntegrationTests&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <ForceTestExec>true</ForceTestExec>
+      <method v="2" />
+    </configuration>
+    <configuration name="InitializationIntegrationTests.testDefaultConfig" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":test" />
+            <option value="--tests" />
+            <option value="&quot;org.opensearch.security.InitializationIntegrationTests.testDefaultConfig&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <ForceTestExec>true</ForceTestExec>
+      <method v="2" />
+    </configuration>
+    <configuration name="InitializationIntegrationTests.testEnsureInitViaRestDoesWork" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":test" />
+            <option value="--tests" />
+            <option value="&quot;org.opensearch.security.InitializationIntegrationTests.testEnsureInitViaRestDoesWork&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <ForceTestExec>true</ForceTestExec>
+      <method v="2" />
+    </configuration>
+    <configuration name="InitializationIntegrationTests.testInvalidDefaultConfig" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":test" />
+            <option value="--tests" />
+            <option value="&quot;org.opensearch.security.InitializationIntegrationTests.testInvalidDefaultConfig&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <ForceTestExec>true</ForceTestExec>
+      <method v="2" />
+    </configuration>
+    <configuration name="InternalUsersApiActionValidationTest" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":test" />
+            <option value="--tests" />
+            <option value="&quot;org.opensearch.security.dlic.rest.api.InternalUsersApiActionValidationTest&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <ForceTestExec>true</ForceTestExec>
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Gradle.InitializationIntegrationTests.testDefaultConfig" />
+        <item itemvalue="Gradle.InitializationIntegrationTests" />
+        <item itemvalue="Gradle.InternalUsersApiActionValidationTest" />
+        <item itemvalue="Gradle.InitializationIntegrationTests.testInvalidDefaultConfig" />
+        <item itemvalue="Gradle.InitializationIntegrationTests.testEnsureInitViaRestDoesWork" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration>$PROJECT_DIR$/../.subversion</configuration>
+    <option name="sshConnectionType" value="PASSWORD" />
+    <option name="sshExecutablePath" value="ssh" />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="47f69621-53a4-4b6b-9b5f-465d412385f7" name="Changes" comment="" />
+      <created>1665673985388</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1665673985388</updated>
+      <workItem from="1684340095015" duration="10269000" />
+      <workItem from="1684413602956" duration="19136000" />
+      <workItem from="1684503017905" duration="21255000" />
+      <workItem from="1684762994948" duration="15922000" />
+      <workItem from="1684849082116" duration="4370000" />
+      <workItem from="1684859158062" duration="2581000" />
+      <workItem from="1684866408736" duration="616000" />
+      <workItem from="1684873776546" duration="1935000" />
+      <workItem from="1684933433697" duration="1832000" />
+      <workItem from="1684952877881" duration="1306000" />
+      <workItem from="1685112401486" duration="5904000" />
+      <workItem from="1685464375094" duration="2050000" />
+      <workItem from="1685472153321" duration="7049000" />
+      <workItem from="1685538718229" duration="13213000" />
+      <workItem from="1685629228797" duration="1843000" />
+      <workItem from="1685976092258" duration="2329000" />
+      <workItem from="1686058413505" duration="182000" />
+      <workItem from="1686065940470" duration="719000" />
+      <workItem from="1686230670181" duration="889000" />
+      <workItem from="1686231703583" duration="1111000" />
+      <workItem from="1686245029134" duration="867000" />
+      <workItem from="1686248527877" duration="838000" />
+      <workItem from="1686667320172" duration="1578000" />
+      <workItem from="1686838676792" duration="1360000" />
+      <workItem from="1686858661680" duration="470000" />
+      <workItem from="1686859225443" duration="3266000" />
+      <workItem from="1687181642664" duration="1316000" />
+      <workItem from="1687279954871" duration="1887000" />
+      <workItem from="1687353987588" duration="908000" />
+      <workItem from="1687380819813" duration="1031000" />
+      <workItem from="1687528618714" duration="2135000" />
+      <workItem from="1687888277254" duration="945000" />
+      <workItem from="1687903517615" duration="334000" />
+      <workItem from="1688346935196" duration="603000" />
+      <workItem from="1688565938251" duration="3900000" />
+      <workItem from="1688570876856" duration="6549000" />
+      <workItem from="1688648817603" duration="1423000" />
+      <workItem from="1689191358854" duration="915000" />
+      <workItem from="1689347783964" duration="1709000" />
+      <workItem from="1690385395789" duration="3026000" />
+      <workItem from="1690477358755" duration="2531000" />
+      <workItem from="1690549312970" duration="11313000" />
+      <workItem from="1690580393159" duration="1078000" />
+      <workItem from="1690808417911" duration="1118000" />
+      <workItem from="1690816585829" duration="5903000" />
+      <workItem from="1690894991299" duration="598000" />
+      <workItem from="1690910517932" duration="110000" />
+      <workItem from="1691085047713" duration="1093000" />
+      <workItem from="1691158252399" duration="2658000" />
+      <workItem from="1691176054561" duration="653000" />
+      <workItem from="1691501042012" duration="10271000" />
+      <workItem from="1691591225850" duration="16211000" />
+      <workItem from="1691673334925" duration="16931000" />
+      <workItem from="1691759111211" duration="4021000" />
+      <workItem from="1691766387323" duration="11826000" />
+      <workItem from="1692022148610" duration="1180000" />
+      <workItem from="1692023791909" duration="10188000" />
+      <workItem from="1692116246719" duration="8750000" />
+      <workItem from="1692214972089" duration="4306000" />
+      <workItem from="1692279371599" duration="8648000" />
+      <workItem from="1692313336726" duration="764000" />
+      <workItem from="1692364016527" duration="17477000" />
+      <workItem from="1692624684999" duration="5652000" />
+      <workItem from="1692711638185" duration="5377000" />
+      <workItem from="1692721020726" duration="360000" />
+      <workItem from="1692721388490" duration="930000" />
+      <workItem from="1692722398119" duration="2026000" />
+      <workItem from="1692727792996" duration="8552000" />
+      <workItem from="1692796602022" duration="1647000" />
+      <workItem from="1692802389897" duration="1141000" />
+      <workItem from="1692803634417" duration="752000" />
+      <workItem from="1692804452182" duration="185000" />
+      <workItem from="1692804671608" duration="47000" />
+      <workItem from="1692804840649" duration="14000" />
+      <workItem from="1692804959069" duration="8000" />
+      <workItem from="1692805300025" duration="339000" />
+      <workItem from="1692805642614" duration="30000" />
+      <workItem from="1692805676855" duration="6000" />
+      <workItem from="1692805707340" duration="12000" />
+      <workItem from="1692805740522" duration="5456000" />
+      <workItem from="1692818888426" duration="2005000" />
+      <workItem from="1692820977537" duration="3128000" />
+      <workItem from="1692824114691" duration="278000" />
+      <workItem from="1692882834973" duration="21969000" />
+      <workItem from="1692977297180" duration="1920000" />
+      <workItem from="1693320260451" duration="2340000" />
+      <workItem from="1693324241382" duration="1650000" />
+      <workItem from="1693402654012" duration="993000" />
+      <workItem from="1693427944058" duration="176000" />
+      <workItem from="1693487502476" duration="7098000" />
+      <workItem from="1693930833653" duration="1804000" />
+      <workItem from="1693933021313" duration="801000" />
+      <workItem from="1693934177436" duration="973000" />
+      <workItem from="1694005431477" duration="664000" />
+      <workItem from="1694008823717" duration="614000" />
+      <workItem from="1694097433237" duration="18375000" />
+      <workItem from="1694178171659" duration="13869000" />
+      <workItem from="1694439176175" duration="21618000" />
+      <workItem from="1694522965926" duration="19209000" />
+      <workItem from="1694611082030" duration="593000" />
+      <workItem from="1694613282972" duration="3769000" />
+      <workItem from="1694618962959" duration="7956000" />
+      <workItem from="1694699780358" duration="16112000" />
+      <workItem from="1694782953499" duration="929000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-core" />
+    <option featureType="com.intellij.fileTypeFactory" implementationName="ci.yml" />
+    <option featureType="dependencySupport" implementationName="java:org.apache.kafka:kafka_2.13" />
+    <option featureType="dependencySupport" implementationName="java:com.google.protobuf:protobuf-java" />
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.jks" />
+    <option featureType="dependencySupport" implementationName="java:org.apache.kafka:kafka-clients" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="CUSTOM_BOOLEAN_PROPERTIES">
+                <map>
+                  <entry key="Show.Git.Branches" value="false" />
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/filter/SecurityFilter.java</url>
+          <line>499</line>
+          <option name="timeStamp" value="15" />
+        </line-breakpoint>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/integrationTest/java/org/opensearch/test/framework/matcher/AliasExistsMatcher.java</url>
+          <line>41</line>
+          <option name="timeStamp" value="19" />
+        </line-breakpoint>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/integrationTest/java/org/opensearch/test/framework/matcher/GetSettingsResponseContainsIndicesMatcher.java</url>
+          <line>35</line>
+          <option name="timeStamp" value="20" />
+        </line-breakpoint>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/integrationTest/java/org/opensearch/test/framework/matcher/IndexMappingIsEqualToMatcher.java</url>
+          <line>40</line>
+          <option name="timeStamp" value="22" />
+        </line-breakpoint>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/test/java/org/opensearch/security/test/helper/rest/RestHelper.java</url>
+          <line>191</line>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/test/java/org/opensearch/security/test/helper/rest/RestHelper.java</url>
+          <line>214</line>
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/test/java/org/opensearch/security/test/helper/rest/RestHelper.java</url>
+          <line>216</line>
+          <option name="timeStamp" value="34" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java</url>
+          <line>189</line>
+          <option name="timeStamp" value="37" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java</url>
+          <line>218</line>
+          <option name="timeStamp" value="38" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java</url>
+          <line>305</line>
+          <option name="timeStamp" value="39" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsQueryParser.java</url>
+          <line>117</line>
+          <option name="timeStamp" value="40" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/MaskedField.java</url>
+          <line>26</line>
+          <option name="timeStamp" value="43" />
+        </line-breakpoint>
+        <line-breakpoint type="java-field">
+          <url>jar://$MAVEN_REPOSITORY$/org/opensearch/opensearch/3.0.0-SNAPSHOT/opensearch-3.0.0-SNAPSHOT.jar!/org/opensearch/transport/TcpTransport.class</url>
+          <line>104</line>
+          <properties field="outboundConnectionCount" class="org.opensearch.transport.TcpTransport" />
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+        <line-breakpoint type="java-method">
+          <url>file://$PROJECT_DIR$/src/test/java/org/opensearch/security/test/helper/rest/RestHelper.java</url>
+          <line>199</line>
+          <properties class="org.opensearch.security.test.helper.rest.RestHelper">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java</url>
+          <line>117</line>
+          <properties class="org.opensearch.security.configuration.DlsFlsValveImpl">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="36" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsQueryParser.java</url>
+          <line>132</line>
+          <properties>
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="42" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java</url>
+          <line>344</line>
+          <properties class="org.opensearch.security.configuration.DlsFlsValveImpl">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="45" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java</url>
+          <line>387</line>
+          <properties class="org.opensearch.security.configuration.DlsFlsValveImpl">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="46" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/auditlog/impl/AuditLogImpl.java</url>
+          <line>60</line>
+          <properties class="org.opensearch.security.auditlog.impl.AuditLogImpl">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="48" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/auditlog/impl/AuditLogImpl.java</url>
+          <line>89</line>
+          <properties class="org.opensearch.security.auditlog.impl.AuditLogImpl" method="enableRoutes">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="49" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/auditlog/impl/AuditLogImpl.java</url>
+          <line>126</line>
+          <properties class="org.opensearch.security.auditlog.impl.AuditLogImpl">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="50" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/auditlog/impl/AuditLogImpl.java</url>
+          <line>138</line>
+          <properties class="org.opensearch.security.auditlog.impl.AuditLogImpl">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="51" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-method">
+          <url>file://$PROJECT_DIR$/src/main/java/org/opensearch/security/auditlog/impl/AuditLogImpl.java</url>
+          <line>217</line>
+          <properties class="org.opensearch.security.auditlog.impl.AuditLogImpl">
+            <option name="EMULATED" value="true" />
+            <option name="WATCH_EXIT" value="false" />
+          </properties>
+          <option name="timeStamp" value="52" />
+        </line-breakpoint>
+        <breakpoint enabled="true" type="java-exception">
+          <properties class="java.lang.UnsatisfiedLinkError" package="java.lang" />
+          <option name="timeStamp" value="53" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+    <pin-to-top-manager>
+      <pinned-members>
+        <PinnedItemInfo parentTag="org.opensearch.security.securityconf.EvaluatedDlsFlsConfig" memberName="flsByIndex" />
+        <PinnedItemInfo parentTag="org.opensearch.security.filter.SecurityFilter" memberName="cs" />
+      </pinned-members>
+    </pin-to-top-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/opensearch_security$TransportUserInjectorIntegTest.ic" NAME="TransportUserInjectorIntegTest Coverage Results" MODIFIED="1680619850110" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+  </component>
+</project>

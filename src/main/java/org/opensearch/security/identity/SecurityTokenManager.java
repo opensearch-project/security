@@ -8,6 +8,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
+import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.identity.tokens.BearerAuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
@@ -16,6 +17,7 @@ import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.security.user.UserService;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -40,10 +42,12 @@ public class SecurityTokenManager implements TokenManager {
 	private ConfigModel configModel;
 	private ClusterService cs;
 	private ThreadPool threadPool;
+	private UserService userService;
 
-	public SecurityTokenManager(ClusterService cs, ThreadPool threadPool) {
+	public SecurityTokenManager(ClusterService cs, ThreadPool threadPool, UserService userService) {
 		this.cs = cs;
 		this.threadPool = threadPool;
+		this.userService = userService;
 	}
 
 	private JwtVendor jwtVendor = new JwtVendor(DEMO_SETTINGS, Optional.empty());
@@ -81,7 +85,7 @@ public class SecurityTokenManager implements TokenManager {
 	@Override
 	public AuthToken issueServiceAccountToken(String extensionUniqueId) throws OpenSearchSecurityException {
 		try {
-			return new BearerAuthToken(UserService.issueServiceAccountToken(cs.getClusterName().value(), extensionUniqueId, null));
+			return new BasicAuthToken(this.userService.generateAuthToken(extensionUniqueId));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
