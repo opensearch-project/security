@@ -312,8 +312,6 @@ public class DynamicConfigFactory implements ConfigurationChangeListener {
         if (cr.isAuditHotReloadingEnabled()) {
             eventBus.post(audit);
         }
-
-        initializationLatch.countDown();
     }
 
     private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {

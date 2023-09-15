@@ -223,12 +223,6 @@ public class ConfigurationRepository {
                     reloadConfiguration(Arrays.asList(CType.values()));
                 } catch (Exception e) {
                     LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException e1) {
-                        Thread.currentThread().interrupt();
-                        LOGGER.debug("Thread was interrupted so we cancel initialization");
-                    }
                 }
 
                 final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
