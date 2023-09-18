@@ -501,7 +501,7 @@ dependencies {
         exclude group: "com.google.code.gson", module: "gson"
         exclude group: "org.json", module: "json"
     }
-    implementation 'com.github.wnameless.json:json-flattener:0.16.5'
+    implementation 'com.github.wnameless.json:json-flattener:0.16.6'
     // JSON patch
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.14'
     implementation 'org.apache.commons:commons-collections4:4.4'
