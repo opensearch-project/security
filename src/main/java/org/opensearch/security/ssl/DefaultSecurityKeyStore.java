@@ -25,6 +25,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.util.internal.PlatformDependent;
+import javax.net.ssl.TrustManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -34,6 +35,7 @@ import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1String;
 import org.bouncycastle.asn1.ASN1TaggedObject;
+import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -905,7 +907,8 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         List<String> jdkSupportedProtocols = null;
         try {
             final SSLContext serverContext = SSLContext.getInstance("TLS");
-            serverContext.init(null, null, null);
+            TrustManager[] trustManagers = new TrustManager[] { new AllowAnyTrustManager()};
+            serverContext.init(null, trustManagers, null);
             engine = serverContext.createSSLEngine();
             jdkSupportedCiphers = Arrays.asList(engine.getEnabledCipherSuites());
             jdkSupportedProtocols = Arrays.asList(engine.getEnabledProtocols());
