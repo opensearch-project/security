@@ -595,7 +595,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.6'
-    testImplementation 'org.springframework:spring-beans:5.3.20'
+    testImplementation 'org.springframework:spring-beans:5.3.30'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
