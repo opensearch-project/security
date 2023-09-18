@@ -26,7 +26,7 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
         kafka_version  = '3.5.1'
-        apache_cxf_version = '4.0.2'
+        apache_cxf_version = '4.0.3'
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.11.5'
