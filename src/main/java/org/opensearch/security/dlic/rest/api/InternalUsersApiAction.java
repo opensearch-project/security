@@ -30,7 +30,7 @@ import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.SecurityJsonNode;
-import org.opensearch.security.user.AccountType;
+import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
@@ -138,18 +138,18 @@ public class InternalUsersApiAction extends AbstractApiAction {
 
     }
 
-    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration users, String userType) {
-        userService.includeAccountsIfType(users, AccountType.fromString(userType));
+    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration users, UserFilterType userType) {
+        userService.includeAccountsIfType(users, userType);
         return ValidationResult.success(SecurityConfiguration.of(users.getCType().toString(), users));
 
     }
 
-    protected final String filterParam(final RestRequest request) {
-        final String name = request.param("filterBy");
-        if (Strings.isNullOrEmpty(name)) {
-            return "any";
+    protected final UserFilterType filterParam(final RestRequest request) {
+        final String filter = request.param("filterBy");
+        if (Strings.isNullOrEmpty(filter)) {
+            return UserFilterType.ANY;
         }
-        return name;
+        return UserFilterType.fromString(filter);
     }
 
     ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {

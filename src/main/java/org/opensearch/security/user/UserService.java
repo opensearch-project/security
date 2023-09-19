@@ -328,13 +328,13 @@ public class UserService {
      * @param requestedAccountType The type of account to be kept. Should be "service" or "internal"
      *
      */
-    public void includeAccountsIfType(SecurityDynamicConfiguration<?> configuration, AccountType requestedAccountType) {
-        if (requestedAccountType != AccountType.INTERNAL && requestedAccountType != AccountType.SERVICE) {
+    public void includeAccountsIfType(SecurityDynamicConfiguration<?> configuration, UserFilterType requestedAccountType) {
+        if (requestedAccountType != UserFilterType.INTERNAL && requestedAccountType != UserFilterType.SERVICE) {
             return;
         }
         List<String> toBeRemoved = new ArrayList<>();
 
-        if (requestedAccountType == AccountType.SERVICE) {
+        if (requestedAccountType == UserFilterType.SERVICE) {
             for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
                 final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
                 final Map accountAttributes = internalUserEntry.getAttributes();
@@ -345,7 +345,7 @@ public class UserService {
                     toBeRemoved.add(accountName);
                 }
             }
-        } else if (requestedAccountType == AccountType.INTERNAL) {
+        } else if (requestedAccountType == UserFilterType.INTERNAL) {
 
             for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
                 final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
