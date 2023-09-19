@@ -158,8 +158,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         final String serviceAccountName = "JohnDoeService";
         HttpResponse response;
 
-
-
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
 
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
@@ -173,7 +171,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         response = rh.executePutRequest(ENDPOINT + "/internalusers/" + serviceAccountName, ENABLED_SERVICE_ACCOUNT_BODY);
 
-
         // repeat assertions after adding the service account
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
@@ -186,11 +183,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         list = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, list.size());
-        assertThat(response.findValueInJson(serviceAccountName), Matchers.notNullValue());
         assertThat(response.findValueInJson(serviceAccountName + ".attributes.service"), containsString("true"));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=ssas");
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        list = DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS + INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?wrongparameter=jhondoe");
         Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());

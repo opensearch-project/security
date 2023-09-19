@@ -11,11 +11,9 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
@@ -62,10 +60,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
-    public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
-    public static final String PLUGINS_PREFIX = "_plugins/_security";
-
-
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
@@ -84,45 +78,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
             new Route(Method.PATCH, "/internalusers/{name}")
         )
     );
-
-
-//    protected final ValidationResult<SecurityConfiguration> processGetRequest(final RestRequest request) throws IOException {
-//        return loadConfiguration(getConfigType(), true, true).map(
-//                configuration -> ValidationResult.success(SecurityConfiguration.of(nameParam(request), configuration))
-//        ).map(endpointValidator::onConfigLoad).map(securityConfiguration -> securityConfiguration.maybeEntityName().map(entityName -> {
-//            securityConfiguration.configuration().removeOthers(entityName);
-//            return ValidationResult.success(securityConfiguration);
-//        }).orElse(ValidationResult.success(securityConfiguration)));
-//    }
-
-
-//    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-//        final String resourcename = request.param("name");
-//
-//        SecurityDynamicConfiguration<?> configuration = load(getConfigType(), true);
-//
-//        String includeIfType = request.param("filterBy", "any");
-//
-//        if (includeIfType != "any") {
-//            try {
-//                userService.includeAccountsIfType(configuration, AccountType.valueOf(includeIfType.toUpperCase()));
-//            } catch (UserServiceException ex) {
-//                badRequestResponse(channel, ex.getMessage());
-//            }
-//        }
-//
-//        // no specific resource requested, return complete config
-//        if (Strings.isNullOrEmpty(resourcename)) {
-//            successResponse(channel, configuration);
-//            return;
-//        }
-//        if (!configuration.exists(resourcename)) {
-//            notFound(channel, "Resource '" + resourcename + "' not found.");
-//            return;
-//        }
-//        configuration.removeOthers(resourcename);
-//        successResponse(channel, configuration);
-//    }
 
     UserService userService;
 
@@ -149,14 +104,13 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     private void internalUsersApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder
-                .onGetRequest(
-                        request -> ValidationResult.success(request).map(this::processGetRequest).map(securityConfiguration -> {
-                            final var configuration = securityConfiguration.configuration();
-                            filterUsers(configuration);
-                            return ValidationResult.success(securityConfiguration);
-                        })
-                )
+        requestHandlersBuilder.onGetRequest(
+            request -> ValidationResult.success(request).map(this::processGetRequest).map(securityConfiguration -> {
+                final var configuration = securityConfiguration.configuration();
+                filterUsers(configuration, filterParam(request));
+                return ValidationResult.success(securityConfiguration);
+            })
+        )
             // Overrides the GET request functionality to allow for the special case of requesting an auth token.
             .override(
                 Method.POST,
@@ -180,17 +134,12 @@ public class InternalUsersApiAction extends AbstractApiAction {
                     .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
                     .map(this::validateAndUpdatePassword)
                     .map(this::addEntityToConfig)
-            )
-        ;
-
-
+            );
 
     }
-    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration users){
 
-//        userService.includeAccountsIfType(users, AccountType.valueOf(users.getCType().toString()));
-        String myvar = "internal";
-        userService.includeAccountsIfType(users, AccountType.fromString(myvar));
+    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration users, String userType) {
+        userService.includeAccountsIfType(users, AccountType.fromString(userType));
         return ValidationResult.success(SecurityConfiguration.of(users.getCType().toString(), users));
 
     }
@@ -198,12 +147,10 @@ public class InternalUsersApiAction extends AbstractApiAction {
     protected final String filterParam(final RestRequest request) {
         final String name = request.param("filterBy");
         if (Strings.isNullOrEmpty(name)) {
-            return null;
+            return "any";
         }
         return name;
     }
-
-
 
     ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
         return endpointValidator.withRequiredEntityName(nameParam(request)).map(username -> {
@@ -214,7 +161,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
             return ValidationResult.success(username);
         });
     }
-
 
     void generateAuthToken(final RestChannel channel, final SecurityConfiguration securityConfiguration) throws IOException {
         try {
