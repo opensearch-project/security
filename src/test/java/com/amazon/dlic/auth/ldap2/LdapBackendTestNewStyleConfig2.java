@@ -47,7 +47,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 
 @RunWith(Parameterized.class)
 public class LdapBackendTestNewStyleConfig2 {
@@ -1051,7 +1051,7 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertNotNull(user);
         Assert.assertEquals("jacksonm", user.getName());
         Assert.assertEquals(2, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("ceo-ceo"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo-ceo"));
     }
 
     @Test

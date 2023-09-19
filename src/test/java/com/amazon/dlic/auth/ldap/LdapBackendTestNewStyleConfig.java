@@ -38,7 +38,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 
 public class LdapBackendTestNewStyleConfig {
 
@@ -484,7 +484,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertEquals("Michael Jackson", user.getOriginalUsername());
         Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getUserEntry().getDn());
         Assert.assertEquals(2, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("ceo"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
         Assert.assertEquals(user.getName(), user.getUserEntry().getDn());
     }
 
@@ -507,7 +507,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("jacksonm", user.getName());
         Assert.assertEquals(2, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("ceo"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
     }
 
     @Test
@@ -530,7 +530,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(4, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("nested1"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested1"));
     }
 
     @Test
@@ -554,8 +554,8 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(2, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("ceo"));
-        MatcherAssert.assertThat(user.getRoles(), contains("nested2"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested2"));
     }
 
     @Test
@@ -578,7 +578,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(4, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("cn=nested1,ou=groups,o=TEST"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("cn=nested1,ou=groups,o=TEST"));
     }
 
     @Test
@@ -602,7 +602,7 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("jacksonm", user.getName());
         Assert.assertEquals(2, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("cn=ceo,ou=groups,o=TEST"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("cn=ceo,ou=groups,o=TEST"));
     }
 
     @Test
@@ -691,8 +691,8 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(8, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("nested3"));
-        MatcherAssert.assertThat(user.getRoles(), contains("rolemo4"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested3"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("rolemo4"));
     }
 
     @Test
@@ -718,8 +718,8 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(6, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("role2"));
-        MatcherAssert.assertThat(user.getRoles(), contains("nested1"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("role2"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested1"));
 
     }
 
@@ -798,8 +798,8 @@ public class LdapBackendTestNewStyleConfig {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(3, user.getRoles().size());
-        MatcherAssert.assertThat(user.getRoles(), contains("nested3"));
-        MatcherAssert.assertThat(user.getRoles(), contains("rolemo4"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested3"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("rolemo4"));
     }
 
     @Test
