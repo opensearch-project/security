@@ -65,7 +65,7 @@ public class XFFResolver {
 
             final InetSocketAddress isa = new InetSocketAddress(
                 detector.detect(request, threadContext),
-                ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getPort()
+                request.getHttpChannel().getRemoteAddress().getPort()
             );
 
             if (isa.isUnresolved()) {
@@ -86,7 +86,7 @@ public class XFFResolver {
                 log.trace("no xff done (enabled or no netty request) {},{},{},{}", enabled, request.getClass());
 
             }
-            return new TransportAddress((InetSocketAddress) request.getHttpChannel().getRemoteAddress());
+            return new TransportAddress(request.getHttpChannel().getRemoteAddress());
         } else {
             throw new OpenSearchSecurityException(
                 "Cannot handle this request. Remote address is "

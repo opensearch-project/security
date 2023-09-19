@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Supplier;
 
+import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -96,9 +97,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                UserInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());
@@ -113,9 +112,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                UserInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());
@@ -134,9 +131,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                UserInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());
@@ -169,9 +164,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                UserInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());
@@ -185,9 +178,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                UserInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());

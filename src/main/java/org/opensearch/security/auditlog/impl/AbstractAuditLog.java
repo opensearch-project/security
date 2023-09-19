@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -507,10 +507,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                                 .collect(
                                     Collectors.toMap(
                                         entry -> "id",
-                                        entry -> new String(
-                                            BaseEncoding.base64().decode(((Entry<String, String>) entry).getValue()),
-                                            StandardCharsets.UTF_8
-                                        )
+                                        entry -> new String(BaseEncoding.base64().decode(entry.getValue()), StandardCharsets.UTF_8)
                                     )
                                 );
                             msg.addSecurityConfigMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")), id);
@@ -711,19 +708,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             sm.checkPermission(new SpecialPermission());
         }
 
-        final Map<String, String> envAsMap = AccessController.doPrivileged(new PrivilegedAction<Map<String, String>>() {
-            @Override
-            public Map<String, String> run() {
-                return System.getenv();
-            }
-        });
+        final Map<String, String> envAsMap = AccessController.doPrivileged((PrivilegedAction<Map<String, String>>) System::getenv);
 
-        final Map propsAsMap = AccessController.doPrivileged(new PrivilegedAction<Map>() {
-            @Override
-            public Map run() {
-                return System.getProperties();
-            }
-        });
+        final Properties propsAsMap = AccessController.doPrivileged((PrivilegedAction<Properties>) System::getProperties);
 
         final String sha256 = DigestUtils.sha256Hex(configAsMap.toString() + envAsMap.toString() + propsAsMap.toString());
         AuditMessage msg = new AuditMessage(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG, clusterService, null, null);

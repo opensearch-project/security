@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
@@ -62,7 +63,6 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
-import org.opensearch.security.ssl.util.Utils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -188,7 +188,7 @@ public class BackendRegistry {
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress
-            && isBlocked(((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress())) {
+            && isBlocked(request.getHttpChannel().getRemoteAddress().getAddress())) {
             if (isDebugEnabled) {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getHttpChannel().getRemoteAddress());
             }
@@ -324,7 +324,7 @@ public class BackendRegistry {
                 )) {
                     authFailureListener.onAuthFailure(
                         (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress)
-                            ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
+                            ? request.getHttpChannel().getRemoteAddress().getAddress()
                             : null,
                         ac,
                         request
@@ -345,7 +345,7 @@ public class BackendRegistry {
                 return false;
             }
 
-            final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
+            final String tenant = resolveTenantFrom(request);
 
             if (isDebugEnabled) {
                 log.debug("Rest user '{}' is authenticated", authenticatedUser);
@@ -375,7 +375,7 @@ public class BackendRegistry {
             }
 
             if (authCredenetials == null && anonymousAuthEnabled) {
-                final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
+                final String tenant = resolveTenantFrom(request);
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
 
@@ -424,10 +424,14 @@ public class BackendRegistry {
         return authenticated;
     }
 
+    private String resolveTenantFrom(final RestRequest request) {
+        return Optional.ofNullable(request.header("securitytenant")).orElse(request.header("security_tenant"));
+    }
+
     private void notifyIpAuthFailureListeners(RestRequest request, AuthCredentials authCredentials) {
         notifyIpAuthFailureListeners(
             (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress)
-                ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
+                ? request.getHttpChannel().getRemoteAddress().getAddress()
                 : null,
             authCredentials,
             request

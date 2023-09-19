@@ -83,13 +83,13 @@ public class Base64HelperTest {
 
     @Test
     public void testHashMap() {
-        HashMap map = new HashMap();
+        HashMap<?, ?> map = new HashMap<>();
         Assert.assertEquals(map, ds(map));
     }
 
     @Test
     public void testArrayList() {
-        ArrayList list = new ArrayList();
+        ArrayList<?> list = new ArrayList<>();
         Assert.assertEquals(list, ds(list));
     }
 

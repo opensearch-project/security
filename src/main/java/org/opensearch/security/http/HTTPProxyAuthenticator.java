@@ -27,21 +27,22 @@
 package org.opensearch.security.http;
 
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Predicates;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
+
+import static java.util.function.Predicate.not;
 
 public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
@@ -62,30 +63,29 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             throw new OpenSearchSecurityException("xff not done");
         }
 
-        final String userHeader = settings.get("user_header");
-        final String rolesHeader = settings.get("roles_header");
+        final Optional<String> requestUserHeader = Optional.ofNullable(settings.get("user_header"))
+            .flatMap(userHeader -> Optional.ofNullable(request.header(userHeader)));
 
+        final Optional<String> requestRolesHeader = Optional.ofNullable(settings.get("roles_header"))
+            .flatMap(rolesHeader -> Optional.ofNullable(request.header(rolesHeader)));
         if (log.isDebugEnabled()) {
             log.debug("Headers {}", request.getHeaders());
-            log.debug("UserHeader {}, value {}", userHeader, userHeader == null ? null : request.header(userHeader));
-            log.debug("RolesHeader {}, value {}", rolesHeader, rolesHeader == null ? null : request.header(rolesHeader));
+            log.debug("UserHeader {}, value {}", settings.get("user_header"), requestUserHeader.orElse(null));
+            log.debug("RolesHeader {}, value {}", settings.get("roles_header"), requestRolesHeader.orElse(null));
         }
 
-        if (!Strings.isNullOrEmpty(userHeader) && !Strings.isNullOrEmpty((String) request.header(userHeader))) {
-
-            String[] backendRoles = null;
-
-            if (!Strings.isNullOrEmpty(rolesHeader) && !Strings.isNullOrEmpty((String) request.header(rolesHeader))) {
-                backendRoles = rolesSeparator.splitAsStream((String) request.header(rolesHeader))
+        return requestUserHeader.map(userHeader -> {
+            final String[] backendRoles = requestRolesHeader.map(
+                rolesHeader -> rolesSeparator.splitAsStream(rolesHeader)
                     .map(String::trim)
-                    .filter(Predicates.not(String::isEmpty))
-                    .toArray(String[]::new);
-            }
-            return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
-        } else {
-            log.trace("No '{}' header, send 401", userHeader);
+                    .filter(not(String::isEmpty))
+                    .toArray(String[]::new)
+            ).orElse(null);
+            return new AuthCredentials(userHeader, backendRoles).markComplete();
+        }).orElseGet(() -> {
+            log.trace("No '{}' header, send 401", settings.get("user_header"));
             return null;
-        }
+        });
     }
 
     @Override

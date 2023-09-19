@@ -642,6 +642,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public Weight doCache(Weight weight, QueryCachingPolicy policy) {
+                    @SuppressWarnings("unchecked")
                     final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
                         threadPool.getThreadContext(),
                         ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER
@@ -650,7 +651,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     if (SecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                         return weight;
                     } else {
-
+                        @SuppressWarnings("unchecked")
                         final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
                             threadPool.getThreadContext(),
                             ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER
@@ -735,6 +736,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         return;
                     }
 
+                    @SuppressWarnings("unchecked")
                     final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
                         threadPool.getThreadContext(),
                         ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER
@@ -1866,6 +1868,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             if (threadPool == null) {
                 return field -> true;
             }
+            @SuppressWarnings("unchecked")
             final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
                 threadPool.getThreadContext(),
                 ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER

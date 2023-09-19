@@ -144,6 +144,7 @@ public class SecurityInterceptorTests {
         String action = "testAction";
         TransportRequest request = mock(TransportRequest.class);
         TransportRequestOptions options = mock(TransportRequestOptions.class);
+        @SuppressWarnings("unchecked")
         TransportResponseHandler<TransportResponse> handler = mock(TransportResponseHandler.class);
 
         InetAddress localAddress = null;

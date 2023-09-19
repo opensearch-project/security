@@ -893,17 +893,17 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         }
 
         if (OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L) {
-            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"));
+            enabledHttpProtocolsOpenSSLProvider = Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1");
             enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
-            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1"));
+            enabledTransportProtocolsOpenSSLProvider = Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1");
             enabledTransportProtocolsOpenSSLProvider.retainAll(secureTransportSSLProtocols);
 
             log.info("OpenSSL supports TLSv1.3");
 
         } else if (OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
-            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2", "TLSv1.1", "TLSv1"));
+            enabledHttpProtocolsOpenSSLProvider = Arrays.asList("TLSv1.2", "TLSv1.1", "TLSv1");
             enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
-            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2", "TLSv1.1"));
+            enabledTransportProtocolsOpenSSLProvider = Arrays.asList("TLSv1.2", "TLSv1.1");
             enabledTransportProtocolsOpenSSLProvider.retainAll(secureTransportSSLProtocols);
         } else {
             enabledHttpProtocolsOpenSSLProvider = Collections.emptyList();

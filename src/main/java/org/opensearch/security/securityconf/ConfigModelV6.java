@@ -155,19 +155,20 @@ public class ConfigModelV6 extends ConfigModel {
 
                 final Object actionGroupAsObject = actionGroups.getCEntries().get(entry);
 
-                if (actionGroupAsObject != null && actionGroupAsObject instanceof List) {
-
-                    for (final String perm : ((List<String>) actionGroupAsObject)) {
-                        if (actionGroups.getCEntries().keySet().contains(perm)) {
+                if (actionGroupAsObject instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    final List<String> actionGroupPermissions = (List<String>) actionGroupAsObject;
+                    for (final String perm : actionGroupPermissions) {
+                        if (actionGroups.getCEntries().containsKey(perm)) {
                             ret.addAll(resolve(actionGroups, perm));
                         } else {
                             ret.add(perm);
                         }
                     }
 
-                } else if (actionGroupAsObject != null && actionGroupAsObject instanceof ActionGroupsV6) {
+                } else if (actionGroupAsObject instanceof ActionGroupsV6) {
                     for (final String perm : ((ActionGroupsV6) actionGroupAsObject).getPermissions()) {
-                        if (actionGroups.getCEntries().keySet().contains(perm)) {
+                        if (actionGroups.getCEntries().containsKey(perm)) {
                             ret.addAll(resolve(actionGroups, perm));
                         } else {
                             ret.add(perm);

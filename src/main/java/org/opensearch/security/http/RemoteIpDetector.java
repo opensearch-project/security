@@ -43,7 +43,6 @@
 
 package org.opensearch.security.http;
 
-import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -116,7 +115,7 @@ final class RemoteIpDetector {
     }
 
     String detect(RestRequest request, ThreadContext threadContext) {
-        final String originalRemoteAddr = ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress().getHostAddress();
+        final String originalRemoteAddr = request.getHttpChannel().getRemoteAddress().getAddress().getHostAddress();
 
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
@@ -173,8 +172,7 @@ final class RemoteIpDetector {
 
             if (remoteIp != null) {
                 if (isTraceEnabled) {
-                    final String originalRemoteHost = ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
-                        .getHostName();
+                    final String originalRemoteHost = request.getHttpChannel().getRemoteAddress().getAddress().getHostName();
                     log.trace(
                         "Incoming request {} with originalRemoteAddr '{}', originalRemoteHost='{}', will be seen as newRemoteAddr='{}'",
                         request.uri(),

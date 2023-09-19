@@ -30,6 +30,7 @@ import java.io.ObjectStreamException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.Strings;
@@ -42,7 +43,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -137,7 +137,7 @@ public class UserInjector {
 
         // custom attributes
         if (parts.length > 3 && !Strings.isNullOrEmpty(parts[3])) {
-            Map<String, String> attributes = SecurityUtils.mapFromArray((parts[3].split(",")));
+            Map<String, String> attributes = mapFromArray((parts[3].split(",")));
             if (attributes == null) {
                 log.error("Could not parse custom attributes {}, user injection failed.", parts[3]);
                 return null;
@@ -191,4 +191,21 @@ public class UserInjector {
 
         return true;
     }
+
+    protected Map<String, String> mapFromArray(String... keyValues) {
+        if (keyValues == null) {
+            return Map.of();
+        }
+        if (keyValues.length % 2 != 0) {
+            log.error("Expected even number of key/value pairs, got {}.", Arrays.toString(keyValues));
+            return null;
+        }
+        Map<String, String> map = new HashMap<>();
+
+        for (int i = 0; i < keyValues.length; i += 2) {
+            map.put(keyValues[i], keyValues[i + 1]);
+        }
+        return map;
+    }
+
 }

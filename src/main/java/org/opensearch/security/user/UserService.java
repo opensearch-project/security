@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -59,7 +60,7 @@ public class UserService {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     ClusterService clusterService;
-    static ConfigurationRepository configurationRepository;
+    private final ConfigurationRepository configurationRepository;
     String securityIndex;
     Client client;
 
@@ -102,7 +103,7 @@ public class UserService {
      * @param config CType whose data is to be loaded in-memory
      * @return configuration loaded with given CType data
      */
-    protected static final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+    protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
             Collections.singleton(config),
             logComplianceEvent
@@ -251,7 +252,7 @@ public class UserService {
 
         String authToken = null;
         try {
-            DefaultObjectMapper mapper = new DefaultObjectMapper();
+            final ObjectMapper mapper = DefaultObjectMapper.objectMapper;
             JsonNode accountDetails = mapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);

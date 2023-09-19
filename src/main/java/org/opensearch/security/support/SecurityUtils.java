@@ -27,10 +27,7 @@
 package org.opensearch.security.support;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -88,23 +85,6 @@ public final class SecurityUtils {
         }*/
 
         return map.keySet().stream().filter(key -> WildcardMatcher.from(key).test(index)).findAny().orElse(null);
-    }
-
-    @SafeVarargs
-    public static <T> Map<T, T> mapFromArray(T... keyValues) {
-        if (keyValues == null) {
-            return Collections.emptyMap();
-        }
-        if (keyValues.length % 2 != 0) {
-            log.error("Expected even number of key/value pairs, got {}.", Arrays.toString(keyValues));
-            return null;
-        }
-        Map<T, T> map = new HashMap<>();
-
-        for (int i = 0; i < keyValues.length; i += 2) {
-            map.put(keyValues[i], keyValues[i + 1]);
-        }
-        return map;
     }
 
     public static String replaceEnvVars(String in, Settings settings) {

@@ -38,7 +38,6 @@ import org.opensearch.security.support.WildcardMatcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class UtilTests {
@@ -104,35 +103,6 @@ public class UtilTests {
         assertTrue(WildcardMatcher.from("/\\S*/").test("abc"));
         assertTrue(WildcardMatcher.from("abc").test("abc"));
         assertTrue(!WildcardMatcher.from("ABC").test("abc"));
-    }
-
-    @Test
-    public void testMapFromArray() {
-        Map<Object, Object> map = SecurityUtils.mapFromArray((Object) null);
-        assertTrue(map == null);
-
-        map = SecurityUtils.mapFromArray("key");
-        assertTrue(map == null);
-
-        map = SecurityUtils.mapFromArray("key", "value", "otherkey");
-        assertTrue(map == null);
-
-        map = SecurityUtils.mapFromArray("key", "value");
-        assertNotNull(map);
-        assertEquals(1, map.size());
-        assertEquals("value", map.get("key"));
-
-        map = SecurityUtils.mapFromArray("key", "value", "key", "value");
-        assertNotNull(map);
-        assertEquals(1, map.size());
-        assertEquals("value", map.get("key"));
-
-        map = SecurityUtils.mapFromArray("key1", "value1", "key2", "value2");
-        assertNotNull(map);
-        assertEquals(2, map.size());
-        assertEquals("value1", map.get("key1"));
-        assertEquals("value2", map.get("key2"));
-
     }
 
     @Test

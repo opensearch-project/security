@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -231,9 +232,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                MockReplicationPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class)
             ).start()
         ) {
             waitOrThrow(node.client(), "hr-dls");
@@ -251,9 +250,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                MockReplicationPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class)
             ).start()
         ) {
             waitOrThrow(node.client(), "hr-fls");
@@ -271,9 +268,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                MockReplicationPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class)
             ).start()
         ) {
             waitOrThrow(node.client(), "hr-masking");
@@ -291,9 +286,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                MockReplicationPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class)
             ).start()
         ) {
             waitOrThrow(node.client(), "hr-normal");

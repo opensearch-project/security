@@ -71,7 +71,7 @@ public final class InternalOpenSearchSink extends AuditLogSink {
     public boolean doStore(final AuditMessage msg) {
 
         if (Boolean.parseBoolean(
-            (String) HeaderHelper.getSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
+            HeaderHelper.getSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
         )) {
             if (log.isTraceEnabled()) {
                 log.trace("audit log of audit log will not be executed");

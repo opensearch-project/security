@@ -23,13 +23,13 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.ssl.util.Utils;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
@@ -247,10 +247,8 @@ public class RequestContentValidator implements ToXContent {
                 this.validationError = ValidationError.INVALID_PASSWORD_TOO_SHORT;
                 return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
-            final String username = Utils.coalesce(
-                request.param("name"),
-                validationContext.hasParams() ? (String) validationContext.params()[0] : null
-            );
+            final String username = Optional.ofNullable(request.param("name"))
+                .orElseGet(() -> validationContext.hasParams() ? (String) validationContext.params()[0] : null);
             if (Strings.isNullOrEmpty(username)) {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Unable to validate username because no user is given");

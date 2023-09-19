@@ -184,7 +184,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
 
     protected TransportChannel getInnerChannel(TransportChannel transportChannel) throws Exception {
         try {
-            Class wrappedChannelCls = transportChannel.getClass();
+            Class<?> wrappedChannelCls = transportChannel.getClass();
             Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel");
             TransportChannel innerChannel = (TransportChannel) (getInnerChannel.invoke(transportChannel));
             log.debug("Using inner transport channel " + innerChannel.getChannelType());

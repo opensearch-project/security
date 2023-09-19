@@ -663,6 +663,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return AccessController.doPrivileged((PrivilegedAction<Field>) () -> getFieldPrivileged(cls, name));
         }
 
+        @SuppressWarnings("unchecked")
         private static <T, C> T getFieldValue(Field field, C c) {
             try {
                 return (T) field.get(c);

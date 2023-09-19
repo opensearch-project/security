@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -45,6 +46,8 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+
+import static org.hamcrest.Matchers.contains;
 
 @RunWith(Parameterized.class)
 public class LdapBackendTestNewStyleConfig2 {
@@ -1048,7 +1051,7 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertNotNull(user);
         Assert.assertEquals("jacksonm", user.getName());
         Assert.assertEquals(2, user.getRoles().size());
-        Assert.assertEquals("ceo-ceo", new ArrayList(new TreeSet(user.getRoles())).get(0));
+        MatcherAssert.assertThat(user.getRoles(), contains("ceo-ceo"));
     }
 
     @Test

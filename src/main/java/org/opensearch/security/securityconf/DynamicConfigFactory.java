@@ -161,6 +161,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void onChange(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig) {
 
         SecurityDynamicConfiguration<?> actionGroups = cr.getConfiguration(CType.ACTIONGROUPS);
@@ -455,6 +456,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         SecurityDynamicConfiguration<NodesDn> configuration;
 
+        @SuppressWarnings("unchecked")
         public NodesDnModelImpl(SecurityDynamicConfiguration<?> configuration) {
             super();
             this.configuration = null == configuration.getCType()

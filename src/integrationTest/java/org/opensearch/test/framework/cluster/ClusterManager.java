@@ -165,8 +165,8 @@ public enum ClusterManager {
             return plugins.toArray(new Class[0]);
         }
 
-        public Class<? extends Plugin>[] pluginsWithAddition(List<Class<? extends Plugin>> additionalPlugins) {
-            return mergePlugins(plugins, additionalPlugins).toArray(Class[]::new);
+        public Collection<Class<? extends Plugin>> pluginsWithAddition(List<Class<? extends Plugin>> additionalPlugins) {
+            return mergePlugins(plugins, additionalPlugins);
         }
     }
 }

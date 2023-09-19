@@ -95,6 +95,64 @@ spotbugsTest {
 java.sourceCompatibility = JavaVersion.VERSION_11
 java.targetCompatibility = JavaVersion.VERSION_11
 
+
+compileJava {
+    options.compilerArgs = [
+            '-Xlint:auxiliaryclass',
+            '-Xlint:cast',
+            '-Xlint:classfile',
+            '-Xlint:dep-ann',
+            '-Xlint:divzero',
+            '-Xlint:empty',
+            '-Xlint:exports',
+            '-Xlint:fallthrough',
+            '-Xlint:finally',
+            '-Xlint:module',
+            '-Xlint:opens',
+            '-Xlint:overloads',
+            '-Xlint:overrides',
+            '-Xlint:-processing',
+            '-Xlint:rawtypes',
+            '-Xlint:removal',
+            '-Xlint:requires-automatic',
+            '-Xlint:requires-transitive-automatic',
+            '-Xlint:static',
+            '-Xlint:unchecked',
+            '-Xlint:varargs',
+            '-Xlint:preview',
+            '-Werror']
+    options.encoding = 'UTF-8'
+}
+
+compileTestJava {
+    options.compilerArgs = [
+            '-Xlint:auxiliaryclass',
+            '-Xlint:cast',
+            '-Xlint:classfile',
+            '-Xlint:dep-ann',
+            '-Xlint:divzero',
+            '-Xlint:empty',
+            '-Xlint:exports',
+            '-Xlint:fallthrough',
+            '-Xlint:finally',
+            '-Xlint:module',
+            '-Xlint:opens',
+            '-Xlint:overloads',
+            '-Xlint:overrides',
+            '-Xlint:-processing',
+            '-Xlint:rawtypes',
+            '-Xlint:removal',
+            '-Xlint:requires-automatic',
+            '-Xlint:requires-transitive-automatic',
+            '-Xlint:static',
+            '-Xlint:unchecked',
+            '-Xlint:varargs',
+            '-Xlint:preview',
+            '-Werror']
+    options.encoding = 'UTF-8'
+}
+
+
 licenseHeaders.enabled = true
 
 // The following check that have never be enabled in security
@@ -323,8 +381,16 @@ jacocoTestReport {
 
 checkstyle {
     toolVersion "10.3.3"
+    showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
+
+tasks.withType(Checkstyle) {
+    reports {
+        ignoreFailures = false
+    }
+}
+
 
 opensearchplugin {
     name 'opensearch-security'
@@ -381,20 +447,6 @@ repositories {
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
-}
-
-tasks.withType(Checkstyle) {
-    showViolations true
-    reports {
-        ignoreFailures = false
-    }
-}
-
-tasks.withType(JavaCompile) {
-    configure(options) {
-        options.encoding = 'UTF-8'
-        options.compilerArgs << '-Xlint:removal' << '-Werror'
-    }
 }
 
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
@@ -522,7 +574,9 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.16.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.21.1'
+
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.21.1'
+
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
     runtimeOnly 'org.ow2.asm:asm:9.5'
@@ -554,7 +608,7 @@ dependencies {
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
-    runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.19'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'

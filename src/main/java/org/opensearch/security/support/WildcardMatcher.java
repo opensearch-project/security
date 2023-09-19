@@ -56,7 +56,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public boolean matchAny(String[] candidates) {
+        public boolean matchAny(String... candidates) {
             return true;
         }
 
@@ -104,7 +104,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public boolean matchAny(String[] candidates) {
+        public boolean matchAny(String... candidates) {
             return false;
         }
 

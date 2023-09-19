@@ -12,8 +12,12 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
@@ -121,7 +125,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(
+        HttpResponse[] responses = executeMultipleAsyncPutRequest(
             10,
             ENDPOINT + "/internalusers/test1",
             "{\"password\":\"test1test1test1test1test1test1\"}"
@@ -142,6 +146,27 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             }
         }
         deleteUser("test1");
+    }
+
+    private HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
+        final ExecutorService executorService = Executors.newFixedThreadPool(numOfRequests);
+        try {
+            List<Future<HttpResponse>> futures = new ArrayList<>(numOfRequests);
+            for (int i = 0; i < numOfRequests; i++) {
+                futures.add(executorService.submit(() -> rh.executePutRequest(request, body)));
+            }
+            return futures.stream().map(this::from).toArray(HttpResponse[]::new);
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    private HttpResponse from(Future<HttpResponse> future) {
+        try {
+            return future.get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

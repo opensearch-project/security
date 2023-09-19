@@ -28,6 +28,7 @@ package org.opensearch.security;
 
 import java.io.IOException;
 
+import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -108,7 +109,10 @@ public class SlowIntegrationTests extends SingleClusterTest {
 
         log.debug("Start node client");
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                .start()
+        ) {
             Assert.assertFalse(
                 node.client()
                     .admin()
@@ -157,7 +161,10 @@ public class SlowIntegrationTests extends SingleClusterTest {
 
         log.debug("Start node client");
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                .start()
+        ) {
             Thread.sleep(10000);
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
         } catch (Exception e) {
@@ -199,7 +206,10 @@ public class SlowIntegrationTests extends SingleClusterTest {
 
         log.debug("Start node client");
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                .start()
+        ) {
             Thread.sleep(10000);
             Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
         } catch (Exception e) {
