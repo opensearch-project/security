@@ -335,14 +335,14 @@ public class UserService {
         List<String> toBeRemoved = new ArrayList<>();
 
         if (requestedAccountType == UserFilterType.SERVICE) {
-            accountToRemoveFromConfig(configuration, toBeRemoved, false);
+            accountsToRemoveFromConfiguration(configuration, toBeRemoved, false);
         } else if (requestedAccountType == UserFilterType.INTERNAL) {
-            accountToRemoveFromConfig(configuration, toBeRemoved, true);
+            accountsToRemoveFromConfiguration(configuration, toBeRemoved, true);
         }
         configuration.remove(toBeRemoved);
     }
     
-    private void accountsToRemoveFromConfiguration(SecurityDynamicConfiguration<?> configuration, ArrayList<String> toBeRemoved, boolean isServiceAccountRequested) {
+    private void accountsToRemoveFromConfiguration(SecurityDynamicConfiguration<?> configuration, List<String> toBeRemoved, boolean isServiceAccountRequested) {
         for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
                 final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
                 final Map accountAttributes = internalUserEntry.getAttributes();
