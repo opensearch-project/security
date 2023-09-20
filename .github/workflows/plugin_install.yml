@@ -36,17 +36,10 @@ jobs:
         run: mv ./build/distributions/${{ env.PLUGIN_NAME }}-*.zip ${{ env.PLUGIN_NAME }}.zip
         shell: bash
 
-      - name: Populate password file
-        run: |
-          echo installPassword > ./config/initialAdminPassword.txt
-          cd config
-          cat initialAdminPassword.txt
-          
-        
-
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
         run: |
+          export initialAdminPassword=installPassword
           cat > setup.sh <<'EOF'
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
           /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
@@ -55,6 +48,7 @@ jobs:
       - name: Create Setup Script
         if: ${{ runner.os == 'Windows' }}
         run: |
+          set initialAdminPassword=installPassword
           New-Item .\setup.bat -type file
           Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y"
           Get-Content .\setup.bat
