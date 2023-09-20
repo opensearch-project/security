@@ -394,7 +394,7 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 echo "Plugins dir has"
 ls $OPENSEARCH_PLUGINS_DIR
 echo "Security config dir has"
-ls $OPENSEARCH_PLUGINS_DIR/security/config
+ls $OPENSEARCH_PLUGINS_DIR/opensearch-security/config
 
 ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
 
