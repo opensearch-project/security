@@ -393,8 +393,8 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 # Read the admin password from the file or use the initialAdminPassword if set
 echo "Plugins dir has"
 ls $OPENSEARCH_PLUGINS_DIR
-echo "Security config dir has"
-ls $OPENSEARCH_PLUGINS_DIR/opensearch-security/config
+echo "Security dir has"
+ls $OPENSEARCH_PLUGINS_DIR/opensearch-security
 
 ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
 
