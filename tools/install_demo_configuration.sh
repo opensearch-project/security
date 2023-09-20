@@ -110,7 +110,7 @@ else
 fi
 OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
 INTERNAL_USERS_FILE="$BASE_DIR/config/internal_users.yml"
-ADMIN_PASSWORD_FILE="$BASE_DIR/secret/initialAdminPassword.txt"
+ADMIN_PASSWORD_FILE="$BASE_DIR/config/secret/initialAdminPassword.txt"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"

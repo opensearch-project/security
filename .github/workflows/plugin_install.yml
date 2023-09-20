@@ -36,6 +36,9 @@ jobs:
         run: mv ./build/distributions/${{ env.PLUGIN_NAME }}-*.zip ${{ env.PLUGIN_NAME }}.zip
         shell: bash
 
+      - name: Populate password file
+        run: echo "installPassword" > ./config/secret/initialAdminPassword
+
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
         run: |
@@ -62,4 +65,4 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           cache-disabled: true
-          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
+          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=installPassword

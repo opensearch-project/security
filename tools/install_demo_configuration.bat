@@ -76,7 +76,7 @@ echo Basedir: %BASE_DIR%
 
 set "OPENSEARCH_CONF_FILE=%BASE_DIR%config\opensearch.yml"
 set "INTERNAL_USERS_FILE"=%BASE_DIR%config\internal_users.yml"
-set "ADMIN_PASSWORD_FILE"=%BASE_DIR%config\admin_password.txt"
+set "ADMIN_PASSWORD_FILE"=%BASE_DIR%config\secret\initialAdminPassword.txt"
 set "OPENSEARCH_CONF_DIR=%BASE_DIR%config\"
 set "OPENSEARCH_BIN_DIR=%BASE_DIR%bin\"
 set "OPENSEARCH_PLUGINS_DIR=%BASE_DIR%plugins\"
