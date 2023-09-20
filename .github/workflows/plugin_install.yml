@@ -37,7 +37,12 @@ jobs:
         shell: bash
 
       - name: Populate password file
-        run: echo "installPassword" > ./config/initialAdminPassword.txt
+        run: |
+          echo installPassword > ./config/initialAdminPassword.txt
+          cd config
+          cat initialAdminPassword.txt
+          
+        
 
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
