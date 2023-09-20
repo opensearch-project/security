@@ -113,8 +113,8 @@ OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
-INTERNAL_USERS_FILE="$OPENSEARCH_PLUGINS_DIR/security/config/internal_users.yml"
-ADMIN_PASSWORD_FILE="$OPENSEARCH_PLUGINS_DIR/security/config/initialAdminPassword.txt"
+INTERNAL_USERS_FILE="$OPENSEARCH_PLUGINS_DIR/opensearch-security/config/internal_users.yml"
+ADMIN_PASSWORD_FILE="$OPENSEARCH_PLUGINS_DIR/opensearch-security/config/initialAdminPassword.txt"
 OPENSEARCH_LIB_PATH="$BASE_DIR/lib"
 SUDO_CMD=""
 OPENSEARCH_INSTALL_TYPE=".tar.gz"
@@ -391,6 +391,8 @@ echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSE
 echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
 # Read the admin password from the file or use the initialAdminPassword if set
+echo "Plugins dir has"
+ls $OPENSEARCH_PLUGINS_DIR
 echo "Security config dir has"
 ls $OPENSEARCH_PLUGINS_DIR/security/config
 
