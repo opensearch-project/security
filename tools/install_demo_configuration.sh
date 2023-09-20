@@ -110,7 +110,7 @@ else
 fi
 OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
 INTERNAL_USERS_FILE = "$BASE_DIR/config/internal_users.yml"
-ADMIN_PASSWORD_FILE="$BASE_DIR/config/admin_password.txt"
+ADMIN_PASSWORD_FILE="$BASE_DIR/secret/initialAdminPassword.txt"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
@@ -389,28 +389,35 @@ echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
-ADMIN_PASSWORD=$(cat "$ADMIN_PASSWORD_FILE")
+# Read the admin password from the file or use the initialAdminPassword if set
+ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
 
 if [ -z "$ADMIN_PASSWORD" ]; then
-  if [ -n "$ENV_ADMIN_PASSWORD" ]; then
-    ADMIN_PASSWORD="$ENV_ADMIN_PASSWORD"
+  if [ -n "$initialAdminPassword" ]; then
+    ADMIN_PASSWORD="$initialAdminPassword"
   else
-    echo "Unable to find admin password for cluster, please run `export ENV_ADMIN_PASSWORD=<your_password>>` or create a file {OPENSEARCH_ROOT}/admin_password.txt with a single line that contains the password followed by a newline"
+    echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/secret/initialAdminPassword.txt with a single line that contains the password."
     exit 1
   fi
 fi
 
-salt=$(openssl rand -hex 8)
+# Use the Hasher script to hash the admin password
+HASHED_ADMIN_PASSWORD=$(./hash.sh -p "$ADMIN_PASSWORD")
 
-# Generate the hash using OpenBSD-style Blowfish-based bcrypt
-HASHED_ADMIN_PASSWORD=$(openssl passwd -bcrypt -salt $salt "$ADMIN_PASSWORD")
+if [ $? -ne 0 ]; then
+  echo "Failed to hash the admin password"
+  exit 1
+fi
 
-# Clear the clearTextPassword variable
+# Clear the ADMIN_PASSWORD variable
 unset ADMIN_PASSWORD
 
+# Find the line number containing 'admin:' in the internal_users.yml file
 ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
 
-sed -i "${ADMIN_HASH_LINE}s/.*/  hash: \"$HASHED_ADMIN_PASSWORD\"/" "$INTERNAL_USERS_FILE"
+# Use sed to replace the hashed password in the internal_users.yml file
+sed -i "${ADMIN_HASH_LINE}s/.*/admin:\n     hash: \"$HASHED_ADMIN_PASSWORD\"/" "$INTERNAL_USERS_FILE"
+
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then

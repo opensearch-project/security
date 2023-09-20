@@ -321,65 +321,46 @@ echo plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_a
 echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"] >> "%OPENSEARCH_CONF_FILE%"
 
+setlocal enabledelayedexpansion
+:: Read the admin password from the file or use the initialAdminPassword if set
+for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
 
-REM Initialize the variable
+if not defined ADMIN_PASSWORD (
+  if defined initialAdminPassword (
+    set "ADMIN_PASSWORD=!initialAdminPassword!"
+  ) else (
+    echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file {OPENSEARCH_ROOT}\secret\initialAdminPassword.txt with a single line that contains the password.
+    exit /b 1
+  )
+)
+
+:: Use the Hasher script to hash the admin password
+for /f %%b in ('hash.bat -p "!ADMIN_PASSWORD!"') do set "HASHED_ADMIN_PASSWORD=%%b"
+
+if not defined HASHED_ADMIN_PASSWORD (
+  echo Failed to hash the admin password
+  exit /b 1
+)
+
+:: Clear the ADMIN_PASSWORD variable
 set "ADMIN_PASSWORD="
 
-REM Read the content of admin_password.txt into the ADMIN_PASSWORD variable
-for /f "usebackq" %%i in ("%ADMIN_PASSWORD_FILE%") do (
-    set "ADMIN_PASSWORD=%%i"
-)
+:: Find the line number containing 'admin:' in the internal_users.yml file
+for /f "tokens=1 delims=:" %%c in ('findstr /n "admin:" "%INTERNAL_USERS_FILE%"') do set "ADMIN_HASH_LINE=%%c"
 
-REM If ADMIN_PASSWORD is empty, check the environment variable as a fallback
-if not defined ADMIN_PASSWORD (
-    if defined ENV_ADMIN_PASSWORD (
-        set "ADMIN_PASSWORD=!ENV_ADMIN_PASSWORD!"
-    ) else (
-        echo Unable to find admin password for cluster, please run "set ENV_ADMIN_PASSWORD=<your_password>" or create a file {OPENSEARCH_ROOT}\admin_password.txt with a single line that contains the password followed by a newline.
-        exit /b 1
-    )
-)
-
-
-set "salt="
-for /l %%i in (1,1,16) do (
-    set /a "rand=!random! %% 16"
-    set "salt=!salt!!rand!"
-)
-
-openssl passwd -bcrypt -salt !salt! "!ADMIN_PASSWORD!" > tmp_hash.txt
-
-set "HASHED_ADMIN_PASSWORD="
-for /f %%a in (tmp_hash.txt) do (
-    set "HASHED_ADMIN_PASSWORD=%%a"
-)
-
-del tmp_hash.txt
-
-for /f "tokens=1 delims=:" %%b in ('findstr /n "admin:" "%INTERNAL_USERS_FILE%"') do (
-    set "ADMIN_HASH_LINE=%%b"
-)
-
-(for /f "delims=" %%c in ('type "%INTERNAL_USERS_FILE%" ^| findstr /n "^"') do (
-    set "line=%%c"
-    setlocal enabledelayedexpansion
-    echo(!line:%ADMIN_HASH_LINE%:=! | findstr "^"
-    endlocal
-)) > tmp_internal_users.yml
-
-(for /f "delims=" %%d in ('type "tmp_internal_users.yml" ^| findstr /n "^"') do (
+:: Use sed-like functionality to replace the hashed password in the internal_users.yml file
+setlocal disabledelayedexpansion
+(
+  for /f "tokens=*" %%d in ('type "%INTERNAL_USERS_FILE%"') do (
     set "line=%%d"
-    setlocal enabledelayedexpansion
-    if !line:^%ADMIN_HASH_LINE%^=! neq !line! (
-        echo !line!
-    ) else (
-        echo !line!
-        echo hash: "!HASHED_ADMIN_PASSWORD!"
-    )
-    endlocal
-)) > "%INTERNAL_USERS_FILE%"
-
-del tmp_internal_users.yml
+    if %%c==1 (
+      echo admin:
+      echo(     hash: "!HASHED_ADMIN_PASSWORD!"
+    ) else echo !line!
+    set /a "c+=1"
+  )
+) > "%INTERNAL_USERS_FILE%.tmp"
+move /y "%INTERNAL_USERS_FILE%.tmp" "%INTERNAL_USERS_FILE%"
 
 :: network.host
 >nul findstr /b /c:"network.host" "%OPENSEARCH_CONF_FILE%" && (
