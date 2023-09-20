@@ -109,7 +109,7 @@ else
     echo "DEBUG: basedir does not exist"
 fi
 OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
-INTERNAL_USERS_FILE = "$BASE_DIR/config/internal_users.yml"
+INTERNAL_USERS_FILE="$BASE_DIR/config/internal_users.yml"
 ADMIN_PASSWORD_FILE="$BASE_DIR/secret/initialAdminPassword.txt"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
