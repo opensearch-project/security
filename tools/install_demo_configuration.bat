@@ -329,7 +329,7 @@ if not defined ADMIN_PASSWORD (
   if defined initialAdminPassword (
     set "ADMIN_PASSWORD=!initialAdminPassword!"
   ) else (
-    echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file {OPENSEARCH_ROOT}\secret\initialAdminPassword.txt with a single line that contains the password.
+    echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file {OPENSEARCH_ROOT}\config\initialAdminPassword.txt with a single line that contains the password.
     exit /b 1
   )
 )

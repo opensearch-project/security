@@ -396,7 +396,7 @@ if [ -z "$ADMIN_PASSWORD" ]; then
   if [ -n "$initialAdminPassword" ]; then
     ADMIN_PASSWORD="$initialAdminPassword"
   else
-    echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/secret/initialAdminPassword.txt with a single line that contains the password."
+    echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/config/initialAdminPassword.txt with a single line that contains the password."
     exit 1
   fi
 fi
