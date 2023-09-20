@@ -37,7 +37,9 @@ jobs:
         shell: bash
 
       - name: Populate password file
-        run: echo "installPassword" > ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/config/initialAdminPassword.txt
+        run: |
+          ls 
+          echo "installPassword" > ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/config/initialAdminPassword.txt
 
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
