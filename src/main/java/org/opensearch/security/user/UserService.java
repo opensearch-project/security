@@ -335,29 +335,23 @@ public class UserService {
         List<String> toBeRemoved = new ArrayList<>();
 
         if (requestedAccountType == UserFilterType.SERVICE) {
-            for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
-                final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-                final Map accountAttributes = internalUserEntry.getAttributes();
-                final String accountName = entry.getKey();
-                final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
-
-                if (isServiceAccount == false) {
-                    toBeRemoved.add(accountName);
-                }
-            }
+            accountToRemoveFromConfig(configuration, toBeRemoved, false);
         } else if (requestedAccountType == UserFilterType.INTERNAL) {
-
-            for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
-                final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-                final Map accountAttributes = internalUserEntry.getAttributes();
-                final String accountName = entry.getKey();
-                final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
-
-                if (isServiceAccount == true) {
-                    toBeRemoved.add(accountName);
-                }
-            }
+            accountToRemoveFromConfig(configuration, toBeRemoved, true);
         }
         configuration.remove(toBeRemoved);
+    }
+    
+    private void accountsToRemoveFromConfiguration(SecurityDynamicConfiguration<?> configuration, ArrayList<String> toBeRemoved, boolean isServiceAccountRequested) {
+        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
+                final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
+                final Map accountAttributes = internalUserEntry.getAttributes();
+                final String accountName = entry.getKey();
+                final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
+
+                if (isServiceAccount == isServiceAccountRequested) {
+                    toBeRemoved.add(accountName);
+                }
+            }
     }
 }
