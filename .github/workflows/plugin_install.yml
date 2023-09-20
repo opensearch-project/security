@@ -40,8 +40,8 @@ jobs:
         run: |
           ls
           echo installPassword > ./config/initialAdminPassword.txt
-          cd config
-          ls
+          pwd
+          
           
         
 
