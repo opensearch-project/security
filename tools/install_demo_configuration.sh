@@ -108,12 +108,13 @@ if [ -d "$BASE_DIR" ]; then
 else
     echo "DEBUG: basedir does not exist"
 fi
+
 OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
-INTERNAL_USERS_FILE="$BASE_DIR/config/internal_users.yml"
-ADMIN_PASSWORD_FILE="$BASE_DIR/config/initialAdminPassword.txt"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
+INTERNAL_USERS_FILE="$OPENSEARCH_PLUGINS_DIR/security/config/internal_users.yml"
+ADMIN_PASSWORD_FILE="$OPENSEARCH_PLUGINS_DIR/security/config/initialAdminPassword.txt"
 OPENSEARCH_LIB_PATH="$BASE_DIR/lib"
 SUDO_CMD=""
 OPENSEARCH_INSTALL_TYPE=".tar.gz"
