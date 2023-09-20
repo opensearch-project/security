@@ -80,8 +80,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         Settings nodeOverride,
         boolean initSecurityIndex
     ) throws Exception {
-        Settings settings = Settings.builder().put(nodeOverride).put("plugins.security.bootstrap.admin.password", "testPassword").build();
-        setup(initTransportClientSettings, dynamicSecuritySettings, settings, initSecurityIndex, ClusterConfiguration.DEFAULT);
+        setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initSecurityIndex, ClusterConfiguration.DEFAULT);
     }
 
     protected void restart(

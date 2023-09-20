@@ -75,8 +75,8 @@ cd %CUR%
 echo Basedir: %BASE_DIR%
 
 set "OPENSEARCH_CONF_FILE=%BASE_DIR%config\opensearch.yml"
-set "INTERNAL_USERS_FILE"=%BASE_DIR%config\internal_users.yml"
-set "ADMIN_PASSWORD_FILE"=%BASE_DIR%\config\initialAdminPassword.txt"
+set "INTERNAL_USERS_FILE"=%BASE_DIR%config\opensearch-security\internal_users.yml"
+set "ADMIN_PASSWORD_FILE"=%BASE_DIR%\config\opensearch-security\initialAdminPassword.txt"
 set "OPENSEARCH_CONF_DIR=%BASE_DIR%config\"
 set "OPENSEARCH_BIN_DIR=%BASE_DIR%bin\"
 set "OPENSEARCH_PLUGINS_DIR=%BASE_DIR%plugins\"
@@ -322,16 +322,18 @@ echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"] >> "%OPENSEARCH_CONF_FILE%"
 
 setlocal enabledelayedexpansion
-:: Read the admin password from the file or use the initialAdminPassword if set
-for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
+
+:: Check if initialAdminPassword environment variable is set
+if defined initialAdminPassword (
+  set "ADMIN_PASSWORD=!initialAdminPassword!"
+) else (
+  :: Read the admin password from the file
+  for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
+)
 
 if not defined ADMIN_PASSWORD (
-  if defined initialAdminPassword (
-    set "ADMIN_PASSWORD=!initialAdminPassword!"
-  ) else (
-    echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file {OPENSEARCH_ROOT}\config\initialAdminPassword.txt with a single line that contains the password.
-    exit /b 1
-  )
+  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file {OPENSEARCH_ROOT}\config\initialAdminPassword.txt with a single line that contains the password.
+  exit /b 1
 )
 
 :: Use the Hasher script to hash the admin password
@@ -348,7 +350,6 @@ set "ADMIN_PASSWORD="
 :: Find the line number containing 'admin:' in the internal_users.yml file
 for /f "tokens=1 delims=:" %%c in ('findstr /n "admin:" "%INTERNAL_USERS_FILE%"') do set "ADMIN_HASH_LINE=%%c"
 
-:: Use sed-like functionality to replace the hashed password in the internal_users.yml file
 setlocal disabledelayedexpansion
 (
   for /f "tokens=*" %%d in ('type "%INTERNAL_USERS_FILE%"') do (
