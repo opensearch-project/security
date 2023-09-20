@@ -1,0 +1,78 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+package org.opensearch.security;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.user.UserFilterType;
+import org.opensearch.security.user.UserService;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+public class UserServiceUnitTests {
+    SecurityDynamicConfiguration<?> config;
+    @Mock
+    ClusterService clusterService;
+    @Mock
+    ConfigurationRepository configurationRepository;
+    @Mock
+    Client client;
+
+    @Test
+    public void testUserTypeFilter() throws Exception {
+
+        String usersYmlFile = "./internal_users.yml";
+        Settings.Builder builder = Settings.builder();
+        UserService userService = new UserService(clusterService, configurationRepository, builder.build(), client);
+        config = readConfigFromYml(usersYmlFile, CType.INTERNALUSERS);
+
+        final int SERVICE_ACCOUNTS_IN_SETTINGS = 0;
+        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 67;
+
+        userService.includeAccountsIfType(config, UserFilterType.SERVICE);
+        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
+
+        config = readConfigFromYml(usersYmlFile, CType.INTERNALUSERS);
+
+        userService.includeAccountsIfType(config, UserFilterType.INTERNAL);
+        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
+
+    }
+
+    private SecurityDynamicConfiguration<?> readConfigFromYml(String file, CType cType) throws Exception {
+        final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
+        final String TEST_RESOURCE_RELATIVE_PATH = "../../resources/test/";
+
+        final String adjustedFilePath = TEST_RESOURCE_RELATIVE_PATH + file;
+        JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
+        int configVersion = 1;
+
+        if (jsonNode.get("_meta") != null) {
+            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            configVersion = jsonNode.get("_meta").get("config_version").asInt();
+        }
+        return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);
+    }
+
+}

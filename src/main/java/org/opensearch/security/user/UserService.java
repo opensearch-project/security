@@ -341,17 +341,21 @@ public class UserService {
         }
         configuration.remove(toBeRemoved);
     }
-    
-    private void accountsToRemoveFromConfiguration(SecurityDynamicConfiguration<?> configuration, List<String> toBeRemoved, boolean isServiceAccountRequested) {
-        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
-                final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-                final Map accountAttributes = internalUserEntry.getAttributes();
-                final String accountName = entry.getKey();
-                final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
 
-                if (isServiceAccount == isServiceAccountRequested) {
-                    toBeRemoved.add(accountName);
-                }
+    private void accountsToRemoveFromConfiguration(
+        SecurityDynamicConfiguration<?> configuration,
+        List<String> toBeRemoved,
+        boolean isServiceAccountRequested
+    ) {
+        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
+            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
+            final Map accountAttributes = internalUserEntry.getAttributes();
+            final String accountName = entry.getKey();
+            final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
+
+            if (isServiceAccount == isServiceAccountRequested) {
+                toBeRemoved.add(accountName);
             }
+        }
     }
 }
