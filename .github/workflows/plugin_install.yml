@@ -39,7 +39,10 @@ jobs:
       - name: Populate password file
         run: |
           ls 
-          echo "installPassword" > ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/config/initialAdminPassword.txt
+          echo "installPassword" > ./config/initialAdminPassword.txt
+          cd config
+          ls
+          cd ..
 
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
