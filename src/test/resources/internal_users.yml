@@ -7,7 +7,7 @@ bug.99:
   reserved: false
   hidden: false
   backend_roles: []
-  attributes: {}
+  attributes: {service : "true"}
   description: "Migrated from v6"
 user_c:
   hash: "$2a$04$jQcEXpODnTFoGDuA7DPdSevA84CuH/7MOYkb80M3XZIrH76YMWS9G"

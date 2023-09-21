@@ -11,6 +11,12 @@
 
 package org.opensearch.security.user;
 
+/**
+ *  Filter types to be used when requesting the list of users.
+ *  'Service' refers to accounts used by other services like Dashboards
+ *  'Internal' refers the standard user accounts
+ *  'Any' refers to both types of accounts
+ */
 public enum UserFilterType {
 
     ANY("any"),
@@ -21,10 +27,6 @@ public enum UserFilterType {
 
     UserFilterType(String name) {
         this.name = name;
-    }
-
-    public String getName() {
-        return this.name;
     }
 
     public static UserFilterType fromString(String name) {

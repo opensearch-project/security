@@ -14,6 +14,7 @@ package org.opensearch.security;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.opensearch.client.Client;
@@ -28,9 +29,10 @@ import org.opensearch.security.user.UserService;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
-public class UserServiceUnitTests {
+public class UserServiceUnitTests<T> {
     SecurityDynamicConfiguration<?> config;
     @Mock
     ClusterService clusterService;
@@ -38,26 +40,46 @@ public class UserServiceUnitTests {
     ConfigurationRepository configurationRepository;
     @Mock
     Client client;
+    UserService userService;
 
-    @Test
-    public void testUserTypeFilter() throws Exception {
+    final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
+    final int INTERNAL_ACCOUNTS_IN_SETTINGS = 66;
+    String serviceAccountUsername = "bug.99";
+    String internalAccountUsername = "sarek";
 
+    @Before
+    public void setup() throws Exception {
         String usersYmlFile = "./internal_users.yml";
         Settings.Builder builder = Settings.builder();
-        UserService userService = new UserService(clusterService, configurationRepository, builder.build(), client);
+        userService = new UserService(clusterService, configurationRepository, builder.build(), client);
         config = readConfigFromYml(usersYmlFile, CType.INTERNALUSERS);
+    }
 
-        final int SERVICE_ACCOUNTS_IN_SETTINGS = 0;
-        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 67;
+    @Test
+    public void testServiceUserTypeFilter() {
 
         userService.includeAccountsIfType(config, UserFilterType.SERVICE);
         Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
+        Assert.assertEquals(config.getCEntries().containsKey(serviceAccountUsername), true);
+        Assert.assertEquals(config.getCEntries().containsKey(internalAccountUsername), false);
 
-        config = readConfigFromYml(usersYmlFile, CType.INTERNALUSERS);
+    }
 
+    @Test
+    public void testInternalUserTypeFilter() {
         userService.includeAccountsIfType(config, UserFilterType.INTERNAL);
         Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
+        Assert.assertEquals(config.getCEntries().containsKey(serviceAccountUsername), false);
+        Assert.assertEquals(config.getCEntries().containsKey(internalAccountUsername), true);
 
+    }
+
+    @Test
+    public void testAnyUserTypeFilter() {
+        userService.includeAccountsIfType(config, UserFilterType.ANY);
+        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS + SERVICE_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
+        Assert.assertEquals(config.getCEntries().containsKey(serviceAccountUsername), true);
+        Assert.assertEquals(config.getCEntries().containsKey(internalAccountUsername), true);
     }
 
     private SecurityDynamicConfiguration<?> readConfigFromYml(String file, CType cType) throws Exception {
