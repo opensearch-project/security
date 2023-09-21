@@ -50,10 +50,8 @@ public class DashboardsInfoTest {
         try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
             TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-            assertThat(response.getBody(), containsString("password_validation_error_message"));
-            assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_MESSAGE));
-            assertThat(response.getBody(), containsString("password_validation_regex"));
-            assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_REGEX));
+            assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo("Password should be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character."));
+            assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo("(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{8,}"));
         }
     }
 }
