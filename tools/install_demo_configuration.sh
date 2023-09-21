@@ -396,17 +396,17 @@ echo "Checking for password file in: " $OPENSEARCH_CONF_DIR/opensearch-security/
 echo "Content of security config dir is:  $(ls $OPENSEARCH_CONF_DIR/opensearch-security/)
 echo "HEAD of password file is: $(head $OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt)"
 
-if [ -n "$initialAdminPassword" ]; then
+if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
+elif [[ -f "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt" && -s "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt" ]]; then
+  ADMIN_PASSWORD=$(head -n 1 "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt")
 else
-  ADMIN_PASSWORD=$(head $OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt)
-fi
-echo "ADMIN PASSWORD SET TO: $($ADMIN_PASSWORD)"
-
-if [ -z "$ADMIN_PASSWORD" ]; then
-    echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/config/initialAdminPassword.txt with a single line that contains the password."
+	echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/config/initialAdminPassword.txt with a single line that contains the password."
     exit 1
 fi
+
+echo "ADMIN PASSWORD SET TO: $ADMIN_PASSWORD"
+
 
 # Use the Hasher script to hash the admin password
 HASHED_ADMIN_PASSWORD=$(./hash.sh -p "$ADMIN_PASSWORD")
