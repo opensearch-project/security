@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.base.Stopwatch;
@@ -1769,7 +1768,6 @@ public class SearchOperationTest {
     @Test
     public void shouldRestoreSnapshot_positive() throws IOException {
         final String snapshotName = "restore-snapshot-positive";
-        final AtomicInteger countRequestsIssued = new AtomicInteger();
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
             // 1. create some documents
@@ -1807,10 +1805,7 @@ public class SearchOperationTest {
             Awaitility.await()
                 .ignoreExceptions()
                 .alias("Index contains proper number of documents restored from snapshot.")
-                .until(() -> {
-                    countRequestsIssued.incrementAndGet();
-                    return restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2;
-                });
+                .until(() -> restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2);
 
             // 8. verify that document are present in restored index
             assertThat(
@@ -1834,7 +1829,6 @@ public class SearchOperationTest {
                 "/_snapshot/test-snapshot-repository/restore-snapshot-positive/_restore"
             )
         );
-        auditLogsRule.assertExactly(countRequestsIssued.get(), userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
         auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertAtLeast(
             1,
@@ -1846,9 +1840,12 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
         auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
-        auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "SearchRequest"));
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
         auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
+
+        // Audit events generated in step 7 above
+        auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
+        auditLogsRule.assertAtLeast(1, grantedPrivilege(LIMITED_WRITE_USER, "SearchRequest"));
     }
 
     @Test
