@@ -24,9 +24,8 @@ jobs:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 11
 
-      - uses: gradle/gradle-build-action@v2
+      - uses: burrunan/gradle-cache-action@v1
         with:
-          cache-disabled: true
           arguments: spotlessCheck
 
   checkstyle:
@@ -40,9 +39,8 @@ jobs:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 11
 
-      - uses: gradle/gradle-build-action@v2
+      - uses: burrunan/gradle-cache-action@v1
         with:
-          cache-disabled: true
           arguments: checkstyleMain checkstyleTest
 
   spotbugs:
@@ -56,9 +54,8 @@ jobs:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 11
 
-      - uses: gradle/gradle-build-action@v2
+      - uses: burrunan/gradle-cache-action@v1
         with:
-          cache-disabled: true
           arguments: spotbugsMain
 
   check-permissions-order:

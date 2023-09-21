@@ -26,9 +26,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Assemble target plugin
-        uses: gradle/gradle-build-action@v2
+        uses: burrunan/gradle-cache-action@v1
         with:
-          cache-disabled: true
           arguments: assemble
 
       # Move and rename the plugin for installation
@@ -59,7 +58,6 @@ jobs:
           setup-script-name: setup
 
       - name: Run sanity tests
-        uses: gradle/gradle-build-action@v2
+        uses: burrunan/gradle-cache-action@v1
         with:
-          cache-disabled: true
           arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin

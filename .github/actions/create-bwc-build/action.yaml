@@ -33,9 +33,8 @@ runs:
         path: ${{ inputs.plugin-branch }}
 
     - name: Build
-      uses: gradle/gradle-build-action@v2
+      uses: burrunan/gradle-cache-action@v1
       with:
-        cache-disabled: true
         arguments: assemble
         build-root-directory: ${{ inputs.plugin-branch }}
 

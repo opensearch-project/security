@@ -37,9 +37,8 @@ runs:
         plugin-branch: ${{ inputs.plugin-next-branch }}
 
     - name: Run BWC tests
-      uses: gradle/gradle-build-action@v2
+      uses: burrunan/gradle-cache-action@v1
       with:
-        cache-disabled: true
         arguments: |
           bwcTestSuite
           -Dtests.security.manager=false
