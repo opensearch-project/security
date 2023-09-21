@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.base.Stopwatch;
@@ -1768,6 +1769,7 @@ public class SearchOperationTest {
     @Test
     public void shouldRestoreSnapshot_positive() throws IOException {
         final String snapshotName = "restore-snapshot-positive";
+        final AtomicInteger countRequestsIssued = new AtomicInteger();
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
             // 1. create some documents
@@ -1805,7 +1807,10 @@ public class SearchOperationTest {
             Awaitility.await()
                 .ignoreExceptions()
                 .alias("Index contains proper number of documents restored from snapshot.")
-                .until(() -> restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2);
+                .until(() -> {
+                    countRequestsIssued.incrementAndGet();
+                    return restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2;
+                });
 
             // 8. verify that document are present in restored index
             assertThat(
@@ -1829,7 +1834,7 @@ public class SearchOperationTest {
                 "/_snapshot/test-snapshot-repository/restore-snapshot-positive/_restore"
             )
         );
-        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
+        auditLogsRule.assertExactly(countRequestsIssued.get(), userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
         auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertAtLeast(
             1,
