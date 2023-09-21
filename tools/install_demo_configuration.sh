@@ -114,7 +114,6 @@ OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
 INTERNAL_USERS_FILE="$BASE_DIR/config/opensearch-security/internal_users.yml"
-ADMIN_PASSWORD_FILE="$BASE_DIR/config/opensearch-security/initialAdminPassword.txt"
 OPENSEARCH_LIB_PATH="$BASE_DIR/lib"
 SUDO_CMD=""
 OPENSEARCH_INSTALL_TYPE=".tar.gz"
@@ -391,22 +390,23 @@ echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSE
 echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
 # Read the admin password from the file or use the initialAdminPassword if set
-echo "Path is " $(pwd)
-echo "Checking for password file in: " $OPENSEARCH_CONF_DIR/opensearch-security/
-echo "Content of security config dir is:  $(ls $OPENSEARCH_CONF_DIR/opensearch-security/)
-echo "HEAD of password file is: $(head $OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt)"
+ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt"
+
+echo "Path is $(pwd)"
+echo "Checking for password file in: $OPENSEARCH_CONF_DIR/opensearch-security/"
+echo "Content of security config dir is: $(ls "$OPENSEARCH_CONF_DIR/opensearch-security/")"
+echo "HEAD of password file is: $(head "$ADMIN_PASSWORD_FILE")"
 
 if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
-elif [[ -f "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt" && -s "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt" ]]; then
-  ADMIN_PASSWORD=$(head -n 1 "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt")
+elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
+  ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
 else
-	echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/config/initialAdminPassword.txt with a single line that contains the password."
-    exit 1
+  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/config/initialAdminPassword.txt with a single line that contains the password."
+  exit 1
 fi
 
 echo "ADMIN PASSWORD SET TO: $ADMIN_PASSWORD"
-
 
 # Use the Hasher script to hash the admin password
 HASHED_ADMIN_PASSWORD=$(./hash.sh -p "$ADMIN_PASSWORD")
@@ -418,6 +418,7 @@ fi
 
 # Clear the ADMIN_PASSWORD variable
 unset ADMIN_PASSWORD
+
 
 # Find the line number containing 'admin:' in the internal_users.yml file
 ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
@@ -442,8 +443,6 @@ if $SUDO_CMD grep --quiet -i "^node.max_local_storage_nodes" "$OPENSEARCH_CONF_F
 else
     echo 'node.max_local_storage_nodes: 3' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 fi
-
-
 
 echo "######## End OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 

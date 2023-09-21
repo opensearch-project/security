@@ -76,7 +76,6 @@ echo Basedir: %BASE_DIR%
 
 set "OPENSEARCH_CONF_FILE=%BASE_DIR%config\opensearch.yml"
 set "INTERNAL_USERS_FILE"=%BASE_DIR%config\opensearch-security\internal_users.yml"
-set "ADMIN_PASSWORD_FILE"=%BASE_DIR%\config\opensearch-security\initialAdminPassword.txt"
 set "OPENSEARCH_CONF_DIR=%BASE_DIR%config\"
 set "OPENSEARCH_BIN_DIR=%BASE_DIR%bin\"
 set "OPENSEARCH_PLUGINS_DIR=%BASE_DIR%plugins\"
@@ -320,6 +319,9 @@ echo plugins.security.check_snapshot_restore_write_privileges: true >> "%OPENSEA
 echo plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"] >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"] >> "%OPENSEARCH_CONF_FILE%"
+
+
+set "ADMIN_PASSWORD_FILE"=%OPENSEARCH_CONF_DIR%\opensearch-security\initialAdminPassword.txt
 
 setlocal enabledelayedexpansion
 
