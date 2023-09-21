@@ -44,6 +44,9 @@ jobs:
           ls ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT
           echo "listing " ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config
           ls ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config
+          echo installPassword >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/opensearch-security/initialAdminPassword.txt
+          echo "listing " ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/opensearch-security
+          ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/opensearch-security
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
           /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
           EOF
