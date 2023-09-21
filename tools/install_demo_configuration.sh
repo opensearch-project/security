@@ -392,6 +392,7 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 
 # Read the admin password from the file or use the initialAdminPassword if set
 echo "Path is " $(pwd)
+echo "Checking for password file in: " $OPENSEARCH_CONF_DIR/opensearch-security/
 echo "Content of security config dir is:  $(ls $OPENSEARCH_CONF_DIR/opensearch-security/)
 echo "HEAD of password file is: $(head $OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt)"
 
