@@ -408,8 +408,10 @@ fi
 
 echo "ADMIN PASSWORD SET TO: $ADMIN_PASSWORD"
 
+$SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh"
+
 # Use the Hasher script to hash the admin password
-HASHED_ADMIN_PASSWORD=$(./hash.sh -p "$ADMIN_PASSWORD")
+HASHED_ADMIN_PASSWORD=$($OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh -p "$ADMIN_PASSWORD")
 
 if [ $? -ne 0 ]; then
   echo "Failed to hash the admin password"
