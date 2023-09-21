@@ -43,7 +43,7 @@ jobs:
       - uses: gradle/gradle-build-action@v2
         with:
           cache-disabled: true
-          arguments: checkstyleMain checkstyleTest
+          arguments: checkstyleMain checkstyleTest checkstyleIntegrationTest
 
   spotbugs:
     runs-on: ubuntu-latest
