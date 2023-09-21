@@ -399,7 +399,7 @@ echo "HEAD of password file is: $(head $OPENSEARCH_CONF_DIR/opensearch-security/
 if [ -n "$initialAdminPassword" ]; then
   ADMIN_PASSWORD="$initialAdminPassword"
 else
-  ADMIN_PASSWORD=$(head -n 1 "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt")
+  ADMIN_PASSWORD=$(head $OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt)
 fi
 echo "ADMIN PASSWORD SET TO: $ADMIN_PASSWORD"
 
