@@ -1,6 +1,12 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - 1.*
+      - 2.*
+  pull_request:
 
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
@@ -18,7 +24,7 @@ jobs:
         java-version: 17
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Generate list of tasks
       id: set-matrix
@@ -44,7 +50,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
@@ -52,7 +58,6 @@ jobs:
         cache-disabled: true
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
-          -x test
 
     - name: Coverage
       uses: Wandalen/wretry.action@v1.3.0
@@ -76,6 +81,32 @@ jobs:
       if: always()
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
+  integration-tests:
+    name: integration-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        platform: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v4
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      with:
+        cache-disabled: true
+        arguments: |
+          integrationTest -Dbuild.snapshot=false
+
   backward-compatibility:
     strategy:
       fail-fast: false
@@ -91,7 +122,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - id: build-previous
       uses: ./.github/actions/run-bwc-suite
@@ -105,21 +136,21 @@ jobs:
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-java@v3
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
-    - uses: github/codeql-action/init@v1
+    - uses: github/codeql-action/init@v2
       with:
         languages: java
     - run: ./gradlew clean build -Dbuild.snapshot=false -x test
-    - uses: github/codeql-action/analyze@v1
+    - uses: github/codeql-action/analyze@v2
 
   build-artifact-names:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - uses: actions/setup-java@v3
       with:

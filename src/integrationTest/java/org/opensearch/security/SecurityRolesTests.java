@@ -9,7 +9,7 @@
 * GitHub history for details.
 */
 
-package org.opensearch.security.api;
+package org.opensearch.security;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
@@ -22,38 +22,42 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_MESSAGE;
-import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class DashboardsInfoTest {
+public class SecurityRolesTests {
 
-    protected final static TestSecurityConfig.User DASHBOARDS_USER = new TestSecurityConfig.User("dashboards_user").roles(
-        new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
+    protected final static TestSecurityConfig.User USER_SR = new TestSecurityConfig.User("sr_user").roles(
+        new Role("abc_ber").indexPermissions("*").on("*").clusterPermissions("*"),
+        new Role("def_efg").indexPermissions("*").on("*").clusterPermissions("*")
     );
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+        .anonymousAuth(true)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(DASHBOARDS_USER)
+        .users(USER_SR)
         .build();
 
     @Test
-    public void testDashboardsInfoValidationMessage() throws Exception {
+    public void testSecurityRoles() throws Exception {
+        try (TestRestClient client = cluster.getRestClient(USER_SR)) {
+            HttpResponse response = client.getAuthInfo();
+            response.assertStatusCode(HttpStatus.SC_OK);
 
-        try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
-            TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-            assertThat(response.getBody(), containsString("password_validation_error_message"));
-            assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_MESSAGE));
-            assertThat(response.getBody(), containsString("password_validation_regex"));
-            assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_REGEX));
+            // Check username
+            assertThat(response.getTextFromJsonBody("/user_name"), equalTo("sr_user"));
+
+            // Check security roles
+            assertThat(response.getTextFromJsonBody("/roles/0"), equalTo("user_sr_user__abc_ber"));
+            assertThat(response.getTextFromJsonBody("/roles/1"), equalTo("user_sr_user__def_efg"));
+
         }
     }
+
 }
