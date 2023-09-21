@@ -418,16 +418,18 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+echo "HASHED PASSWORD SET TO: $HASHED_ADMIN_PASSWORD"
+
 # Clear the ADMIN_PASSWORD variable
 unset ADMIN_PASSWORD
-
 
 # Find the line number containing 'admin:' in the internal_users.yml file
 ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
 
+echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
+
 # Use sed to replace the hashed password in the internal_users.yml file
 sed -i "${ADMIN_HASH_LINE}s/.*/admin:\n     hash: \"$HASHED_ADMIN_PASSWORD\"/" "$INTERNAL_USERS_FILE"
-
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
