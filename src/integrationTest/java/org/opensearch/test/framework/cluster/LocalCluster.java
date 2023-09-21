@@ -55,7 +55,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
-import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
