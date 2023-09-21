@@ -113,7 +113,6 @@ OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
 OPENSEARCH_MODULES_DIR="$BASE_DIR/modules"
-INTERNAL_USERS_FILE="$BASE_DIR/config/opensearch-security/internal_users.yml"
 OPENSEARCH_LIB_PATH="$BASE_DIR/lib"
 SUDO_CMD=""
 OPENSEARCH_INSTALL_TYPE=".tar.gz"
@@ -391,6 +390,7 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 
 # Read the admin password from the file or use the initialAdminPassword if set
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt"
+INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 
 echo "Path is $(pwd)"
 echo "Checking for password file in: $OPENSEARCH_CONF_DIR/opensearch-security/"
@@ -429,7 +429,7 @@ ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
 echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
 
 # Use sed to replace the hashed password in the internal_users.yml file
-sed -i "${ADMIN_HASH_LINE}s/.*/admin:\n     hash: \"$HASHED_ADMIN_PASSWORD\"/" "$INTERNAL_USERS_FILE"
+sed -i "${ADMIN_HASH_LINE}s/.*/admin:\n     hash: '$HASHED_ADMIN_PASSWORD'/" "$INTERNAL_USERS_FILE"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
