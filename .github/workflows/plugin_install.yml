@@ -40,9 +40,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           cat > setup.sh <<'EOF'
-          echo installPassword > ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/config/initialAdminPassword.txt
-          echo ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/config
-          ls ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/config
+          export initialAdminPassword=installPassword
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
           /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
           EOF
@@ -51,6 +49,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         run: |
           New-Item .\setup.bat -type file
+          Set initialAdminPassword=installPassword
           Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y"
           Get-Content .\setup.bat
 

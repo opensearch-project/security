@@ -396,7 +396,6 @@ echo "Checking for password file in: " $OPENSEARCH_CONF_DIR/opensearch-security/
 echo "Content of security config dir is:  $(ls $OPENSEARCH_CONF_DIR/opensearch-security/)
 echo "HEAD of password file is: $(head $OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt)"
 
-
 if [ -n "$initialAdminPassword" ]; then
   ADMIN_PASSWORD="$initialAdminPassword"
 else
