@@ -36,19 +36,11 @@ jobs:
         run: mv ./build/distributions/${{ env.PLUGIN_NAME }}-*.zip ${{ env.PLUGIN_NAME }}.zip
         shell: bash
 
-      - name: Populate password file
-        run: |
-          ls
-          echo installPassword > ./config/initialAdminPassword.txt
-          pwd
-          
-          
-        
-
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
         run: |
           cat > setup.sh <<'EOF'
+          echo installPassword > ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/config/initialAdminPassword.txt
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
           /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
           EOF
