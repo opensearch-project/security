@@ -55,6 +55,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         run: |
           New-Item .\setup.bat -type file
+          echo installPassword >> .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\config\opensearch-security\initialAdminPassword.txt
           Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y"
           Get-Content .\setup.bat
 
