@@ -90,7 +90,7 @@ public class PrivilegesEvaluatorTest {
 
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
             final String searchTemplateOnServicesIndex = "services/_search/template";
-            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.postJson(
+            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.getWithJsonBody(
                 searchTemplateOnServicesIndex,
                 TEST_QUERY
             );
@@ -102,7 +102,7 @@ public class PrivilegesEvaluatorTest {
     public void testSearchTemplateRequestUnauthorizedIndex() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
             final String searchTemplateOnMoviesIndex = "movies/_search/template";
-            final TestRestClient.HttpResponse searchTemplateOnUnauthorizedIndexResponse = client.postJson(
+            final TestRestClient.HttpResponse searchTemplateOnUnauthorizedIndexResponse = client.getWithJsonBody(
                 searchTemplateOnMoviesIndex,
                 TEST_QUERY
             );
@@ -114,7 +114,7 @@ public class PrivilegesEvaluatorTest {
     public void testSearchTemplateRequestUnauthorizedAllIndices() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
             final String searchTemplateOnAllIndices = "_search/template";
-            final TestRestClient.HttpResponse searchOnAllIndicesResponse = client.postJson(searchTemplateOnAllIndices, TEST_QUERY);
+            final TestRestClient.HttpResponse searchOnAllIndicesResponse = client.getWithJsonBody(searchTemplateOnAllIndices, TEST_QUERY);
             assertThat(searchOnAllIndicesResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }

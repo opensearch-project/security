@@ -171,7 +171,7 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
-    public HttpResponse getWithBody(String path, String body, Header... headers) {
+    public HttpResponse getWithJsonBody(String path, String body, Header... headers) {
         // Clever workaround to get support for GET with body https://stackoverflow.com/a/25019452/533057
         HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path) {
             @Override
