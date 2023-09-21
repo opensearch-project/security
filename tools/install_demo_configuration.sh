@@ -401,6 +401,7 @@ if [ -n "$initialAdminPassword" ]; then
 else
   ADMIN_PASSWORD=$(head -n 1 "$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt")
 fi
+echo "ADMIN PASSWORD SET TO: $(echo $ADMIN_PASSWORD)"
 
 if [ -z "$ADMIN_PASSWORD" ]; then
     echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/config/initialAdminPassword.txt with a single line that contains the password."
