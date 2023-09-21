@@ -472,11 +472,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder onBehalfOf(OnBehalfOfConfig onBehalfOfConfig) {
-            testSecurityConfig.onBehalfOf(onBehalfOfConfig);
-            return this;
-        }
-
         public Builder loadConfigurationIntoIndex(boolean loadConfigurationIntoIndex) {
             this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
             return this;
