@@ -345,15 +345,18 @@ if not defined ADMIN_PASSWORD (
 
 echo ADMIN PASSWORD SET TO: !ADMIN_PASSWORD!
 
-echo Use the Hasher script to hash the admin password
-for /f %%b in ('"%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat" -p "!ADMIN_PASSWORD!"') do set "HASHED_ADMIN_PASSWORD=%%b"
+REM Run the command and capture its output
+for /f %%a in ('"%OPENSEARCH_PLUGINS_DIR%opensearch-security\tools\hash.bat" -p "!ADMIN_PASSWORD!"') do (
+  set "HASHED_ADMIN_PASSWORD=%%a"
+)
+
+REM Display the value of the variable
+echo HASHED_ADMIN_PASSWORD is !HASHED_ADMIN_PASSWORD!
 
 if errorlevel 1 (
   echo Failed to hash the admin password
   exit /b 1
 )
-
-echo HASHED PASSWORD SET TO: !HASHED_ADMIN_PASSWORD!
 
 echo Clear the ADMIN_PASSWORD variable
 set "ADMIN_PASSWORD="
