@@ -348,7 +348,7 @@ set "HASH_SCRIPT=%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat"
 echo ADMIN PASSWORD SET TO: !ADMIN_PASSWORD!
 
 REM Run the command and capture its output
-for /f %%a in ('^"%HASH_SCRIPT%^" -p ^"!ADMIN_PASSWORD!^"') do (
+for /f %%a in ('%HASH_SCRIPT% -p !ADMIN_PASSWORD!') do (
   set "HASHED_ADMIN_PASSWORD=%%a"
 )
 
