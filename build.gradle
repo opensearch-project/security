@@ -457,6 +457,7 @@ sourceSets {
             srcDir file ('src/integrationTest/java')
             compileClasspath += sourceSets.main.output
             runtimeClasspath += sourceSets.main.output
+
         }
         resources {
             srcDir file('src/integrationTest/resources')
@@ -474,6 +475,7 @@ task integrationTest(type: Test) {
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
+    jvmArgs += "-Djdk.internal.httpclient.disableHostnameVerification"
     retry {
         failOnPassedAfterRetry = false
         maxRetries = 2
