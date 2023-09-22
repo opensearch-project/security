@@ -49,17 +49,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         run: |
           New-Item .\setup.bat -type file
-          
-          echo Current directory is: %cd%
-          echo Subdirectories in the current directory: 
-          dir /b /ad
-          cd .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\
-          echo Current directory is: %cd%
-          dir /b /ad
-          cd .\config
-          echo Current directory is: %cd%
-          dir /b /ad
-          echo installPassword >> .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/opensearch-security/initialAdminPassword.txt
+          Set initialAdminPassword=installPassword
           Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y"
           Get-Content .\setup.bat
 
