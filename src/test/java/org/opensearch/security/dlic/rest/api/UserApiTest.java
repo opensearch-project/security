@@ -15,14 +15,17 @@ import java.net.URLEncoder;
 import java.util.Base64;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.securityconf.impl.CType;
@@ -55,7 +58,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY = "{"
         + " \"attributes\": { \"service\": \"true\", "
-        + "\"enabled\": \"true\"}"
+        + " \"enabled   \": \"true\"}"
         + " }\n";
 
     private static final String DISABLED_SERVICE_ACCOUNT_BODY = "{"
@@ -142,6 +145,55 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             }
         }
         deleteUser("test1");
+    }
+
+    @Test
+    public void testUserFilters() throws Exception {
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
+        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 19;
+        final String serviceAccountName = "JohnDoeService";
+        HttpResponse response;
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
+
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        JsonNode list = DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=service");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        list = DefaultObjectMapper.readTree(response.getBody());
+        assertThat(list, Matchers.emptyIterable());
+
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/" + serviceAccountName, ENABLED_SERVICE_ACCOUNT_BODY);
+
+        // repeat assertions after adding the service account
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
+
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        list = DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=service");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        list = DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, list.size());
+        assertThat(response.findValueInJson(serviceAccountName + ".attributes.service"), containsString("true"));
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=ssas");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        list = DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS + INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?wrongparameter=jhondoe");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        response = rh.executePutRequest(ENDPOINT + "/internalusers", "{sample:value");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
     }
 
     @Test
