@@ -321,15 +321,20 @@ echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"] >> "%OPENSEARCH_CONF_FILE%"
 
 
-set "ADMIN_PASSWORD_FILE"=%OPENSEARCH_CONF_DIR%\opensearch-security\initialAdminPassword.txt
-
 setlocal enabledelayedexpansion
 
-:: Check if initialAdminPassword environment variable is set
-if defined initialAdminPassword (
+set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%\opensearch-security\initialAdminPassword.txt"
+set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%\opensearch-security\internal_users.yml"
+
+echo Path is %cd%
+echo Checking for password file in: %OPENSEARCH_CONF_DIR%\opensearch-security\
+echo Content of security config dir is: %OPENSEARCH_CONF_DIR%\opensearch-security\
+echo HEAD of password file is:
+type "%ADMIN_PASSWORD_FILE%"
+
+if "%initialAdminPassword%" NEQ "" (
   set "ADMIN_PASSWORD=!initialAdminPassword!"
 ) else (
-  :: Read the admin password from the file
   for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
 )
 
@@ -338,32 +343,41 @@ if not defined ADMIN_PASSWORD (
   exit /b 1
 )
 
-:: Use the Hasher script to hash the admin password
-for /f %%b in ('%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat -p "!ADMIN_PASSWORD!"') do set "HASHED_ADMIN_PASSWORD=%%b"
+echo ADMIN PASSWORD SET TO: !ADMIN_PASSWORD!
 
-if not defined HASHED_ADMIN_PASSWORD (
+REM Use the Hasher script to hash the admin password
+"%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat" -p "!ADMIN_PASSWORD!"
+
+if errorlevel 1 (
   echo Failed to hash the admin password
   exit /b 1
 )
 
-:: Clear the ADMIN_PASSWORD variable
+echo HASHED PASSWORD SET TO: %HASHED_ADMIN_PASSWORD%
+
+REM Clear the ADMIN_PASSWORD variable
 set "ADMIN_PASSWORD="
 
-:: Find the line number containing 'admin:' in the internal_users.yml file
+REM Find the line number containing 'admin:' in the internal_users.yml file
 for /f "tokens=1 delims=:" %%c in ('findstr /n "admin:" "%INTERNAL_USERS_FILE%"') do set "ADMIN_HASH_LINE=%%c"
 
-setlocal disabledelayedexpansion
+echo ADMIN TARGET FILE LINE SET TO: %ADMIN_HASH_LINE%
+
+REM Use a temporary file for modification
 (
   for /f "tokens=*" %%d in ('type "%INTERNAL_USERS_FILE%"') do (
     set "line=%%d"
-    if %%c==1 (
+    if %%c==%ADMIN_HASH_LINE% (
       echo admin:
-      echo(     hash: "!HASHED_ADMIN_PASSWORD!"
+      echo(     hash: "%HASHED_ADMIN_PASSWORD%"
     ) else echo !line!
     set /a "c+=1"
   )
 ) > "%INTERNAL_USERS_FILE%.tmp"
 move /y "%INTERNAL_USERS_FILE%.tmp" "%INTERNAL_USERS_FILE%"
+
+echo AFTER CHANGE:
+type "%INTERNAL_USERS_FILE%"
 
 :: network.host
 >nul findstr /b /c:"network.host" "%OPENSEARCH_CONF_FILE%" && (
