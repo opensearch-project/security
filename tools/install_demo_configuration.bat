@@ -363,23 +363,19 @@ if errorlevel 1 (
 echo Clear the ADMIN_PASSWORD variable
 set "ADMIN_PASSWORD="
 
-echo Find the line number containing 'admin:' in the internal_users.yml file
-for /f "tokens=1 delims=:" %%c in ('findstr /n "admin:" "%INTERNAL_USERS_FILE%"') do set "ADMIN_HASH_LINE=%%c"
+set "OUTPUT_FILE=temp_file"
 
-echo ADMIN TARGET FILE LINE SET TO: %ADMIN_HASH_LINE%
+del "%OUTPUT_FILE%" 2>nul
 
-REM Use a temporary file for modification
-(
-  for /f "tokens=*" %%d in ('type "%INTERNAL_USERS_FILE%"') do (
-    set "line=%%d"
-    if %%c==%ADMIN_HASH_LINE% (
-      echo admin:
-      echo(     hash: "%HASHED_ADMIN_PASSWORD%"
-    ) else echo !line!
-    set /a "c+=1"
-  )
-) > "%INTERNAL_USERS_FILE%.tmp"
-move /y "%INTERNAL_USERS_FILE%.tmp" "%INTERNAL_USERS_FILE%"
+for /f "usebackq delims=" %%a in ("%INTERNAL_USERS_FILE%") do (
+    set "line=%%a"
+    if "!line!"=="    hash: \"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"" (
+        set "line=    hash: \"%HASHED_ADMIN_PASSWORD%\""
+    )
+    echo !line!>>"%OUTPUT_FILE%"
+)
+
+move /y "%OUTPUT_FILE%" "%INTERNAL_USERS_FILE%"
 
 echo AFTER CHANGE:
 type "%INTERNAL_USERS_FILE%"
