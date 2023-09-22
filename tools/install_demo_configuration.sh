@@ -430,8 +430,13 @@ echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
 
 echo "Before CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
+awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
+  /^ *hash: *"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/ {
+    sub(/"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/, "\"" hashed_admin_password "\"");
+  }
+  { print }
+' "$INTERNAL_USERS_FILE" > temp_file && mv temp_file "$INTERNAL_USERS_FILE"
 
-sed -ri "s/^(\\s*hash:\\s*)\"\\\$2a\\\$12\\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG\"/\\1\"\\$HASHED_ADMIN_PASSWORD\"//" "$INTERNAL_USERS_FILE"
 
 echo "AFTER CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
