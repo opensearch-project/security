@@ -430,13 +430,8 @@ echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
 
 echo "Before CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
-# Use sed to replace the hashed password in the internal_users.yml file
-HASHED_ADMIN_PASSWORD_SAFETY="${HASHED_ADMIN_PASSWORD//\//\\/}"  # Escape forward slashes
 
-sed -i "${ADMIN_HASH_LINE} s/^  hash:.*/  hash: \"$HASHED_ADMIN_PASSWORD_SAFETY\"/" "$INTERNAL_USERS_FILE"
-
-# Replace the original file with the temporary file
-mv temp_internal_users.yml "$INTERNAL_USERS_FILE"
+sed -ri "s/^(hash\\s*:\\s*\"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG\"\\s*)/hash: \"\$HASHED_ADMIN_PASSWORD\"/" "$INTERNAL_USERS_FILE"
 
 echo "AFTER CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
