@@ -148,7 +148,7 @@ jobs:
     - uses: github/codeql-action/init@v2
       with:
         languages: java
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false
     - uses: github/codeql-action/analyze@v2
 
   build-artifact-names:
