@@ -323,12 +323,12 @@ echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-m
 
 setlocal enabledelayedexpansion
 
-set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%\opensearch-security\initialAdminPassword.txt"
-set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%\opensearch-security\internal_users.yml"
+set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\initialAdminPassword.txt"
+set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users.yml"
 
 echo Path is %cd%
-echo Checking for password file in: %OPENSEARCH_CONF_DIR%\opensearch-security\
-echo Content of security config dir is: %OPENSEARCH_CONF_DIR%\opensearch-security\
+echo Checking for password file in: %OPENSEARCH_CONF_DIR%opensearch-security\
+echo Content of security config dir is: %OPENSEARCH_CONF_DIR%opensearch-security\
 echo HEAD of password file is:
 type "%ADMIN_PASSWORD_FILE%"
 
@@ -345,20 +345,20 @@ if not defined ADMIN_PASSWORD (
 
 echo ADMIN PASSWORD SET TO: !ADMIN_PASSWORD!
 
-REM Use the Hasher script to hash the admin password
-"%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat" -p "!ADMIN_PASSWORD!"
+echo Use the Hasher script to hash the admin password
+"%OPENSEARCH_PLUGINS_DIR%opensearch-security\tools\hash.bat" -p "!ADMIN_PASSWORD!"
 
 if errorlevel 1 (
   echo Failed to hash the admin password
   exit /b 1
 )
 
-echo HASHED PASSWORD SET TO: %HASHED_ADMIN_PASSWORD%
+echo HASHED PASSWORD SET TO: !HASHED_ADMIN_PASSWORD!
 
-REM Clear the ADMIN_PASSWORD variable
+echo Clear the ADMIN_PASSWORD variable
 set "ADMIN_PASSWORD="
 
-REM Find the line number containing 'admin:' in the internal_users.yml file
+echo Find the line number containing 'admin:' in the internal_users.yml file
 for /f "tokens=1 delims=:" %%c in ('findstr /n "admin:" "%INTERNAL_USERS_FILE%"') do set "ADMIN_HASH_LINE=%%c"
 
 echo ADMIN TARGET FILE LINE SET TO: %ADMIN_HASH_LINE%
