@@ -101,13 +101,13 @@ runs:
     # Verify that the server is operational
     - name: Check OpenSearch Running on Linux
       if: ${{ runner.os != 'Windows'}}
-      run: curl https://localhost:9200/_cat/plugins -u 'admin:admin' -k -v
+      run: curl https://localhost:9200/_cat/plugins -u 'admin:installPassword' -k -v
       shell: bash
 
     - name: Check OpenSearch Running on Windows
       if: ${{ runner.os == 'Windows'}}
       run: |
-        $credentialBytes = [Text.Encoding]::ASCII.GetBytes("admin:admin")
+        $credentialBytes = [Text.Encoding]::ASCII.GetBytes("admin:installPassword")
         $encodedCredentials = [Convert]::ToBase64String($credentialBytes)
         $baseCredentials = "Basic $encodedCredentials"
         $Headers = @{ Authorization = $baseCredentials }
