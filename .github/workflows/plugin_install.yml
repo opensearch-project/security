@@ -49,9 +49,11 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         run: |
           New-Item .\setup.bat -type file
-          Set initialAdminPassword=installPassword
+          New-Item .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT.txt\config\${{ env.PLUGIN_NAME }}\initialAdminPassword.txt -type file 
           Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y"
+          Set-Content .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT.txt\config\${{ env.PLUGIN_NAME }}\initialAdminPassword.txt -Value "installPassword"
           Get-Content .\setup.bat
+          Get-Content .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT.txt\config\${{ env.PLUGIN_NAME }}\initialAdminPassword.txt
 
       - name: Run Opensearch with A Single Plugin
         uses: ./.github/actions/start-opensearch-with-one-plugin
