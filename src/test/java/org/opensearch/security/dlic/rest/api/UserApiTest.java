@@ -58,8 +58,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY = "{"
         + " \"attributes\": { \"service\": \"true\", "
-        + " \"enabled   \": \"true\"},"
-        + " \"service\": \"true\" "
+        + " \"enabled   \": \"true\"}"
         + " }\n";
 
     private static final String DISABLED_SERVICE_ACCOUNT_BODY = "{"

@@ -208,8 +208,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
         try {
             final var username = securityConfiguration.entityName();
             final var content = (ObjectNode) securityConfiguration.requestContent();
-            if (request.hasParam("service")) {
-                content.put("service", request.param("service"));
+            if (request.hasParam("attributes")) {
+                content.put("attributes", request.param("attributes"));
             }
             if (request.hasParam("enabled")) {
                 content.put("enabled", request.param("enabled"));

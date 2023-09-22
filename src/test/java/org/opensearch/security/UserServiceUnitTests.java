@@ -32,7 +32,7 @@ import java.nio.file.Files;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
-public class UserServiceUnitTests<T> {
+public class UserServiceUnitTests {
     SecurityDynamicConfiguration<?> config;
     @Mock
     ClusterService clusterService;
