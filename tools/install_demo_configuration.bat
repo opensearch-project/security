@@ -369,8 +369,8 @@ del "%OUTPUT_FILE%" 2>nul
 
 for /f "usebackq delims=" %%a in ("%INTERNAL_USERS_FILE%") do (
     set "line=%%a"
-    if "!line!"=="    hash: \"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"" (
-        set "line=    hash: \"%HASHED_ADMIN_PASSWORD%\""
+    if "!line!"=="  hash: \"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"" (
+        set "line=  hash: \"%HASHED_ADMIN_PASSWORD%\""
     )
     echo !line!>>"%OUTPUT_FILE%"
 )
