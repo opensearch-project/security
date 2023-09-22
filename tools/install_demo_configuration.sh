@@ -428,8 +428,22 @@ ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
 
 echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
 
-# Use sed to replace the hashed password in the internal_users.yml file
-sed -i "${ADMIN_HASH_LINE}s/.*/admin:\n     hash: '$HASHED_ADMIN_PASSWORD'/" "$INTERNAL_USERS_FILE"
+# Extract the original hash
+ORIGINAL_HASH=$(awk -v line_number="$ADMIN_HASH_LINE" 'NR == line_number && /hash:/ { print $2 }' "$INTERNAL_USERS_FILE")
+
+echo "ORIGINAL HASH: $ORIGINAL_HASH"
+
+# Use awk to replace the hashed password in the internal_users.yml file
+awk -v new_password="$HASHED_ADMIN_PASSWORD" -v line_number="$ADMIN_HASH_LINE" '
+  BEGIN { FS = ": " }
+  NR == line_number && $1 == "  hash" { $2 = "\" " new_password "\""; }
+  { print }
+' "$INTERNAL_USERS_FILE" > temp_internal_users.yml
+
+# Replace the original file with the temporary file
+mv temp_internal_users.yml "$INTERNAL_USERS_FILE"
+
+echo "HASHED PASSWORD SET TO: $HASHED_ADMIN_PASSWORD"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
