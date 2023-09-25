@@ -430,7 +430,7 @@ configurations {
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "org.apache.bcel:bcel:6.7.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.3"
+            force "org.xerial.snappy:snappy-java:1.1.10.4"
             force "com.google.guava:guava:${guava_version}"
         }
     }
@@ -559,7 +559,7 @@ dependencies {
     runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.19'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.3'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.4'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.5.1'
