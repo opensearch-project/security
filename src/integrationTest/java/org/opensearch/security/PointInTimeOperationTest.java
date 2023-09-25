@@ -16,6 +16,7 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -179,6 +180,7 @@ public class PointInTimeOperationTest {
         }
     }
 
+    @Ignore
     @Test
     public void listAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {

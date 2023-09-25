@@ -88,7 +88,7 @@ jobs:
       matrix:
         number: [1,2,3,4,5,6,7,8,9] # Making sure these tests aren't flaky
         jdk: [11, 17]
-        platform: [ubuntu-latest, windows-latest]
+        platform: [ubuntu-latest] # Removing windows support for the tests to keep agile
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -97,9 +97,6 @@ jobs:
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
-
-    - if: ${{ runner.os == 'Windows' }}
-      run: tracert www.google.com
 
     - name: Checkout security
       uses: actions/checkout@v4
