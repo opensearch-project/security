@@ -24,14 +24,14 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
+public class SecurityConfigApiActionTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
 
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public SecurityConfigApiTest() {
+    public SecurityConfigApiActionTest() {
         ENDPOINT = getEndpointPrefix() + "/api";
     }
 
