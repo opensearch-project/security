@@ -180,7 +180,7 @@ public class PointInTimeOperationTest {
         }
     }
 
-    @Ignore
+    @Ignore("Pretty sure cleanUpPits is returning before all of the PITs have actually been deleted")
     @Test
     public void listAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {

@@ -975,7 +975,7 @@ public class SearchOperationTest {
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));// sometimes 2 or 4
     }
 
-    @Ignore
+    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldIndexDocumentInBulkRequest_partiallyPositive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1030,7 +1030,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest").withIndex(SONG_INDEX_NAME));
     }
 
-    @Ignore
+    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldUpdateDocumentsInBulk_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1058,7 +1058,7 @@ public class SearchOperationTest {
 
     }
 
-    @Ignore
+    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldUpdateDocumentsInBulk_partiallyPositive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1143,7 +1143,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
     }
 
-    @Ignore
+    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldDeleteDocumentInBulk_partiallyPositive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1202,7 +1202,7 @@ public class SearchOperationTest {
 
     }
 
-    @Ignore
+    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
@@ -1228,7 +1228,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "ClearScrollRequest"));
     }
 
-    @Ignore
+    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_negativeSource() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
@@ -1243,7 +1243,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "SearchRequest"));
     }
 
-    @Ignore
+    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_negativeDestination() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
@@ -1262,7 +1262,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "ClearScrollRequest"));
     }
 
-    @Ignore
+    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_negativeSourceAndDestination() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
@@ -1335,7 +1335,7 @@ public class SearchOperationTest {
         }
     }
 
-    @Ignore
+    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldCreateAlias_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
@@ -1353,7 +1353,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(2, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_READ_USER));
     }
 
-    @Ignore
+    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldCreateAlias_negative() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
@@ -1371,7 +1371,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
     }
 
-    @Ignore
+    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldDeleteAlias_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
@@ -1409,7 +1409,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
     }
 
-    @Ignore
+    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldCreateIndexTemplate_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1491,7 +1491,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "DeleteIndexTemplateRequest"));
     }
 
-    @Ignore
+    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldUpdateTemplate_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1778,7 +1778,7 @@ public class SearchOperationTest {
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
     }
 
-    @Ignore
+    @Ignore("Audit log entries verifcation isn't always consistant")
     @Test
     public void shouldRestoreSnapshot_positive() throws IOException {
         final String snapshotName = "restore-snapshot-positive";
