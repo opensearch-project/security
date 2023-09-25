@@ -320,17 +320,10 @@ echo plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_a
 echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"] >> "%OPENSEARCH_CONF_FILE%"
 
-
 setlocal enabledelayedexpansion
 
 set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\initialAdminPassword.txt"
 set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users.yml"
-
-echo Path is %cd%
-echo Checking for password file in: %OPENSEARCH_CONF_DIR%opensearch-security\
-echo Content of security config dir is: %OPENSEARCH_CONF_DIR%opensearch-security\
-echo HEAD of password file is:
-type "%ADMIN_PASSWORD_FILE%"
 
 if "%initialAdminPassword%" NEQ "" (
   set "ADMIN_PASSWORD=!initialAdminPassword!"
@@ -345,15 +338,10 @@ if not defined ADMIN_PASSWORD (
 
 set "HASH_SCRIPT=%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat"
 
-echo ADMIN PASSWORD SET TO: !ADMIN_PASSWORD!
-
 REM Run the command and capture its output
 for /f %%a in ('%HASH_SCRIPT% -p !ADMIN_PASSWORD!') do (
   set "HASHED_ADMIN_PASSWORD=%%a"
 )
-
-REM Display the value of the variable
-echo HASHED_ADMIN_PASSWORD is !HASHED_ADMIN_PASSWORD!
 
 if errorlevel 1 (
   echo Failed to hash the admin password
@@ -365,12 +353,8 @@ set "ADMIN_PASSWORD="
 
 set "default_line=  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG""
 
-
 set "search=%default_line%"
 set "replace=  hash: "%HASHED_ADMIN_PASSWORD%""
-
-echo To find line is: !search!
-echo Replace is: !replace!
 
 setlocal enableextensions
 for /f "delims=" %%i in ('type "%INTERNAL_USERS_FILE%" ^& break ^> "%INTERNAL_USERS_FILE%" ') do (
@@ -379,12 +363,6 @@ for /f "delims=" %%i in ('type "%INTERNAL_USERS_FILE%" ^& break ^> "%INTERNAL_US
     >>"%INTERNAL_USERS_FILE%" echo(!line:%search%=%replace%!
     endlocal
 )
-
-
-move /y "%OUTPUT_FILE%" "%INTERNAL_USERS_FILE%"
-
-echo AFTER CHANGE:
-type "%INTERNAL_USERS_FILE%"
 
 :: network.host
 >nul findstr /b /c:"network.host" "%OPENSEARCH_CONF_FILE%" && (
