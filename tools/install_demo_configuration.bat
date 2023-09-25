@@ -368,12 +368,16 @@ set default_line="  hash: ""$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JD
 set "search=%default_line%"
 set "replace="  hash: ""%HASHED_ADMIN_PASSWORD%"""
 
-
-for /f "delims=" %%i in ('type "%INTERNAL_USERS_FILE%" ^& break ^> "%INTERNAL_USERS_FILE%" ') do (
+set "newfile=Output.txt"
+(for /f "delims=" %%i in (%INTERNAL_USERS_FILE%) do (
     set "line=%%i"
-    >>"%INTERNAL_USERS_FILE%" echo(!line:%search%=%replace%!
+    setlocal enabledelayedexpansion
+    set "line=!line:%search%=%replace%!"
+    echo(!line!
     endlocal
-)
+))>"%newfile%"
+del %INTERNAL_USERS_FILE%
+rename %newfile%  %INTERNAL_USERS_FILE%
 
 echo AFTER CHANGE:
 type "%INTERNAL_USERS_FILE%"
