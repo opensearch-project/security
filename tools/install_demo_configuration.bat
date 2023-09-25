@@ -363,10 +363,11 @@ if errorlevel 1 (
 echo Clear the ADMIN_PASSWORD variable
 set "ADMIN_PASSWORD="
 
-set default_line="  hash: ""$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"""
+set default_line="  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG""
 
 set "search=%default_line%"
-set "replace="  hash: ""%HASHED_ADMIN_PASSWORD%"""
+set "replace="  hash: "%HASHED_ADMIN_PASSWORD%""
+
 echo To find line is: !search!
 echo Replace is: !replace!
 
