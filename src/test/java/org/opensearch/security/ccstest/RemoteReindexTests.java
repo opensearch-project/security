@@ -29,7 +29,6 @@ package org.opensearch.security.ccstest;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -45,7 +44,6 @@ import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-@Ignore
 public class RemoteReindexTests extends AbstractSecurityUnitTest {
 
     private final ClusterHelper cl1 = new ClusterHelper(

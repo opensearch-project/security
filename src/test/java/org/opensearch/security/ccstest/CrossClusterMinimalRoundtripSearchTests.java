@@ -11,9 +11,6 @@
 
 package org.opensearch.security.ccstest;
 
-import org.junit.Ignore;
-
-@Ignore
 public class CrossClusterMinimalRoundtripSearchTests extends CrossClusterSearchTests {
     @Override
     protected boolean ccsMinimizeRoundtrips() {

@@ -29,7 +29,6 @@ package org.opensearch.security.ccstest;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -67,7 +66,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
-@Ignore
 public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
     private final ClusterHelper cl1 = new ClusterHelper(
