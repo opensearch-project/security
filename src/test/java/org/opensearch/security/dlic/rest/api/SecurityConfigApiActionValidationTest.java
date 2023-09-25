@@ -17,26 +17,11 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.util.FakeRestRequest;
 
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class SecurityConfigApiActionValidationTest extends AbstractApiActionValidationTest {
-
-    @Test
-    public void configEntityNameOnly() {
-        final var securityConfigApiAction = new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies);
-        var result = securityConfigApiAction.withConfigEntityNameOnly(
-            FakeRestRequest.builder().withParams(Map.of("name", "aaaaa")).build()
-        );
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
-
-        result = securityConfigApiAction.withConfigEntityNameOnly(FakeRestRequest.builder().withParams(Map.of("name", "config")).build());
-        assertTrue(result.isValid());
-    }
 
     @Test
     public void withAllowedEndpoint() {

@@ -309,8 +309,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
-        return endpointValidator.withRequiredEntityName(nameParam(request))
-            .map(entityName -> loadConfigurationWithRequestContent(entityName, request))
+        return processPutRequest(nameParam(request), request);
+    }
+
+    protected final ValidationResult<SecurityConfiguration> processPutRequest(final String entityName, final RestRequest request)
+        throws IOException {
+        return endpointValidator.withRequiredEntityName(entityName)
+            .map(ignore -> loadConfigurationWithRequestContent(entityName, request))
             .map(endpointValidator::onConfigChange)
             .map(this::addEntityToConfig);
     }
