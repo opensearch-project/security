@@ -505,7 +505,7 @@ dependencies {
     implementation 'org.apache.commons:commons-collections4:4.4'
 
     //Password generation
-    implementation 'org.passay:passay:1.6.3'
+    implementation 'org.passay:passay:1.6.4'
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
