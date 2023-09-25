@@ -363,33 +363,17 @@ if errorlevel 1 (
 echo Clear the ADMIN_PASSWORD variable
 set "ADMIN_PASSWORD="
 
-set "OUTPUT_FILE=temp_file"
+set default_line="  hash: ""$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"""
 
-del "%OUTPUT_FILE%" 2>nul
+set "search=%default_line%"
+set "replace="  hash: ""%HASHED_ADMIN_PASSWORD%"""
 
-for /f "usebackq delims=" %%a in ("%INTERNAL_USERS_FILE%") do (
-    set "line=%%a"
-    if "!line:~0,2!"=="  " (
-            rem Check if the line contains the specific pattern
-            if "!line:~2!"=="hash: \"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"" (
-                echo "line found"
-            )
-        )
+
+for /f "delims=" %%i in ('type "%INTERNAL_USERS_FILE%" ^& break ^> "%INTERNAL_USERS_FILE%" ') do (
+    set "line=%%i"
+    >>"%INTERNAL_USERS_FILE%" echo(!line:%search%=%replace%!
+    endlocal
 )
-
-for /f "usebackq delims=" %%a in ("%INTERNAL_USERS_FILE%") do (
-    set "line=%%a"
-    rem Check for two leading spaces before the pattern
-    if "!line:~0,2!"=="  " (
-        rem Check if the line contains the specific pattern
-        if "!line:~2!"=="hash: \"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"" (
-            set "line=  hash: \"%HASHED_ADMIN_PASSWORD%\""
-        )
-    )
-    echo !line!>>"%OUTPUT_FILE%"
-)
-
-move /y "%OUTPUT_FILE%" "%INTERNAL_USERS_FILE%"
 
 echo AFTER CHANGE:
 type "%INTERNAL_USERS_FILE%"
