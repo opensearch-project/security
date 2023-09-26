@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [11, 17]
-        platform: [ubuntu-latest] # Removing windows temporarily 
+        platform: [ubuntu-latest] # Removing windows temporarily
     runs-on: ${{ matrix.platform }}
 
     steps:
