@@ -5,6 +5,7 @@ on: [push, pull_request, workflow_dispatch]
 env:
   OPENSEARCH_VERSION: 3.0.0
   PLUGIN_NAME: opensearch-security
+  CLUSTER_ADMIN_PASSWORD: ${RANDOM}${RANDOM}
 
 jobs:
   plugin-install:
@@ -59,9 +60,10 @@ jobs:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugin-name: ${{ env.PLUGIN_NAME }}
           setup-script-name: setup
+          admin-password: ${{ env.CLUSTER_ADMIN_PASSWORD }}
 
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
         with:
           cache-disabled: true
-          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=installPassword
+          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=${{ env.CLUSTER_ADMIN_PASSWORD }}
