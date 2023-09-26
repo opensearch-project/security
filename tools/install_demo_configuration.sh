@@ -390,12 +390,6 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 
 # Read the admin password from the file or use the initialAdminPassword if set
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt"
-INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
-
-echo "Path is $(pwd)"
-echo "Checking for password file in: $OPENSEARCH_CONF_DIR/opensearch-security/"
-echo "Content of security config dir is: $(ls "$OPENSEARCH_CONF_DIR/opensearch-security/")"
-echo "HEAD of password file is: $(head "$ADMIN_PASSWORD_FILE")"
 
 if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
@@ -406,7 +400,7 @@ else
   exit 1
 fi
 
-echo "ADMIN PASSWORD SET TO: $ADMIN_PASSWORD"
+echo "   ***   ADMIN PASSWORD SET TO: $ADMIN_PASSWORD    ***"
 
 $SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh"
 
@@ -414,21 +408,13 @@ $SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh"
 HASHED_ADMIN_PASSWORD=$($OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh -p "$ADMIN_PASSWORD")
 
 if [ $? -ne 0 ]; then
-  echo "Failed to hash the admin password"
+  echo "Hash the admin password failure, see console for details"
   exit 1
 fi
 
-echo "HASHED PASSWORD SET TO: $HASHED_ADMIN_PASSWORD"
-
-# Clear the ADMIN_PASSWORD variable
-unset ADMIN_PASSWORD
-
 # Find the line number containing 'admin:' in the internal_users.yml file
+INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
-
-echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
-
-echo "Before CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
 awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
   /^ *hash: *"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/ {
@@ -436,9 +422,6 @@ awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
   }
   { print }
 ' "$INTERNAL_USERS_FILE" > temp_file && mv temp_file "$INTERNAL_USERS_FILE"
-
-
-echo "AFTER CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
@@ -456,6 +439,8 @@ if $SUDO_CMD grep --quiet -i "^node.max_local_storage_nodes" "$OPENSEARCH_CONF_F
 else
     echo 'node.max_local_storage_nodes: 3' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 fi
+
+
 
 echo "######## End OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
