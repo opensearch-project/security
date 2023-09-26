@@ -53,6 +53,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 
 public class SecurityRolesPermissionsTest {
 
@@ -78,6 +79,8 @@ public class SecurityRolesPermissionsTest {
                 new SimpleEntry<>(restAdminApiRoleName(CERTS_INFO_ACTION), role(pb.build(CERTS_INFO_ACTION))),
                 new SimpleEntry<>(restAdminApiRoleName(RELOAD_CERTS_ACTION), role(pb.build(RELOAD_CERTS_ACTION)))
             );
+        } else if (e.getKey() == Endpoint.CONFIG) {
+            return Stream.of(new SimpleEntry<>(restAdminApiRoleName(SECURITY_CONFIG_UPDATE), role(pb.build(SECURITY_CONFIG_UPDATE))));
         } else {
             return Stream.of(new SimpleEntry<>(restAdminApiRoleName(endpoint), role(pb.build())));
         }
@@ -95,6 +98,8 @@ public class SecurityRolesPermissionsTest {
         return ENDPOINTS_WITH_PERMISSIONS.entrySet().stream().flatMap(entry -> {
             if (entry.getKey() == Endpoint.SSL) {
                 return Stream.of(entry.getValue().build(CERTS_INFO_ACTION), entry.getValue().build(RELOAD_CERTS_ACTION));
+            } else if (entry.getKey() == Endpoint.CONFIG) {
+                return Stream.of(entry.getValue().build(SECURITY_CONFIG_UPDATE));
             } else {
                 return Stream.of(entry.getValue().build());
             }
@@ -130,6 +135,11 @@ public class SecurityRolesPermissionsTest {
                         endpoint.name(),
                         securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
                     );
+                } else if (endpoint == Endpoint.CONFIG) {
+                    Assert.assertFalse(
+                        endpoint.name(),
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(SECURITY_CONFIG_UPDATE))
+                    );
                 } else {
                     Assert.assertFalse(
                         endpoint.name(),
@@ -156,6 +166,11 @@ public class SecurityRolesPermissionsTest {
                         endpoint.name() + "/" + CERTS_INFO_ACTION,
                         securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
                     );
+                } else if (endpoint == Endpoint.CONFIG) {
+                    Assert.assertTrue(
+                        endpoint.name() + "/" + SECURITY_CONFIG_UPDATE,
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(SECURITY_CONFIG_UPDATE))
+                    );
                 } else {
                     Assert.assertTrue(
                         endpoint.name(),
@@ -171,7 +186,7 @@ public class SecurityRolesPermissionsTest {
         // verify all endpoint except SSL
         final Collection<Endpoint> noSslEndpoints = ENDPOINTS_WITH_PERMISSIONS.keySet()
             .stream()
-            .filter(e -> e != Endpoint.SSL)
+            .filter(e -> e != Endpoint.SSL && e != Endpoint.CONFIG)
             .collect(Collectors.toList());
         for (final Endpoint endpoint : noSslEndpoints) {
             final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build();
@@ -190,6 +205,15 @@ public class SecurityRolesPermissionsTest {
             );
             assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.SSL, sslAllowRole);
         }
+        // verify CONFIG endpoint with 1 action
+        final SecurityRoles securityConfigAllowRole = configModel.getSecurityRoles()
+            .filter(ImmutableSet.of(restAdminApiRoleName(SECURITY_CONFIG_UPDATE)));
+        final PermissionBuilder permissionBuilder = ENDPOINTS_WITH_PERMISSIONS.get(Endpoint.CONFIG);
+        Assert.assertTrue(
+            Endpoint.SSL + "/" + SECURITY_CONFIG_UPDATE,
+            securityConfigAllowRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(SECURITY_CONFIG_UPDATE))
+        );
+        assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.CONFIG, securityConfigAllowRole);
     }
 
     void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final SecurityRoles allowOnlyRoleForRole) {

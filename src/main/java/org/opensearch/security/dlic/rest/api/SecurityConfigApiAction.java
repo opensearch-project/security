@@ -11,41 +11,40 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
-import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
-import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class SecurityConfigApiAction extends AbstractApiAction {
 
-    private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(new Route(Method.GET, "/securityconfig/")));
-
-    private static final List<Route> allRoutes = new ImmutableList.Builder<Route>().addAll(getRoutes)
-        .addAll(
-            addRoutesPrefix(ImmutableList.of(new Route(Method.PUT, "/securityconfig/config"), new Route(Method.PATCH, "/securityconfig/")))
+    private static final List<Route> routes = addRoutesPrefix(
+        List.of(
+            new Route(Method.GET, "/securityconfig"),
+            new Route(Method.PATCH, "/securityconfig"),
+            new Route(Method.PUT, "/securityconfig/config")
         )
-        .build();
+    );
 
     private final boolean allowPutOrPatch;
+
+    private final boolean restApiAdminEnabled;
 
     @Inject
     public SecurityConfigApiAction(
@@ -57,12 +56,13 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         super(Endpoint.CONFIG, clusterService, threadPool, securityApiDependencies);
         allowPutOrPatch = securityApiDependencies.settings()
             .getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
+        this.restApiAdminEnabled = securityApiDependencies.settings().getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false);
         this.requestHandlersBuilder.configureRequestHandlers(this::securityConfigApiActionRequestHandlers);
     }
 
     @Override
     public List<Route> routes() {
-        return allowPutOrPatch ? allRoutes : getRoutes;
+        return routes;
     }
 
     @Override
@@ -74,20 +74,29 @@ public class SecurityConfigApiAction extends AbstractApiAction {
     protected void consumeParameters(RestRequest request) {}
 
     private void securityConfigApiActionRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onChangeRequest(
-            Method.PUT,
-            request -> withAllowedEndpoint(request).map(ignore -> processPutRequest("config", request))
-        )
-            .onChangeRequest(Method.PATCH, request -> withAllowedEndpoint(request).map(this::processPatchRequest))
+        requestHandlersBuilder.withAccessHandler(this::accessHandler)
+            .verifyAccessForAllMethods()
+            .onChangeRequest(Method.PUT, request -> processPutRequest("config", request))
+            .onChangeRequest(Method.PATCH, this::processPatchRequest)
             .override(Method.DELETE, methodNotImplementedHandler)
             .override(Method.POST, methodNotImplementedHandler);
     }
 
-    ValidationResult<RestRequest> withAllowedEndpoint(final RestRequest request) {
-        if (!allowPutOrPatch) {
-            return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
+    boolean accessHandler(final RestRequest request) {
+        switch (request.method()) {
+            case PATCH:
+            case PUT:
+                if (!allowPutOrPatch && !restApiAdminEnabled) {
+                    return false;
+                } else if (allowPutOrPatch && !restApiAdminEnabled) {
+                    return true;
+                } else {
+                    return securityApiDependencies.restApiAdminPrivilegesEvaluator()
+                        .isCurrentUserAdminFor(endpoint, SECURITY_CONFIG_UPDATE);
+                }
+            default:
+                return true;
         }
-        return ValidationResult.success(request);
     }
 
     @Override
