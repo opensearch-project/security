@@ -5,7 +5,7 @@ on: [push, pull_request, workflow_dispatch]
 env:
   OPENSEARCH_VERSION: 3.0.0
   PLUGIN_NAME: opensearch-security
-  CLUSTER_ADMIN_PASSWORD: ${RANDOM}${RANDOM}
+  CLUSTER_ADMIN_PASSWORD: $((RANDOM))
 
 jobs:
   plugin-install:
@@ -41,7 +41,6 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           cat > setup.sh <<'EOF'
-          echo installPassword >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/opensearch-security/initialAdminPassword.txt
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
           /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
           EOF
@@ -50,7 +49,6 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         run: |
           New-Item .\setup.bat -type file
-          Set-Content .\setup.bat -Value "powershell.exe echo installPassword >> .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\config\${{ env.PLUGIN_NAME }}\initialAdminPassword.txt & ^
           powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y"
           Get-Content .\setup.bat
 
@@ -66,4 +64,4 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           cache-disabled: true
-          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=${{ env.CLUSTER_ADMIN_PASSWORD }}
+          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=${{ env.CLUSTER_ADMIN_PASSWORD }} -i
