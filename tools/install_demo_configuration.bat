@@ -322,8 +322,11 @@ echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-m
 
 setlocal enabledelayedexpansion
 
-set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%\initialAdminPassword.txt"
+set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%initialAdminPassword.txt"
 set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users.yml"
+
+echo "what is in the config directory"  
+dir %OPENSEARCH_CONF_DIR%
 
 if "%initialAdminPassword%" NEQ "" (
   set "ADMIN_PASSWORD=!initialAdminPassword!"
