@@ -328,6 +328,10 @@ set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users
 echo "what is in the config directory"  
 dir %OPENSEARCH_CONF_DIR%
 
+echo "what is in the password file"
+type "%ADMIN_PASSWORD_FILE%"
+
+
 if "%initialAdminPassword%" NEQ "" (
   set "ADMIN_PASSWORD=!initialAdminPassword!"
 ) else (
@@ -338,6 +342,10 @@ if not defined ADMIN_PASSWORD (
   echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
   exit /b 1
 )
+
+echo "   ***************************************************"
+echo "   ***   ADMIN PASSWORD SET TO: %ADMIN_PASSWORD%   ***"
+echo "   ***************************************************"
 
 set "HASH_SCRIPT=%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat"
 

@@ -392,11 +392,6 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
 INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 
-echo "Path is $(pwd)"
-echo "Checking for password file in: $OPENSEARCH_CONF_DIR/opensearch-security/"
-echo "Content of security config dir is: $(ls "$OPENSEARCH_CONF_DIR/opensearch-security/")"
-echo "HEAD of password file is: $(head "$ADMIN_PASSWORD_FILE")"
-
 if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
 elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
@@ -406,7 +401,9 @@ else
   exit 1
 fi
 
+echo "   ***************************************************"
 echo "   ***   ADMIN PASSWORD SET TO: $ADMIN_PASSWORD    ***"
+echo "   ***************************************************"
 
 $SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh"
 
@@ -418,17 +415,8 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "HASHED PASSWORD SET TO: $HASHED_ADMIN_PASSWORD"
-
-# Clear the ADMIN_PASSWORD variable
-unset ADMIN_PASSWORD
-
 # Find the line number containing 'admin:' in the internal_users.yml file
 ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
-
-echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
-
-echo "Before CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
 awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
   /^ *hash: *"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/ {
@@ -436,9 +424,6 @@ awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
   }
   { print }
 ' "$INTERNAL_USERS_FILE" > temp_file && mv temp_file "$INTERNAL_USERS_FILE"
-
-
-echo "AFTER CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
