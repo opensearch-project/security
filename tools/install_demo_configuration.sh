@@ -388,8 +388,14 @@ echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
-# Read the admin password from the file or use the initialAdminPassword if set
+## Read the admin password from the file or use the initialAdminPassword if set
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt"
+INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
+
+echo "Path is $(pwd)"
+echo "Checking for password file in: $OPENSEARCH_CONF_DIR/opensearch-security/"
+echo "Content of security config dir is: $(ls "$OPENSEARCH_CONF_DIR/opensearch-security/")"
+echo "HEAD of password file is: $(head "$ADMIN_PASSWORD_FILE")"
 
 if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
@@ -412,9 +418,17 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+echo "HASHED PASSWORD SET TO: $HASHED_ADMIN_PASSWORD"
+
+# Clear the ADMIN_PASSWORD variable
+unset ADMIN_PASSWORD
+
 # Find the line number containing 'admin:' in the internal_users.yml file
-INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
+
+echo "ADMIN TARGET FILE LINE SET TO: $ADMIN_HASH_LINE"
+
+echo "Before CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
 awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
   /^ *hash: *"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/ {
@@ -422,6 +436,9 @@ awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
   }
   { print }
 ' "$INTERNAL_USERS_FILE" > temp_file && mv temp_file "$INTERNAL_USERS_FILE"
+
+
+echo "AFTER CHANGE: $(cat $INTERNAL_USERS_FILE)"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
