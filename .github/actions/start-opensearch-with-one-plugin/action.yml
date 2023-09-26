@@ -108,7 +108,7 @@ runs:
     # Verify that the server is operational
     - name: Check OpenSearch Running on Linux
       if: ${{ runner.os != 'Windows'}}
-      run: curl https://localhost:9200/_cat/plugins -u 'admin:${{ inputs.admin-password }}' -k -v
+      run: curl https://localhost:9200/_cat/plugins -u 'admin:${{ inputs.admin-password }}' -k -v --fail-with-body
       shell: bash
 
     - name: Check OpenSearch Running on Windows
