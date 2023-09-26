@@ -77,14 +77,14 @@ runs:
       run: |
         echo "running linux setup"
         chmod +x ./${{ inputs.setup-script-name }}.sh
-        echo ${{ inputs.admin-password }} >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/opensearch-security/initialAdminPassword.txt
+        echo ${{ inputs.admin-password }} >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/${{ env.PLUGIN_NAME }}/initialAdminPassword.txt
         ./${{ inputs.setup-script-name }}.sh
       shell: bash
 
     - name: Run Setup Script for Windows
       if: ${{ runner.os == 'Windows' && inputs.setup-script-name != '' }}
       run: |
-        Set-Content .\setup.bat -Value "powershell.exe echo ${{ inputs.admin-password }} >> .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\config\${{ env.PLUGIN_NAME }}\initialAdminPassword.txt & ^
+        echo ${{ inputs.admin-password }} >> .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\config\${{ env.PLUGIN_NAME }}\initialAdminPassword.txt
         .\${{ inputs.setup-script-name }}.bat
       shell: pwsh
 
