@@ -67,11 +67,12 @@ public class JwtVendor {
         final String signingKey = settings.get("signing_key");
 
         if (Strings.isNullOrEmpty(signingKey)) {
-            throw new OpenSearchException("Signing key is required for creation of OnBehalfOf tokens, the '\"on_behalf_of\": {\"signing_key\":{KEY}, ...} with a shared secret.");
+            throw new OpenSearchException(
+                "Signing key is required for creation of OnBehalfOf tokens, the '\"on_behalf_of\": {\"signing_key\":{KEY}, ...} with a shared secret."
+            );
         }
 
-        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes())
-            .algorithm(JWSAlgorithm.HS512)
+        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes()).algorithm(JWSAlgorithm.HS512)
             .keyUse(KeyUse.SIGNATURE)
             .build();
 
@@ -123,20 +124,14 @@ public class JwtVendor {
             claimsBuilder.claim("br", listOfBackendRoles);
         }
 
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName()))
-            .build();
+        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
         final SignedJWT signedJwt = new SignedJWT(header, claimsBuilder.build());
 
         // Sign the JWT so it can be serialized
         signedJwt.sign(signer);
 
         if (logger.isDebugEnabled()) {
-            logger.debug(
-                "Created JWT: "
-                    + signedJwt.getHeader()
-                    + "\n"
-                    + signedJwt.getJWTClaimsSet()
-            );
+            logger.debug("Created JWT: " + signedJwt.getHeader() + "\n" + signedJwt.getJWTClaimsSet());
         }
 
         return signedJwt.serialize();
