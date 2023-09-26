@@ -5,8 +5,7 @@ on: [push, pull_request, workflow_dispatch]
 env:
   OPENSEARCH_VERSION: 3.0.0
   PLUGIN_NAME: opensearch-security
-  CLUSTER_ADMIN_PASSWORD: $((RANDOM))
-  CLUSTER_ADMIN_PASSWORD_2: $(RANDOM)
+  RNG: $((RANDOM))
 
 jobs:
   plugin-install:
@@ -18,11 +17,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - run: |
-          echo First time ${{ env.CLUSTER_ADMIN_PASSWORD }}
-          echo Second time ${{ env.CLUSTER_ADMIN_PASSWORD }}
-          echo Less random? ${{ env.CLUSTER_ADMIN_PASSWORD_2 }}
-          echo More random? ${{ env.CLUSTER_ADMIN_PASSWORD_2 }}
+      - run: echo CLUSTER_ADMIN_PASSWORD=password-${{ env.RNG }} >> $GITHUB_ENV
+
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
