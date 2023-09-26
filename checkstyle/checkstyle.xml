@@ -220,6 +220,13 @@
   </module>
 
   <module name="RegexpSingleline">
+    <property name="format" value="println"/>
+    <property name="ignoreCase" value="true"/>
+    <property name="message" value="SYSTEM.OUT.PRINTLN NONONO!" />
+    <property name="severity" value="error"/>
+  </module>
+
+  <module name="RegexpSingleline">
     <property name="format" value="extension"/>
     <property name="ignoreCase" value="true"/>
     <property name="message" value="Extension should only be used sparingly to keep implementations as generic as possible" />
