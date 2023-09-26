@@ -389,7 +389,7 @@ echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSE
 echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
 ## Read the admin password from the file or use the initialAdminPassword if set
-ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/initialAdminPassword.txt"
+ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
 INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 
 echo "Path is $(pwd)"
@@ -402,7 +402,7 @@ if [[ -n "$initialAdminPassword" ]]; then
 elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
   ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
 else
-  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file {OPENSEARCH_ROOT}/config/initialAdminPassword.txt with a single line that contains the password."
+  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
   exit 1
 fi
 

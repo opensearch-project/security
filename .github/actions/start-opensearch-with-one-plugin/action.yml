@@ -73,7 +73,7 @@ runs:
 
     - name: Write password to initialAdminPassword location
       run:
-        echo ${{ inputs.admin-password }} >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/${{ env.PLUGIN_NAME }}/initialAdminPassword.txt
+        echo ${{ inputs.admin-password }} >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/initialAdminPassword.txt
       shell: bash
 
     # Run any configuration scripts

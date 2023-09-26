@@ -322,7 +322,8 @@ echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-m
 
 setlocal enabledelayedexpansion
 
-set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\initialAdminPassword.txt"
+set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%\initialAdminPassword.txt"
+set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users.yml"
 
 if "%initialAdminPassword%" NEQ "" (
   set "ADMIN_PASSWORD=!initialAdminPassword!"
@@ -331,7 +332,7 @@ if "%initialAdminPassword%" NEQ "" (
 )
 
 if not defined ADMIN_PASSWORD (
-  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file {OPENSEARCH_ROOT}\config\initialAdminPassword.txt with a single line that contains the password.
+  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
   exit /b 1
 )
 
@@ -350,7 +351,6 @@ if errorlevel 1 (
 set "default_line=  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG""
 set "search=%default_line%"
 set "replace=  hash: "%HASHED_ADMIN_PASSWORD%""
-set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users.yml"
 
 setlocal enableextensions
 for /f "delims=" %%i in ('type "%INTERNAL_USERS_FILE%" ^& break ^> "%INTERNAL_USERS_FILE%" ') do (
