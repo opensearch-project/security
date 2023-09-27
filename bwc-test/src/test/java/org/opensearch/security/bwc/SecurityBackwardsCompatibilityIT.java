@@ -326,11 +326,4 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             assertThat(response.getStatusLine().getStatusCode(), equalTo(201));
         }
     }
-
-    @AfterClass
-    public static void cleanUp() throws Exception {
-        OpenSearchRestTestCase.closeClients();
-        IOUtils.close(testUserAuthClient);
-    }
-
 }
