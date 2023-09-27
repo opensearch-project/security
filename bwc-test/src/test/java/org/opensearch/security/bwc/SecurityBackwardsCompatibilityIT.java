@@ -192,7 +192,11 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
             final Version minNodeVersion = minimumNodeVersion();
 
-            assertThat(pluginNames, hasItem("opensearch_security"));
+            if (minNodeVersion.major <= 1) {
+                assertThat(pluginNames, hasItem("opensearch_security")); // With underscore seperator
+            } else {
+                assertThat(pluginNames, hasItem("opensearch-security")); // With dash seperator
+            }
         }
     }
 
