@@ -21,6 +21,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
+import org.opensearch.client.WarningsHandler;
 
 import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
 
@@ -47,6 +48,7 @@ public class RestHelper {
         Request request = new Request(method, endpoint);
 
         RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
+        options.setWarningsHandler(WarningsHandler.PERMISSIVE);
         if (headers != null) {
             headers.forEach(header -> options.addHeader(header.getName(), header.getValue()));
         }
