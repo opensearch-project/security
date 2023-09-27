@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - id: random-password
-        uses: peternied/name-generator-node-action@bf5cd5e
+        uses: peternied/name-generator-node-action@bf5cd5e4e4a9094a8032557b1dd8d8d960bcd1ec
 
       - name: Set up JDK
         uses: actions/setup-java@v3
