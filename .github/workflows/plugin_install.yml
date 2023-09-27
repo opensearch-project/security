@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - id: random-password
-        uses: TGPSKI/name-generator-node-action@v2
+        uses: peternied/name-generator-node-action@bf5cd5e
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -60,10 +60,10 @@ jobs:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugin-name: ${{ env.PLUGIN_NAME }}
           setup-script-name: setup
-          admin-password: ${{ steps.random-password.outputs.name }}
+          admin-password: ${{ steps.random-password.outputs.generated_name }}
 
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
         with:
           cache-disabled: true
-          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=${{ steps.random-password.outputs.name }} -i
+          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=${{ steps.random-password.outputs.generated_name }} -i
