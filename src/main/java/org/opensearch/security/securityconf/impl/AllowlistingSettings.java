@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -107,7 +106,7 @@ public class AllowlistingSettings {
      * then all PUT /_opendistro/_security/api/rolesmapping/{resource_name} work.
      * Currently, each resource_name has to be allowlisted separately
      */
-    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
+    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel) throws IOException {
         // if allowlisting is enabled but the request is not allowlisted, then return false, otherwise true.
         if (this.enabled && !requestIsAllowlisted(request)) {
             channel.sendResponse(

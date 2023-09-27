@@ -109,6 +109,7 @@ import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.DelegatingRestHandler;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.core.rest.RestStatus;
@@ -162,6 +163,7 @@ import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.SslExceptionHandler;
+import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
@@ -214,7 +216,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public static final String PLUGINS_PREFIX = "_plugins/_security";
 
     private boolean sslCertReloadEnabled;
-    private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
@@ -585,7 +586,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
 
         if (client || disabled || SSLConfig.isSslOnlyMode()) {
-            return (rh) -> rh;
+            return (rh) -> new DelegatingRestHandler(rh);
         }
 
         return (rh) -> securityRestHandler.wrap(rh, adminDns);
@@ -881,6 +882,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         if (!disabled) {
+            final Netty4HttpRequestHeaderVerifier headerVerifier = new Netty4HttpRequestHeaderVerifier(
+                securityRestHandler,
+                xContentRegistry,
+                threadPool
+            );
             if (!client && httpSSLEnabled) {
 
                 final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(
@@ -902,7 +908,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     validatingDispatcher,
                     clusterSettings,
                     sharedGroupFactory,
-                    tracer
+                    tracer,
+                    headerVerifier
                 );
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
@@ -918,7 +925,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         dispatcher,
                         clusterSettings,
                         sharedGroupFactory,
-                        tracer
+                        tracer,
+                        headerVerifier
                     )
                 );
             }

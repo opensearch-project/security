@@ -87,7 +87,6 @@ public class BackendRegistry {
     private final Settings opensearchSettings;
     // private final InternalAuthenticationBackend iab;
     private final AuditLog auditLog;
-    private final ThreadPool threadPool;
     private final UserInjector userInjector;
     private final int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
@@ -138,7 +137,7 @@ public class BackendRegistry {
         this.opensearchSettings = settings;
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
-        this.threadPool = threadPool;
+        // this.threadPool = threadPool;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60);
@@ -198,11 +197,11 @@ public class BackendRegistry {
             return false;
         }
 
-        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+        final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }

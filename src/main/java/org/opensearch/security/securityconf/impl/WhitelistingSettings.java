@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -108,7 +107,7 @@ public class WhitelistingSettings extends AllowlistingSettings {
      * Currently, each resource_name has to be whitelisted separately
      */
     @Override
-    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
+    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel) throws IOException {
         // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
         if (this.enabled && !requestIsWhitelisted(request)) {
             channel.sendResponse(

@@ -29,6 +29,8 @@ package org.opensearch.security.http;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.HttpContentDecompressor;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -36,11 +38,15 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
+import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
 public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
+
+    private Netty4HttpRequestHeaderVerifier headerVerifier;
 
     public SecurityNonSslHttpServerTransport(
         final Settings settings,
@@ -51,7 +57,8 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         final Dispatcher dispatcher,
         ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
-        Tracer tracer
+        Tracer tracer,
+        Netty4HttpRequestHeaderVerifier headerVerifier
     ) {
         super(
             settings,
@@ -64,6 +71,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
             sharedGroupFactory,
             tracer
         );
+        this.headerVerifier = headerVerifier;
     }
 
     @Override
@@ -81,5 +89,15 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
         }
+    }
+
+    @Override
+    protected HttpContentDecompressor getDecompressor() {
+        return new Netty4ConditionalDecompressor();
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter getHeaderVerifier() {
+        return headerVerifier;
     }
 }

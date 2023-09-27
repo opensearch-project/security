@@ -71,6 +71,8 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
+import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
@@ -102,6 +104,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final boolean transportSSLEnabled;
     protected final boolean extendedKeyUsageEnabled;
     protected final Settings settings;
+    protected volatile SecurityRestFilter securityRestHandler;
     protected final SharedGroupFactory sharedGroupFactory;
     protected final SecurityKeyStore sks;
     protected PrincipalExtractor principalExtractor;
@@ -256,6 +259,11 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 configPath,
                 NOOP_SSL_EXCEPTION_HANDLER
             );
+            final Netty4HttpRequestHeaderVerifier headerVerifier = new Netty4HttpRequestHeaderVerifier(
+                securityRestHandler,
+                xContentRegistry,
+                threadPool
+            );
             final SecuritySSLNettyHttpServerTransport sgsnht = new SecuritySSLNettyHttpServerTransport(
                 settings,
                 networkService,
@@ -267,7 +275,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 NOOP_SSL_EXCEPTION_HANDLER,
                 clusterSettings,
                 sharedGroupFactory,
-                tracer
+                tracer,
+                headerVerifier
             );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);

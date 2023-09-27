@@ -20,7 +20,9 @@ package org.opensearch.security.ssl.http.netty;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.DecoderException;
+import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslHandler;
@@ -47,6 +49,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
 
+    private final Netty4HttpRequestHeaderVerifier headerVerifier;
+
     public SecuritySSLNettyHttpServerTransport(
         final Settings settings,
         final NetworkService networkService,
@@ -58,7 +62,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         final SslExceptionHandler errorHandler,
         ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
-        Tracer tracer
+        Tracer tracer,
+        Netty4HttpRequestHeaderVerifier headerVerifier
     ) {
         super(
             settings,
@@ -73,6 +78,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         );
         this.sks = sks;
         this.errorHandler = errorHandler;
+        this.headerVerifier = headerVerifier;
     }
 
     @Override
@@ -106,6 +112,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
 
             @Override
             protected void configurePipeline(ChannelHandlerContext ctx, String protocol) throws Exception {
+                final HttpContentDecompressor decompressor = new Netty4ConditionalDecompressor();
                 if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
                     configureDefaultHttp2Pipeline(ctx.pipeline());
                 } else if (ApplicationProtocolNames.HTTP_1_1.equals(protocol)) {
@@ -148,5 +155,15 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         protected void configurePipeline(Channel ch) {
             ch.pipeline().addLast(new Http2OrHttpHandler());
         }
+    }
+
+    @Override
+    protected HttpContentDecompressor getDecompressor() {
+        return new Netty4ConditionalDecompressor();
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter getHeaderVerifier() {
+        return headerVerifier;
     }
 }

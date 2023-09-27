@@ -33,6 +33,7 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
+import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -52,7 +53,8 @@ public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTrans
         final ValidatingDispatcher dispatcher,
         final ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
-        Tracer tracer
+        Tracer tracer,
+        Netty4HttpRequestHeaderVerifier headerVerifier
     ) {
         super(
             settings,
@@ -65,7 +67,8 @@ public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTrans
             sslExceptionHandler,
             clusterSettings,
             sharedGroupFactory,
-            tracer
+            tracer,
+            headerVerifier
         );
     }
 }
