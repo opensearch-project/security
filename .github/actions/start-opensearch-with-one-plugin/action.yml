@@ -71,10 +71,10 @@ runs:
         'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$(pwd)\${{ inputs.plugin-name }}.zip
       shell: pwsh
 
-    - name: Write password to initialAdminPassword location
-      run:
-        echo ${{ inputs.admin-password }} >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/initialAdminPassword.txt
-      shell: bash
+    - uses: DamianReeves/write-file-action@v1.2
+      with:
+        path: ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/initialAdminPassword.txt
+        contents: ${{ inputs.admin-password }}
 
     # Run any configuration scripts
     - name: Run Setup Script for Linux
