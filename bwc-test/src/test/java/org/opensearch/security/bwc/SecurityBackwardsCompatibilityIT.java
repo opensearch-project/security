@@ -215,13 +215,9 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             bulkRequestBody.append(objectMapper.writeValueAsString(song.asJson()) + "\n");
         }
 
-        Response response = RestHelper.makeRequest(
-            testUserAuthClient,
-            "POST",
-            "_bulk",
-            RestHelper.toHttpEntity(bulkRequestBody.toString())
-            // TODO: Resolve the following line
-            // List.of(encodeBasicHeader(TEST_USER, TEST_PASSWORD))
+        Response response = RestHelper.makeRequest(testUserAuthClient, "POST", "_bulk", RestHelper.toHttpEntity(bulkRequestBody.toString())
+        // TODO: Resolve the following line
+        // List.of(encodeBasicHeader(TEST_USER, TEST_PASSWORD))
         );
         assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
     }
@@ -233,12 +229,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     private void searchMatchAll(String index) throws IOException {
         String matchAllQuery = "{\n" + "    \"query\": {\n" + "        \"match_all\": {}\n" + "    }\n" + "}";
 
-        Response response = RestHelper.makeRequest(
-            testUserAuthClient,
-            "POST",
-            index + "/_search",
-            RestHelper.toHttpEntity(matchAllQuery)
-        );
+        Response response = RestHelper.makeRequest(testUserAuthClient, "POST", index + "/_search", RestHelper.toHttpEntity(matchAllQuery));
 
         assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
     }
@@ -325,7 +316,8 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     private void createUserIfNotExists(String user, String password, String role) throws IOException {
         String url = "_plugins/_security/api/internalusers/" + user;
         if (!resourceExists(url)) {
-            String userSettings = String.format(Locale.ENGLISH,
+            String userSettings = String.format(
+                Locale.ENGLISH,
                 "{\n" + "  \"password\": \"%s\",\n" + "  \"opendistro_security_roles\": [\"%s\"],\n" + "  \"backend_roles\": []\n" + "}",
                 password,
                 role
