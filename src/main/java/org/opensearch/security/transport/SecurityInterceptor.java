@@ -232,12 +232,7 @@ public class SecurityInterceptor {
                 HeaderHelper.getAllSerializedHeaderNames()
                     .stream()
                     .filter(k -> headerMap.get(k) != null)
-                    .forEach(
-                        k -> jdkSerializedHeaders.put(
-                            k,
-                            Base64Helper.serializeObject(Base64Helper.deserializeObject(headerMap.get(k)), true)
-                        )
-                    );
+                    .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
                 headerMap.putAll(jdkSerializedHeaders);
             }
 

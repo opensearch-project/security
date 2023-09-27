@@ -45,4 +45,28 @@ public class Base64Helper {
     public static Serializable deserializeObject(final String string, final boolean useJDKDeserialization) {
         return useJDKDeserialization ? Base64JDKHelper.deserializeObject(string) : Base64CustomHelper.deserializeObject(string);
     }
+
+    /**
+     * Ensures that the returned string is JDK serialized.
+     *
+     * If the supplied string is a custom serialized representation, will deserialize it and further serialize using
+     * JDK, otherwise returns the string as is.
+     *
+     * @param string original string, can be JDK or custom serialized
+     * @return jdk serialized string
+     */
+    public static String ensureJDKSerialized(final String string) {
+        Serializable serializable;
+        try {
+            serializable = Base64Helper.deserializeObject(string, false);
+        } catch (Exception e) {
+            // We received an exception when de-serializing the given string. It is probably JDK serialized.
+            // Try to deserialize using JDK
+            Base64Helper.deserializeObject(string, true);
+            // Since we could deserialize the object using JDK, the string is already JDK serialized, return as is
+            return string;
+        }
+        // If we see an exception now, we want the caller to see it -
+        return Base64Helper.serializeObject(serializable, false);
+    }
 }
