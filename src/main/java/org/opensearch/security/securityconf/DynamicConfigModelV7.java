@@ -86,7 +86,13 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
 
-    public DynamicConfigModelV7(ConfigV7 config, Settings opensearchSettings, Path configPath, InternalAuthenticationBackend iab, ClusterInfoHolder cih) {
+    public DynamicConfigModelV7(
+        ConfigV7 config,
+        Settings opensearchSettings,
+        Path configPath,
+        InternalAuthenticationBackend iab,
+        ClusterInfoHolder cih
+    ) {
         super();
         this.config = config;
         this.opensearchSettings = opensearchSettings;
@@ -219,8 +225,8 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     @Override
     public Settings getDynamicOnBehalfOfSettings() {
         return Settings.builder()
-                .put(Settings.builder().loadFromSource(config.dynamic.on_behalf_of.configAsJson(), XContentType.JSON).build())
-                .build();
+            .put(Settings.builder().loadFromSource(config.dynamic.on_behalf_of.configAsJson(), XContentType.JSON).build())
+            .build();
     }
 
     private void buildAAA() {
@@ -380,20 +386,20 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         Settings oboSettings = getDynamicOnBehalfOfSettings();
         if (oboSettings.get("signing_key") != null && oboSettings.get("encryption_key") != null) {
             final AuthDomain _ad = new AuthDomain(
-                    new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                    new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),
-                    false,
-                    -1 );
+                new NoOpAuthenticationBackend(Settings.EMPTY, null),
+                new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),
+                false,
+                -1
+            );
             restAuthDomains0.add(_ad);
         }
 
         final AuthDomain _ad = new AuthDomain(
-                new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new OnBehalfOfAuthenticator(DEMO_SETTINGS, this.cih.getClusterName()),
-                false,
-                -1
+            new NoOpAuthenticationBackend(Settings.EMPTY, null),
+            new OnBehalfOfAuthenticator(DEMO_SETTINGS, this.cih.getClusterName()),
+            false,
+            -1
         );
-
 
         restAuthDomains0.add(_ad);
 

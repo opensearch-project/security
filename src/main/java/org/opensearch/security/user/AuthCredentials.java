@@ -229,6 +229,7 @@ public final class AuthCredentials {
     public Set<String> getSecurityRoles() {
         return new HashSet<String>(securityRoles);
     }
+
     /**
      *
      * @return Defensive copy of the roles this user is member of.

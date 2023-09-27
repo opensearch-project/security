@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import org.greenrobot.eventbus.Subscribe;
@@ -153,8 +152,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         user.getName(),
                         service,
                         tokenDuration,
-                            new HashSet<>(mappedRoles),
-                            new HashSet<>(user.getRoles()),
+                        new HashSet<>(mappedRoles),
+                        new HashSet<>(user.getRoles()),
                         roleSecurityMode
                     );
                     builder.field("authenticationToken", token);

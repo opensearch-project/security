@@ -66,7 +66,6 @@ public class ConfigV7 {
         dynamic.hosts_resolver_mode = c6.dynamic.hosts_resolver_mode;
         dynamic.transport_userrname_attribute = c6.dynamic.transport_userrname_attribute;
 
-
         dynamic.kibana = new Kibana();
 
         dynamic.kibana.index = c6.dynamic.kibana.index;

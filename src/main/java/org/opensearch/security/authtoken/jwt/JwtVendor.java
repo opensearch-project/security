@@ -12,8 +12,6 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.LongSupplier;
@@ -32,10 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.extensions.ExtensionsSettings;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.ssl.util.ExceptionUtils;
-import static org.opensearch.security.OpenSearchSecurityPlugin.SEND_BACKEND_ROLES_SETTING;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
@@ -95,7 +90,7 @@ public class JwtVendor {
 
             if (jwkSettings.isEmpty()) {
                 throw new Exception(
-                        "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
+                    "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
                 );
             }
 
@@ -110,13 +105,13 @@ public class JwtVendor {
     }
 
     public String createJwt(
-            String issuer,
-            String subject,
-            String audience,
-            Integer expirySeconds,
-            Set<String> roles,
-            Set<String> backendRoles,
-            boolean roleSecurityMode
+        String issuer,
+        String subject,
+        String audience,
+        Integer expirySeconds,
+        Set<String> roles,
+        Set<String> backendRoles,
+        boolean roleSecurityMode
     ) throws Exception {
         final long nowAsMillis = timeProvider.getAsLong();
         final Instant nowAsInstant = Instant.ofEpochMilli(timeProvider.getAsLong());
@@ -162,12 +157,12 @@ public class JwtVendor {
 
         if (logger.isDebugEnabled()) {
             logger.debug(
-                    "Created JWT: "
-                            + encodedJwt
-                            + "\n"
-                            + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
-                            + "\n"
-                            + JwtUtils.claimsToJson(jwt.getClaims())
+                "Created JWT: "
+                    + encodedJwt
+                    + "\n"
+                    + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
+                    + "\n"
+                    + JwtUtils.claimsToJson(jwt.getClaims())
             );
         }
 

@@ -69,30 +69,30 @@ public class SecurityIndexAccessEvaluator {
     private final boolean systemIndexEnabled;
 
     public SecurityIndexAccessEvaluator(
-            final Settings settings,
-            AuditLog auditLog,
-            IndexResolverReplacer irr,
-            ThreadContext threadContext
+        final Settings settings,
+        AuditLog auditLog,
+        IndexResolverReplacer irr,
+        ThreadContext threadContext
     ) {
         this.securityIndex = settings.get(
-                ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-                ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
         this.irr = irr;
         this.threadContext = threadContext;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
         this.systemIndexMatcher = WildcardMatcher.from(
-                settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
+            settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
         );
         this.systemIndexEnabled = settings.getAsBoolean(
-                ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
-                ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
         );
 
         final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(
-                ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED,
-                false
+            ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED,
+            false
         );
 
         final List<String> securityIndexDeniedActionPatternsList = new ArrayList<String>();
@@ -110,16 +110,16 @@ public class SecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
         securityDeniedActionMatcher = WildcardMatcher.from(
-                restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot
+            restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot
         );
     }
 
     public PrivilegesEvaluatorResponse evaluate(
-            final ActionRequest request,
-            final Task task,
-            final String action,
-            final Resolved requestedResolved,
-            final PrivilegesEvaluatorResponse presponse
+        final ActionRequest request,
+        final Task task,
+        final String action,
+        final Resolved requestedResolved,
+        final PrivilegesEvaluatorResponse presponse
     ) {
         System.out.println("SecurityIndexAccessEvaluator");
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -130,11 +130,11 @@ public class SecurityIndexAccessEvaluator {
                     irr.replace(request, false, "*", "-" + securityIndex);
                     if (isDebugEnabled) {
                         log.debug(
-                                "Filtered '{}'from {}, resulting list with *,-{} is {}",
-                                securityIndex,
-                                requestedResolved,
-                                securityIndex,
-                                irr.resolveRequest(request)
+                            "Filtered '{}'from {}, resulting list with *,-{} is {}",
+                            securityIndex,
+                            requestedResolved,
+                            securityIndex,
+                            irr.resolveRequest(request)
                         );
                     }
                     return presponse;
@@ -164,18 +164,18 @@ public class SecurityIndexAccessEvaluator {
                 } else {
                     User authenticatedUser = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     Optional<ExtensionsSettings.Extension> matchingExtension = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager()
-                            .lookupExtensionSettingsById(authenticatedUser.getName());
+                        .lookupExtensionSettingsById(authenticatedUser.getName());
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     final String foundSystemIndexes = getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "));
                     if (matchingExtension.isPresent()) {
                         List<String> reservedIndices = (List<String>) matchingExtension.get()
-                                .getAdditionalSettings()
-                                .get(RESERVED_INDICES_SETTING);
+                            .getAdditionalSettings()
+                            .get(RESERVED_INDICES_SETTING);
                         if (matchAllReservedIndices(requestedResolved, reservedIndices)) {
                             log.info(
-                                    "{} for '{}' index is allowed for service account of extension reserving the indices",
-                                    action,
-                                    foundSystemIndexes
+                                "{} for '{}' index is allowed for service account of extension reserving the indices",
+                                action,
+                                foundSystemIndexes
                             );
                             presponse.allowed = true;
                             return presponse.markComplete();
@@ -189,8 +189,8 @@ public class SecurityIndexAccessEvaluator {
         }
 
         if (requestedResolved.isLocalAll()
-                || requestedResolved.getAllIndices().contains(securityIndex)
-                || matchAnySystemIndices(requestedResolved)) {
+            || requestedResolved.getAllIndices().contains(securityIndex)
+            || matchAnySystemIndices(requestedResolved)) {
 
             if (request instanceof SearchRequest) {
                 ((SearchRequest) request).requestCache(Boolean.FALSE);
@@ -215,9 +215,9 @@ public class SecurityIndexAccessEvaluator {
 
     private List<String> getProtectedIndexes(final Resolved requestedResolved) {
         final List<String> protectedIndexes = requestedResolved.getAllIndices()
-                .stream()
-                .filter(securityIndex::equals)
-                .collect(Collectors.toList());
+            .stream()
+            .filter(securityIndex::equals)
+            .collect(Collectors.toList());
         if (systemIndexEnabled) {
             protectedIndexes.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
         }
@@ -226,9 +226,9 @@ public class SecurityIndexAccessEvaluator {
 
     private boolean matchAllReservedIndices(final Resolved requestedResolved, final List<String> reservedIndices) {
         final List<String> requestedIndexes = requestedResolved.getAllIndices()
-                .stream()
-                .filter(securityIndex::equals)
-                .collect(Collectors.toList());
+            .stream()
+            .filter(securityIndex::equals)
+            .collect(Collectors.toList());
         if (systemIndexEnabled) {
             return reservedIndices.containsAll(requestedIndexes);
         }

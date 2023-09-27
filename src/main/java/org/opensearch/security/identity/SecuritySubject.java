@@ -22,28 +22,28 @@ import org.opensearch.security.user.User;
 
 public class SecuritySubject implements Subject {
 
-	private ThreadContext threadContext;
+    private ThreadContext threadContext;
 
-	public SecuritySubject() {}
+    public SecuritySubject() {}
 
-	public void setThreadContext(ThreadContext threadContext) {
-		this.threadContext = threadContext;
-	}
+    public void setThreadContext(ThreadContext threadContext) {
+        this.threadContext = threadContext;
+    }
 
-	@Override
-	public Principal getPrincipal() {
-		if (threadContext == null) {
-			return NamedPrincipal.UNAUTHENTICATED;
-		}
-		final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-		if (user == null) {
-			return NamedPrincipal.UNAUTHENTICATED;
-		}
-		return new NamedPrincipal(user.getName());
-	}
+    @Override
+    public Principal getPrincipal() {
+        if (threadContext == null) {
+            return NamedPrincipal.UNAUTHENTICATED;
+        }
+        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null) {
+            return NamedPrincipal.UNAUTHENTICATED;
+        }
+        return new NamedPrincipal(user.getName());
+    }
 
-	@Override
-	public void authenticate(AuthToken authToken) {
-		// TODO implement this - replace with logic from SecurityRestFilter
-	}
+    @Override
+    public void authenticate(AuthToken authToken) {
+        // TODO implement this - replace with logic from SecurityRestFilter
+    }
 }

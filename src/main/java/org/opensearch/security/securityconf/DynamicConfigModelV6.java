@@ -211,7 +211,7 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     public Settings getDynamicOnBehalfOfSettings() {
         return Settings.EMPTY;
     }
-    
+
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();

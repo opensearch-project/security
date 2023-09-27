@@ -198,7 +198,12 @@ import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin, IdentityPlugin, ExtensionAwarePlugin {
+public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
+    implements
+        ClusterPlugin,
+        MapperPlugin,
+        IdentityPlugin,
+        ExtensionAwarePlugin {
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -234,17 +239,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
 
     public static Setting RESERVED_INDICES_SETTING = Setting.listSetting(
-            "reserved_indices",
-            List.of(),
-            Function.identity(),
-            Property.ExtensionScope
+        "reserved_indices",
+        List.of(),
+        Function.identity(),
+        Property.ExtensionScope
     );
 
     public static Setting PERMISSIONS_SETTING = Setting.groupSetting("permissions.", Property.ExtensionScope);
 
     public static Setting SEND_BACKEND_ROLES_SETTING = Setting.boolSetting("send_backend_roles", false, Property.ExtensionScope);
-
-
 
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
@@ -1946,8 +1949,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     public TokenManager getTokenManager() {
         return tokenManager;
     }
-
-
 
     public static class GuiceHolder implements LifecycleComponent {
 

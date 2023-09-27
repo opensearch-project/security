@@ -45,7 +45,7 @@ public class KeyUtil {
                         Key key = null;
 
                         final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
-                                .replace("-----END PUBLIC KEY-----", "");
+                            .replace("-----END PUBLIC KEY-----", "");
 
                         final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
 
@@ -97,7 +97,7 @@ public class KeyUtil {
                         Key key = null;
 
                         final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
-                                .replace("-----END PUBLIC KEY-----", "");
+                            .replace("-----END PUBLIC KEY-----", "");
 
                         final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
 
@@ -130,12 +130,10 @@ public class KeyUtil {
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
-            InvalidKeySpecException {
+        InvalidKeySpecException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);
     }
-
-
 
 }

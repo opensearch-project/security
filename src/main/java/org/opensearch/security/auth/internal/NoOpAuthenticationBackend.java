@@ -51,7 +51,6 @@ public class NoOpAuthenticationBackend implements AuthenticationBackend {
         return user;
     }
 
-
     @Override
     public boolean exists(User user) {
         return true;

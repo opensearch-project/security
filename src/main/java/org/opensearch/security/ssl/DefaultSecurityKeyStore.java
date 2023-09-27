@@ -907,7 +907,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         List<String> jdkSupportedProtocols = null;
         try {
             final SSLContext serverContext = SSLContext.getInstance("TLS");
-            TrustManager[] trustManagers = new TrustManager[] { new AllowAnyTrustManager()};
+            TrustManager[] trustManagers = new TrustManager[] { new AllowAnyTrustManager() };
             serverContext.init(null, trustManagers, null);
             engine = serverContext.createSSLEngine();
             jdkSupportedCiphers = Arrays.asList(engine.getEnabledCipherSuites());

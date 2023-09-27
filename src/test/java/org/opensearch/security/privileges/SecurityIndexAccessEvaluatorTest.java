@@ -66,13 +66,13 @@ public class SecurityIndexAccessEvaluatorTest {
     @Before
     public void before() {
         evaluator = new SecurityIndexAccessEvaluator(
-                Settings.EMPTY.builder()
-                        .put("plugins.security.system_indices.indices", ".test")
-                        .put("plugins.security.system_indices.enabled", true)
-                        .build(),
-                auditLog,
-                irr,
-                threadContext
+            Settings.EMPTY.builder()
+                .put("plugins.security.system_indices.indices", ".test")
+                .put("plugins.security.system_indices.enabled", true)
+                .build(),
+            auditLog,
+            irr,
+            threadContext
         );
         evaluator.log = log;
 
@@ -149,11 +149,11 @@ public class SecurityIndexAccessEvaluatorTest {
 
     private Resolved createResolved(final String... indexes) {
         return new Resolved(
-                ImmutableSet.of(),
-                ImmutableSet.copyOf(indexes),
-                ImmutableSet.copyOf(indexes),
-                ImmutableSet.of(),
-                IndicesOptions.STRICT_EXPAND_OPEN
+            ImmutableSet.of(),
+            ImmutableSet.copyOf(indexes),
+            ImmutableSet.copyOf(indexes),
+            ImmutableSet.of(),
+            IndicesOptions.STRICT_EXPAND_OPEN
         );
     }
 }
