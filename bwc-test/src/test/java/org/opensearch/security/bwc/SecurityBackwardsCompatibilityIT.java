@@ -10,10 +10,12 @@ package org.opensearch.security.bwc;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.auth.AuthScope;
@@ -34,35 +36,28 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
-
 import org.opensearch.Version;
 
 import static org.hamcrest.Matchers.hasItem;
-
-import org.opensearch.client.RestClient;
-import org.opensearch.client.RestClientBuilder;
-
-import org.junit.Assert;
-
-import javax.net.ssl.SSLContext;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.equalTo;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     private ClusterType CLUSTER_TYPE;
     private String CLUSTER_NAME;
 
-    private static final String TEST_USER = "user";
-    private static final String TEST_PASSWORD = "290735c0-355d-4aaf-9b42-1aaa1f2a3cee";
-    private static final String TEST_ROLE = "test-dls-fls-role";
-
-    /**
-     * A rest client authenticated with the test user credentials
-     */
+    private final String TEST_USER = "user";
+    private final String TEST_PASSWORD = "290735c0-355d-4aaf-9b42-1aaa1f2a3cee";
+    private final String TEST_ROLE = "test-dls-fls-role";
     private static RestClient testUserAuthClient;
 
     @Before
@@ -71,9 +66,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         Assume.assumeTrue("Test cannot be run outside the BWC gradle task 'bwcTestSuite' or its dependent tasks", bwcsuiteString != null);
         CLUSTER_TYPE = ClusterType.parse(bwcsuiteString);
         CLUSTER_NAME = System.getProperty("tests.clustername");
-        if (testUserAuthClient == null) {
-            testUserAuthClient = buildClient(restClientSettings(), getClusterHosts().toArray(new HttpHost[0]), TEST_USER, TEST_PASSWORD);
-        }
     }
 
     @Override
@@ -112,7 +104,13 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             .build();
     }
 
-    protected RestClient buildClient(Settings settings, HttpHost[] hosts, String username, String password) {
+    @Override
+    protected RestClient buildClient(Settings settings, HttpHost[] hosts) {
+        String username = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
+            .orElseThrow(() -> new RuntimeException("user name is missing"));
+        String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
+            .orElseThrow(() -> new RuntimeException("password is missing"));
+
         RestClientBuilder builder = RestClient.builder(hosts);
         configureHttpsClient(builder, settings, username, password);
         boolean strictDeprecationMode = settings.getAsBoolean("strictDeprecationMode", true);
@@ -120,13 +118,41 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         return builder.build();
     }
 
-    @Override
-    protected RestClient buildClient(Settings settings, HttpHost[] hosts) {
-        String userName = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
-            .orElseThrow(() -> new RuntimeException("user name is missing"));
-        String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
-            .orElseThrow(() -> new RuntimeException("password is missing"));
-        return buildClient(settings, hosts, userName, password);
+    private static void configureHttpsClient(RestClientBuilder builder, Settings settings, String userName, String password) {
+        Map<String, String> headers = ThreadContext.buildDefaultHeaders(settings);
+        Header[] defaultHeaders = new Header[headers.size()];
+        int i = 0;
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            defaultHeaders[i++] = new BasicHeader(entry.getKey(), entry.getValue());
+        }
+        builder.setDefaultHeaders(defaultHeaders);
+        builder.setHttpClientConfigCallback(httpClientBuilder -> {
+            BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(userName, password.toCharArray()));
+            try {
+                SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
+
+                TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                    .setSslContext(sslContext)
+                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
+                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                    .setTlsDetailsFactory(sslEngine -> new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol()))
+                    .build();
+
+                final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                    .setTlsStrategy(tlsStrategy)
+                    .build();
+                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider).setConnectionManager(cm);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void testWhoAmI() throws Exception {
+        Map<String, Object> responseMap = getAsMap("_plugins/_security/whoami");
+        assertThat(responseMap, hasKey("dn"));
     }
 
     public void testBasicBackwardsCompatibility() throws Exception {
@@ -157,11 +183,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         searchMatchAll(index);
     }
 
-    public void testWhoAmI() throws Exception {
-        Map<String, Object> responseMap = getAsMap("_plugins/_security/whoami");
-        Assert.assertTrue(responseMap.containsKey("dn"));
-    }
-
     @SuppressWarnings("unchecked")
     private void assertPluginUpgrade(String uri) throws Exception {
         Map<String, Map<String, Object>> responseMap = (Map<String, Map<String, Object>>) getAsMap(uri).get("nodes");
@@ -171,12 +192,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
             final Version minNodeVersion = minimumNodeVersion();
 
-            if (minNodeVersion.major <= 1) {
-                assertThat(pluginNames, hasItem("opensearch_security"));
-            } else {
-                assertThat(pluginNames, hasItem("opensearch-security"));
-            }
-
+            assertThat(pluginNames, hasItem("opensearch_security"));
         }
     }
 
@@ -195,21 +211,19 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                     put("_index", index);
                 }
             });
-            bulkRequestBody.append(String.format("%s\n", objectMapper.writeValueAsString(indexRequest)));
-            bulkRequestBody.append(String.format("%s\n", objectMapper.writeValueAsString(song.asJson())));
+            bulkRequestBody.append(objectMapper.writeValueAsString(indexRequest) + "\n");
+            bulkRequestBody.append(objectMapper.writeValueAsString(song.asJson()) + "\n");
         }
 
         Response response = RestHelper.makeRequest(
             testUserAuthClient,
             "POST",
             "_bulk",
-            null,
-            RestHelper.toHttpEntity(bulkRequestBody.toString()),
-            // Collections.singletonList(encodeBasicHeader(TEST_USER, TEST_PASSWORD)),
-            null,
-            false
+            RestHelper.toHttpEntity(bulkRequestBody.toString())
+            // TODO: Resolve the following line
+            // List.of(encodeBasicHeader(TEST_USER, TEST_PASSWORD))
         );
-        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
     }
 
     /**
@@ -219,19 +233,14 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     private void searchMatchAll(String index) throws IOException {
         String matchAllQuery = "{\n" + "    \"query\": {\n" + "        \"match_all\": {}\n" + "    }\n" + "}";
 
-        String url = String.format("%s/_search", index);
-
         Response response = RestHelper.makeRequest(
             testUserAuthClient,
             "POST",
-            url,
-            null,
-            RestHelper.toHttpEntity(matchAllQuery),
-            null,
-            false
+            index + "/_search",
+            RestHelper.toHttpEntity(matchAllQuery)
         );
 
-        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
     }
 
     /**
@@ -257,7 +266,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
      * Creates a test role with DLS, FLS and masked field settings on the test index.
      */
     private void createTestRoleIfNotExists(String role) throws IOException {
-        String url = String.format("_plugins/_security/api/roles/%s", role);
+        String url = "_plugins/_security/api/roles/" + role;
         String roleSettings = "{\n"
             + "  \"cluster_permissions\": [\n"
             + "    \"unlimited\"\n"
@@ -282,10 +291,9 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             + "  ],\n"
             + "  \"tenant_permissions\": []\n"
             + "}\n";
-        Response response = RestHelper.makeRequest(adminClient(), "PUT", url, null, RestHelper.toHttpEntity(roleSettings), null, false);
+        Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(roleSettings));
 
-        int statusCode = response.getStatusLine().getStatusCode();
-        Assert.assertTrue(statusCode == 200 || statusCode == 201);
+        assertThat(response.getStatusLine().getStatusCode(), anyOf(equalTo(200), equalTo(201)));
     }
 
     /**
@@ -303,8 +311,8 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             + "  }\n"
             + "}";
         if (!resourceExists(index)) {
-            Response response = RestHelper.makeRequest(client(), "PUT", index, null, RestHelper.toHttpEntity(settings), null, false);
-            assertEquals(200, response.getStatusLine().getStatusCode());
+            Response response = RestHelper.makeRequest(client(), "PUT", index, RestHelper.toHttpEntity(settings));
+            assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
         }
     }
 
@@ -315,48 +323,16 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
      * @param  role roles that the user has to be mapped to
      */
     private void createUserIfNotExists(String user, String password, String role) throws IOException {
-        String url = String.format("_plugins/_security/api/internalusers/%s", user);
+        String url = "_plugins/_security/api/internalusers/" + user;
         if (!resourceExists(url)) {
-            String userSettings = String.format(
+            String userSettings = String.format(Locale.ENGLISH,
                 "{\n" + "  \"password\": \"%s\",\n" + "  \"opendistro_security_roles\": [\"%s\"],\n" + "  \"backend_roles\": []\n" + "}",
                 password,
                 role
             );
-            Response response = RestHelper.makeRequest(adminClient(), "PUT", url, null, RestHelper.toHttpEntity(userSettings), null, false);
-            assertEquals(201, response.getStatusLine().getStatusCode());
+            Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(userSettings));
+            assertThat(response.getStatusLine().getStatusCode(), equalTo(201));
         }
-    }
-
-    public static void configureHttpsClient(RestClientBuilder builder, Settings settings, String userName, String password) {
-        Map<String, String> headers = ThreadContext.buildDefaultHeaders(settings);
-        Header[] defaultHeaders = new Header[headers.size()];
-        int i = 0;
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            defaultHeaders[i++] = new BasicHeader(entry.getKey(), entry.getValue());
-        }
-        builder.setDefaultHeaders(defaultHeaders);
-        builder.setHttpClientConfigCallback(httpClientBuilder -> {
-            BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(userName, password.toCharArray()));
-            try {
-                SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
-
-                TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-                    .setSslContext(sslContext)
-                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
-                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                    .setTlsDetailsFactory(sslEngine -> new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol()))
-                    .build();
-
-                final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
-                    .setTlsStrategy(tlsStrategy)
-                    .build();
-                return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider).setConnectionManager(cm);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
     }
 
     @AfterClass
