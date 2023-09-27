@@ -321,12 +321,6 @@ public class ConfigConstants {
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
-    // On-behalf-of endpoints settings
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-    public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";
-    public static final boolean EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT = false;
-    // CS-ENFORCE-SINGLE
-
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,

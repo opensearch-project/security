@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -105,18 +104,6 @@ public final class AuthCredentials {
      * @throws IllegalArgumentException if username is null or empty
      */
     public AuthCredentials(final String username, Collection<String> securityRoles, String... backendRoles) {
-        this(username, null, null, backendRoles);
-        this.securityRoles.addAll(securityRoles);
-    }
-
-    /**
-     * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
-     * @param username The username, must not be null or empty
-     * @param securityRoles The internal roles the user has been mapped to
-     * @param backendRoles set of roles this user is a member of
-     * @throws IllegalArgumentException if username is null or empty
-     */
-    public AuthCredentials(final String username, List<String> securityRoles, String... backendRoles) {
         this(username, null, null, backendRoles);
         this.securityRoles.addAll(securityRoles);
     }

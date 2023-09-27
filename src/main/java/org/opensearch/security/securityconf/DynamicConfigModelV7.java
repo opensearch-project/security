@@ -62,9 +62,7 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authz;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthzDomain;
 import org.opensearch.security.support.ReflectionHelper;
-import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.http.OnBehalfOfAuthenticator;
 
 import static org.opensearch.security.identity.SecurityTokenManager.DEMO_SETTINGS;
 

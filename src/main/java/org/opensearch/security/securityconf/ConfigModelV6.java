@@ -348,6 +348,9 @@ public class ConfigModelV6 extends ConfigModel {
             return getRoles().stream().map(r -> r.getName()).collect(Collectors.toSet());
         }
 
+        @Override
+        public void addRole(Role role) {}
+
         public SecurityRoles filter(Set<String> keep) {
             final SecurityRoles retVal = new SecurityRoles(roles.size());
             for (SecurityRole sr : roles) {
