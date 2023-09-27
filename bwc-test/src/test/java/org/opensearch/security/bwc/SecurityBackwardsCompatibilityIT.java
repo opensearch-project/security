@@ -58,7 +58,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     private final String TEST_USER = "user";
     private final String TEST_PASSWORD = "290735c0-355d-4aaf-9b42-1aaa1f2a3cee";
     private final String TEST_ROLE = "test-dls-fls-role";
-    private static RestClient testUserAuthClient;
 
     @Before
     public void testSetup() {
@@ -219,10 +218,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             bulkRequestBody.append(objectMapper.writeValueAsString(song.asJson()) + "\n");
         }
 
-        Response response = RestHelper.makeRequest(testUserAuthClient, "POST", "_bulk", RestHelper.toHttpEntity(bulkRequestBody.toString())
-        // TODO: Resolve the following line
-        // List.of(encodeBasicHeader(TEST_USER, TEST_PASSWORD))
-        );
+        Response response = RestHelper.makeRequest(client(), "POST", "_bulk", RestHelper.toHttpEntity(bulkRequestBody.toString()));
         assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
     }
 
@@ -233,7 +229,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     private void searchMatchAll(String index) throws IOException {
         String matchAllQuery = "{\n" + "    \"query\": {\n" + "        \"match_all\": {}\n" + "    }\n" + "}";
 
-        Response response = RestHelper.makeRequest(testUserAuthClient, "POST", index + "/_search", RestHelper.toHttpEntity(matchAllQuery));
+        Response response = RestHelper.makeRequest(client(), "POST", index + "/_search", RestHelper.toHttpEntity(matchAllQuery));
 
         assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
     }
