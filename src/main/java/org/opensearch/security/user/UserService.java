@@ -13,10 +13,12 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -44,6 +46,7 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.passay.CharacterRule;
@@ -312,6 +315,47 @@ public class UserService {
             );
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+    }
+
+    /**
+     * Removes accounts that are not of the requested type from the SecurityDynamicConfiguration object passed.
+     *
+     * Accounts with the 'service' attribute set to true, are considered of type 'service'.
+     * Accounts with the 'service' attribute set to false or without the 'service' attribute, are considered of type 'internal'.
+     *
+     * @param configuration SecurityDynamicConfiguration object containing all accounts
+     * @param requestedAccountType The type of account to be kept. Should be "service" or "internal"
+     *
+     */
+    public void includeAccountsIfType(SecurityDynamicConfiguration<?> configuration, UserFilterType requestedAccountType) {
+        if (requestedAccountType != UserFilterType.INTERNAL && requestedAccountType != UserFilterType.SERVICE) {
+            return;
+        }
+        List<String> toBeRemoved = new ArrayList<>();
+
+        if (requestedAccountType == UserFilterType.SERVICE) {
+            accountsToRemoveFromConfiguration(configuration, toBeRemoved, false);
+        } else if (requestedAccountType == UserFilterType.INTERNAL) {
+            accountsToRemoveFromConfiguration(configuration, toBeRemoved, true);
+        }
+        configuration.remove(toBeRemoved);
+    }
+
+    private void accountsToRemoveFromConfiguration(
+        SecurityDynamicConfiguration<?> configuration,
+        List<String> toBeRemoved,
+        boolean isServiceAccountRequested
+    ) {
+        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
+            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
+            final Map accountAttributes = internalUserEntry.getAttributes();
+            final String accountName = entry.getKey();
+            final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
+
+            if (isServiceAccount == isServiceAccountRequested) {
+                toBeRemoved.add(accountName);
+            }
         }
     }
 }
