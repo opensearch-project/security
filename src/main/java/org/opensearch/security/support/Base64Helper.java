@@ -67,6 +67,6 @@ public class Base64Helper {
             return string;
         }
         // If we see an exception now, we want the caller to see it -
-        return Base64Helper.serializeObject(serializable, false);
+        return Base64Helper.serializeObject(serializable, true);
     }
 }
