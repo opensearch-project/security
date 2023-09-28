@@ -12,20 +12,23 @@
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import com.google.common.base.Strings;
+import com.nimbusds.jose.Algorithm;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.Ed25519Verifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyType;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.OctetKeyPair;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.jwt.proc.BadJWTException;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.cxf.rs.security.jose.jwa.SignatureAlgorithm;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
-import org.apache.cxf.rs.security.jose.jwk.KeyType;
-import org.apache.cxf.rs.security.jose.jwk.PublicKeyUse;
-import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
-import org.apache.cxf.rs.security.jose.jws.JwsSignatureVerifier;
-import org.apache.cxf.rs.security.jose.jws.JwsUtils;
-import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
-import org.apache.cxf.rs.security.jose.jwt.JwtException;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
-import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.text.ParseException;
+import java.util.List;
 
 public class JwtVerifier {
 
@@ -43,31 +46,29 @@ public class JwtVerifier {
         this.requiredAudience = requiredAudience;
     }
 
-    public JwtToken getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
+    public SignedJWT getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
         try {
-            JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
-            JwtToken jwt = jwtConsumer.getJwtToken();
+            SignedJWT jwt = SignedJWT.parse(encodedJwt);
 
-            String escapedKid = jwt.getJwsHeaders().getKeyId();
+            String escapedKid = jwt.getHeader().getKeyID();
             String kid = escapedKid;
             if (!Strings.isNullOrEmpty(kid)) {
                 kid = StringEscapeUtils.unescapeJava(escapedKid);
             }
-            JsonWebKey key = keyProvider.getKey(kid);
+             JWK key = keyProvider.getKey(kid);
 
-            // Algorithm is not mandatory for the key material, so we set it to the same as the JWT
-            if (key.getAlgorithm() == null && key.getPublicKeyUse() == PublicKeyUse.SIGN && key.getKeyType() == KeyType.RSA) {
-                key.setAlgorithm(jwt.getJwsHeaders().getAlgorithm());
+            // TODO algorithm is final in jose implementation. Algorithm is not mandatory for the key material, so we set it to the same as the JWT
+            if (key.getAlgorithm() == null && key.getKeyUse() == KeyUse.SIGNATURE && key.getKeyType() == KeyType.RSA) {
+//                key.setAlgorithm(jwt.getJwsHeaders().getAlgorithm());
             }
 
-            JwsSignatureVerifier signatureVerifier = getInitializedSignatureVerifier(key, jwt);
-
-            boolean signatureValid = jwtConsumer.verifySignatureWith(signatureVerifier);
+            JWSVerifier signatureVerifier = getInitializedSignatureVerifier(key, jwt);
+            boolean signatureValid = jwt.verify(signatureVerifier);
 
             if (!signatureValid && Strings.isNullOrEmpty(kid)) {
                 key = keyProvider.getKeyAfterRefresh(null);
                 signatureVerifier = getInitializedSignatureVerifier(key, jwt);
-                signatureValid = jwtConsumer.verifySignatureWith(signatureVerifier);
+                signatureValid = jwt.verify(signatureVerifier);
             }
 
             if (!signatureValid) {
@@ -77,18 +78,20 @@ public class JwtVerifier {
             validateClaims(jwt);
 
             return jwt;
-        } catch (JwtException e) {
+        } catch (JOSEException | ParseException e) {
             throw new BadCredentialsException(e.getMessage(), e);
+        } catch (BadJWTException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private void validateSignatureAlgorithm(JsonWebKey key, JwtToken jwt) throws BadCredentialsException {
-        if (Strings.isNullOrEmpty(key.getAlgorithm())) {
+    private void validateSignatureAlgorithm(JWK key, SignedJWT jwt) throws BadCredentialsException {
+        if (key.getAlgorithm() == null || jwt.getHeader().getAlgorithm() == null) {
             return;
         }
 
-        SignatureAlgorithm keyAlgorithm = SignatureAlgorithm.getAlgorithm(key.getAlgorithm());
-        SignatureAlgorithm tokenAlgorithm = SignatureAlgorithm.getAlgorithm(jwt.getJwsHeaders().getAlgorithm());
+        Algorithm keyAlgorithm = key.getAlgorithm();
+        Algorithm tokenAlgorithm = jwt.getHeader().getAlgorithm();
 
         if (!keyAlgorithm.equals(tokenAlgorithm)) {
             throw new BadCredentialsException(
@@ -97,11 +100,13 @@ public class JwtVerifier {
         }
     }
 
-    private JwsSignatureVerifier getInitializedSignatureVerifier(JsonWebKey key, JwtToken jwt) throws BadCredentialsException,
-        JwtException {
+    private JWSVerifier getInitializedSignatureVerifier(JWK key, SignedJWT jwt) throws BadCredentialsException, JOSEException {
 
         validateSignatureAlgorithm(key, jwt);
-        JwsSignatureVerifier result = JwsUtils.getSignatureVerifier(key, jwt.getJwsHeaders().getSignatureAlgorithm());
+        if(key.getClass() != OctetKeyPair.class) {
+            throw new BadCredentialsException("Cannot verify JWT");
+        }
+        JWSVerifier result = new Ed25519Verifier((OctetKeyPair) key);
         if (result == null) {
             throw new BadCredentialsException("Cannot verify JWT");
         } else {
@@ -109,26 +114,27 @@ public class JwtVerifier {
         }
     }
 
-    private void validateClaims(JwtToken jwt) throws JwtException {
-        JwtClaims claims = jwt.getClaims();
+    private void validateClaims(SignedJWT jwt) throws ParseException, BadJWTException {
+        JWTClaimsSet claims = jwt.getJWTClaimsSet();
 
         if (claims != null) {
-            JwtUtils.validateJwtExpiry(claims, clockSkewToleranceSeconds, false);
-            JwtUtils.validateJwtNotBefore(claims, clockSkewToleranceSeconds, false);
+            //TODO
+//            JwtUtils.validateJwtExpiry(claims, clockSkewToleranceSeconds, false);
+//            JwtUtils.validateJwtNotBefore(claims, clockSkewToleranceSeconds, false);
             validateRequiredAudienceAndIssuer(claims);
         }
     }
 
-    private void validateRequiredAudienceAndIssuer(JwtClaims claims) {
-        String audience = claims.getAudience();
+    private void validateRequiredAudienceAndIssuer(JWTClaimsSet claims) throws BadJWTException {
+        List<String> audience = claims.getAudience();
         String issuer = claims.getIssuer();
 
-        if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience)) {
-            throw new JwtException("Invalid audience");
+        if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience.stream().findFirst().orElse(""))) {
+            throw new BadJWTException("Invalid audience");
         }
 
         if (!Strings.isNullOrEmpty(requiredIssuer) && !requiredIssuer.equals(issuer)) {
-            throw new JwtException("Invalid issuer");
+            throw new BadJWTException("Invalid issuer");
         }
     }
 }

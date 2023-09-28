@@ -14,13 +14,14 @@ package com.amazon.dlic.auth.http.jwt;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -108,7 +109,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             return null;
         }
 
-        JwtToken jwt;
+        SignedJWT jwt;
 
         try {
             jwt = jwtVerifier.getVerifiedJwtToken(jwtString);
@@ -120,7 +121,13 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             return null;
         }
 
-        JwtClaims claims = jwt.getClaims();
+        JWTClaimsSet claims = null;
+        try {
+            claims = jwt.getJWTClaimsSet();
+        } catch (ParseException e) {
+            log.info("Extracting JWT token from {} failed", jwtString, e);
+            return null;
+        }
 
         final String subject = extractSubject(claims);
 
@@ -133,7 +140,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
-        for (Entry<String, Object> claim : claims.asMap().entrySet()) {
+        for (Entry<String, Object> claim : claims.getClaims().entrySet()) {
             ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
         }
 
@@ -170,7 +177,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     }
 
     @VisibleForTesting
-    public String extractSubject(JwtClaims claims) {
+    public String extractSubject(JWTClaimsSet claims) {
         String subject = claims.getSubject();
 
         if (subjectKey != null) {
@@ -200,7 +207,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     @SuppressWarnings("unchecked")
     @VisibleForTesting
-    public String[] extractRoles(JwtClaims claims) {
+    public String[] extractRoles(JWTClaimsSet claims) {
         if (rolesKey == null) {
             return new String[0];
         }

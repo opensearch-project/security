@@ -25,6 +25,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.nimbusds.jose.jwk.JWK;
 import com.onelogin.saml2.authn.AuthnRequest;
 import com.onelogin.saml2.logout.LogoutRequest;
 import com.onelogin.saml2.settings.Saml2Settings;
@@ -34,7 +35,6 @@ import net.shibboleth.utilities.java.support.component.ComponentInitializationEx
 import net.shibboleth.utilities.java.support.component.DestructableComponent;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensaml.core.config.InitializationException;
@@ -464,12 +464,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             return new KeyProvider() {
 
                 @Override
-                public JsonWebKey getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
+                public JWK getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
                     return authTokenProcessorHandler.getSigningKey();
                 }
 
                 @Override
-                public JsonWebKey getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
+                public JWK getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
                     return authTokenProcessorHandler.getSigningKey();
                 }
             };

@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableMap;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import com.nimbusds.jwt.SignedJWT;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -127,7 +128,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -153,10 +154,9 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        Assert.assertEquals("horst", jwt.getClaim("sub"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
     }
 
     @Test
@@ -174,7 +174,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -222,7 +222,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -248,13 +248,12 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC\\User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC\\User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
 
-        Assert.assertEquals("ABC\\User1", jwt.getClaim("sub"));
-        Assert.assertEquals("ABC\\User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()));
-        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getClaim("roles")));
-        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0]);
     }
 
     @Test
@@ -273,7 +272,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -299,13 +298,11 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
-
-        Assert.assertEquals("ABC\"User1", jwt.getClaim("sub"));
-        Assert.assertEquals("ABC\"User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()));
-        Assert.assertEquals("[ABC\"Admin]", String.valueOf(jwt.getClaim("roles")));
-        Assert.assertEquals("ABC\"Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0]);
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC\\User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC\\User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
     }
 
     @Test
@@ -324,7 +321,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -350,13 +347,11 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
-
-        Assert.assertEquals("ABC/User1", jwt.getClaim("sub"));
-        Assert.assertEquals("ABC/User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()));
-        Assert.assertEquals("[ABC/Admin]", String.valueOf(jwt.getClaim("roles")));
-        Assert.assertEquals("ABC/Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0]);
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC\\User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC\\User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
     }
 
     @Test
@@ -375,7 +370,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -401,10 +396,9 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
 
-        Assert.assertEquals("ABC/Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0]);
     }
 
     @Test
@@ -422,7 +416,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_CONTENT, metadataBody)
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -465,7 +459,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_CONTENT, "")
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -485,7 +479,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -531,7 +525,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -568,7 +562,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+                .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -599,7 +593,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+                .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -631,7 +625,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+                .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .put("roles_seperator", ",")
@@ -679,7 +673,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+                .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -734,7 +728,7 @@ public class HTTPSamlAuthenticatorTest {
         Settings settings = settingsBuilder.put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+                .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -778,7 +772,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put(
                 "sp.signature_private_key",
@@ -812,7 +806,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+                .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("sp.signature_private_key", SPOCK_KEY)
             .put("sp.signature_private_key_password", "changeit")
@@ -841,7 +835,7 @@ public class HTTPSamlAuthenticatorTest {
                 .put("idp.min_refresh_delay", 100)
                 .put("kibana_url", "http://wherever")
                 .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("exchange_key", "abc")
+                    .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
                 .put("roles_key", "roles")
                 .put("path.home", ".")
                 .build();

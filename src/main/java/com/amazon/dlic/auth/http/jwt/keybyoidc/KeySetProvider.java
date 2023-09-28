@@ -11,9 +11,9 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
+import com.nimbusds.jose.jwk.JWKSet;
 
 @FunctionalInterface
 public interface KeySetProvider {
-    JsonWebKeys get() throws AuthenticatorUnavailableException;
+    JWKSet get() throws AuthenticatorUnavailableException;
 }

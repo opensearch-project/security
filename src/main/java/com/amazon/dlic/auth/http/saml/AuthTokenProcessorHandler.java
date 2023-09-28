@@ -18,6 +18,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,21 +33,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.OctetSequenceKey;
+import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import com.onelogin.saml2.authn.SamlResponse;
 import com.onelogin.saml2.exception.SettingsException;
 import com.onelogin.saml2.exception.ValidationError;
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Util;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
-import org.apache.cxf.rs.security.jose.jwk.KeyType;
-import org.apache.cxf.rs.security.jose.jwk.PublicKeyUse;
-import org.apache.cxf.rs.security.jose.jws.JwsUtils;
-import org.apache.cxf.rs.security.jose.jwt.JoseJwtProducer;
-import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
-import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -70,7 +72,6 @@ class AuthTokenProcessorHandler {
     private static final Pattern EXPIRY_SETTINGS_PATTERN = Pattern.compile("\\s*(\\w+)\\s*(?:\\+\\s*(\\w+))?\\s*");
 
     private Saml2SettingsProvider saml2SettingsProvider;
-    private JoseJwtProducer jwtProducer;
     private String jwtSubjectKey;
     private String jwtRolesKey;
     private String samlSubjectKey;
@@ -79,8 +80,8 @@ class AuthTokenProcessorHandler {
 
     private long expiryOffset = 0;
     private ExpiryBaseValue expiryBaseValue = ExpiryBaseValue.AUTO;
-    private JsonWebKey signingKey;
-    private JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
+    private JWK signingKey;
+    private JWSHeader jwsHeader;
     private Pattern samlRolesSeparatorPattern;
 
     AuthTokenProcessorHandler(Settings settings, Settings jwtSettings, Saml2SettingsProvider saml2SettingsProvider) throws Exception {
@@ -115,10 +116,7 @@ class AuthTokenProcessorHandler {
 
         this.initJwtExpirySettings(settings);
         this.signingKey = this.createJwkFromSettings(settings, jwtSettings);
-
-        this.jwtProducer = new JoseJwtProducer();
-        this.jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(this.signingKey));
-
+        this.jwsHeader = this.createJwsHeaderFromSettings();
     }
 
     @SuppressWarnings("removal")
@@ -262,19 +260,21 @@ class AuthTokenProcessorHandler {
         }
     }
 
-    JsonWebKey createJwkFromSettings(Settings settings, Settings jwtSettings) throws Exception {
+    private JWSHeader createJwsHeaderFromSettings() {
+        JWSHeader.Builder jwsHeaderBuilder = new JWSHeader.Builder(JWSAlgorithm.HS512);
+        return jwsHeaderBuilder.build();
+    }
+
+    JWK createJwkFromSettings(Settings settings, Settings jwtSettings) throws Exception {
 
         String exchangeKey = settings.get("exchange_key");
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
 
-            JsonWebKey jwk = new JsonWebKey();
-
-            jwk.setKeyType(KeyType.OCTET);
-            jwk.setAlgorithm("HS512");
-            jwk.setPublicKeyUse(PublicKeyUse.SIGN);
-            jwk.setProperty("k", exchangeKey);
-
+            JWK jwk = new OctetSequenceKey.Builder(Base64URL.from(exchangeKey))
+                    .algorithm(JWSAlgorithm.HS512)
+                    .keyUse(KeyUse.SIGNATURE)
+                    .build();
             return jwk;
         } else {
 
@@ -286,55 +286,60 @@ class AuthTokenProcessorHandler {
                 );
             }
 
-            JsonWebKey jwk = new JsonWebKey();
+            //TODO nimbus library doesn't accept generic key creation. Decide between RSAKey, OCTET, ECKey and create key from raw settings
+//            JsonWebKey jwk = new JsonWebKey();
+//
+//            for (String key : jwkSettings.keySet()) {
+//                jwk.setProperty(key, jwkSettings.get(key));
+//            }
 
-            for (String key : jwkSettings.keySet()) {
-                jwk.setProperty(key, jwkSettings.get(key));
-            }
+//            for (String key : jwkSettings.keySet()) {
+//                jwk.setProperty(key, jwkSettings.get(key));
+//            }
 
-            return jwk;
+            return null;
         }
     }
 
     private String createJwt(SamlResponse samlResponse) throws Exception {
-        JwtClaims jwtClaims = new JwtClaims();
-        JwtToken jwt = new JwtToken(jwtClaims);
-
-        jwtClaims.setNotBefore(System.currentTimeMillis() / 1000);
-        jwtClaims.setExpiryTime(getJwtExpiration(samlResponse));
-
-        jwtClaims.setProperty(this.jwtSubjectKey, this.extractSubject(samlResponse));
+        JWTClaimsSet.Builder jwtClaimsBuilder = new JWTClaimsSet.Builder()
+                //TODO check milis
+                .notBeforeTime(new Date(new Timestamp(System.currentTimeMillis()).getTime()))
+                .expirationTime(new Date(getJwtExpiration(samlResponse)))
+                .claim(this.jwtSubjectKey, this.extractSubject(samlResponse));
 
         if (this.samlSubjectKey != null) {
-            jwtClaims.setProperty("saml_ni", samlResponse.getNameId());
+            jwtClaimsBuilder.claim("saml_ni", samlResponse.getNameId());
         }
-
         if (samlResponse.getNameIdFormat() != null) {
-            jwtClaims.setProperty("saml_nif", SamlNameIdFormat.getByUri(samlResponse.getNameIdFormat()).getShortName());
+            jwtClaimsBuilder.claim("saml_nif", SamlNameIdFormat.getByUri(samlResponse.getNameIdFormat()).getShortName());
         }
 
         String sessionIndex = samlResponse.getSessionIndex();
 
         if (sessionIndex != null) {
-            jwtClaims.setProperty("saml_si", sessionIndex);
+            jwtClaimsBuilder.claim("saml_si", sessionIndex);
         }
 
         if (this.samlRolesKey != null && this.jwtRolesKey != null) {
             String[] roles = this.extractRoles(samlResponse);
 
-            jwtClaims.setProperty(this.jwtRolesKey, roles);
+            jwtClaimsBuilder.claim(this.jwtRolesKey, roles);
         }
+        JWTClaimsSet jwtClaims = jwtClaimsBuilder.build();
+        SignedJWT jwt = new SignedJWT(this.jwsHeader, jwtClaims);
+        jwt.sign(new DefaultJWSSignerFactory().createJWSSigner(this.signingKey));
 
-        String encodedJwt = this.jwtProducer.processJwt(jwt);
+        String encodedJwt = jwt.serialize();
 
         if (token_log.isDebugEnabled()) {
             token_log.debug(
                 "Created JWT: "
                     + encodedJwt
                     + "\n"
-                    + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
+                    + jwt.getHeader().toString()
                     + "\n"
-                    + JwtUtils.claimsToJson(jwt.getClaims())
+                    + jwt.getJWTClaimsSet().toString()
             );
         }
 
@@ -459,7 +464,7 @@ class AuthTokenProcessorHandler {
         SESSION
     }
 
-    public JsonWebKey getSigningKey() {
+    public JWK getSigningKey() {
         return signingKey;
     }
 }

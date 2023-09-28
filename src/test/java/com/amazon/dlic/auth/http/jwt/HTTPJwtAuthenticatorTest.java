@@ -67,7 +67,7 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testBadKey() throws Exception {
+    public void testBadKey() {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             Settings.builder().put("signing_key", BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 })),
@@ -78,7 +78,7 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testTokenMissing() throws Exception {
+    public void testTokenMissing() {
 
         Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
 
