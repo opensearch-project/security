@@ -197,7 +197,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
     public void testNodeStats() throws IOException {
-        List<Response> responses = RestHelper.requestAgainstAllNodes(testUserRestClient, "GET", "_node/stats", null);
+        List<Response> responses = RestHelper.requestAgainstAllNodes(client(), "GET", "_nodes/stats", null);
         responses.forEach(r -> Assert.assertEquals(200, r.getStatusLine().getStatusCode()));
     }
 
