@@ -779,7 +779,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                         @Override
                         public void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
-                            threadContext.putTransient(ConfigConstants.USE_JDK_SERIALIZATION, channel.getVersion().before(Version.V_3_0_0));
                             si.getHandler(action, actualHandler).messageReceived(request, channel, task);
                         }
                     };
