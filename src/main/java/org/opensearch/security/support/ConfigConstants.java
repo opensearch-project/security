@@ -326,7 +326,7 @@ public class ConfigConstants {
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
     public static final String USE_JDK_SERIALIZATION = "plugins.security.use_jdk_serialization";
-    public static final Version FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION = Version.V_2_11_0;
+    public static final Version FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION = Version.V_3_0_0;
 
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
