@@ -43,8 +43,7 @@ import org.opensearch.security.util.KeyUtils;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.util.AuthTokenUtils.isAccessToOBOEndpoint;
-import static org.opensearch.security.util.AuthTokenUtils.isAccessToPasswordChangingEndpoint;
+import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
@@ -233,7 +232,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     public Boolean isRequestAllowed(final RestRequest request) {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (isAccessToOBOEndpoint(request, suffix) || isAccessToPasswordChangingEndpoint(request, suffix)) {
+        if (isAccessToRestrictedEndpoints(request, suffix)) {
             final OpenSearchException exception = ExceptionUtils.invalidUsageOfOBOTokenException();
             log.error(exception.toString());
             return false;
