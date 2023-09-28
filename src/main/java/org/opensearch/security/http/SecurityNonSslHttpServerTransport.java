@@ -38,6 +38,7 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -46,7 +47,7 @@ import org.opensearch.transport.SharedGroupFactory;
 
 public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
-    private Netty4HttpRequestHeaderVerifier headerVerifier;
+    private SecurityRestFilter restFilter;
 
     public SecurityNonSslHttpServerTransport(
         final Settings settings,
@@ -58,7 +59,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
         Tracer tracer,
-        Netty4HttpRequestHeaderVerifier headerVerifier
+        SecurityRestFilter restFilter
     ) {
         super(
             settings,
@@ -71,7 +72,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
             sharedGroupFactory,
             tracer
         );
-        this.headerVerifier = headerVerifier;
+        this.restFilter = restFilter;
     }
 
     @Override
@@ -92,12 +93,12 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
     }
 
     @Override
-    protected HttpContentDecompressor getDecompressor() {
+    protected HttpContentDecompressor createDecompressor() {
         return new Netty4ConditionalDecompressor();
     }
 
     @Override
-    protected ChannelInboundHandlerAdapter getHeaderVerifier() {
-        return headerVerifier;
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return new Netty4HttpRequestHeaderVerifier(restFilter, xContentRegistry, threadPool);
     }
 }

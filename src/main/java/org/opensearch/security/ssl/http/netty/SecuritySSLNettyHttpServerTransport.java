@@ -38,6 +38,7 @@ import org.opensearch.http.HttpChannel;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -48,8 +49,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
-
-    private final Netty4HttpRequestHeaderVerifier headerVerifier;
+    private final SecurityRestFilter restFilter;
 
     public SecuritySSLNettyHttpServerTransport(
         final Settings settings,
@@ -63,7 +63,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
         Tracer tracer,
-        Netty4HttpRequestHeaderVerifier headerVerifier
+        SecurityRestFilter restFilter
     ) {
         super(
             settings,
@@ -78,7 +78,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         );
         this.sks = sks;
         this.errorHandler = errorHandler;
-        this.headerVerifier = headerVerifier;
+        this.restFilter = restFilter;
     }
 
     @Override
@@ -158,12 +158,12 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     }
 
     @Override
-    protected HttpContentDecompressor getDecompressor() {
+    protected HttpContentDecompressor createDecompressor() {
         return new Netty4ConditionalDecompressor();
     }
 
     @Override
-    protected ChannelInboundHandlerAdapter getHeaderVerifier() {
-        return headerVerifier;
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return new Netty4HttpRequestHeaderVerifier(restFilter, xContentRegistry, threadPool);
     }
 }

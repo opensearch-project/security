@@ -163,7 +163,6 @@ import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.SslExceptionHandler;
-import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
@@ -882,11 +881,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         if (!disabled) {
-            final Netty4HttpRequestHeaderVerifier headerVerifier = new Netty4HttpRequestHeaderVerifier(
-                securityRestHandler,
-                xContentRegistry,
-                threadPool
-            );
             if (!client && httpSSLEnabled) {
 
                 final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(
@@ -909,7 +903,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     clusterSettings,
                     sharedGroupFactory,
                     tracer,
-                    headerVerifier
+                    securityRestHandler
                 );
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
@@ -926,7 +920,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         clusterSettings,
                         sharedGroupFactory,
                         tracer,
-                        headerVerifier
+                        securityRestHandler
                     )
                 );
             }
