@@ -11,9 +11,11 @@ package org.opensearch.security.bwc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.opensearch.common.Randomness;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 public class Song {
 
@@ -101,5 +103,15 @@ public class Song {
 
     public String asJson() throws JsonProcessingException {
         return new ObjectMapper().writeValueAsString(this.asMap());
+    }
+
+    public static Song randomSong() {
+        return new Song(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            Randomness.get().nextInt(5),
+            UUID.randomUUID().toString()
+        );
     }
 }

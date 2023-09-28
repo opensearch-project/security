@@ -9,6 +9,7 @@
 package org.opensearch.security.bwc.helper;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hc.core5.http.Header;
@@ -61,6 +62,26 @@ public class RestHelper {
         Response response = client.performRequest(request);
         log.info("Recieved response " + response.getStatusLine());
         return response;
+    }
+
+    public static List<Response> requestAgainstAllNodes(RestClient client, String method, String endpoint, HttpEntity entity)
+        throws IOException {
+        return requestAgainstAllNodes(client, method, endpoint, entity, null);
+    }
+
+    public static List<Response> requestAgainstAllNodes(
+        RestClient client,
+        String method,
+        String endpoint,
+        HttpEntity entity,
+        List<Header> headers
+    ) throws IOException {
+        int nodeCount = client.getNodes().size();
+        List<Response> responses = new ArrayList<>();
+        while (nodeCount-- > 0) {
+            responses.add(makeRequest(client, method, endpoint, entity, headers));
+        }
+        return responses;
     }
 
     public static Header getAuthorizationHeader(String username, String password) {

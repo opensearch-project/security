@@ -31,14 +31,18 @@ import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
+import org.opensearch.common.Randomness;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 import org.opensearch.Version;
@@ -56,6 +60,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     private final String TEST_USER = "user";
     private final String TEST_PASSWORD = "290735c0-355d-4aaf-9b42-1aaa1f2a3cee";
     private final String TEST_ROLE = "test-dls-fls-role";
+    private static RestClient testUserRestClient = null;
 
     @Before
     public void testSetup() {
@@ -63,6 +68,14 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         Assume.assumeTrue("Test cannot be run outside the BWC gradle task 'bwcTestSuite' or its dependent tasks", bwcsuiteString != null);
         CLUSTER_TYPE = ClusterType.parse(bwcsuiteString);
         CLUSTER_NAME = System.getProperty("tests.clustername");
+        if (testUserRestClient == null) {
+            testUserRestClient = buildClient(
+                super.restClientSettings(),
+                super.getClusterHosts().toArray(new HttpHost[0]),
+                TEST_USER,
+                TEST_PASSWORD
+            );
+        }
     }
 
     @Override
@@ -101,18 +114,21 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             .build();
     }
 
+    protected RestClient buildClient(Settings settings, HttpHost[] hosts, String username, String password) {
+        RestClientBuilder builder = RestClient.builder(hosts);
+        configureHttpsClient(builder, settings, username, password);
+        boolean strictDeprecationMode = settings.getAsBoolean("strictDeprecationMode", true);
+        builder.setStrictDeprecationMode(strictDeprecationMode);
+        return builder.build();
+    }
+
     @Override
     protected RestClient buildClient(Settings settings, HttpHost[] hosts) {
         String username = Optional.ofNullable(System.getProperty("tests.opensearch.username"))
             .orElseThrow(() -> new RuntimeException("user name is missing"));
         String password = Optional.ofNullable(System.getProperty("tests.opensearch.password"))
             .orElseThrow(() -> new RuntimeException("password is missing"));
-
-        RestClientBuilder builder = RestClient.builder(hosts);
-        configureHttpsClient(builder, settings, username, password);
-        boolean strictDeprecationMode = settings.getAsBoolean("strictDeprecationMode", true);
-        builder.setStrictDeprecationMode(strictDeprecationMode);
-        return builder.build();
+        return buildClient(super.restClientSettings(), super.getClusterHosts().toArray(new HttpHost[0]), username, password);
     }
 
     private static void configureHttpsClient(RestClientBuilder builder, Settings settings, String userName, String password) {
@@ -180,6 +196,11 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         searchMatchAll(index);
     }
 
+    public void testNodeStats() throws IOException {
+        List<Response> responses = RestHelper.requestAgainstAllNodes(testUserRestClient, "GET", "_node/stats", null);
+        responses.forEach(r -> Assert.assertEquals(200, r.getStatusLine().getStatusCode()));
+    }
+
     @SuppressWarnings("unchecked")
     private void assertPluginUpgrade(String uri) throws Exception {
         Map<String, Map<String, Object>> responseMap = (Map<String, Map<String, Object>>) getAsMap(uri).get("nodes");
@@ -205,19 +226,26 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     private void ingestData(String index) throws IOException {
         StringBuilder bulkRequestBody = new StringBuilder();
         ObjectMapper objectMapper = new ObjectMapper();
-        for (Song song : Song.SONGS) {
-            Map<String, Map<String, String>> indexRequest = new HashMap<>();
-            indexRequest.put("index", new HashMap<>() {
-                {
-                    put("_index", index);
-                }
-            });
-            bulkRequestBody.append(objectMapper.writeValueAsString(indexRequest) + "\n");
-            bulkRequestBody.append(objectMapper.writeValueAsString(song.asJson()) + "\n");
+        int numberOfRequests = Randomness.get().nextInt(10);
+        while (numberOfRequests-- > 0) {
+            for (int i = 0; i < Randomness.get().nextInt(100); i++) {
+                Map<String, Map<String, String>> indexRequest = new HashMap<>();
+                indexRequest.put("index", new HashMap<>() {
+                    {
+                        put("_index", index);
+                    }
+                });
+                bulkRequestBody.append(objectMapper.writeValueAsString(indexRequest) + "\n");
+                bulkRequestBody.append(objectMapper.writeValueAsString(Song.randomSong().asJson()) + "\n");
+            }
+            List<Response> responses = RestHelper.requestAgainstAllNodes(
+                testUserRestClient,
+                "POST",
+                "_bulk?refresh=wait_for",
+                RestHelper.toHttpEntity(bulkRequestBody.toString())
+            );
+            responses.forEach(r -> assertEquals(200, r.getStatusLine().getStatusCode()));
         }
-
-        Response response = RestHelper.makeRequest(client(), "POST", "_bulk", RestHelper.toHttpEntity(bulkRequestBody.toString()));
-        assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
     }
 
     /**
@@ -226,10 +254,16 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
      */
     private void searchMatchAll(String index) throws IOException {
         String matchAllQuery = "{\n" + "    \"query\": {\n" + "        \"match_all\": {}\n" + "    }\n" + "}";
-
-        Response response = RestHelper.makeRequest(client(), "POST", index + "/_search", RestHelper.toHttpEntity(matchAllQuery));
-
-        assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
+        int numberOfRequests = Randomness.get().nextInt(10);
+        while (numberOfRequests-- > 0) {
+            List<Response> responses = RestHelper.requestAgainstAllNodes(
+                testUserRestClient,
+                "POST",
+                index + "/_search",
+                RestHelper.toHttpEntity(matchAllQuery)
+            );
+            responses.forEach(r -> assertEquals(200, r.getStatusLine().getStatusCode()));
+        }
     }
 
     /**
@@ -323,5 +357,11 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(userSettings));
             assertThat(response.getStatusLine().getStatusCode(), equalTo(201));
         }
+    }
+
+    @AfterClass
+    public static void cleanUp() throws IOException {
+        OpenSearchRestTestCase.closeClients();
+        IOUtils.close(testUserRestClient);
     }
 }
