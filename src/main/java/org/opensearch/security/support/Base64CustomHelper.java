@@ -108,7 +108,7 @@ public class Base64CustomHelper {
 
     protected static Serializable deserializeObject(final String string) {
 
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(string), "string must not be null or empty");
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(string), "object must not be null or empty");
         final byte[] bytes = BaseEncoding.base64().decode(string);
         Serializable obj = null;
         try (final BytesStreamInput streamInput = new SafeBytesStreamInput(bytes)) {
