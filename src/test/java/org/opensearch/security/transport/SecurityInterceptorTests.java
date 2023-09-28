@@ -114,22 +114,22 @@ public class SecurityInterceptorTests {
 
         MockTransport transport = new MockTransport();
         TransportService transportService = transport.createTransportService(
-                Settings.EMPTY,
-                threadPool,
-                TransportService.NOOP_TRANSPORT_INTERCEPTOR,
-                boundTransportAddress -> clusterService.state().nodes().get(SecurityInterceptor.class.getSimpleName()),
-                null,
-                emptySet(),
-                NoopTracer.INSTANCE
+            Settings.EMPTY,
+            threadPool,
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> clusterService.state().nodes().get(SecurityInterceptor.class.getSimpleName()),
+            null,
+            emptySet(),
+            NoopTracer.INSTANCE
         );
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
         OpenSearchSecurityPlugin.GuiceHolder guiceHolder = new OpenSearchSecurityPlugin.GuiceHolder(
-                mock(RepositoriesService.class),
-                transportService,
-                mock(IndicesService.class),
-                mock(PitService.class),
-                mock(ExtensionsManager.class)
+            mock(RepositoriesService.class),
+            transportService,
+            mock(IndicesService.class),
+            mock(PitService.class),
+            mock(ExtensionsManager.class)
         );
         // CS-ENFORCE-SINGLE
 
@@ -157,7 +157,13 @@ public class SecurityInterceptorTests {
         // from thread context inside sendRequestDecorate
         AsyncSender sender = new AsyncSender() {
             @Override
-            public <T extends TransportResponse> void sendRequest(Connection connection, String action, TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
                 User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 assertEquals(transientUser, user);
             }
@@ -173,7 +179,13 @@ public class SecurityInterceptorTests {
         // checking thread context inside sendRequestDecorate
         sender = new AsyncSender() {
             @Override
-            public <T extends TransportResponse> void sendRequest(Connection connection, String action, TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
                 assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
             }
@@ -186,7 +198,6 @@ public class SecurityInterceptorTests {
         assertEquals(transientUser2, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
     }
-
 
     @Test
     public void testSendRequestDecorate() {
