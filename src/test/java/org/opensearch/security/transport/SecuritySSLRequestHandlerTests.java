@@ -66,16 +66,11 @@ public class SecuritySSLRequestHandlerTests {
         TransportChannel transportChannel = mock(TransportChannel.class);
         Task task = mock(Task.class);
         doNothing().when(transportChannel).sendResponse(ArgumentMatchers.any(Exception.class));
-        when(transportChannel.getVersion()).thenReturn(Version.V_2_10_0);
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_11_0);
         when(transportChannel.getChannelType()).thenReturn("transport");
 
         Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
         Assert.assertTrue(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
-
-        threadPool.getThreadContext().stashContext();
-        when(transportChannel.getVersion()).thenReturn(Version.V_2_11_0);
-        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
-        Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
 
         threadPool.getThreadContext().stashContext();
         when(transportChannel.getVersion()).thenReturn(Version.V_3_0_0);
