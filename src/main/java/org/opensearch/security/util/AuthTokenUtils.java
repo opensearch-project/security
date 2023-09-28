@@ -31,6 +31,6 @@ public class AuthTokenUtils {
     }
 
     public static Boolean isEncryptionKeyNull(Settings settings) {
-        return settings.get("signing_key") == null;
+        return settings.get("encryption_key") == null;
     }
 }
