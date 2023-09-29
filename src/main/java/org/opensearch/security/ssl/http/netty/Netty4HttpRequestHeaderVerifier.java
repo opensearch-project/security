@@ -8,7 +8,6 @@
 
 package org.opensearch.security.ssl.http.netty;
 
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
@@ -30,7 +29,6 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.EARLY_RESPONSE;
 
-@ChannelHandler.Sharable
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
     private final SecurityRestFilter restFilter;
     private final ThreadPool threadPool;

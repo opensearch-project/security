@@ -137,7 +137,6 @@ public class BackendRegistry {
         this.opensearchSettings = settings;
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
-        // this.threadPool = threadPool;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60);
