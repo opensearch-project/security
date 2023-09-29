@@ -124,7 +124,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithBadExpiry() {
+    public void testCreateJwtWithNegativeExpiry() {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
@@ -142,6 +142,32 @@ public class JwtVendorTest {
             }
         });
         Assert.assertEquals("java.lang.Exception: The expiration time should be a positive integer", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateJwtWithExceededExpiry() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "audience_0";
+        List<String> roles = List.of("IT", "HR");
+        List<String> backendRoles = List.of("Sales", "Support");
+        int expirySeconds = 900;
+        LongSupplier currentTime = () -> (long) 100;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+
+        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
+            try {
+                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        Assert.assertEquals(
+                "java.lang.Exception: The provided expiration time exceeds the maximum allowed duration of 600 seconds",
+                exception.getMessage()
+        );
     }
 
     @Test
