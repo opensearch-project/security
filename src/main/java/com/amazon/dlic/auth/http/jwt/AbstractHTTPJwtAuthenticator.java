@@ -150,10 +150,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         if (jwtUrlParameter != null) {
             if (jwtToken == null || jwtToken.isEmpty()) {
-                jwtToken = request.param(jwtUrlParameter);
+                jwtToken = request.params().get(jwtUrlParameter);
             } else {
                 // just consume to avoid "contains unrecognized parameter"
-                request.param(jwtUrlParameter);
+                request.params().get(jwtUrlParameter);
             }
         }
 

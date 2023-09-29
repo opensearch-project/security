@@ -45,22 +45,14 @@ import org.opensearch.transport.TransportRequest;
 public interface AuditLog extends Closeable {
 
     // login
-    void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
+    void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
 
-    default void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
-        this.logFailedLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest().get());
-    }
-
-    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
-
-    default void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
-        logSucceededLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest().get());
-    }
+    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
 
     // privs
-    void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request);
+    void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request);
 
-    void logGrantedPrivileges(String effectiveUser, RestRequest request);
+    void logGrantedPrivileges(String effectiveUser, SecurityRequest request);
 
     void logMissingPrivileges(String privilege, TransportRequest request, Task task);
 
@@ -72,21 +64,13 @@ public interface AuditLog extends Closeable {
     // spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
 
-    void logBadHeaders(RestRequest request);
-
-    default void logBadHeaders(SecurityRequest request) {
-        this.logBadHeaders(request.asRestRequest().get());
-    }
+    void logBadHeaders(SecurityRequest request);
 
     void logSecurityIndexAttempt(TransportRequest request, String action, Task task);
 
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
 
-    void logSSLException(RestRequest request, Throwable t);
-
-    default void logSSLException(SecurityRequest request, Throwable t) {
-        this.logSSLException(request.asRestRequest().get(), t);
-    }
+    void logSSLException(SecurityRequest request, Throwable t);
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
 

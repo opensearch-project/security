@@ -131,13 +131,15 @@ public class SecurityRestFilter {
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
-            if (!checkAndAuthenticateRequest(SecurityRequestFactory.from(request, channel))) {
+            final SecurityRequest securityRequest = SecurityRequestFactory.from(request, channel);
+            if (!checkAndAuthenticateRequest(securityRequest)) {
                 User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
                 if (isSuperAdminUser
                     || (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
                         && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
-                    if (isSuperAdminUser || authorizeRequest(original, request, channel, user)) {
+                    SecurityRequestFactory.from(request, channel);
+                    if (isSuperAdminUser || authorizeRequest(original, securityRequest, user)) {
                         original.handleRequest(request, channel, client);
                     }
                 }
@@ -152,7 +154,7 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    private boolean authorizeRequest(RestHandler original, RestRequest request, RestChannel channel, User user) {
+    private boolean authorizeRequest(RestHandler original, SecurityRequest request, User user) {
 
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
@@ -190,7 +192,7 @@ public class SecurityRestFilter {
                     err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
-                channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
+                request.getRestChannel().sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
                 return false;
             }
         }

@@ -48,6 +48,7 @@ import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -369,16 +370,17 @@ public final class AuditMessage {
         }
     }
 
-    void addRestRequestInfo(final RestRequest request, final AuditConfig.Filter filter) {
+    void addRestRequestInfo(final SecurityRequest request, final AuditConfig.Filter filter) {
         if (request != null) {
-            final String path = request.path();
+            final String path = request.path().toString();
             addPath(path);
             addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
             addRestParams(request.params());
             addRestMethod(request.method());
-            if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
+
+            if (filter.shouldLogRequestBody() && request.asRestRequest().isPresent() && request.asRestRequest().get().hasContentOrSourceParam()) {
                 try {
-                    final Tuple<MediaType, BytesReference> xContentTuple = request.contentOrSourceParam();
+                    final Tuple<MediaType, BytesReference> xContentTuple = request.asRestRequest().get().contentOrSourceParam();
                     final String requestBody = XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
                     if (path != null
                         && requestBody != null

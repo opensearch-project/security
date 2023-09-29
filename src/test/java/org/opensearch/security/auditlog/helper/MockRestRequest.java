@@ -16,6 +16,8 @@ import java.util.Collections;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestFactory;
 
 public class MockRestRequest extends RestRequest {
 
@@ -43,5 +45,9 @@ public class MockRestRequest extends RestRequest {
     @Override
     public BytesReference content() {
         return null;
+    }
+
+    public SecurityRequest asSecurityRequest() {
+        return SecurityRequestFactory.from(this, null);
     }
 }

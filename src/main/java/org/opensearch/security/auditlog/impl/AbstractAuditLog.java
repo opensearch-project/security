@@ -66,6 +66,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -139,7 +140,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
+    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
 
         if (!checkRestFilter(AuditCategory.FAILED_LOGIN, effectiveUser, request)) {
             return;
@@ -157,7 +158,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
+    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
 
         if (!checkRestFilter(AuditCategory.AUTHENTICATED, effectiveUser, request)) {
             return;
@@ -174,7 +175,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
+    public void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request) {
         if (!checkRestFilter(AuditCategory.MISSING_PRIVILEGES, effectiveUser, request)) {
             return;
         }
@@ -189,7 +190,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
+    public void logGrantedPrivileges(String effectiveUser, SecurityRequest request) {
         if (!checkRestFilter(AuditCategory.GRANTED_PRIVILEGES, effectiveUser, request)) {
             return;
         }
@@ -348,7 +349,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logBadHeaders(RestRequest request) {
+    public void logBadHeaders(SecurityRequest request) {
 
         if (!checkRestFilter(AuditCategory.BAD_HEADERS, getUser(), request)) {
             return;
@@ -437,7 +438,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSSLException(RestRequest request, Throwable t) {
+    public void logSSLException(SecurityRequest request, Throwable t) {
 
         if (!checkRestFilter(AuditCategory.SSL_EXCEPTION, getUser(), request)) {
             return;
@@ -896,7 +897,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @VisibleForTesting
-    boolean checkRestFilter(final AuditCategory category, final String effectiveUser, RestRequest request) {
+    boolean checkRestFilter(final AuditCategory category, final String effectiveUser, SecurityRequest request) {
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
             log.trace(

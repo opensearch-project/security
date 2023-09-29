@@ -114,10 +114,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
 
         if ((jwtToken == null || jwtToken.isEmpty()) && jwtUrlParameter != null) {
-            jwtToken = request.param(jwtUrlParameter);
+            jwtToken = request.params().get(jwtUrlParameter);
         } else {
             // just consume to avoid "contains unrecognized parameter"
-            request.param(jwtUrlParameter);
+            request.params().get(jwtUrlParameter);
         }
 
         if (jwtToken == null || jwtToken.length() == 0) {

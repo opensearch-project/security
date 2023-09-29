@@ -54,7 +54,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     @Override
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
 
-        final boolean forceLogin = request.paramAsBoolean("force_login", false);
+        final boolean forceLogin = Boolean.getBoolean(request.params().get("force_login"));
 
         if (forceLogin) {
             return null;

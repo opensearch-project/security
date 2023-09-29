@@ -50,7 +50,7 @@ public class SecurityRequestFactory {
         }
 
         @Override
-        public CharSequence path() {
+        public String path() {
             return underlyingRequest.path();
         }
 
@@ -80,15 +80,9 @@ public class SecurityRequestFactory {
         }
 
         @Override
-        public boolean paramAsBoolean(String string, boolean b) {
+        public Map<String, String> params() {
             // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'paramAsBoolean'");
-        }
-
-        @Override
-        public String param(String jwtUrlParameter) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'param'");
+            throw new UnsupportedOperationException("Unimplemented method 'params'");
         }
     }
 
@@ -113,7 +107,7 @@ public class SecurityRequestFactory {
         }
 
         @Override
-        public CharSequence path() {
+        public String path() {
             // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'path'");
         }
@@ -149,16 +143,9 @@ public class SecurityRequestFactory {
         }
 
         @Override
-        public boolean paramAsBoolean(String string, boolean b) {
+        public Map<String, String> params() {
             // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'paramAsBoolean'");
+            throw new UnsupportedOperationException("Unimplemented method 'params'");
         }
-
-        @Override
-        public String param(String jwtUrlParameter) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'param'");
-        }
-
     }
 }

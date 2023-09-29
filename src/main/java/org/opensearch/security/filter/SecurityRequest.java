@@ -20,7 +20,7 @@ public interface SecurityRequest {
 
     public RestChannel getRestChannel();
 
-    public CharSequence path();
+    public String path();
 
     public Method method();
 
@@ -41,7 +41,5 @@ public interface SecurityRequest {
             .orElse(null);
     }
 
-    public boolean paramAsBoolean(String string, boolean b);
-
-    public String param(String jwtUrlParameter);
+    public Map<String, String> params();
 }

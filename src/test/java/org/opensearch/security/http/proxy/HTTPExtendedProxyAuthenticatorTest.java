@@ -47,6 +47,8 @@ import org.opensearch.http.HttpResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -77,19 +79,19 @@ public class HTTPExtendedProxyAuthenticatorTest {
     @Test(expected = OpenSearchSecurityException.class)
     public void testThrowsExceptionWhenMissingXFFDone() {
         authenticator = new HTTPExtendedProxyAuthenticator(Settings.EMPTY, null);
-        authenticator.extractCredentials(new TestRestRequest(), new ThreadContext(Settings.EMPTY));
+        authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), new ThreadContext(Settings.EMPTY));
     }
 
     @Test
     public void testReturnsNullWhenUserHeaderIsUnconfigured() {
         authenticator = new HTTPExtendedProxyAuthenticator(Settings.EMPTY, null);
-        assertNull(authenticator.extractCredentials(new TestRestRequest(), context));
+        assertNull(authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), context));
     }
 
     @Test
     public void testReturnsNullWhenUserHeaderIsMissing() {
 
-        assertNull(authenticator.extractCredentials(new TestRestRequest(), context));
+        assertNull(authenticator.extractCredentials(new TestRestRequest().asSecurityRequest(), context));
     }
 
     @Test
@@ -105,7 +107,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
         settings = Settings.builder().put(settings).put("attr_header_prefix", "proxy_").build();
         authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
-        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
+        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context);
         assertNotNull(creds);
         assertEquals("aValidUser", creds.getUsername());
         assertEquals("123,456", creds.getAttributes().get("attr.proxy.uid"));
@@ -122,7 +124,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
         settings = Settings.builder().put(settings).put("roles_header", "roles").put("roles_separator", ",").build();
         authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
-        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
+        AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context);
         assertNotNull(creds);
         assertEquals("aValidUser", creds.getUsername());
         assertEquals(ImmutableSet.of("role1", "role2"), creds.getBackendRoles());
@@ -163,6 +165,9 @@ public class HTTPExtendedProxyAuthenticatorTest {
             return false;
         }
 
+        public SecurityRequest asSecurityRequest() {
+            return SecurityRequestFactory.from(this, null);
+        }
     }
 
     static class HttpRequestImpl implements HttpRequest {

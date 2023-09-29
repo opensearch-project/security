@@ -49,6 +49,8 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -535,6 +537,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     @Override
     protected final RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
 
+        // Fix channel ordering
+        final SecurityRequest securityRequest = SecurityRequestFactory.from(request, null);
+
         // consume all parameters first so we can return a correct HTTP status,
         // not 400
         consumeParameters(request);
@@ -551,12 +556,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final String userName = user == null ? null : user.getName();
         if (authError != null) {
             LOGGER.error("No permission to access REST API: " + authError);
-            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, request);
+            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, securityRequest);
             // for rest request
             request.params().clear();
             return channel -> forbidden(channel, "No permission to access REST API: " + authError);
         } else {
-            securityApiDependencies.auditLog().logGrantedPrivileges(userName, request);
+            securityApiDependencies.auditLog().logGrantedPrivileges(userName, securityRequest);
         }
 
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());

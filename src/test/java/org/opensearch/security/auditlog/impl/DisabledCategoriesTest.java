@@ -227,11 +227,11 @@ public class DisabledCategoriesTest {
     }
 
     protected void logRestSucceededLogin(AuditLog auditLog) {
-        auditLog.logSucceededLogin("testuser.rest.succeededlogin", false, "testuser.rest.succeededlogin", new MockRestRequest());
+        auditLog.logSucceededLogin("testuser.rest.succeededlogin", false, "testuser.rest.succeededlogin", new MockRestRequest().asSecurityRequest());
     }
 
     protected void logRestFailedLogin(AuditLog auditLog) {
-        auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest());
+        auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest().asSecurityRequest());
     }
 
     protected void logMissingPrivileges(AuditLog auditLog) {
@@ -243,7 +243,7 @@ public class DisabledCategoriesTest {
     }
 
     protected void logRestBadHeaders(AuditLog auditLog) {
-        auditLog.logBadHeaders(new MockRestRequest());
+        auditLog.logBadHeaders(new MockRestRequest().asSecurityRequest());
     }
 
     protected void logSecurityIndexAttempt(AuditLog auditLog) {
@@ -251,7 +251,7 @@ public class DisabledCategoriesTest {
     }
 
     protected void logRestSSLException(AuditLog auditLog) {
-        auditLog.logSSLException(new MockRestRequest(), new Exception());
+        auditLog.logSSLException(new MockRestRequest().asSecurityRequest(), new Exception());
     }
 
     protected void logTransportSSLException(AuditLog auditLog) {
