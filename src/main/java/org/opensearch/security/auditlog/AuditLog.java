@@ -38,6 +38,7 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
@@ -46,7 +47,15 @@ public interface AuditLog extends Closeable {
     // login
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
 
+    default void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
+        this.logFailedLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest());
+    }
+
     void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
+
+    default void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
+        logSucceededLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest());
+    }
 
     // privs
     void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request);
@@ -65,11 +74,19 @@ public interface AuditLog extends Closeable {
 
     void logBadHeaders(RestRequest request);
 
+    default void logBadHeaders(SecurityRequest request) {
+        this.logBadHeaders(request.asRestRequest());
+    }
+
     void logSecurityIndexAttempt(TransportRequest request, String action, Task task);
 
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
 
     void logSSLException(RestRequest request, Throwable t);
+
+    default void logSSLException(SecurityRequest request, Throwable t) {
+        this.logSSLException(request.asRestRequest(), t);
+    }
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
 

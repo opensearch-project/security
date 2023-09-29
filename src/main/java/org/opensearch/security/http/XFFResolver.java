@@ -37,6 +37,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -53,19 +54,17 @@ public class XFFResolver {
         this.threadContext = threadPool.getThreadContext();
     }
 
-    public TransportAddress resolve(final RestRequest request) throws OpenSearchSecurityException {
+    public TransportAddress resolve(final SecurityRequest request) throws OpenSearchSecurityException {
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
-            log.trace("resolve {}", request.getHttpChannel().getRemoteAddress());
+            log.trace("resolve {}", request.getRemoteAddress().orElse(null));
         }
 
-        if (enabled
-            && request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress
-            && request.getHttpChannel() instanceof Netty4HttpChannel) {
-
+        if (enabled && request.getRemoteAddress().isPresent() && request.sourcedFromNetty()) {
+            final InetSocketAddress remoteAddress = request.getRemoteAddress().get();
             final InetSocketAddress isa = new InetSocketAddress(
                 detector.detect(request, threadContext),
-                ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getPort()
+                remoteAddress.getPort()
             );
 
             if (isa.isUnresolved()) {
@@ -74,23 +73,21 @@ public class XFFResolver {
 
             if (isTraceEnabled) {
                 if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) == Boolean.TRUE) {
-                    log.trace("xff resolved {} to {}", request.getHttpChannel().getRemoteAddress(), isa);
+                    log.trace("xff resolved {} to {}", remoteAddress, isa);
                 } else {
                     log.trace("no xff done for {}", request.getClass());
                 }
             }
             return new TransportAddress(isa);
-        } else if (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress) {
-
+        } else if (request.getRemoteAddress().isPresent()) {
             if (isTraceEnabled) {
                 log.trace("no xff done (enabled or no netty request) {},{},{},{}", enabled, request.getClass());
-
             }
-            return new TransportAddress((InetSocketAddress) request.getHttpChannel().getRemoteAddress());
+            return new TransportAddress((InetSocketAddress) request.getRemoteAddress().get());
         } else {
             throw new OpenSearchSecurityException(
                 "Cannot handle this request. Remote address is "
-                    + request.getHttpChannel().getRemoteAddress()
+                    + request.getRemoteAddress().orElse(null)
                     + " with request class "
                     + request.getClass()
             );

@@ -58,7 +58,7 @@ public class AuditLogSslExceptionHandler implements SslExceptionHandler {
     @Override
     public void logError(Throwable t, boolean isRest) {
         if (isRest) {
-            auditLog.logSSLException(null, t);
+            auditLog.logSSLException((RestRequest)null, t);
         } else {
             auditLog.logSSLException(null, t, null, null);
         }

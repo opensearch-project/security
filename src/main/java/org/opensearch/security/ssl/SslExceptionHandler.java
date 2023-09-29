@@ -18,6 +18,7 @@
 package org.opensearch.security.ssl;
 
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
@@ -33,5 +34,9 @@ public interface SslExceptionHandler {
 
     default void logError(Throwable t, final TransportRequest request, String action, Task task, int type) {
         // no-op
+    }
+
+    default void logError(Throwable t, SecurityRequest request, int type) {
+        this.logError(t, request.asRestRequest(), type);
     }
 }

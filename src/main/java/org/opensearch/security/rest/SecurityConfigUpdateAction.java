@@ -29,6 +29,7 @@ import org.opensearch.rest.action.RestActions.NodesResponseRestListener;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
@@ -73,7 +74,8 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
 
-        SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor);
+        final SecurityRequest securityRequest = SecurityRequest.from(request);
+        SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
         if (sslInfo == null) {
             return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));

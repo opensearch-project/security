@@ -131,7 +131,7 @@ public class SecurityRestFilter {
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
-            if (!checkAndAuthenticateRequest(request, channel)) {
+            if (!checkAndAuthenticateRequest(SecurityRequest.from(request))) {
                 User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
                 if (isSuperAdminUser
@@ -199,7 +199,9 @@ public class SecurityRestFilter {
         return true;
     }
 
-    private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel) throws Exception {
+    private boolean checkAndAuthenticateRequest(SecurityRequest request) throws Exception {
+
+        RestChannel channel = request.getRestChannel();
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
 
@@ -246,7 +248,7 @@ public class SecurityRestFilter {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
-            if (!registry.authenticate(request, channel, threadContext)) {
+            if (!registry.authenticate(request, threadContext)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
                 return true;

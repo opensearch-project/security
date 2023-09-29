@@ -34,6 +34,7 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPHelper {
@@ -86,7 +87,7 @@ public class HTTPHelper {
         }
     }
 
-    public static boolean containsBadHeader(final RestRequest request) {
+    public static boolean containsBadHeader(final SecurityRequest request) {
 
         final Map<String, List<String>> headers;
 

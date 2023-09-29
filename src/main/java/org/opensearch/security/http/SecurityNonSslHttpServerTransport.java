@@ -28,6 +28,7 @@ package org.opensearch.security.http;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
@@ -71,6 +72,11 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         return new NonSslHttpChannelHandler(this, handlingSettings);
     }
 
+    @Override
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return new AuthenicationVerifier();
+    }
+
     protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
 
         protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings) {
@@ -82,4 +88,6 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
             super.initChannel(ch);
         }
     }
+
+    
 }
