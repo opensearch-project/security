@@ -59,7 +59,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
     public static final Integer OBO_DEFAULT_EXPIRY_SECONDS = 5 * 60;
     public static final Integer OBO_MAX_EXPIRY_SECONDS = 10 * 60;
 
-    public static final String DEFAULT_SERVICE = "self-issued";
+    public static final String TOKEN_SERVICE_DEFAULT_TYPE = "self-issued";
 
     @Subscribe
     public void onConfigModelChanged(ConfigModel configModel) {
@@ -136,11 +136,11 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         .map(value -> Math.min(value, OBO_MAX_EXPIRY_SECONDS)) // Max duration seconds are 600
                         .orElse(OBO_DEFAULT_EXPIRY_SECONDS); // Fallback to default
 
-                    final Boolean roleSecurityMode = Optional.ofNullable(requestBody.get("roleSecurityMode"))
+                    final Boolean isRoleEncrypted = Optional.ofNullable(requestBody.get("isRoleEncrypted"))
                         .map(value -> (Boolean) value)
                         .orElse(true); // Default to false if null
 
-                    final String service = (String) requestBody.getOrDefault("service", DEFAULT_SERVICE);
+                    final String service = (String) requestBody.getOrDefault("service", TOKEN_SERVICE_DEFAULT_TYPE);
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     Set<String> mappedRoles = mapRoles(user);
 
@@ -154,7 +154,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         tokenDuration,
                         new HashSet<>(mappedRoles),
                         new HashSet<>(user.getRoles()),
-                        roleSecurityMode
+                        isRoleEncrypted
                     );
                     builder.field("authenticationToken", token);
                     builder.field("durationSeconds", tokenDuration);

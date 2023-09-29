@@ -1146,9 +1146,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public List<Setting<?>> getExtensionSettings() {
-        List<Setting<?>> settings = new ArrayList<Setting<?>>();
+        List<Setting<?>> settings = new ArrayList<>();
         settings.add(RESERVED_INDICES_SETTING);
-        settings.add(SEND_BACKEND_ROLES_SETTING);
         settings.add(PERMISSIONS_SETTING);
         return settings;
     }

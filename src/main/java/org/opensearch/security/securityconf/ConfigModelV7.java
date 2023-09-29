@@ -294,7 +294,7 @@ public class ConfigModelV7 extends ConfigModel {
 
     // beans
 
-    public class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
+    public static class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
 
         protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -334,38 +334,6 @@ public class ConfigModelV7 extends ConfigModel {
         @Override
         public String toString() {
             return "roles=" + roles;
-        }
-
-        @Override
-        public void addRole(Role role) {
-            if (role == null) {
-                return;
-            }
-
-            RoleV7 roleToAdd = (RoleV7) role;
-            SecurityRole.Builder _securityRole = new SecurityRole.Builder("ephemeral");
-
-            final Set<String> permittedClusterActions = agr.resolvedActions(roleToAdd.getCluster_permissions());
-            _securityRole.addClusterPerms(permittedClusterActions);
-
-            for (final Index permittedAliasesIndex : roleToAdd.getIndex_permissions()) {
-
-                final String dls = permittedAliasesIndex.getDls();
-                final List<String> fls = permittedAliasesIndex.getFls();
-                final List<String> maskedFields = permittedAliasesIndex.getMasked_fields();
-
-                for (String pat : permittedAliasesIndex.getIndex_patterns()) {
-                    IndexPattern _indexPattern = new IndexPattern(pat);
-                    _indexPattern.setDlsQuery(dls);
-                    _indexPattern.addFlsFields(fls);
-                    _indexPattern.addMaskedFields(maskedFields);
-                    _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
-                    _securityRole.addIndexPattern(_indexPattern);
-                }
-            }
-
-            SecurityRole newRole = _securityRole.build();
-            this.roles.add(newRole);
         }
 
         public Set<SecurityRole> getRoles() {
@@ -538,7 +506,7 @@ public class ConfigModelV7 extends ConfigModel {
             return roles.stream().map(r -> matchExplicitly(r.clusterPerms)).filter(m -> m.test(action)).count() > 0;
         }
 
-        WildcardMatcher matchExplicitly(final WildcardMatcher matcher) {
+        private static WildcardMatcher matchExplicitly(final WildcardMatcher matcher) {
             return matcher == WildcardMatcher.ANY ? WildcardMatcher.NONE : matcher;
         }
 
@@ -558,7 +526,7 @@ public class ConfigModelV7 extends ConfigModel {
             }
 
             final Set<String> explicitlyAllowedIndices = roles.stream()
-                .map(role -> role.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, this::matchExplicitly))
+                .map(role -> role.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, SecurityRoles::matchExplicitly))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 

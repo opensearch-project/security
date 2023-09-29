@@ -606,9 +606,8 @@ public class BackendRegistry {
             final boolean isDebugEnabled = log.isDebugEnabled();
             // loop over all http/rest auth domains
             for (final AuthDomain authDomain : restAuthDomains) {
-
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
-                // Skip over the OnBehalfOfAuthenticator since it is not compatible for user impersonation
+                // We don't support user impersonation for OnBehalfOf tokens, and so we skip this step
                 if (authDomain.getHttpAuthenticator() instanceof OnBehalfOfAuthenticator) {
                     continue;
                 }

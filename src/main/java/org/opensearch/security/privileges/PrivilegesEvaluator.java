@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -82,9 +81,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.extensions.ExtensionsSettings;
 import org.opensearch.index.reindex.ReindexAction;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -93,14 +90,12 @@ import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.PERMISSIONS_SETTING;
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
@@ -196,30 +191,7 @@ public class PrivilegesEvaluator {
     }
 
     private SecurityRoles getSecurityRoles(Set<String> roles) {
-        SecurityRoles securityRoles = configModel.getSecurityRoles().filter(roles);
-        User authenticatedUser = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        Optional<ExtensionsSettings.Extension> matchingExtension = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager()
-            .lookupExtensionSettingsById(authenticatedUser.getName());
-        if (matchingExtension.isPresent()) {
-            Settings permissions = (Settings) matchingExtension.get().getAdditionalSettings().get(PERMISSIONS_SETTING);
-            Settings indexPerms = permissions.getAsSettings("index_permissions");
-            List<String> clusterPerms = permissions.getAsList("cluster_permissions");
-            RoleV7 newRole = new RoleV7();
-            if (clusterPerms != null) {
-                newRole.setCluster_permissions(clusterPerms);
-            }
-            if (!indexPerms.keySet().isEmpty()) {
-                List<RoleV7.Index> allIndexPerms = new ArrayList<>();
-                RoleV7.Index indexPermissions = new RoleV7.Index();
-                indexPermissions.setIndex_patterns(indexPerms.getAsList("index_patterns"));
-                indexPermissions.setAllowed_actions(indexPerms.getAsList("allowed_actions"));
-                allIndexPerms.add(indexPermissions);
-                newRole.setIndex_permissions(allIndexPerms);
-            }
-            securityRoles.addRole(newRole);
-        }
-
-        return securityRoles;
+        return configModel.getSecurityRoles().filter(roles);
     }
 
     public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress, final String permissions) {

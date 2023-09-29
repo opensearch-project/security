@@ -97,7 +97,7 @@ public final class AuthCredentials {
     }
 
     /**
-     * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
+     * Create new credentials with a username, an initial optional set of roles and empty password/native credentials
      * @param username The username, must not be null or empty
      * @param securityRoles The internal roles the user has been mapped to
      * @param backendRoles set of roles this user is a member of

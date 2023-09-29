@@ -55,8 +55,6 @@ public interface SecurityRoles {
 
     Set<String> getRoleNames();
 
-    void addRole(Role role);
-
     Set<String> reduce(
         Resolved requestedResolved,
         User user,

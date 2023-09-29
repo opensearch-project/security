@@ -134,7 +134,7 @@ public class UserService {
         if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true")) { // If this is a
                                                                                                                           // service account
             verifyServiceAccount(securityJsonNode, accountName);
-            String password = accountName;
+            String password = generatePassword();
             contentAsNode.put("hash", hash(password.toCharArray()));
             contentAsNode.put("service", "true");
         } else {
