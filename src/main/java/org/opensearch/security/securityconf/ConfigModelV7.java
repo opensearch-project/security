@@ -17,8 +17,6 @@
 
 package org.opensearch.security.securityconf;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -61,7 +57,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.set.Sets;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
@@ -565,53 +560,6 @@ public class ConfigModelV7 extends ConfigModel {
             }
 
             return false;
-        }
-    }
-
-    public static class OnBehalfOfSettings {
-        @JsonProperty("enabled")
-        private Boolean oboEnabled = Boolean.TRUE;
-        @JsonProperty("signing_key")
-        private String signingKey;
-        @JsonProperty("encryption_key")
-        private String encryptionKey;
-
-        @JsonIgnore
-        public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(this, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public Boolean getOboEnabled() {
-            return oboEnabled;
-        }
-
-        public void setOboEnabled(Boolean oboEnabled) {
-            this.oboEnabled = oboEnabled;
-        }
-
-        public String getSigningKey() {
-            return signingKey;
-        }
-
-        public void setSigningKey(String signingKey) {
-            this.signingKey = signingKey;
-        }
-
-        public String getEncryptionKey() {
-            return encryptionKey;
-        }
-
-        public void setEncryptionKey(String encryptionKey) {
-            this.encryptionKey = encryptionKey;
-        }
-
-        @Override
-        public String toString() {
-            return "OnBehalfOfSettings [ enabled=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
     }
 
