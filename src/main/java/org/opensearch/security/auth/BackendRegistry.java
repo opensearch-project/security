@@ -52,8 +52,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
@@ -218,7 +216,8 @@ public class BackendRegistry {
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            request.getRestChannel().sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "OpenSearch Security not initialized."));
+            request.getRestChannel()
+                .sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "OpenSearch Security not initialized."));
             return false;
         }
 
@@ -340,12 +339,13 @@ public class BackendRegistry {
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
-                request.getRestChannel().sendResponse(
-                    new BytesRestResponse(
-                        RestStatus.FORBIDDEN,
-                        "Cannot authenticate user because admin user is not permitted to login via HTTP"
-                    )
-                );
+                request.getRestChannel()
+                    .sendResponse(
+                        new BytesRestResponse(
+                            RestStatus.FORBIDDEN,
+                            "Cannot authenticate user because admin user is not permitted to login via HTTP"
+                        )
+                    );
                 return false;
             }
 
@@ -363,10 +363,8 @@ public class BackendRegistry {
 
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadPool.getThreadContext().putTransient(
-                ConfigConstants.OPENDISTRO_SECURITY_USER,
-                impersonatedUser == null ? authenticatedUser : impersonatedUser
-            );
+            threadPool.getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser == null ? authenticatedUser : impersonatedUser);
             auditLog.logSucceededLogin(
                 (impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(),
                 false,
@@ -429,11 +427,7 @@ public class BackendRegistry {
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequest request, AuthCredentials authCredentials) {
-        notifyIpAuthFailureListeners(
-            request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null),
-            authCredentials,
-            request
-        );
+        notifyIpAuthFailureListeners(request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null), authCredentials, request);
     }
 
     private void notifyIpAuthFailureListeners(InetAddress remoteAddress, AuthCredentials authCredentials, Object request) {

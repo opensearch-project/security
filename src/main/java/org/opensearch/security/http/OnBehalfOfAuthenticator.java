@@ -122,7 +122,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+        throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {

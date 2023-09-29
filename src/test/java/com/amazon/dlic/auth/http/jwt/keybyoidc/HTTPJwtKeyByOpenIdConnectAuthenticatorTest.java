@@ -52,7 +52,8 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
         AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>()).asSecurityRequest(),
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>())
+                .asSecurityRequest(),
             null
         );
 
@@ -95,7 +96,8 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
         AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NO_ISSUER_OCT_1), new HashMap<>()).asSecurityRequest(),
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NO_ISSUER_OCT_1), new HashMap<>())
+                .asSecurityRequest(),
             null
         );
 
@@ -126,7 +128,8 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
         AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NO_AUDIENCE_OCT_1), new HashMap<>()).asSecurityRequest(),
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NO_AUDIENCE_OCT_1), new HashMap<>())
+                .asSecurityRequest(),
             null
         );
 
@@ -200,7 +203,8 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
         AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>()).asSecurityRequest(),
+            new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>())
+                .asSecurityRequest(),
             null
         );
 
@@ -223,7 +227,8 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
         AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>()).asSecurityRequest(),
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>())
+                .asSecurityRequest(),
             null
         );
 
@@ -336,7 +341,8 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
         AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>()).asSecurityRequest(),
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
+                .asSecurityRequest(),
             null
         );
 
@@ -355,7 +361,8 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
         AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_X), new HashMap<String, String>()).asSecurityRequest(),
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_X), new HashMap<String, String>())
+                .asSecurityRequest(),
             null
         );
 

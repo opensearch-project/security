@@ -157,5 +157,4 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         }
     }
 
-    
 }

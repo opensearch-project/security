@@ -12,8 +12,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 
-import io.netty.handler.codec.http.HttpRequest;
-
 public class SecurityRequestFactory {
 
     public static SecurityRequest from() {
@@ -27,6 +25,7 @@ public class SecurityRequestFactory {
     protected static class SecurityRestRequest implements SecurityRequest {
         private final RestRequest underlyingRequest;
         private final RestChannel underlyingChannel;
+
         SecurityRestRequest(final RestRequest request, final RestChannel channel) {
             underlyingRequest = request;
             underlyingChannel = channel;
@@ -85,7 +84,6 @@ public class SecurityRequestFactory {
             throw new UnsupportedOperationException("Unimplemented method 'params'");
         }
     }
-
 
     protected static class NettyRequest implements SecurityRequest {
         @Override

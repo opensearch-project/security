@@ -25,9 +25,7 @@ public class AuthenicationVerifier extends ChannelInboundHandlerAdapter {
 
         HttpRequest request = (HttpRequest) msg;
         if (!isAuthenticated(request)) {
-            final FullHttpResponse response = new DefaultFullHttpResponse(
-                HttpVersion.HTTP_1_1,
-                HttpResponseStatus.UNAUTHORIZED);
+            final FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
             ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
             ReferenceCountUtil.release(msg);
         } else {
@@ -37,8 +35,6 @@ public class AuthenicationVerifier extends ChannelInboundHandlerAdapter {
     }
 
     private boolean isAuthenticated(HttpRequest request) {
-
-
 
         log.info("Checking if request is authenticated:\n" + request);
 

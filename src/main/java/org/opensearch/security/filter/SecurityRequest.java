@@ -34,11 +34,7 @@ public interface SecurityRequest {
 
     default public String header(final String headerName) {
         final Optional<Map<String, List<String>>> headersMap = Optional.ofNullable(getHeaders());
-        return headersMap
-            .map(headers -> headers.get(headerName))
-            .map(List::stream)
-            .flatMap(Stream::findFirst)
-            .orElse(null);
+        return headersMap.map(headers -> headers.get(headerName)).map(List::stream).flatMap(Stream::findFirst).orElse(null);
     }
 
     public Map<String, String> params();

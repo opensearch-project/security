@@ -27,7 +27,6 @@
 package org.opensearch.security.auditlog;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.tasks.Task;

@@ -35,8 +35,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.http.netty4.Netty4HttpChannel;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
@@ -62,10 +60,7 @@ public class XFFResolver {
 
         if (enabled && request.getRemoteAddress().isPresent() && request.sourcedFromNetty()) {
             final InetSocketAddress remoteAddress = request.getRemoteAddress().get();
-            final InetSocketAddress isa = new InetSocketAddress(
-                detector.detect(request, threadContext),
-                remoteAddress.getPort()
-            );
+            final InetSocketAddress isa = new InetSocketAddress(detector.detect(request, threadContext), remoteAddress.getPort());
 
             if (isa.isUnresolved()) {
                 throw new OpenSearchSecurityException("Cannot resolve address " + isa.getHostString());

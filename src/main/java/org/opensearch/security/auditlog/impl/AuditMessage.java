@@ -378,7 +378,9 @@ public final class AuditMessage {
             addRestParams(request.params());
             addRestMethod(request.method());
 
-            if (filter.shouldLogRequestBody() && request.asRestRequest().isPresent() && request.asRestRequest().get().hasContentOrSourceParam()) {
+            if (filter.shouldLogRequestBody()
+                && request.asRestRequest().isPresent()
+                && request.asRestRequest().get().hasContentOrSourceParam()) {
                 try {
                     final Tuple<MediaType, BytesReference> xContentTuple = request.asRestRequest().get().contentOrSourceParam();
                     final String requestBody = XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());

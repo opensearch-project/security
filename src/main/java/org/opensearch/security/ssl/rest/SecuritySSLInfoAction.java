@@ -86,7 +86,8 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-                    final SecurityRequest securityRequest = SecurityRequestFactory.from(request, channel);;
+                    final SecurityRequest securityRequest = SecurityRequestFactory.from(request, channel);
+                    ;
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
                     X509Certificate[] certs = sslInfo == null ? null : sslInfo.getX509Certs();
                     X509Certificate[] localCerts = sslInfo == null ? null : sslInfo.getLocalCertificates();

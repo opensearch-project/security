@@ -28,7 +28,6 @@ package org.opensearch.security.http;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
@@ -75,7 +74,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
     // TODO: Disabled for confirming refactor around SecurityRequest is working as expected
     // @Override
     // protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-    //     return new AuthenicationVerifier();
+    // return new AuthenicationVerifier();
     // }
 
     protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
@@ -90,5 +89,4 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         }
     }
 
-    
 }

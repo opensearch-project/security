@@ -38,7 +38,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.http.HTTPProxyAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
