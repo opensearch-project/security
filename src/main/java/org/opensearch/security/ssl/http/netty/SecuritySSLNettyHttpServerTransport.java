@@ -22,7 +22,6 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.DecoderException;
-import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslHandler;
@@ -112,7 +111,6 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
 
             @Override
             protected void configurePipeline(ChannelHandlerContext ctx, String protocol) throws Exception {
-                final HttpContentDecompressor decompressor = new Netty4ConditionalDecompressor();
                 if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
                     configureDefaultHttp2Pipeline(ctx.pipeline());
                 } else if (ApplicationProtocolNames.HTTP_1_1.equals(protocol)) {
@@ -155,11 +153,6 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         protected void configurePipeline(Channel ch) {
             ch.pipeline().addLast(new Http2OrHttpHandler());
         }
-    }
-
-    @Override
-    protected HttpContentDecompressor createDecompressor() {
-        return new Netty4ConditionalDecompressor();
     }
 
     @Override

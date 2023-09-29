@@ -11,7 +11,6 @@ package org.opensearch.security.ssl.http.netty;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -28,12 +27,12 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.EARLY_RESPONSE;
+import static org.opensearch.http.netty4.Netty4HttpServerTransport.SHOULD_DECOMPRESS;
 
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
     private final SecurityRestFilter restFilter;
     private final ThreadPool threadPool;
     private final NamedXContentRegistry xContentRegistry;
-    public static final AttributeKey<Boolean> IS_AUTHENTICATED = AttributeKey.newInstance("opensearch-http-request-authenticated");
 
     public Netty4HttpRequestHeaderVerifier(SecurityRestFilter restFilter, NamedXContentRegistry xContentRegistry, ThreadPool threadPool) {
         this.restFilter = restFilter;
@@ -58,7 +57,6 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel();
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
-            // TODO Double check AbstractHttpServerTransport.dispatchRequest
             boolean isUnauthenticated = restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
@@ -67,9 +65,9 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
             if (isUnauthenticated) {
-                ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.FALSE);
+                ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
             } else {
-                ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.TRUE);
+                ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);
             }
         }
         ctx.fireChannelRead(msg);
