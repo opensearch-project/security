@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import io.jsonwebtoken.Jwts;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.Header;
+import org.apache.http.message.BasicHeader;
 
 import static io.jsonwebtoken.SignatureAlgorithm.RS256;
 import static java.util.Objects.requireNonNull;

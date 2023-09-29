@@ -29,6 +29,7 @@
 package org.opensearch.test.framework.cluster;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -66,6 +67,24 @@ import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.net.URIBuilder;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpOptions;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.routing.HttpRoutePlanner;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -121,16 +140,6 @@ public class TestRestClient implements AutoCloseable {
         return get(path, Collections.emptyList(), headers);
     }
 
-    public HttpResponse getWithJsonBody(String path, String body, Header... headers) {
-        try {
-            HttpGet httpGet = new HttpGet(new URIBuilder(getHttpServerUri()).setPath(path).build());
-            httpGet.setEntity(toStringEntity(body));
-            return executeRequest(httpGet, mergeHeaders(CONTENT_TYPE_JSON, headers));
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException("Incorrect URI syntax", ex);
-        }
-    }
-
     public HttpResponse getAuthInfo(Header... headers) {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
@@ -180,8 +189,24 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
+    public HttpResponse getWithJsonBody(String path, String body, Header... headers) {
+        // Clever workaround to get support for GET with body https://stackoverflow.com/a/25019452/533057
+        HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path) {
+            @Override
+            public String getMethod() {
+                return "GET";
+            }
+        };
+        uriRequest.setEntity(toStringEntity(body));
+        return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
+    }
+
     private StringEntity toStringEntity(String body) {
-        return new StringEntity(body);
+        try {
+            return new StringEntity(body);
+        } catch (UnsupportedEncodingException uee) {
+            throw new RuntimeException(uee);
+        }
     }
 
     public HttpResponse putJson(String path, ToXContentObject body) {

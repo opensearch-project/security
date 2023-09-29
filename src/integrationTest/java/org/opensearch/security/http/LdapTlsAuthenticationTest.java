@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.message.BasicHeader;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;

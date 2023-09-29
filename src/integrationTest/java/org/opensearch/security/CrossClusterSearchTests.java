@@ -64,6 +64,7 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searc
 * This is a parameterized test so that one test class is used to test security plugin behaviour when <code>ccsMinimizeRoundtrips</code>
 * option is enabled or disabled. Method {@link #parameters()} is a source of parameters values.
 */
+@Ignore("Setting up two clusters at once seems to be prone to issues where they have port mismatches")
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class CrossClusterSearchTests {
