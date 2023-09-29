@@ -109,7 +109,6 @@ import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
-import org.opensearch.rest.DelegatingRestHandler;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.core.rest.RestStatus;
@@ -585,7 +584,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
 
         if (client || disabled || SSLConfig.isSslOnlyMode()) {
-            return (rh) -> new DelegatingRestHandler(rh);
+            return (rh) -> rh;
         }
 
         return (rh) -> securityRestHandler.wrap(rh, adminDns);

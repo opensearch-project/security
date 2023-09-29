@@ -40,11 +40,9 @@ import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.DelegatingRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
@@ -117,33 +115,6 @@ public class SecurityRestFilter {
         this.allowlistingSettings = new AllowlistingSettings();
     }
 
-    class AuthczRestHandler extends DelegatingRestHandler {
-        private final AdminDNs adminDNs;
-
-        public AuthczRestHandler(RestHandler delegate, AdminDNs adminDNs) {
-            super(delegate);
-            this.adminDNs = adminDNs;
-        }
-
-        @Override
-        public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
-            org.apache.logging.log4j.ThreadContext.clearAll();
-            User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if (user == null) {
-                // Should not happen
-                return;
-            }
-            boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
-            if (isSuperAdminUser
-                || (whitelistingSettings.checkRequestIsAllowed(request, channel)
-                    && allowlistingSettings.checkRequestIsAllowed(request, channel))) {
-                if (isSuperAdminUser || authorizeRequest(delegate, request, channel, user)) {
-                    delegate.handleRequest(request, channel, client);
-                }
-            }
-        }
-    }
-
     /**
      * This function wraps around all rest requests
      * If the request is authenticated, then it goes through a allowlisting check.
@@ -158,7 +129,22 @@ public class SecurityRestFilter {
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
-        return new AuthczRestHandler(original, adminDNs);
+        return (request, channel, client) -> {
+            org.apache.logging.log4j.ThreadContext.clearAll();
+            User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            if (user == null) {
+                // Should not happen
+                return;
+            }
+            boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
+            if (isSuperAdminUser
+                || (whitelistingSettings.checkRequestIsAllowed(request, channel)
+                    && allowlistingSettings.checkRequestIsAllowed(request, channel))) {
+                if (isSuperAdminUser || authorizeRequest(original, request, channel, user)) {
+                    original.handleRequest(request, channel, client);
+                }
+            }
+        };
     }
 
     /**
