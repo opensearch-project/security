@@ -1,12 +1,12 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- */
+* Copyright OpenSearch Contributors
+* SPDX-License-Identifier: Apache-2.0
+*
+* The OpenSearch Contributors require contributions made to
+* this file be licensed under the Apache-2.0 license or a
+* compatible open source license.
+*
+*/
 package org.opensearch.security;
 
 import java.io.IOException;
@@ -85,15 +85,15 @@ public class DlsIntegrationTests {
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     /**
-     * User who is allowed to read all indices.
-     */
+    * User who is allowed to read all indices.
+    */
     static final TestSecurityConfig.User READ_ALL_USER = new TestSecurityConfig.User("read_all_user").roles(
         new TestSecurityConfig.Role("read_all_user").clusterPermissions("cluster_composite_ops_ro").indexPermissions("read").on("*")
     );
 
     /**
-     * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} and {@link #SECOND_INDEX_NAME}.
-     */
+    * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} and {@link #SECOND_INDEX_NAME}.
+    */
     static final TestSecurityConfig.User READ_FIRST_AND_SECOND_USER = new TestSecurityConfig.User("read_first_and_second_user").roles(
         new TestSecurityConfig.Role("first_index_reader").clusterPermissions("cluster_composite_ops_ro")
             .indexPermissions("read")
@@ -104,8 +104,8 @@ public class DlsIntegrationTests {
     );
 
     /**
-     * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_STRING}.
-     */
+    * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_STRING}.
+    */
     static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING = new TestSecurityConfig.User(
         "read_where_field_artist_matches_artist_string"
     ).roles(
@@ -131,8 +131,8 @@ public class DlsIntegrationTests {
         );
 
     /**
-     * User who is allowed to see documents on indices where value of {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_TWINS} or {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_FIRST}:
-     */
+    * User who is allowed to see documents on indices where value of {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_TWINS} or {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_FIRST}:
+    */
     static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST = new TestSecurityConfig.User(
         "read_where_field_artist_matches_artist_twins_or_artist_first"
     ).roles(
@@ -147,8 +147,8 @@ public class DlsIntegrationTests {
     );
 
     /**
-     * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_STARS} is less than three.
-     */
+    * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_STARS} is less than three.
+    */
     static final TestSecurityConfig.User READ_WHERE_STARS_LESS_THAN_THREE = new TestSecurityConfig.User("read_where_stars_less_than_three")
         .roles(
             new TestSecurityConfig.Role("read_where_stars_less_than_three").clusterPermissions("cluster_composite_ops_ro")
@@ -176,9 +176,9 @@ public class DlsIntegrationTests {
         .build();
 
     /**
-     * Function that returns id assigned to song with title equal to given title or throws {@link RuntimeException}
-     * when no song matches.
-     */
+    * Function that returns id assigned to song with title equal to given title or throws {@link RuntimeException}
+    * when no song matches.
+    */
     static final BiFunction<Map<String, Song>, String, String> FIND_ID_OF_SONG_WITH_TITLE = (map, title) -> map.entrySet()
         .stream()
         .filter(entry -> title.equals(entry.getValue().getTitle()))
@@ -187,9 +187,9 @@ public class DlsIntegrationTests {
         .orElseThrow(() -> new RuntimeException("Cannot find id of song with title: " + title));
 
     /**
-     * Function that returns id assigned to song with artist equal to given artist or throws {@link RuntimeException}
-     * when no song matches.
-     */
+    * Function that returns id assigned to song with artist equal to given artist or throws {@link RuntimeException}
+    * when no song matches.
+    */
     static final BiFunction<Map<String, Song>, String, String> FIND_ID_OF_SONG_WITH_ARTIST = (map, artist) -> map.entrySet()
         .stream()
         .filter(entry -> artist.equals(entry.getValue().getArtist()))

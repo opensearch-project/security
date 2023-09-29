@@ -1,0 +1,19 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+user_admin__all_access:
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "*"
+user_limited-user__limited-role:
+  index_permissions:
+    - index_patterns:
+        - "user-${user.name}"
+      allowed_actions:
+        - "indices:data/read/get"
+        - "indices:data/read/search"
