@@ -14,15 +14,18 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
-import org.apache.cxf.rs.security.jose.jws.JwsHeaders;
-import org.apache.cxf.rs.security.jose.jws.JwsSignatureProvider;
-import org.apache.cxf.rs.security.jose.jws.JwsUtils;
-import org.apache.cxf.rs.security.jose.jwt.JoseJwtProducer;
-import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
-import org.apache.cxf.rs.security.jose.jwt.JwtConstants;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.apache.logging.log4j.util.Strings;
+
+import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
+import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;
 
 class TestJwts {
     static final String ROLES_CLAIM = "roles";
@@ -35,22 +38,22 @@ class TestJwts {
 
     static final String TEST_ISSUER = "TestIssuer";
 
-    static final JwtToken MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+    static final JWTClaimsSet MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
-    static final JwtToken MC_COY_2 = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+    static final JWTClaimsSet MC_COY_2 = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
-    static final JwtToken MC_COY_NO_AUDIENCE = create(MCCOY_SUBJECT, null, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+    static final JWTClaimsSet MC_COY_NO_AUDIENCE = create(MCCOY_SUBJECT, null, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
-    static final JwtToken MC_COY_NO_ISSUER = create(MCCOY_SUBJECT, TEST_AUDIENCE, null, ROLES_CLAIM, TEST_ROLES_STRING);
+    static final JWTClaimsSet MC_COY_NO_ISSUER = create(MCCOY_SUBJECT, TEST_AUDIENCE, null, ROLES_CLAIM, TEST_ROLES_STRING);
 
-    static final JwtToken MC_COY_EXPIRED = create(
-        MCCOY_SUBJECT,
-        TEST_AUDIENCE,
-        TEST_ISSUER,
-        ROLES_CLAIM,
-        TEST_ROLES_STRING,
-        JwtConstants.CLAIM_EXPIRY,
-        10
+    static final JWTClaimsSet MC_COY_EXPIRED = create(
+            MCCOY_SUBJECT,
+            TEST_AUDIENCE,
+            TEST_ISSUER,
+            ROLES_CLAIM,
+            TEST_ROLES_STRING,
+            EXPIRATION_TIME,
+            10
     );
 
     static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
@@ -78,73 +81,86 @@ class TestJwts {
         static final String MC_COY_SIGNED_RSA_1 = createSignedWithPeculiarEscaping(MC_COY, TestJwk.RSA_1);
     }
 
-    static JwtToken create(String subject, String audience, String issuer, Object... moreClaims) {
-        JwtClaims claims = new JwtClaims();
+    static JWTClaimsSet create(String subject, String audience, String issuer, Object... moreClaims) {
+        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
 
-        claims.setSubject(subject);
+        claimsBuilder.subject(subject);
         if (audience != null) {
-            claims.setAudience(audience);
+            claimsBuilder.audience(audience);
         }
         if (issuer != null) {
-            claims.setIssuer(issuer);
+            claimsBuilder.issuer(issuer);
         }
 
         if (moreClaims != null) {
             for (int i = 0; i < moreClaims.length; i += 2) {
-                claims.setClaim(String.valueOf(moreClaims[i]), moreClaims[i + 1]);
+                claimsBuilder.claim(String.valueOf(moreClaims[i]), moreClaims[i + 1]);
             }
         }
 
-        JwtToken result = new JwtToken(claims);
-
-        return result;
+//        JwtToken result = new JwtToken(claimsBuilder);
+        return claimsBuilder.build();
     }
 
-    static String createSigned(JwtToken baseJwt, JsonWebKey jwk) {
-        return createSigned(baseJwt, jwk, JwsUtils.getSignatureProvider(jwk));
+    static String createSigned(JWTClaimsSet jwtClaimsSet, JWK jwk) {
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName()))
+                .keyID(jwk.getKeyID())
+                .build();
+        SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
+        try {
+            JWSSigner signer = new DefaultJWSSignerFactory().createJWSSigner(jwk);
+            signedJWT.sign(signer);
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+
+        return signedJWT.serialize();
     }
 
-    static String createSigned(JwtToken baseJwt, JsonWebKey jwk, JwsSignatureProvider signatureProvider) {
-        JwsHeaders jwsHeaders = new JwsHeaders();
-        JwtToken signedToken = new JwtToken(jwsHeaders, baseJwt.getClaims());
+    static String createSignedWithoutKeyId(JWTClaimsSet jwtClaimsSet, JWK jwk) {
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName()))
+                .keyID(jwk.getKeyID())
+                .build();
+        SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
+        try {
+            JWSSigner signer = new DefaultJWSSignerFactory().createJWSSigner(jwk);
+            signedJWT.sign(signer);
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
 
-        jwsHeaders.setKeyId(jwk.getKeyId());
-
-        return new JoseJwtProducer().processJwt(signedToken, null, signatureProvider);
+        return signedJWT.serialize();
     }
 
-    static String createSignedWithoutKeyId(JwtToken baseJwt, JsonWebKey jwk) {
-        JwsHeaders jwsHeaders = new JwsHeaders();
-        JwtToken signedToken = new JwtToken(jwsHeaders, baseJwt.getClaims());
+    static String createSignedWithPeculiarEscaping(JWTClaimsSet jwtClaimsSet, JWK jwk) {
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName()))
+                .keyID(jwk.getKeyID().replace("/", "\\/"))
+                .build();
+        SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
+        try {
+            JWSSigner signer = new DefaultJWSSignerFactory().createJWSSigner(jwk);
+            signedJWT.sign(signer);
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
 
-        return new JoseJwtProducer().processJwt(signedToken, null, JwsUtils.getSignatureProvider(jwk));
-    }
-
-    static String createSignedWithPeculiarEscaping(JwtToken baseJwt, JsonWebKey jwk) {
-        JwsSignatureProvider signatureProvider = JwsUtils.getSignatureProvider(jwk);
-        JwsHeaders jwsHeaders = new JwsHeaders();
-        JwtToken signedToken = new JwtToken(jwsHeaders, baseJwt.getClaims());
-
-        // Depends on CXF not escaping the input string. This may fail for other frameworks or versions.
-        jwsHeaders.setKeyId(jwk.getKeyId().replace("/", "\\/"));
-
-        return new JoseJwtProducer().processJwt(signedToken, null, signatureProvider);
+        return signedJWT.serialize();
     }
 
     static String createMcCoySignedOct1(long nbf, long exp) {
-        JwtToken jwt_token = create(
-            MCCOY_SUBJECT,
-            TEST_AUDIENCE,
-            TEST_ISSUER,
-            ROLES_CLAIM,
-            TEST_ROLES_STRING,
-            JwtConstants.CLAIM_NOT_BEFORE,
-            nbf,
-            JwtConstants.CLAIM_EXPIRY,
-            exp
+        JWTClaimsSet jwtClaimsSet = create(
+                MCCOY_SUBJECT,
+                TEST_AUDIENCE,
+                TEST_ISSUER,
+                ROLES_CLAIM,
+                TEST_ROLES_STRING,
+                NOT_BEFORE,
+                nbf,
+                EXPIRATION_TIME,
+                exp
         );
 
-        return createSigned(jwt_token, TestJwk.OCT_1);
+        return createSigned(jwtClaimsSet, TestJwk.OCT_1);
     }
 
 }

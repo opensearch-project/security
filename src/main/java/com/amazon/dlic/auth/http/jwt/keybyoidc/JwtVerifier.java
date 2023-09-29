@@ -57,7 +57,7 @@ public class JwtVerifier {
             }
              JWK key = keyProvider.getKey(kid);
 
-            // TODO algorithm is final in jose implementation. Algorithm is not mandatory for the key material, so we set it to the same as the JWT
+            // TODO algorithm is final in jose implementation. Algorithm is not mandatory for the key material, so we set it to the same as the JWT, check if it's even necessary
             if (key.getAlgorithm() == null && key.getKeyUse() == KeyUse.SIGNATURE && key.getKeyType() == KeyType.RSA) {
 //                key.setAlgorithm(jwt.getJwsHeaders().getAlgorithm());
             }
