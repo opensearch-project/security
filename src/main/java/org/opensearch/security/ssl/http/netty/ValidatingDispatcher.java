@@ -34,6 +34,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -84,7 +85,7 @@ public class ValidatingDispatcher implements Dispatcher {
         }
 
         try {
-            final SecurityRequest securityReqest = SecurityRequest.from(request);
+            final SecurityRequest securityReqest = SecurityRequestFactory.from(request, channel);
             if (SSLRequestHelper.getSSLInfo(settings, configPath, securityReqest, null) == null) {
                 logger.error("Not an SSL request");
                 throw new OpenSearchSecurityException("Not an SSL request", RestStatus.INTERNAL_SERVER_ERROR);

@@ -48,13 +48,13 @@ public interface AuditLog extends Closeable {
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
 
     default void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
-        this.logFailedLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest());
+        this.logFailedLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest().get());
     }
 
     void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
 
     default void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
-        logSucceededLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest());
+        logSucceededLogin(effectiveUser, securityadmin, initiatingUser, request.asRestRequest().get());
     }
 
     // privs
@@ -75,7 +75,7 @@ public interface AuditLog extends Closeable {
     void logBadHeaders(RestRequest request);
 
     default void logBadHeaders(SecurityRequest request) {
-        this.logBadHeaders(request.asRestRequest());
+        this.logBadHeaders(request.asRestRequest().get());
     }
 
     void logSecurityIndexAttempt(TransportRequest request, String action, Task task);
@@ -85,7 +85,7 @@ public interface AuditLog extends Closeable {
     void logSSLException(RestRequest request, Throwable t);
 
     default void logSSLException(SecurityRequest request, Throwable t) {
-        this.logSSLException(request.asRestRequest(), t);
+        this.logSSLException(request.asRestRequest().get(), t);
     }
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);

@@ -37,6 +37,6 @@ public interface SslExceptionHandler {
     }
 
     default void logError(Throwable t, SecurityRequest request, int type) {
-        this.logError(t, request.asRestRequest(), type);
+        this.logError(t, request.asRestRequest().get(), type);
     }
 }

@@ -44,6 +44,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -57,7 +58,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
 
         final String principal = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 

@@ -40,4 +40,8 @@ public interface SecurityRequest {
             .flatMap(Stream::findFirst)
             .orElse(null);
     }
+
+    public boolean paramAsBoolean(String string, boolean b);
+
+    public String param(String jwtUrlParameter);
 }

@@ -61,6 +61,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.user.AuthCredentials;
@@ -149,17 +150,17 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public AuthCredentials extractCredentials(RestRequest restRequest, ThreadContext threadContext) throws OpenSearchSecurityException {
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) throws OpenSearchSecurityException {
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             return null;
         }
 
-        AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(restRequest, threadContext);
+        AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(request, threadContext);
 
         if (AUTHINFO_SUFFIX.equals(suffix)) {
-            this.initLogoutUrl(restRequest, threadContext, authCredentials);
+            this.initLogoutUrl(request, threadContext, authCredentials);
         }
 
         return authCredentials;
@@ -398,7 +399,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     }
 
-    private void initLogoutUrl(RestRequest restRequest, ThreadContext threadContext, AuthCredentials authCredentials) {
+    private void initLogoutUrl(SecurityRequest restRequest, ThreadContext threadContext, AuthCredentials authCredentials) {
         threadContext.putTransient(ConfigConstants.SSO_LOGOUT_URL, buildLogoutUrl(authCredentials));
     }
 

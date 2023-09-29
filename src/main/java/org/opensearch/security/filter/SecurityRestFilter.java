@@ -131,7 +131,7 @@ public class SecurityRestFilter {
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
-            if (!checkAndAuthenticateRequest(SecurityRequest.from(request))) {
+            if (!checkAndAuthenticateRequest(SecurityRequestFactory.from(request, channel))) {
                 User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
                 if (isSuperAdminUser
@@ -199,7 +199,7 @@ public class SecurityRestFilter {
         return true;
     }
 
-    private boolean checkAndAuthenticateRequest(SecurityRequest request) throws Exception {
+    public boolean checkAndAuthenticateRequest(SecurityRequest request) throws Exception {
 
         RestChannel channel = request.getRestChannel();
 

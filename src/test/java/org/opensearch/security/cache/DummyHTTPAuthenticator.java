@@ -19,6 +19,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
 
 public class DummyHTTPAuthenticator implements HTTPAuthenticator {
@@ -33,7 +34,7 @@ public class DummyHTTPAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) throws OpenSearchSecurityException {
         count++;
         return new AuthCredentials("dummy").markComplete();
     }

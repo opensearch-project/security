@@ -78,6 +78,18 @@ public class SecurityRequestFactory {
         public Optional<RestRequest> asRestRequest() {
             return Optional.of(underlyingRequest);
         }
+
+        @Override
+        public boolean paramAsBoolean(String string, boolean b) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'paramAsBoolean'");
+        }
+
+        @Override
+        public String param(String jwtUrlParameter) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'param'");
+        }
     }
 
 
@@ -134,6 +146,18 @@ public class SecurityRequestFactory {
         public Optional<RestRequest> asRestRequest() {
             // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'asRestRequest'");
+        }
+
+        @Override
+        public boolean paramAsBoolean(String string, boolean b) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'paramAsBoolean'");
+        }
+
+        @Override
+        public String param(String jwtUrlParameter) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'param'");
         }
 
     }

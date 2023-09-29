@@ -35,6 +35,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
@@ -84,7 +85,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -101,7 +102,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final RestRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
@@ -183,7 +184,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return "jwt";
     }
 
-    protected String extractSubject(final Claims claims, final RestRequest request) {
+    protected String extractSubject(final Claims claims, final SecurityRequest request) {
         String subject = claims.getSubject();
         if (subjectKey != null) {
             // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
@@ -207,7 +208,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(final Claims claims, final RestRequest request) {
+    protected String[] extractRoles(final Claims claims, final SecurityRequest request) {
         // no roles key specified
         if (rolesKey == null) {
             return new String[0];

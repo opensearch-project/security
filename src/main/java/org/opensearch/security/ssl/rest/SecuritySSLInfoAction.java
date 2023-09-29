@@ -40,6 +40,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -85,7 +86,7 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-                    final SecurityRequest securityRequest = SecurityRequest.from(request);
+                    final SecurityRequest securityRequest = SecurityRequestFactory.from(request, channel);;
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
                     X509Certificate[] certs = sslInfo == null ? null : sslInfo.getX509Certs();
                     X509Certificate[] localCerts = sslInfo == null ? null : sslInfo.getLocalCertificates();

@@ -186,7 +186,7 @@ public class BackendRegistry {
      * @return The authenticated user, null means another roundtrip
      * @throws OpenSearchSecurityException
      */
-    public boolean authenticate(final SecurityRequest request, final ThreadContext threadContext) {
+    public boolean authenticate(final SecurityRequest request, final ThreadContext _DO_NOT_USE) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)
@@ -228,7 +228,7 @@ public class BackendRegistry {
             log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress().orElse(null));
         }
 
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
+        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
 
         boolean authenticated = false;
 
@@ -260,7 +260,7 @@ public class BackendRegistry {
             }
             final AuthCredentials ac;
             try {
-                ac = httpAuthenticator.extractCredentials(request.asRestRequest(), threadContext);
+                ac = httpAuthenticator.extractCredentials(request, threadPool.getThreadContext());
             } catch (Exception e1) {
                 if (isDebugEnabled) {
                     log.debug("'{}' extracting credentials from {} http authenticator", e1.toString(), httpAuthenticator.getType(), e1);
@@ -363,7 +363,7 @@ public class BackendRegistry {
 
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadContext.putTransient(
+            threadPool.getThreadContext().putTransient(
                 ConfigConstants.OPENDISTRO_SECURITY_USER,
                 impersonatedUser == null ? authenticatedUser : impersonatedUser
             );
@@ -383,7 +383,7 @@ public class BackendRegistry {
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
 
-                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
+                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
                 auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");

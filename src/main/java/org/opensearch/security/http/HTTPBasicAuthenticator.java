@@ -38,6 +38,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -51,7 +52,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
 
         final boolean forceLogin = request.paramAsBoolean("force_login", false);
 

@@ -40,6 +40,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
 
 public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator {
@@ -83,7 +84,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -100,7 +101,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final RestRequest request) throws OpenSearchSecurityException {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) throws OpenSearchSecurityException {
 
         String jwtString = getJwtTokenString(request);
 
@@ -141,7 +142,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     }
 
-    protected String getJwtTokenString(RestRequest request) {
+    protected String getJwtTokenString(SecurityRequest request) {
         String jwtToken = request.header(jwtHeaderName);
         if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
             jwtToken = null;
