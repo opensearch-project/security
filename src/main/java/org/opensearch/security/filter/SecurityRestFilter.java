@@ -201,69 +201,6 @@ public class SecurityRestFilter {
         return true;
     }
 
-    public boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel) throws Exception {
-
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
-
-        if (HTTPHelper.containsBadHeader(request)) {
-            final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception.toString());
-            auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return true;
-        }
-
-        if (SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
-            final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception.toString());
-            auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return true;
-        }
-
-        final SSLInfo sslInfo;
-        try {
-            if ((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
-                if (sslInfo.getPrincipal() != null) {
-                    threadContext.putTransient("_opendistro_security_ssl_principal", sslInfo.getPrincipal());
-                }
-
-                if (sslInfo.getX509Certs() != null) {
-                    threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
-                }
-                threadContext.putTransient("_opendistro_security_ssl_protocol", sslInfo.getProtocol());
-                threadContext.putTransient("_opendistro_security_ssl_cipher", sslInfo.getCipher());
-            }
-        } catch (SSLPeerUnverifiedException e) {
-            log.error("No ssl info", e);
-            auditLog.logSSLException(request, e);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
-            return true;
-        }
-
-        if (!compatConfig.restAuthEnabled()) {
-            return false;
-        }
-
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
-        final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
-            if (!registry.authenticate(request, channel, threadContext)) {
-                // another roundtrip
-                org.apache.logging.log4j.ThreadContext.remove("user");
-                return true;
-            } else {
-                // make it possible to filter logs by username
-                org.apache.logging.log4j.ThreadContext.put(
-                    "user",
-                    ((User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName()
-                );
-            }
-        }
-
-        return false;
-    }
-
     public boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, ThreadContext restoringThreadContext)
         throws Exception {
 
