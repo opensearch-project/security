@@ -67,7 +67,7 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authz;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthzDomain;
 import org.opensearch.security.support.ReflectionHelper;
 
-import static org.opensearch.security.util.AuthTokenUtils.*;
+import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 public class DynamicConfigModelV7 extends DynamicConfigModel {
 
