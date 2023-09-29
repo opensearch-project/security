@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SecurityTokenManager implements TokenManager {
 
@@ -83,8 +84,8 @@ public class SecurityTokenManager implements TokenManager {
                 user.getName(),
                 claims.getAudience(),
                 300,
-                mappedRoles,
-                user.getRoles(),
+                mappedRoles.stream().collect(Collectors.toList()),
+                user.getRoles().stream().collect(Collectors.toList()),
                 false
             );
         } catch (Exception e) {

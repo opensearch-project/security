@@ -12,8 +12,8 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
@@ -109,8 +109,8 @@ public class JwtVendor {
         String subject,
         String audience,
         Integer expirySeconds,
-        Set<String> roles,
-        Set<String> backendRoles,
+        List<String> roles,
+        List<String> backendRoles,
         boolean isRoleEncrypted
     ) throws Exception {
         final long nowAsMillis = timeProvider.getAsLong();
