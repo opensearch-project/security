@@ -20,7 +20,6 @@ package org.opensearch.security.ssl.http.netty;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
@@ -37,7 +36,6 @@ import org.opensearch.http.HttpChannel;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
-import org.opensearch.security.http.AuthenicationVerifier;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -99,7 +97,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     // TODO: Disable since changes in core aren't avaliable yet
     // @Override
     // protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-    //     return new AuthenicationVerifier();
+    // return new AuthenicationVerifier();
     // }
 
     protected class SSLHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {

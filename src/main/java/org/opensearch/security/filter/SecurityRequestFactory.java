@@ -40,7 +40,9 @@ public class SecurityRequestFactory {
 
         @Override
         public SSLEngine getSSLEngine() {
-            if (underlyingRequest == null || underlyingRequest.getHttpChannel() == null || !(underlyingRequest.getHttpChannel() instanceof Netty4HttpChannel)) {
+            if (underlyingRequest == null
+                || underlyingRequest.getHttpChannel() == null
+                || !(underlyingRequest.getHttpChannel() instanceof Netty4HttpChannel)) {
                 return null;
             }
 
