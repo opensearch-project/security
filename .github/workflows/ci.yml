@@ -108,6 +108,24 @@ jobs:
         arguments: |
           integrationTest -Dbuild.snapshot=false
 
+  backward-compatibility-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 17
+
+      - name: Checkout Security Repo
+        uses: actions/checkout@v4
+
+      - name: Build BWC tests
+        uses: gradle/gradle-build-action@v2
+        with:
+          cache-disabled: true
+          arguments: |
+            -p bwc-test build -x test -x integTest
+
   backward-compatibility:
     strategy:
       fail-fast: false
