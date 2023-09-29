@@ -12,6 +12,8 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 
+import io.netty.handler.ssl.SslHandler;
+
 public class SecurityRequestFactory {
 
     public static SecurityRequest from() {
@@ -38,9 +40,17 @@ public class SecurityRequestFactory {
 
         @Override
         public SSLEngine getSSLEngine() {
-            // TODO: this doesn't seem properly handled
+            if (underlyingRequest == null || underlyingRequest.getHttpChannel() == null || !(underlyingRequest.getHttpChannel() instanceof Netty4HttpChannel)) {
+                return null;
+            }
 
-            throw new UnsupportedOperationException("Unimplemented method 'getSSLEngine'");
+            final Netty4HttpChannel httpChannel = (Netty4HttpChannel) underlyingRequest.getHttpChannel();
+            SslHandler sslhandler = (SslHandler) httpChannel.getNettyChannel().pipeline().get("ssl_http");
+            if (sslhandler == null && httpChannel.inboundPipeline() != null) {
+                sslhandler = (SslHandler) httpChannel.inboundPipeline().get("ssl_http");
+            }
+
+            return sslhandler != null ? sslhandler.engine() : null;
         }
 
         @Override
@@ -80,8 +90,7 @@ public class SecurityRequestFactory {
 
         @Override
         public Map<String, String> params() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'params'");
+            return underlyingRequest.params();
         }
     }
 

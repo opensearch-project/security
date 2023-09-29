@@ -123,6 +123,10 @@ public class SSLRequestHelper {
         PrincipalExtractor principalExtractor
     ) throws SSLPeerUnverifiedException {
         final SSLEngine engine = request.getSSLEngine();
+        if (engine == null) {
+            return null;
+        }
+
         final SSLSession session = engine.getSession();
 
         X509Certificate[] x509Certs = null;
