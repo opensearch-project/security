@@ -96,10 +96,11 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         super.onException(channel, cause0);
     }
 
-    @Override
-    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-        return new AuthenicationVerifier();
-    }
+    // TODO: Disable since changes in core aren't avaliable yet
+    // @Override
+    // protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+    //     return new AuthenicationVerifier();
+    // }
 
     protected class SSLHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
         /**
