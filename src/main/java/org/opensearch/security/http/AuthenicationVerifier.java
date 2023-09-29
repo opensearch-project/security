@@ -37,6 +37,9 @@ public class AuthenicationVerifier extends ChannelInboundHandlerAdapter {
     }
 
     private boolean isAuthenticated(HttpRequest request) {
+        
+
+
         log.info("Checking if request is authenticated:\n" + request);
 
         final boolean shouldBlock = request.headers().contains("blockme");
