@@ -26,10 +26,12 @@
 
 package org.opensearch.security.filter;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -131,18 +133,29 @@ public class SecurityRestFilter {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
             final SecurityRequest securityRequest = SecurityRequestFactory.from(request, channel);
-            if (!checkAndAuthenticateRequest(securityRequest)) {
-                User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
-                if (isSuperAdminUser
-                    || (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
-                        && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
-                    SecurityRequestFactory.from(request, channel);
-                    if (isSuperAdminUser || authorizeRequest(original, securityRequest, user)) {
-                        original.handleRequest(request, channel, client);
-                    }
+            Optional<ResponseAction> failureResponse = checkAndAuthenticateRequest(securityRequest);
+            if (failureResponse.isEmpty()) {
+                final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                if (userIsSuperAdmin(user, adminDNs)) {
+                    original.handleRequest(request, channel, client);
+                } else {
+
+                }
+
+                if (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
+                        && allowlistingSettings.checkRequestIsAllowed(request, channel, client)) {
+                    // TODO: ????
+                    authorizeRequest(original, securityRequest, user);
                 }
             }
+
+            failureResponse.ifPresent(response -> {
+                try {
+                    response.act(channel, log, auditLog);
+                } catch (final IOException ioe) {
+                    log.error(ioe);
+                }
+            });
         };
     }
 
@@ -200,26 +213,32 @@ public class SecurityRestFilter {
         return true;
     }
 
-    public boolean checkAndAuthenticateRequest(SecurityRequest request) throws Exception {
+    @FunctionalInterface
+    public interface ResponseAction  {
+        void act(RestChannel channel, Logger log, AuditLog auditLog) throws IOException;
 
-        RestChannel channel = request.getRestChannel();
+    }
 
+    public Optional<ResponseAction> checkAndAuthenticateRequest(SecurityRequest request) throws Exception {
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
 
         if (HTTPHelper.containsBadHeader(request)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception.toString());
-            auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return true;
+
+            return Optional.of((channel, logger, auditLog) -> {
+                log.error(exception.toString());
+                auditLog.logBadHeaders(request);
+                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
+            });
         }
 
         if (SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception.toString());
-            auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return true;
+            return Optional.of((channel, logger, auditLog) -> {
+                log.error(exception.toString());
+                auditLog.logBadHeaders(request);
+                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
+            });
         }
 
         final SSLInfo sslInfo;
@@ -236,23 +255,26 @@ public class SecurityRestFilter {
                 threadContext.putTransient("_opendistro_security_ssl_cipher", sslInfo.getCipher());
             }
         } catch (SSLPeerUnverifiedException e) {
-            log.error("No ssl info", e);
-            auditLog.logSSLException(request, e);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
-            return true;
+            return Optional.of((channel, logger, auditLog) -> {
+                log.error("No ssl info", e);
+                auditLog.logSSLException(request, e);
+                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
+            });
         }
 
         if (!compatConfig.restAuthEnabled()) {
-            return false;
+            // Authentication is disabled
+            return Optional.empty();
         }
 
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
-            if (!registry.authenticate(request, threadContext)) {
+            final Optional<ResponseAction> backAuthFailure = null;//registry.authenticate(request);
+            if (backAuthFailure.isPresent()) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
-                return true;
+                return backAuthFailure;
             } else {
                 // make it possible to filter logs by username
                 org.apache.logging.log4j.ThreadContext.put(
@@ -262,7 +284,8 @@ public class SecurityRestFilter {
             }
         }
 
-        return false;
+        // User was authenticated
+        return Optional.empty();
     }
 
     @Subscribe
