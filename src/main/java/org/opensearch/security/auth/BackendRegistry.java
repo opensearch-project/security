@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
@@ -44,8 +43,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
-
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
@@ -60,7 +57,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.XFFResolver;
@@ -181,7 +177,14 @@ public class BackendRegistry {
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;
     }
 
-    public Optional<SecurityResponse> authenticate(final SecurityRequest request) {
+    /**
+     *
+     * @param request
+     * @param channel
+     * @return The authenticated user, null means another roundtrip
+     * @throws OpenSearchSecurityException
+     */
+    public boolean authenticate(final SecurityRequest request, final ThreadContext _DO_NOT_USE) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)
@@ -192,7 +195,9 @@ public class BackendRegistry {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getRemoteAddress().orElse(null));
             }
 
-            return new SecurityResponse.Builder().code(HttpStatus.SC_UNAUTHORIZED).buildAsOptional();
+            request.getRestChannel().sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
+
+            return false;
         }
 
         final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
@@ -201,18 +206,19 @@ public class BackendRegistry {
             // PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
-            return Optional.empty();
+            return true;
         }
 
         if (userInjector.injectUser(request)) {
             // ThreadContext injected user
-            return Optional.empty();
+            return true;
         }
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            // "OpenSearch Security not initialized."
-            return new SecurityResponse.Builder().code(HttpStatus.SC_UNAUTHORIZED).buildAsOptional();
+            request.getRestChannel()
+                .sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "OpenSearch Security not initialized."));
+            return false;
         }
 
         final TransportAddress remoteAddress = xffResolver.resolve(request);
@@ -277,19 +283,31 @@ public class BackendRegistry {
                     continue;
                 }
 
-                if (authDomain.isChallenge()) {
-                    final Optional<SecurityResponse> reauthResponse = httpAuthenticator.reRequestAuthentication(null);
-                    if (reauthResponse.isPresent()){ 
-                        return reauthResponse;
+                if (authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(request.getRestChannel(), null)) {
+                    auditLog.logFailedLogin("<NONE>", false, null, request);
+                    if (isTraceEnabled) {
+                        log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                     }
+                    return false;
+                } else {
+                    // no reRequest possible
+                    if (isTraceEnabled) {
+                        log.trace("No 'Authorization' header, send 403");
+                    }
+                    continue;
+                }
             } else {
                 org.apache.logging.log4j.ThreadContext.put("user", ac.getUsername());
                 if (!ac.isComplete()) {
                     // credentials found in request but we need another client challenge
-                    final Optional<SecurityResponse> reauthResponse = httpAuthenticator.reRequestAuthentication(null);
-                    if (reauthResponse.isPresent()){ 
-                        return reauthResponse;
+                    if (httpAuthenticator.reRequestAuthentication(request.getRestChannel(), ac)) {
+                        // auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
+                        return false;
+                    } else {
+                        // no reRequest possible
+                        continue;
                     }
+
                 }
             }
 
@@ -321,7 +339,14 @@ public class BackendRegistry {
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
-                return new SecurityResponse.Builder().code(HttpStatus.SC_FORBIDDEN).buildAsOptional();
+                request.getRestChannel()
+                    .sendResponse(
+                        new BytesRestResponse(
+                            RestStatus.FORBIDDEN,
+                            "Cannot authenticate user because admin user is not permitted to login via HTTP"
+                        )
+                    );
+                return false;
             }
 
             final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
@@ -335,7 +360,6 @@ public class BackendRegistry {
             authenticated = true;
             break;
         }// end looping auth domains
-    }
 
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
@@ -347,58 +371,59 @@ public class BackendRegistry {
                 authenticatedUser.getName(),
                 request
             );
-            return Optional.empty();
-        }
-
-        if (isDebugEnabled) {
-            log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
-        }
-
-        if (authCredenetials == null && anonymousAuthEnabled) {
-            final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
-            User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
-            anonymousUser.setRequestedTenant(tenant);
-
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
-            auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
+        } else {
             if (isDebugEnabled) {
-                log.debug("Anonymous User is authenticated");
-            }
-            return Optional.empty();
-        }
-
-        if (firstChallengingHttpAuthenticator != null) {
-
-            if (isDebugEnabled) {
-                log.debug("Rerequest with {}", firstChallengingHttpAuthenticator.getClass());
+                log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
-            final Optional<SecurityResponse> response = firstChallengingHttpAuthenticator.reRequestAuthentication(null); 
-            if (response.isPresent()) {
+            if (authCredenetials == null && anonymousAuthEnabled) {
+                final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
+                User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
+                anonymousUser.setRequestedTenant(tenant);
+
+                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
+                auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
                 if (isDebugEnabled) {
-                    log.debug("Rerequest {} failed", firstChallengingHttpAuthenticator.getClass());
+                    log.debug("Anonymous User is authenticated");
+                }
+                return true;
+            }
+
+            if (firstChallengingHttpAuthenticator != null) {
+
+                if (isDebugEnabled) {
+                    log.debug("Rerequest with {}", firstChallengingHttpAuthenticator.getClass());
                 }
 
-                log.warn(
-                    "Authentication finally failed for {} from {}",
-                    authCredenetials == null ? null : authCredenetials.getUsername(),
-                    remoteAddress
-                );
-                auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
-                return response;
+                if (firstChallengingHttpAuthenticator.reRequestAuthentication(request.getRestChannel(), null)) {
+                    if (isDebugEnabled) {
+                        log.debug("Rerequest {} failed", firstChallengingHttpAuthenticator.getClass());
+                    }
+
+                    log.warn(
+                        "Authentication finally failed for {} from {}",
+                        authCredenetials == null ? null : authCredenetials.getUsername(),
+                        remoteAddress
+                    );
+                    auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
+                    return false;
+                }
             }
+
+            log.warn(
+                "Authentication finally failed for {} from {}",
+                authCredenetials == null ? null : authCredenetials.getUsername(),
+                remoteAddress
+            );
+            auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
+
+            notifyIpAuthFailureListeners(request, authCredenetials);
+
+            request.getRestChannel().sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
+            return false;
         }
 
-        log.warn(
-            "Authentication finally failed for {} from {}",
-            authCredenetials == null ? null : authCredenetials.getUsername(),
-            remoteAddress
-        );
-        auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
-
-        notifyIpAuthFailureListeners(request, authCredenetials);
-
-        return new SecurityResponse.Builder().code(HttpStatus.SC_UNAUTHORIZED).buildAsOptional();
+        return authenticated;
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequest request, AuthCredentials authCredentials) {

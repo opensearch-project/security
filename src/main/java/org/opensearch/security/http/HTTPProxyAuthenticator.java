@@ -27,7 +27,6 @@
 package org.opensearch.security.http;
 
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Predicates;
@@ -41,7 +40,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -91,8 +89,8 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public Optional<SecurityResponse> reRequestAuthentication(final AuthCredentials creds) {
-        return Optional.empty();
+    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
+        return false;
     }
 
     @Override

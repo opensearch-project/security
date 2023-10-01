@@ -27,7 +27,6 @@
 package org.opensearch.security.http;
 
 import java.nio.file.Path;
-import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,7 +38,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -67,12 +65,11 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public Optional<SecurityResponse> reRequestAuthentication(final AuthCredentials creds) {
-        return new SecurityResponse.Builder()
-            .code(RestStatus.UNAUTHORIZED)
-            .body("Unauthorized")
-            .header("WWW-Authenticate", "Basic realm=\"OpenSearch Security\"")
-            .buildAsOptional();
+    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
+        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "Unauthorized");
+        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Basic realm=\"OpenSearch Security\"");
+        channel.sendResponse(wwwAuthenticateResponse);
+        return true;
     }
 
     @Override

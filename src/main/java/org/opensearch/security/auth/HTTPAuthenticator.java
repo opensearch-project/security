@@ -26,17 +26,12 @@
 
 package org.opensearch.security.auth;
 
-import java.util.Optional;
-
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
-
-import static org.apache.hc.core5.http.HttpStatus.SC_UNAUTHORIZED;
 
 /**
  * OpenSearch Security custom HTTP authenticators need to implement this interface.
@@ -55,12 +50,6 @@ import static org.apache.hc.core5.http.HttpStatus.SC_UNAUTHORIZED;
  * <p/>
  */
 public interface HTTPAuthenticator {
-
-    public static SecurityResponse wwwAuthenticateResponse = new SecurityResponse.Builder()
-        .code(SC_UNAUTHORIZED)
-        .body("Unauthorized")
-        .header("WWW-Authenticate", "Basic realm=\"OpenSearch Security\"")
-        .build();
 
     /**
      * The type (name) of the authenticator. Only for logging.
@@ -93,5 +82,5 @@ public interface HTTPAuthenticator {
      * @return false  if re-request is not supported/necessary, true otherwise.
      * If true is returned {@code channel.sendResponse()} must be called so that the request completes.
      */
-    Optional<SecurityResponse> reRequestAuthentication(AuthCredentials credentials);
+    boolean reRequestAuthentication(final RestChannel channel, AuthCredentials credentials);
 }

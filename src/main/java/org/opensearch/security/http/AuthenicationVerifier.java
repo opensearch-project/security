@@ -2,8 +2,6 @@ package org.opensearch.security.http;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityRequestFactory;
 
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -37,8 +35,6 @@ public class AuthenicationVerifier extends ChannelInboundHandlerAdapter {
     }
 
     private boolean isAuthenticated(HttpRequest request) {
-
-        final SecurityRequest securityRequset = SecurityRequestFactory.from(request);
 
         log.info("Checking if request is authenticated:\n" + request);
 

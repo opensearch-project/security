@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -42,9 +41,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -99,8 +98,8 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public Optional<SecurityResponse> reRequestAuthentication(AuthCredentials creds) {
-        return Optional.empty();
+    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
+        return false;
     }
 
     @Override
