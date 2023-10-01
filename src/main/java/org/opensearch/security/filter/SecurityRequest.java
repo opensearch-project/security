@@ -8,7 +8,6 @@ import java.util.stream.Stream;
 
 import javax.net.ssl.SSLEngine;
 
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 
@@ -17,8 +16,6 @@ public interface SecurityRequest {
     public Map<String, List<String>> getHeaders();
 
     public SSLEngine getSSLEngine();
-
-    public RestChannel getRestChannel();
 
     public String path();
 
