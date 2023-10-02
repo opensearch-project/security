@@ -1,13 +1,6 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - main
-      - 1.*
-      - 2.*
-      - *
-  pull_request:
+on: [push, pull_request]
 
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
