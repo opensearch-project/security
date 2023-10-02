@@ -92,6 +92,6 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
 
     @Override
     protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-        return new Netty4HttpRequestHeaderVerifier(restFilter, xContentRegistry, threadPool);
+        return new Netty4HttpRequestHeaderVerifier(restFilter, xContentRegistry, threadPool, handlingSettings);
     }
 }

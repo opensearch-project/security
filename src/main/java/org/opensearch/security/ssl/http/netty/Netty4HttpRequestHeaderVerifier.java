@@ -17,6 +17,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.http.AbstractHttpServerTransport;
 
 import io.netty.channel.ChannelHandlerContext;
+import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4DefaultHttpRequest;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
@@ -33,11 +34,18 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
     private final SecurityRestFilter restFilter;
     private final ThreadPool threadPool;
     private final NamedXContentRegistry xContentRegistry;
+    private final HttpHandlingSettings handlingSettings;
 
-    public Netty4HttpRequestHeaderVerifier(SecurityRestFilter restFilter, NamedXContentRegistry xContentRegistry, ThreadPool threadPool) {
+    public Netty4HttpRequestHeaderVerifier(
+        SecurityRestFilter restFilter,
+        NamedXContentRegistry xContentRegistry,
+        ThreadPool threadPool,
+        HttpHandlingSettings handlingSettings
+    ) {
         this.restFilter = restFilter;
         this.xContentRegistry = xContentRegistry;
         this.threadPool = threadPool;
+        this.handlingSettings = handlingSettings;
     }
 
     @Override
@@ -54,7 +62,10 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         final Netty4DefaultHttpRequest httpRequest = new Netty4DefaultHttpRequest(msg);
         RestRequest restRequest = AbstractHttpServerTransport.createRestRequest(xContentRegistry, httpRequest, httpChannel);
 
-        InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel(restRequest, false);
+        InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel(
+            restRequest,
+            handlingSettings.getDetailedErrorsEnabled()
+        );
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             boolean isUnauthenticated = restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
