@@ -52,9 +52,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
@@ -294,10 +291,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         if (creds == null || creds.getNativeCredentials() == null) {
             headers.put("WWW-Authenticate", "Negotiate");
         } else {
-            headers.put(
-                "WWW-Authenticate",
-                "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials())
-            );
+            headers.put("WWW-Authenticate", "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials()));
         }
 
         return request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, headers, responseBody);

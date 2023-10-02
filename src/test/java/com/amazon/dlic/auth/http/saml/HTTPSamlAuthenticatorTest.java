@@ -53,7 +53,6 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -62,7 +61,6 @@ import org.opensearch.security.util.FakeRestRequest;
 
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
-import static org.mockito.ArgumentMatchers.nullable;
 
 public class HTTPSamlAuthenticatorTest {
     protected MockSamlIdpServer mockSamlIdpServer;

@@ -32,9 +32,6 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
@@ -178,7 +175,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return channel.completeWithResponse(
             HttpStatus.SC_UNAUTHORIZED,
             Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""),
-            "");
+            ""
+        );
     }
 
     @Override

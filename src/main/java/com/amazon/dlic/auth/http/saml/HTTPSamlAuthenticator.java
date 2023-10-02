@@ -57,10 +57,8 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -187,7 +185,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                 if (!(request instanceof SecurityRestRequest)) {
                     throw new SecurityRequetChannelUnsupported();
                 } else {
-                    final SecurityRestRequest securityRequestChannel = (SecurityRestRequest)request;
+                    final SecurityRestRequest securityRequestChannel = (SecurityRestRequest) request;
                     final RestRequest restRequest = securityRequestChannel.breakEncapulation().v1();
                     final RestChannel channel = securityRequestChannel.breakEncapulation().v2();
                     if (this.authTokenProcessorHandler.handle(restRequest, channel)) {
@@ -199,7 +197,11 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             }
 
             final Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
-            return request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "");
+            return request.completeWithResponse(
+                HttpStatus.SC_UNAUTHORIZED,
+                Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)),
+                ""
+            );
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
             return false;

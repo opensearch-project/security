@@ -53,7 +53,6 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
@@ -342,7 +341,7 @@ public class BackendRegistry {
                     HttpStatus.SC_FORBIDDEN,
                     null,
                     "Cannot authenticate user because admin user is not permitted to login via HTTP"
-                    );
+                );
                 return;
             }
 

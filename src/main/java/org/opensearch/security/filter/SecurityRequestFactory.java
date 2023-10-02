@@ -107,8 +107,8 @@ public class SecurityRequestFactory {
         public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
             try {
                 underlyingChannel.sendResponse(null);
-                return true; 
-            } catch (final Exception e){
+                return true;
+            } catch (final Exception e) {
                 log.error("Error when attempting to send response", e);
                 throw new RuntimeException(e);
             } finally {
@@ -144,8 +144,8 @@ public class SecurityRequestFactory {
 
         // @Override
         // public RestChannel getRestChannel() {
-        //     // TODO Auto-generated method stub
-        //     throw new UnsupportedOperationException("Unimplemented method 'getRestChannel'");
+        // // TODO Auto-generated method stub
+        // throw new UnsupportedOperationException("Unimplemented method 'getRestChannel'");
         // }
 
         @Override

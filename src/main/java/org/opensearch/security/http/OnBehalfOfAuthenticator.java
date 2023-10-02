@@ -33,7 +33,6 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
@@ -245,8 +244,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final 
-SecurityRequestChannel response, AuthCredentials creds) {
+    public boolean reRequestAuthentication(final SecurityRequestChannel response, AuthCredentials creds) {
         return false;
     }
 

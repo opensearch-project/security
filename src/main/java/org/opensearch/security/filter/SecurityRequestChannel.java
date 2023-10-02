@@ -41,6 +41,5 @@ public interface SecurityRequestChannel {
         return headersMap.map(headers -> headers.get(headerName)).map(List::stream).flatMap(Stream::findFirst).orElse(null);
     }
 
-
     public Map<String, String> params();
 }
