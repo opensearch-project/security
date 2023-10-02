@@ -6,27 +6,6 @@ env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
-  publish-maven-local:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: 17
-
-      - name: Checkout core
-        uses: actions/checkout@v4
-        with:
-          repository: 'cwperks/OpenSearch'
-          ref: 'improve-compressed-requests'
-          path: 'OpenSearch'
-
-      - name: Publish to Maven Local
-        run: |
-          cd OpenSearch
-          ./gradlew publishToMavenLocal
-
   generate-test-list:
     runs-on: ubuntu-latest
     outputs:
@@ -49,7 +28,6 @@ jobs:
   test:
     name: test
     needs:
-      - publish-maven-local
       - generate-test-list
     strategy:
       fail-fast: false
@@ -65,6 +43,19 @@ jobs:
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
+
+    - name: Checkout core
+      uses: actions/checkout@v4
+      with:
+        repository: 'cwperks/OpenSearch'
+        ref: 'improve-compressed-requests'
+        path: 'OpenSearch'
+
+    - name: Publish to Maven Local
+      run: |
+        cd OpenSearch
+        ./gradlew publishToMavenLocal
+        cd ..
 
     - name: Checkout security
       uses: actions/checkout@v4
