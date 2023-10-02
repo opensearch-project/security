@@ -186,7 +186,7 @@ public class BackendRegistry {
      * @return The authenticated user, null means another roundtrip
      * @throws OpenSearchSecurityException
      */
-    public boolean authenticate(final SecurityRequestChannel request, final ThreadContext _DO_NOT_USE) {
+    public void authenticate(final SecurityRequestChannel request, final ThreadContext _DO_NOT_USE) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)
@@ -198,8 +198,7 @@ public class BackendRegistry {
             }
 
             request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, null, "Authentication finally failed");
-
-            return false;
+            return;
         }
 
         final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
@@ -208,18 +207,18 @@ public class BackendRegistry {
             // PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
-            return true;
+            return;
         }
 
         if (userInjector.injectUser(request)) {
             // ThreadContext injected user
-            return true;
+            return;
         }
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
             request.completeWithResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized.");
-            return false;
+            return;
         }
 
         final TransportAddress remoteAddress = xffResolver.resolve(request);
@@ -302,7 +301,7 @@ public class BackendRegistry {
                     // credentials found in request but we need another client challenge
                     if (httpAuthenticator.reRequestAuthentication(request, ac)) {
                         // auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
-                        return false;
+                        return;
                     } else {
                         // no reRequest possible
                         continue;
@@ -344,7 +343,7 @@ public class BackendRegistry {
                     null,
                     "Cannot authenticate user because admin user is not permitted to login via HTTP"
                     );
-                return false;
+                return;
             }
 
             final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
@@ -369,6 +368,7 @@ public class BackendRegistry {
                 authenticatedUser.getName(),
                 request
             );
+            return;
         } else {
             if (isDebugEnabled) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
@@ -384,7 +384,7 @@ public class BackendRegistry {
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");
                 }
-                return true;
+                return;
             }
 
             if (firstChallengingHttpAuthenticator != null) {
@@ -404,7 +404,7 @@ public class BackendRegistry {
                         remoteAddress
                     );
                     auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
-                    return false;
+                    return;
                 }
             }
 
@@ -418,10 +418,7 @@ public class BackendRegistry {
             notifyIpAuthFailureListeners(request, authCredenetials);
 
             request.completeWithResponse(org.apache.http.HttpStatus.SC_UNAUTHORIZED, null, "Authentication finally failed");
-            return false;
         }
-
-        return authenticated;
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequestChannel request, AuthCredentials authCredentials) {
