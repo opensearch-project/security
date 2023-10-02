@@ -54,7 +54,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         final Netty4DefaultHttpRequest httpRequest = new Netty4DefaultHttpRequest(msg);
         RestRequest restRequest = AbstractHttpServerTransport.createRestRequest(xContentRegistry, httpRequest, httpChannel);
 
-        InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel();
+        InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel(restRequest, false);
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             boolean isUnauthenticated = restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
@@ -69,7 +69,8 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             } else {
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);
             }
+        } finally {
+            ctx.fireChannelRead(msg);
         }
-        ctx.fireChannelRead(msg);
     }
 }
