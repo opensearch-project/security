@@ -28,11 +28,11 @@ public class SelfRefreshingKeySetTest {
         SelfRefreshingKeySet selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
 
         OctetSequenceKey key1 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
-        Assert.assertEquals(TestJwk.OCT_1_K, key1.getKeyValue().toString());
+        Assert.assertEquals(TestJwk.OCT_1_K, key1.getKeyValue().decodeToString());
         Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
 
         OctetSequenceKey key2 = (OctetSequenceKey)  selfRefreshingKeySet.getKey("kid/b");
-        Assert.assertEquals(TestJwk.OCT_2_K, key2.getKeyValue().toString());
+        Assert.assertEquals(TestJwk.OCT_2_K, key2.getKeyValue().decodeToString());
         Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
 
         try {
@@ -64,8 +64,8 @@ public class SelfRefreshingKeySetTest {
 
         provider.unblock();
 
-        Assert.assertEquals(TestJwk.OCT_1_K, ((OctetSequenceKey) f1.get()).getKeyValue().toString());
-        Assert.assertEquals(TestJwk.OCT_2_K, ((OctetSequenceKey) f2.get()).getKeyValue().toString());
+        Assert.assertEquals(TestJwk.OCT_1_K, ((OctetSequenceKey) f1.get()).getKeyValue().decodeToString());
+        Assert.assertEquals(TestJwk.OCT_2_K, ((OctetSequenceKey) f2.get()).getKeyValue().decodeToString());
 
         Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
         Assert.assertEquals(1, selfRefreshingKeySet.getQueuedGetCount());

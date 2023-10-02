@@ -271,11 +271,10 @@ class AuthTokenProcessorHandler {
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
 
-            JWK jwk = new OctetSequenceKey.Builder(Base64URL.from(exchangeKey))
+            return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8))
                     .algorithm(JWSAlgorithm.HS512)
                     .keyUse(KeyUse.SIGNATURE)
                     .build();
-            return jwk;
         } else {
 
             Settings jwkSettings = jwtSettings.getAsSettings("key");

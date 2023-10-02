@@ -15,19 +15,19 @@ import com.google.common.base.Strings;
 import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.Ed25519Verifier;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.KeyType;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.OctetKeyPair;
+import com.nimbusds.jose.jwk.OctetSequenceKey;
+import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.List;
 
 public class JwtVerifier {
@@ -57,11 +57,6 @@ public class JwtVerifier {
             }
              JWK key = keyProvider.getKey(kid);
 
-            // TODO algorithm is final in jose implementation. Algorithm is not mandatory for the key material, so we set it to the same as the JWT, check if it's even necessary
-            if (key.getAlgorithm() == null && key.getKeyUse() == KeyUse.SIGNATURE && key.getKeyType() == KeyType.RSA) {
-//                key.setAlgorithm(jwt.getJwsHeaders().getAlgorithm());
-            }
-
             JWSVerifier signatureVerifier = getInitializedSignatureVerifier(key, jwt);
             boolean signatureValid = jwt.verify(signatureVerifier);
 
@@ -78,10 +73,8 @@ public class JwtVerifier {
             validateClaims(jwt);
 
             return jwt;
-        } catch (JOSEException | ParseException e) {
+        } catch (JOSEException | ParseException | BadJWTException e) {
             throw new BadCredentialsException(e.getMessage(), e);
-        } catch (BadJWTException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -103,10 +96,13 @@ public class JwtVerifier {
     private JWSVerifier getInitializedSignatureVerifier(JWK key, SignedJWT jwt) throws BadCredentialsException, JOSEException {
 
         validateSignatureAlgorithm(key, jwt);
-        if(key.getClass() != OctetKeyPair.class) {
-            throw new BadCredentialsException("Cannot verify JWT");
+        final JWSVerifier result;
+        if(key.getClass() == OctetSequenceKey.class) {
+             result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toOctetSequenceKey().toSecretKey());
+        } else {
+            result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toRSAKey().toRSAPublicKey());
         }
-        JWSVerifier result = new Ed25519Verifier((OctetKeyPair) key);
+
         if (result == null) {
             throw new BadCredentialsException("Cannot verify JWT");
         } else {
@@ -118,9 +114,9 @@ public class JwtVerifier {
         JWTClaimsSet claims = jwt.getJWTClaimsSet();
 
         if (claims != null) {
-            //TODO
-//            JwtUtils.validateJwtExpiry(claims, clockSkewToleranceSeconds, false);
-//            JwtUtils.validateJwtNotBefore(claims, clockSkewToleranceSeconds, false);
+            DefaultJWTClaimsVerifier claimsVerifier = new DefaultJWTClaimsVerifier(requiredAudience, null, Collections.emptySet());
+            claimsVerifier.setMaxClockSkew(clockSkewToleranceSeconds);
+            claimsVerifier.verify(claims, null);
             validateRequiredAudienceAndIssuer(claims);
         }
     }

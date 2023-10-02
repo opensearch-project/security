@@ -126,6 +126,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                //TODO add padding to secret so com.nimbusds.jose.KeyLengthException is not thrown
             .put("exchange_key", "secret_key_length_should_be_at_least_256_bits_or_86_characters_in_lengthabcdefghabcdef")
             .put("roles_key", "roles")
             .put("path.home", ".")

@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -72,7 +73,7 @@ public class JwtVendor {
             );
         }
 
-        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes()).algorithm(JWSAlgorithm.HS512)
+        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
             .keyUse(KeyUse.SIGNATURE)
             .build();
 

@@ -141,7 +141,7 @@ class MockIpdServer implements Closeable {
     protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
         IOException {
         response.setCode(200);
-        response.setEntity(new StringEntity(jwks.toString()));
+        response.setEntity(new StringEntity(jwks.toString(false)));
     }
 
     private SSLContext createSSLContext() {

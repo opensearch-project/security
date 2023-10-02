@@ -11,6 +11,7 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import com.nimbusds.jose.JWSAlgorithm;
@@ -60,11 +61,6 @@ class TestJwk {
     static final String RSA_X_E = "AQAB";
 
     static final JWK RSA_1 = createRsa("kid/1", "RS256", RSA_1_E, RSA_1_N, RSA_1_D);
-    static final JWK RSA_KEY = new RSAKey.Builder(new Base64URL(RSA_1_N), new Base64URL(RSA_1_E))
-            .privateExponent(new Base64URL(RSA_1_D))
-            .algorithm(JWSAlgorithm.RS512)
-            .keyID("kid/1")
-            .build();
 
     static final JWK RSA_1_PUBLIC = createRsaPublic("kid/1", "RS256", RSA_1_E, RSA_1_N);
     static final JWK RSA_1_PUBLIC_NO_ALG = createRsaPublic("kid/1", null, RSA_1_E, RSA_1_N);
@@ -87,7 +83,7 @@ class TestJwk {
     }
 
     private static JWK createOct(String keyId, String algorithm, String k) {
-        return new OctetSequenceKey.Builder(new Base64URL(k))
+        return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8))
                 .keyID(keyId)
                 .keyUse(KeyUse.SIGNATURE)
                 .algorithm(JWSAlgorithm.parse(algorithm))
@@ -95,13 +91,13 @@ class TestJwk {
     }
 
     private static JWK createRsa(String keyId, String algorithm, String e, String n, String d) {
-        RSAKey.Builder builder = new RSAKey.Builder(new Base64URL(n), new Base64URL(e))
+        RSAKey.Builder builder = new RSAKey.Builder(Base64URL.from(n), Base64URL.from(e))
                 .keyUse(KeyUse.SIGNATURE)
                 .algorithm(algorithm == null ? null : JWSAlgorithm.parse(algorithm))
                 .keyID(keyId);
 
         if (d != null) {
-            builder.privateExponent(new Base64URL(d));
+            builder.privateExponent(Base64URL.from(d));
         }
 
         return builder.build();

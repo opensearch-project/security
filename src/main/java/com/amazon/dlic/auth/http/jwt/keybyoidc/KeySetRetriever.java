@@ -94,9 +94,7 @@ public class KeySetRetriever implements KeySetProvider {
                 if (httpEntity == null) {
                     throw new AuthenticatorUnavailableException("Error while getting " + uri + ": Empty response entity");
                 }
-                //TODO
                 JWKSet keySet = JWKSet.load(httpEntity.getContent());
-//                JWKSet keySet = JwkUtils.readJwkSet(httpEntity.getContent());
 
                 return keySet;
             } catch (ParseException e) {
