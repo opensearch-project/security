@@ -22,13 +22,17 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Strings;
+
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.ietf.jgss.GSSContext;
@@ -52,12 +56,11 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
-    private static final String EMPTY_STRING = "";
     private static final Oid[] KRB_OIDS = new Oid[] { KrbConstants.SPNEGO, KrbConstants.KRB5MECH };
 
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -171,7 +174,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext threadContext) {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -188,7 +191,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final SecurityRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequestChannel request) {
 
         if (acceptorPrincipal == null || acceptorKeyTabPath == null) {
             log.error("Missing acceptor principal or keytab configuration. Kerberos authentication will not work");
@@ -280,27 +283,24 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-
-        final BytesRestResponse wwwAuthenticateResponse;
-        XContentBuilder response = getNegotiateResponseBody();
-
-        if (response != null) {
-            wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, response);
-        } else {
-            wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, EMPTY_STRING);
+    public boolean reRequestAuthentication(final SecurityRequestChannel request, AuthCredentials creds) {
+        String responseBody = "";
+        final String negotiateResponseBody = getNegotiateResponseBody();
+        if (negotiateResponseBody != null) {
+            responseBody = negotiateResponseBody;
         }
 
+        final Map<String, String> headers = new HashMap<>();
         if (creds == null || creds.getNativeCredentials() == null) {
-            wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Negotiate");
+            headers.put("WWW-Authenticate", "Negotiate");
         } else {
-            wwwAuthenticateResponse.addHeader(
+            headers.put(
                 "WWW-Authenticate",
                 "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials())
             );
         }
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+
+        return request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, headers, responseBody);
     }
 
     @Override
@@ -372,7 +372,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-    private XContentBuilder getNegotiateResponseBody() {
+    private String getNegotiateResponseBody() {
         try {
             XContentBuilder negotiateResponseBody = XContentFactory.jsonBuilder();
             negotiateResponseBody.startObject();
@@ -384,7 +384,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
             negotiateResponseBody.endObject();
             negotiateResponseBody.endObject();
             negotiateResponseBody.endObject();
-            return negotiateResponseBody;
+            return negotiateResponseBody.toString();
         } catch (Exception ex) {
             log.error("Can't construct response body", ex);
             return null;

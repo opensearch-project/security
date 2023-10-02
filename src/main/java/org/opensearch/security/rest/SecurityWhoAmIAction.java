@@ -32,7 +32,7 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -99,7 +99,7 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-                    final SecurityRequest securityRequest = SecurityRequestFactory.from(request, channel);
+                    final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
                     ;
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 

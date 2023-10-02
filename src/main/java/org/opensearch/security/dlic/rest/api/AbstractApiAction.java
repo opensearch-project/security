@@ -49,7 +49,7 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -538,7 +538,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     protected final RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
 
         // Fix channel ordering
-        final SecurityRequest securityRequest = SecurityRequestFactory.from(request, null);
+        final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, null);
 
         // consume all parameters first so we can return a correct HTTP status,
         // not 400

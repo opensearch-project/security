@@ -18,7 +18,7 @@
 package org.opensearch.security.ssl;
 
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
@@ -36,7 +36,7 @@ public interface SslExceptionHandler {
         // no-op
     }
 
-    default void logError(Throwable t, SecurityRequest request, int type) {
+    default void logError(Throwable t, SecurityRequestChannel request, int type) {
         this.logError(t, request.asRestRequest().get(), type);
     }
 }

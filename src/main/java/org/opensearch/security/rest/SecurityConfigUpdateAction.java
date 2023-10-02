@@ -29,7 +29,7 @@ import org.opensearch.rest.action.RestActions.NodesResponseRestListener;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -76,7 +76,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
         String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
 
         // TODO: Need to re-write with a RestChannelConsumer
-        final SecurityRequest securityRequest = SecurityRequestFactory.from(request, null);
+        final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, null);
         SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
         if (sslInfo == null) {

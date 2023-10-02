@@ -39,7 +39,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
@@ -172,7 +172,7 @@ public class UserInjector {
         return injectedUser;
     }
 
-    boolean injectUser(SecurityRequest request) {
+    boolean injectUser(SecurityRequestChannel request) {
         InjectedUser injectedUser = getInjectedUser();
         if (injectedUser == null) {
             return false;

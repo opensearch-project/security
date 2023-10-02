@@ -18,6 +18,7 @@ import java.security.AccessController;
 import java.security.PrivateKey;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,6 +36,7 @@ import net.shibboleth.utilities.java.support.component.DestructableComponent;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensaml.core.config.InitializationException;
@@ -61,7 +63,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.user.AuthCredentials;
@@ -150,7 +153,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext)
+    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext threadContext)
         throws OpenSearchSecurityException {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
@@ -173,23 +176,28 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public boolean reRequestAuthentication(RestChannel restChannel, AuthCredentials authCredentials) {
+    public boolean reRequestAuthentication(final SecurityRequestChannel request, final AuthCredentials authCredentials) {
         try {
-            RestRequest restRequest = restChannel.request();
-            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
             final String suffix = matcher.matches() ? matcher.group(2) : null;
-            if (API_AUTHTOKEN_SUFFIX.equals(suffix) && this.authTokenProcessorHandler.handle(restRequest, restChannel)) {
-                return true;
+
+            if (request instanceof SecurityRestRequest) {
+                final SecurityRestRequest securityRequestChannel = (SecurityRestRequest)request;
+                final RestRequest restRequest = securityRequestChannel.breakEncapulation().v1();
+                final RestChannel channel = securityRequestChannel.breakEncapulation().v2();
+                // TODO: This codebase REQUIRES the body of the request, seems like we need to escape the SecurityRequestChannel
+                if (API_AUTHTOKEN_SUFFIX.equals(suffix) && this.authTokenProcessorHandler.handle(restRequest, channel)) {
+                    return true;
+                }
+            } else {
+                // If the request is not SecurityRestRequest type, we could not read the body to process the response, this 
+                // means were are in a potential exit early flow
+                return false; 
             }
 
             Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
-            BytesRestResponse authenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
 
-            authenticateResponse.addHeader("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings));
-
-            restChannel.sendResponse(authenticateResponse);
-
-            return true;
+            return request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "");
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
             return false;
@@ -400,7 +408,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     }
 
-    private void initLogoutUrl(SecurityRequest restRequest, ThreadContext threadContext, AuthCredentials authCredentials) {
+    private void initLogoutUrl(SecurityRequestChannel restRequest, ThreadContext threadContext, AuthCredentials authCredentials) {
         threadContext.putTransient(ConfigConstants.SSO_LOGOUT_URL, buildLogoutUrl(authCredentials));
     }
 

@@ -53,7 +53,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.support.ConfigConstants;
 
 final class RemoteIpDetector {
@@ -116,7 +116,7 @@ final class RemoteIpDetector {
         return remoteIpHeader;
     }
 
-    String detect(SecurityRequest request, ThreadContext threadContext) {
+    String detect(SecurityRequestChannel request, ThreadContext threadContext) {
 
         final String originalRemoteAddr = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)

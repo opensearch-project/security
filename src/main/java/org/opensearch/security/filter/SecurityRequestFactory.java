@@ -4,9 +4,13 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.SSLEngine;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.common.collect.Tuple;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -16,15 +20,19 @@ import io.netty.handler.ssl.SslHandler;
 
 public class SecurityRequestFactory {
 
-    public static SecurityRequest from() {
+    public static SecurityRequestChannel from() {
         return null;
     }
 
-    public static SecurityRequest from(final RestRequest request, final RestChannel channel) {
+    public static SecurityRequestChannel from(final RestRequest request, final RestChannel channel) {
         return new SecurityRestRequest(request, channel);
     }
 
-    protected static class SecurityRestRequest implements SecurityRequest {
+    public static class SecurityRestRequest implements SecurityRequestChannel {
+
+        private final Logger log = LogManager.getLogger(SecurityRestRequest.class);
+
+        private AtomicBoolean hasCompleted = new AtomicBoolean(false);
         private final RestRequest underlyingRequest;
         private final RestChannel underlyingChannel;
 
@@ -53,11 +61,6 @@ public class SecurityRequestFactory {
             }
 
             return sslhandler != null ? sslhandler.engine() : null;
-        }
-
-        @Override
-        public RestChannel getRestChannel() {
-            return underlyingChannel;
         }
 
         @Override
@@ -94,9 +97,34 @@ public class SecurityRequestFactory {
         public Map<String, String> params() {
             return underlyingRequest.params();
         }
+
+        @Override
+        public boolean hasCompleted() {
+            return hasCompleted.get();
+        }
+
+        @Override
+        public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
+            try {
+                underlyingChannel.sendResponse(null);
+                return true; 
+            } catch (final Exception e){
+                log.error("Error when attempting to send response", e);
+                throw new RuntimeException(e);
+            } finally {
+                hasCompleted.set(true);
+            }
+        }
+
+        /**
+         * Breaks the encapustion of the interface to get access to the underlying RestRequest / RestChannel.
+         */
+        public Tuple<RestRequest, RestChannel> breakEncapulation() {
+            return Tuple.tuple(underlyingRequest, underlyingChannel);
+        }
     }
 
-    protected static class NettyRequest implements SecurityRequest {
+    protected static class NettyRequest implements SecurityRequestChannel {
         @Override
         public Map<String, List<String>> getHeaders() {
             // TODO Auto-generated method stub
@@ -109,11 +137,11 @@ public class SecurityRequestFactory {
             throw new UnsupportedOperationException("Unimplemented method 'getSSLEngine'");
         }
 
-        @Override
-        public RestChannel getRestChannel() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'getRestChannel'");
-        }
+        // @Override
+        // public RestChannel getRestChannel() {
+        //     // TODO Auto-generated method stub
+        //     throw new UnsupportedOperationException("Unimplemented method 'getRestChannel'");
+        // }
 
         @Override
         public String path() {
@@ -155,6 +183,18 @@ public class SecurityRequestFactory {
         public Map<String, String> params() {
             // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'params'");
+        }
+
+        @Override
+        public boolean hasCompleted() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'hasCompleted'");
+        }
+
+        @Override
+        public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'completeWithResponse'");
         }
     }
 }

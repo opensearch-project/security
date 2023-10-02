@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -22,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -39,7 +41,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
 
 public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator {
@@ -83,7 +85,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext context)
         throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
@@ -101,7 +103,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final SecurityRequest request) throws OpenSearchSecurityException {
+    private AuthCredentials extractCredentials0(final SecurityRequestChannel request) throws OpenSearchSecurityException {
 
         String jwtString = getJwtTokenString(request);
 
@@ -142,7 +144,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     }
 
-    protected String getJwtTokenString(SecurityRequest request) {
+    protected String getJwtTokenString(SecurityRequestChannel request) {
         String jwtToken = request.header(jwtHeaderName);
         if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
             jwtToken = null;
@@ -237,11 +239,11 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     protected abstract KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception;
 
     @Override
-    public boolean reRequestAuthentication(RestChannel channel, AuthCredentials authCredentials) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+    public boolean reRequestAuthentication(final SecurityRequestChannel request, AuthCredentials authCredentials) {
+        return request.completeWithResponse(
+            HttpStatus.SC_UNAUTHORIZED,
+            Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""),
+            "");
     }
 
     public String getRequiredAudience() {

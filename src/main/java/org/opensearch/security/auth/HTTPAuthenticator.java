@@ -28,9 +28,8 @@ package org.opensearch.security.auth;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
 
 /**
@@ -68,7 +67,7 @@ public interface HTTPAuthenticator {
      * If the authentication flow needs another roundtrip with the request originator do not mark it as complete.
      * @throws OpenSearchSecurityException
      */
-    AuthCredentials extractCredentials(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException;
+    AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext context) throws OpenSearchSecurityException;
 
     /**
      * If the {@code extractCredentials()} call was not successful or the authentication flow needs another roundtrip this method
@@ -77,10 +76,10 @@ public interface HTTPAuthenticator {
      * If the custom HTTP authenticator does support re-request authentication or supports authentication flows with multiple roundtrips
      * then the response should be sent (through the channel) and true must be returned.
      *
-     * @param channel The rest channel to sent back the response via {@code channel.sendResponse()}
+     * @param channel The channel to sent back the response
      * @param credentials The credentials from the prior authentication attempt
      * @return false  if re-request is not supported/necessary, true otherwise.
      * If true is returned {@code channel.sendResponse()} must be called so that the request completes.
      */
-    boolean reRequestAuthentication(final RestChannel channel, AuthCredentials credentials);
+    boolean reRequestAuthentication(final SecurityRequestChannel channel, AuthCredentials credentials);
 }

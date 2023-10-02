@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
@@ -132,7 +133,7 @@ public class SecurityRestFilter {
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
-            final SecurityRequest securityRequest = SecurityRequestFactory.from(request, channel);
+            final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
             Optional<ResponseAction> failureResponse = checkAndAuthenticateRequest(securityRequest);
             if (failureResponse.isEmpty()) {
                 final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -166,7 +167,7 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    private boolean authorizeRequest(RestHandler original, SecurityRequest request, User user) {
+    private boolean authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
 
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
@@ -204,7 +205,7 @@ public class SecurityRestFilter {
                     err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
-                request.getRestChannel().sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
+                request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, null, err);
                 return false;
             }
         }
@@ -219,7 +220,7 @@ public class SecurityRestFilter {
 
     }
 
-    public Optional<ResponseAction> checkAndAuthenticateRequest(SecurityRequest request) throws Exception {
+    public Optional<ResponseAction> checkAndAuthenticateRequest(SecurityRequestChannel request) throws Exception {
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
 
         if (HTTPHelper.containsBadHeader(request)) {

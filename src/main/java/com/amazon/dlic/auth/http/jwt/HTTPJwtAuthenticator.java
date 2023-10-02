@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -23,6 +24,7 @@ import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,7 +36,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
@@ -84,7 +86,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext context)
         throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
@@ -102,7 +104,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final SecurityRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequestChannel request) {
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
@@ -172,11 +174,11 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+    public boolean reRequestAuthentication(final SecurityRequestChannel channel, AuthCredentials creds) {
+        return channel.completeWithResponse(
+            HttpStatus.SC_UNAUTHORIZED,
+            Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""),
+            "");
     }
 
     @Override
@@ -184,7 +186,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return "jwt";
     }
 
-    protected String extractSubject(final Claims claims, final SecurityRequest request) {
+    protected String extractSubject(final Claims claims, final SecurityRequestChannel request) {
         String subject = claims.getSubject();
         if (subjectKey != null) {
             // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
@@ -208,7 +210,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(final Claims claims, final SecurityRequest request) {
+    protected String[] extractRoles(final Claims claims, final SecurityRequestChannel request) {
         // no roles key specified
         if (rolesKey == null) {
             return new String[0];

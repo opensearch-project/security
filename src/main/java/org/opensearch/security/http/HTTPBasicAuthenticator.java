@@ -27,7 +27,9 @@
 package org.opensearch.security.http;
 
 import java.nio.file.Path;
+import java.util.Map;
 
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,7 +39,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -51,7 +53,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext threadContext) {
 
         final boolean forceLogin = Boolean.getBoolean(request.params().get("force_login"));
 
@@ -65,11 +67,11 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "Unauthorized");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Basic realm=\"OpenSearch Security\"");
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+    public boolean reRequestAuthentication(final SecurityRequestChannel request, AuthCredentials creds) {
+        return request.completeWithResponse(
+            HttpStatus.SC_UNAUTHORIZED,
+            Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""),
+            "");
     }
 
     @Override

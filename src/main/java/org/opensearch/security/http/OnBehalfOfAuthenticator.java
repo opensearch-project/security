@@ -37,7 +37,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
@@ -122,7 +122,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext context)
         throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
@@ -140,7 +140,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final SecurityRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequestChannel request) {
         if (!oboEnabled) {
             log.error("On-behalf-of authentication is disabled");
             return null;
@@ -204,7 +204,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-    private String extractJwtFromHeader(SecurityRequest request) {
+    private String extractJwtFromHeader(SecurityRequestChannel request) {
         String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
 
         if (jwtToken == null || jwtToken.isEmpty()) {
@@ -232,7 +232,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
     }
 
-    public Boolean isRequestAllowed(final SecurityRequest request) {
+    public Boolean isRequestAllowed(final SecurityRequestChannel request) {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (request.method() == RestRequest.Method.POST && ON_BEHALF_OF_SUFFIX.equals(suffix)
@@ -245,7 +245,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
+    public boolean reRequestAuthentication(final 
+SecurityRequestChannel response, AuthCredentials creds) {
         return false;
     }
 

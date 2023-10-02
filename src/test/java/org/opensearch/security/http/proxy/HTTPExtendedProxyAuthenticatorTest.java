@@ -47,7 +47,7 @@ import org.opensearch.http.HttpResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
@@ -165,7 +165,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
             return false;
         }
 
-        public SecurityRequest asSecurityRequest() {
+        public SecurityRequestChannel asSecurityRequest() {
             return SecurityRequestFactory.from(this, null);
         }
     }

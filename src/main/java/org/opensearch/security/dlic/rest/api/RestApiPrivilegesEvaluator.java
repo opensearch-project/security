@@ -35,7 +35,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -449,7 +449,7 @@ public class RestApiPrivilegesEvaluator {
 
         // Certificate based access, Check if we have an admin TLS certificate
         // TODO: Doesn't seem like the channel is needed here, but need to make sure this works correctly.
-        final SecurityRequest securityRequest = SecurityRequestFactory.from(request, null);
+        final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, null);
         SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
         if (sslInfo == null) {
