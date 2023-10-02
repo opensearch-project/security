@@ -65,6 +65,7 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
+import org.opensearch.security.filter.SecurityRequetChannelUnsupported;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.user.AuthCredentials;
@@ -181,22 +182,23 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
             final String suffix = matcher.matches() ? matcher.group(2) : null;
 
-            if (request instanceof SecurityRestRequest) {
-                final SecurityRestRequest securityRequestChannel = (SecurityRestRequest)request;
-                final RestRequest restRequest = securityRequestChannel.breakEncapulation().v1();
-                final RestChannel channel = securityRequestChannel.breakEncapulation().v2();
-                // TODO: This codebase REQUIRES the body of the request, seems like we need to escape the SecurityRequestChannel
-                if (API_AUTHTOKEN_SUFFIX.equals(suffix) && this.authTokenProcessorHandler.handle(restRequest, channel)) {
-                    return true;
+            if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+                // Verficiation of SAML ASC endpoint only works with RestRequests
+                if (!(request instanceof SecurityRestRequest)) {
+                    throw new SecurityRequetChannelUnsupported();
+                } else {
+                    final SecurityRestRequest securityRequestChannel = (SecurityRestRequest)request;
+                    final RestRequest restRequest = securityRequestChannel.breakEncapulation().v1();
+                    final RestChannel channel = securityRequestChannel.breakEncapulation().v2();
+                    if (this.authTokenProcessorHandler.handle(restRequest, channel)) {
+                        // The ACS response was accepted
+                        securityRequestChannel.markCompleted();
+                        return true;
+                    }
                 }
-            } else {
-                // If the request is not SecurityRestRequest type, we could not read the body to process the response, this 
-                // means were are in a potential exit early flow
-                return false; 
             }
 
-            Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
-
+            final Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
             return request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "");
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);

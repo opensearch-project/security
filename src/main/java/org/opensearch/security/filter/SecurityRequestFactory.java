@@ -122,6 +122,11 @@ public class SecurityRequestFactory {
         public Tuple<RestRequest, RestChannel> breakEncapulation() {
             return Tuple.tuple(underlyingRequest, underlyingChannel);
         }
+
+        /** Marks a request completed */
+        public void markCompleted() {
+            hasCompleted.set(true);
+        }
     }
 
     protected static class NettyRequest implements SecurityRequestChannel {
