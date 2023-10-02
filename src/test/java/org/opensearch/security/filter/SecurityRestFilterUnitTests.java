@@ -62,19 +62,6 @@ public class SecurityRestFilterUnitTests {
         );
     }
 
-    /**
-     * Tests to ensure that the output of {@link SecurityRestFilter#wrap} is an instance of AuthczRestHandler
-     */
-    @Test
-    public void testSecurityRestFilterWrap() throws Exception {
-        AdminDNs adminDNs = mock(AdminDNs.class);
-
-        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, adminDNs);
-
-        assertTrue(wrappedRestHandler instanceof SecurityRestFilter.AuthczRestHandler);
-        assertFalse(wrappedRestHandler instanceof TestRestHandler);
-    }
-
     @Test
     public void testDoesCallDelegateOnSuccessfulAuthorization() throws Exception {
         SecurityRestFilter filterSpy = spy(sf);
