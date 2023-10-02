@@ -26,9 +26,14 @@ import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.InterceptingRestChannel;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.util.regex.Matcher;
+
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.SHOULD_DECOMPRESS;
+import static org.opensearch.security.filter.SecurityRestFilter.HEALTH_SUFFIX;
+import static org.opensearch.security.filter.SecurityRestFilter.PATTERN_PATH_PREFIX;
+import static org.opensearch.security.filter.SecurityRestFilter.WHO_AM_I_SUFFIX;
 
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
     private final SecurityRestFilter restFilter;
@@ -52,11 +57,6 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
     public void channelRead0(ChannelHandlerContext ctx, DefaultHttpRequest msg) throws Exception {
         // DefaultHttpRequest should always be first and contain headers
         ReferenceCountUtil.retain(msg);
-        if (HttpMethod.OPTIONS.equals(msg.method())) {
-            // skip header verifier for pre-flight request. CORS Handler later in the pipeline will send early response
-            ctx.fireChannelRead(msg);
-            return;
-        }
 
         final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         final Netty4DefaultHttpRequest httpRequest = new Netty4DefaultHttpRequest(msg);
@@ -68,14 +68,20 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         );
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
-            boolean isUnauthenticated = restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
+            boolean isAuthenticated = !restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
 
             ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
-            if (isUnauthenticated) {
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+            final String suffix = matcher.matches() ? matcher.group(2) : null;
+            if (!isAuthenticated
+                || HttpMethod.OPTIONS.equals(msg.method())
+                || HEALTH_SUFFIX.equals(suffix)
+                || WHO_AM_I_SUFFIX.equals(suffix)) {
+                // skip header verifier for pre-flight request. CORS Handler later in the pipeline will send early response
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
             } else {
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);

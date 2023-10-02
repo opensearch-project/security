@@ -86,11 +86,11 @@ public class SecurityRestFilter {
     private WhitelistingSettings whitelistingSettings;
     private AllowlistingSettings allowlistingSettings;
 
-    private static final String HEALTH_SUFFIX = "health";
-    private static final String WHO_AM_I_SUFFIX = "whoami";
+    public static final String HEALTH_SUFFIX = "health";
+    public static final String WHO_AM_I_SUFFIX = "whoami";
 
-    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
-    private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
+    public static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
+    public static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
     public SecurityRestFilter(
         final BackendRegistry registry,
