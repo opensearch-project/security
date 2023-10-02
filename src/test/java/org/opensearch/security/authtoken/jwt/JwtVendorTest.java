@@ -165,8 +165,8 @@ public class JwtVendorTest {
             }
         });
         Assert.assertEquals(
-                "java.lang.Exception: The provided expiration time exceeds the maximum allowed duration of 600 seconds",
-                exception.getMessage()
+            "java.lang.Exception: The provided expiration time exceeds the maximum allowed duration of 600 seconds",
+            exception.getMessage()
         );
     }
 
