@@ -14,6 +14,7 @@ package org.opensearch.security.authtoken.jwt;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.util.AuthTokenUtils;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.junit.Test;
@@ -33,7 +34,7 @@ public class AuthTokenUtilsTest {
             .withMethod(RestRequest.Method.POST)
             .build();
 
-        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(request, "api/generateonbehalfoftoken"));
+        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request, null), "api/generateonbehalfoftoken"));
     }
 
     @Test
@@ -44,7 +45,7 @@ public class AuthTokenUtilsTest {
             .withMethod(RestRequest.Method.PUT)
             .build();
 
-        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(request, "api/account"));
+        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request, null), "api/account"));
     }
 
     @Test
@@ -55,7 +56,7 @@ public class AuthTokenUtilsTest {
             .withMethod(RestRequest.Method.GET)
             .build();
 
-        assertFalse(AuthTokenUtils.isAccessToRestrictedEndpoints(request, "api/someotherendpoint"));
+        assertFalse(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request, null), "api/someotherendpoint"));
     }
 
     @Test

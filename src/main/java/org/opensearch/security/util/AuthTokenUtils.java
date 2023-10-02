@@ -12,7 +12,7 @@
 package org.opensearch.security.util;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -21,7 +21,7 @@ public class AuthTokenUtils {
     private static final String ON_BEHALF_OF_SUFFIX = "api/generateonbehalfoftoken";
     private static final String ACCOUNT_SUFFIX = "api/account";
 
-    public static Boolean isAccessToRestrictedEndpoints(final RestRequest request, final String suffix) {
+    public static Boolean isAccessToRestrictedEndpoints(final SecurityRequestChannel request, final String suffix) {
         if (suffix == null) {
             return false;
         }
