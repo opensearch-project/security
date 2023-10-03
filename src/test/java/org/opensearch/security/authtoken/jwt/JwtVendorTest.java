@@ -50,7 +50,7 @@ public class JwtVendorTest {
         assertThat(
             exception.getMessage(),
             equalTo(
-                "Signing key is required for creation of OnBehalfOf tokens, the '\"on_behalf_of\": {\"signing_key\":{KEY}, ...} with a shared secret."
+                "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
             )
         );
     }

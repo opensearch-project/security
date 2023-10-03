@@ -47,9 +47,6 @@ import org.opensearch.transport.TransportService;
 
 import static java.util.Collections.emptySet;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 // CS-ENFORCE-SINGLE
@@ -110,9 +107,8 @@ public class SecurityInterceptorTests {
         );
     }
 
-    @Test
-    public void testSendRequestDecorate() {
-
+    private void testSendRequestDecorate(Version remoteNodeVersion) {
+        boolean useJDKSerialization = remoteNodeVersion.before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION);
         ClusterName clusterName = ClusterName.DEFAULT;
         when(clusterService.getClusterName()).thenReturn(clusterName);
 
@@ -140,7 +136,6 @@ public class SecurityInterceptorTests {
         User user = new User("John Doe");
         threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
 
-        AsyncSender sender = mock(AsyncSender.class);
         String action = "testAction";
         TransportRequest request = mock(TransportRequest.class);
         TransportRequestOptions options = mock(TransportRequestOptions.class);
@@ -156,37 +151,65 @@ public class SecurityInterceptorTests {
         DiscoveryNode localNode = new DiscoveryNode("local-node", new TransportAddress(localAddress, 1234), Version.CURRENT);
         Connection connection1 = transportService.getConnection(localNode);
 
-        DiscoveryNode otherNode = new DiscoveryNode("local-node", new TransportAddress(localAddress, 4321), Version.CURRENT);
+        DiscoveryNode otherNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 4321), remoteNodeVersion);
         Connection connection2 = transportService.getConnection(otherNode);
 
+        // from thread context inside sendRequestDecorate
+        AsyncSender sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                assertEquals(transientUser, user);
+            }
+        };
         // isSameNodeRequest = true
         securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
-        // from thread context inside sendRequestDecorate
-        doAnswer(i -> {
-            User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            assertEquals(transientUser, user);
-            return null;
-        }).when(sender).sendRequest(any(Connection.class), eq(action), eq(request), eq(options), eq(handler));
 
         // from original context
         User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertEquals(transientUser, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
 
-        // isSameNodeRequest = false
-        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, otherNode);
         // checking thread context inside sendRequestDecorate
-        doAnswer(i -> {
-            String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-            assertEquals(serializedUserHeader, Base64Helper.serializeObject(user));
-            return null;
-        }).when(sender).sendRequest(any(Connection.class), eq(action), eq(request), eq(options), eq(handler));
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
+            }
+        };
+        // isSameNodeRequest = false
+        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, localNode);
 
         // from original context
         User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertEquals(transientUser2, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+    }
 
+    @Test
+    public void testSendRequestDecorate() {
+        testSendRequestDecorate(Version.CURRENT);
+    }
+
+    /**
+     * Tests the scenario when remote node does not implement custom serialization protocol and uses JDK serialization
+     */
+    @Test
+    public void testSendRequestDecorateWhenRemoteNodeUsesJDKSerde() {
+        testSendRequestDecorate(Version.V_2_0_0);
     }
 
 }

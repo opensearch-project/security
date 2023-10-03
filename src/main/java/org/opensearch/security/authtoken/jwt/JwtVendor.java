@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-import com.google.common.base.Strings;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.util.ByteUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +40,8 @@ import org.opensearch.common.settings.Settings;
 
 import static com.nimbusds.jose.crypto.MACSigner.getMinRequiredSecretLength;
 
+import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
+
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
 
@@ -56,11 +57,10 @@ public class JwtVendor {
         signingKey = tuple.v1();
         signer = tuple.v2();
 
-        final String encryptionKey = settings.get("encryption_key");
-        if (encryptionKey == null) {
+        if (isKeyNull(settings, "encryption_key")) {
             throw new IllegalArgumentException("encryption_key cannot be null");
         } else {
-            this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+            this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(settings.get("encryption_key"));
         }
         if (timeProvider.isPresent()) {
             this.timeProvider = timeProvider.get();
@@ -69,19 +69,34 @@ public class JwtVendor {
         }
     }
 
+    /*
+     * The default configuration of this web key should be:
+     *   KeyType: OCTET
+     *   PublicKeyUse: SIGN
+     *   Encryption Algorithm: HS512
+     * */
     static Tuple<JWK, JWSSigner> createJwkFromSettings(Settings settings) {
-        String signingKey = settings.get("signing_key");
-        signingKey = padSecret(signingKey, JWSAlgorithm.HS512);
+        final OctetSequenceKey key;
+        if (!isKeyNull(settings, "signing_key")) {
+            String signingKey = padSecret(settings.get("signing_key"), JWSAlgorithm.HS512);
 
-        if (Strings.isNullOrEmpty(signingKey)) {
-            throw new OpenSearchException(
-                "Signing key is required for creation of OnBehalfOf tokens, the '\"on_behalf_of\": {\"signing_key\":{KEY}, ...} with a shared secret."
-            );
+            key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
+                .keyUse(KeyUse.SIGNATURE)
+                .build();
+        } else {
+            Settings jwkSettings = settings.getAsSettings("jwt").getAsSettings("key");
+
+            if (jwkSettings.isEmpty()) {
+                throw new OpenSearchException(
+                    "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
+                );
+            }
+
+            String signingKey = padSecret(jwkSettings.get("k"), JWSAlgorithm.HS512);
+            key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
+                .keyUse(KeyUse.SIGNATURE)
+                .build();
         }
-
-        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
-            .keyUse(KeyUse.SIGNATURE)
-            .build();
 
         try {
             return new Tuple<>(key, new MACSigner(key));
