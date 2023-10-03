@@ -224,7 +224,7 @@ public class SecurityRestFilter {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
-            requestChannel.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, null, exception.toString());
+            requestChannel.completeWithResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString());
             return;
         }
 
