@@ -142,7 +142,8 @@ public class HTTPSamlAuthenticatorTest {
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
         TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
 
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+        final BytesRestResponse authenticatorResponse = samlAuthenticator.reRequestAuthentication(tokenRestRequest, null);
+        tokenRestChannel.sendResponse(authenticatorResponse);
 
         String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
