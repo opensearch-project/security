@@ -29,6 +29,7 @@ assumeyes=0
 initsecurity=0
 cluster_mode=0
 skip_updates=-1
+USE_DEFAULT_ADMIN_PASSWORD=0
 
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i] [-c]"
@@ -37,9 +38,10 @@ function show_help() {
     echo "  -i initialize Security plugin with default configuration (default is to ask if -y is not given)"
     echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
     echo "  -s skip updates if config is already applied to opensearch.yml"
+    echo "  -p to set default admin password as 'admin' for non-production environment (default requires user to set it up manually)"
 }
 
-while getopts "h?yics" opt; do
+while getopts "h?yicsp" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -52,6 +54,9 @@ while getopts "h?yics" opt; do
     c)  cluster_mode=1
         ;;
     s)  skip_updates=0
+        ;;
+    p)  USE_DEFAULT_PASSWORD=1
+        ;;
     esac
 done
 
@@ -392,13 +397,18 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
 INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 
-if [[ -n "$initialAdminPassword" ]]; then
-  ADMIN_PASSWORD="$initialAdminPassword"
-elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
-  ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
+if [[ $USE_DEFAULT_ADMIN_PASSWORD -eq 1 ]]; then
+  echo "Skipping the admin password setup for the cluster, and setting up the default admin password as 'admin'."
+  ADMIN_PASSWORD="admin"
 else
-  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
-  exit 1
+  if [[ -n "$initialAdminPassword" ]]; then
+    ADMIN_PASSWORD="$initialAdminPassword"
+  elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
+    ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
+  else
+    echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
+    exit 1
+  fi
 fi
 
 echo "   ***************************************************"

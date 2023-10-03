@@ -17,6 +17,7 @@ set "assumeyes=0"
 set "initsecurity=0"
 set "cluster_mode=0"
 set "skip_updates=-1"
+set "use_default_admin_password=0"
 
 goto :GETOPTS
 
@@ -27,6 +28,7 @@ echo   -y confirm all installation dialogues automatically
 echo   -i initialize Security plugin with default configuration (default is to ask if -y is not given)
 echo   -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)
 echo   -s skip updates if config is already applied to opensearch.yml
+echo   -p to set default admin password as 'admin' for non-production environment (default requires user to set it up manually)
 EXIT /B 0
 
 :GETOPTS
@@ -35,6 +37,7 @@ if /I "%1" == "-y" set "assumeyes=1"
 if /I "%1" == "-i" set "initsecurity=1"
 if /I "%1" == "-c" set "cluster_mode=1"
 if /I "%1" == "-s" set "skip_updates=0"
+if /I "%1" == "-p" set "use_default_admin_password=1"
 shift
 if not "%1" == "" goto :GETOPTS
 
@@ -331,16 +334,23 @@ dir %OPENSEARCH_CONF_DIR%
 echo "what is in the password file"
 type "%ADMIN_PASSWORD_FILE%"
 
-
-if "%initialAdminPassword%" NEQ "" (
-  set "ADMIN_PASSWORD=!initialAdminPassword!"
+if "%use_default_admin_password%"=="1" (
+    set "ADMIN_PASSWORD=admin"
 ) else (
-  for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
+    if "%initialAdminPassword%" NEQ "" (
+        set "ADMIN_PASSWORD=%initialAdminPassword%"
+    ) else (
+        for /f "delims=" %%a in ('type "%ADMIN_PASSWORD_FILE%"') do (
+            set "ADMIN_PASSWORD=%%a"
+            goto :breakloop
+        )
+        :breakloop
+    )
 )
 
 if not defined ADMIN_PASSWORD (
-  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
-  exit /b 1
+    echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
+    exit /b 1
 )
 
 echo "   ***************************************************"
