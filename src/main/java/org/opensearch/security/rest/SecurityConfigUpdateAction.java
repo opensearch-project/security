@@ -73,8 +73,9 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
+
         return channel -> {
-            String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
 
             final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
             SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);

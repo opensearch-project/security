@@ -34,7 +34,6 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;

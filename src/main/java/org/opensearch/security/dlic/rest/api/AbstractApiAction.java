@@ -546,6 +546,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             // check if .opendistro_security index has been initialized
             if (!ensureIndexExists()) {
                 internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
+                return;
             }
 
             // check if request is authorized
@@ -560,6 +561,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 // for rest request
                 request.params().clear();
                 forbidden(channel, "No permission to access REST API: " + authError);
+                return;
             } else {
                 securityApiDependencies.auditLog().logGrantedPrivileges(userName, securityRequest);
             }

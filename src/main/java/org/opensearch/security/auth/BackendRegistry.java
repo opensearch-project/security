@@ -287,6 +287,8 @@ public class BackendRegistry {
                     if (isTraceEnabled) {
                         log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                     }
+                    notifyIpAuthFailureListeners(request, authCredentials);
+                    return;
                 } else {
                     // no reRequest possible
                     if (isTraceEnabled) {
@@ -299,7 +301,7 @@ public class BackendRegistry {
                 if (!ac.isComplete()) {
                     // credentials found in request but we need another client challenge
                     if (httpAuthenticator.reRequestAuthentication(request, ac)) {
-                        // auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
+                        notifyIpAuthFailureListeners(request, ac);
                         return;
                     } else {
                         // no reRequest possible
