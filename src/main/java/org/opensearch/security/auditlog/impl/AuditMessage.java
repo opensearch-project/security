@@ -49,6 +49,7 @@ import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -378,11 +379,23 @@ public final class AuditMessage {
             addRestParams(request.params());
             addRestMethod(request.method());
 
-            if (filter.shouldLogRequestBody()
-                && request.asRestRequest().isPresent()
-                && request.asRestRequest().get().hasContentOrSourceParam()) {
+            if (filter.shouldLogRequestBody()) {
+
+                if (!(request instanceof SecurityRestRequest)) {
+                    // The request body is only avaliable on some request sources
+                    return;
+                }
+
+                final SecurityRestRequest securityRestRequest = (SecurityRestRequest)request;
+                final RestRequest restRequest = securityRestRequest.breakEncapsulation().v1();
+
+                if (!(restRequest.hasContentOrSourceParam())) {
+                    // If there is no content, don't attempt to save any body information
+                    return;
+                }
+
                 try {
-                    final Tuple<MediaType, BytesReference> xContentTuple = request.asRestRequest().get().contentOrSourceParam();
+                    final Tuple<MediaType, BytesReference> xContentTuple = restRequest.contentOrSourceParam();
                     final String requestBody = XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
                     if (path != null
                         && requestBody != null

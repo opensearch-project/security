@@ -11,7 +11,9 @@ import javax.net.ssl.SSLEngine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.http.netty4.Netty4HttpChannel;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -78,19 +80,14 @@ public class SecurityRequestFactory {
             return Optional.ofNullable(this.underlyingRequest.getHttpChannel().getRemoteAddress());
         }
 
-        @Override
-        public boolean sourcedFromNetty() {
-            return underlyingRequest.getHttpChannel() instanceof Netty4HttpChannel;
-        }
+        // @Override
+        // public boolean sourcedFromNetty() {
+        //     return underlyingRequest.getHttpChannel() instanceof Netty4HttpChannel;
+        // }
 
         @Override
         public String uri() {
             return underlyingRequest.uri();
-        }
-
-        @Override
-        public Optional<RestRequest> asRestRequest() {
-            return Optional.of(underlyingRequest);
         }
 
         @Override
@@ -106,7 +103,10 @@ public class SecurityRequestFactory {
         @Override
         public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
             try {
-                underlyingChannel.sendResponse(null);
+                final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(statusCode), body);
+                headers.forEach(restResponse::addHeader);
+                underlyingChannel.sendResponse(restResponse);
+               
                 return true;
             } catch (final Exception e) {
                 log.error("Error when attempting to send response", e);
@@ -119,7 +119,7 @@ public class SecurityRequestFactory {
         /**
          * Breaks the encapustion of the interface to get access to the underlying RestRequest / RestChannel.
          */
-        public Tuple<RestRequest, RestChannel> breakEncapulation() {
+        public Tuple<RestRequest, RestChannel> breakEncapsulation() {
             return Tuple.tuple(underlyingRequest, underlyingChannel);
         }
 
@@ -142,12 +142,6 @@ public class SecurityRequestFactory {
             throw new UnsupportedOperationException("Unimplemented method 'getSSLEngine'");
         }
 
-        // @Override
-        // public RestChannel getRestChannel() {
-        // // TODO Auto-generated method stub
-        // throw new UnsupportedOperationException("Unimplemented method 'getRestChannel'");
-        // }
-
         @Override
         public String path() {
             // TODO Auto-generated method stub
@@ -167,21 +161,9 @@ public class SecurityRequestFactory {
         }
 
         @Override
-        public boolean sourcedFromNetty() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'sourcedFromNetty'");
-        }
-
-        @Override
         public String uri() {
             // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'uri'");
-        }
-
-        @Override
-        public Optional<RestRequest> asRestRequest() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'asRestRequest'");
         }
 
         @Override

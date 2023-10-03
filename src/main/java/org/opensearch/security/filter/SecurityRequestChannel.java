@@ -8,7 +8,6 @@ import java.util.stream.Stream;
 
 import javax.net.ssl.SSLEngine;
 
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 
 /**
@@ -30,11 +29,7 @@ public interface SecurityRequestChannel {
 
     public Optional<InetSocketAddress> getRemoteAddress();
 
-    public boolean sourcedFromNetty();
-
     public String uri();
-
-    public Optional<RestRequest> asRestRequest();
 
     default public String header(final String headerName) {
         final Optional<Map<String, List<String>>> headersMap = Optional.ofNullable(getHeaders());

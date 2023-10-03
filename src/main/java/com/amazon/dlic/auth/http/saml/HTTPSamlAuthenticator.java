@@ -186,8 +186,8 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                     throw new SecurityRequetChannelUnsupported();
                 } else {
                     final SecurityRestRequest securityRequestChannel = (SecurityRestRequest) request;
-                    final RestRequest restRequest = securityRequestChannel.breakEncapulation().v1();
-                    final RestChannel channel = securityRequestChannel.breakEncapulation().v2();
+                    final RestRequest restRequest = securityRequestChannel.breakEncapsulation().v1();
+                    final RestChannel channel = securityRequestChannel.breakEncapsulation().v2();
                     if (this.authTokenProcessorHandler.handle(restRequest, channel)) {
                         // The ACS response was accepted
                         securityRequestChannel.markCompleted();

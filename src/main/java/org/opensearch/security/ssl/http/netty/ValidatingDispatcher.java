@@ -66,17 +66,17 @@ public class ValidatingDispatcher implements Dispatcher {
 
     @Override
     public void dispatchRequest(RestRequest request, RestChannel channel, ThreadContext threadContext) {
-        checkRequest(request, channel);
+        checkRequest(SecurityRequestFactory.from(request, channel));
         originalDispatcher.dispatchRequest(request, channel, threadContext);
     }
 
     @Override
     public void dispatchBadRequest(RestChannel channel, ThreadContext threadContext, Throwable cause) {
-        checkRequest(channel.request(), channel);
+        checkRequest(SecurityRequestFactory.from(channel.request(), channel));
         originalDispatcher.dispatchBadRequest(channel, threadContext, cause);
     }
 
-    protected void checkRequest(final RestRequest request, final RestChannel channel) {
+    protected void checkRequest(final SecurityRequestChannel request) {
 
         if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
@@ -85,8 +85,7 @@ public class ValidatingDispatcher implements Dispatcher {
         }
 
         try {
-            final SecurityRequestChannel securityReqest = SecurityRequestFactory.from(request, channel);
-            if (SSLRequestHelper.getSSLInfo(settings, configPath, securityReqest, null) == null) {
+            if (SSLRequestHelper.getSSLInfo(settings, configPath, request, null) == null) {
                 logger.error("Not an SSL request");
                 throw new OpenSearchSecurityException("Not an SSL request", RestStatus.INTERNAL_SERVER_ERROR);
             }
