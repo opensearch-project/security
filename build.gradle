@@ -432,7 +432,7 @@ configurations {
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "org.apache.bcel:bcel:6.7.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.4"
+            force "org.xerial.snappy:snappy-java:1.1.10.5"
             force "com.google.guava:guava:${guava_version}"
         }
     }
@@ -496,7 +496,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON flattener
-    implementation ("com.github.wnameless.json:json-base:2.4.2") {
+    implementation ("com.github.wnameless.json:json-base:2.4.3") {
         exclude group: "org.glassfish", module: "jakarta.json"
         exclude group: "com.google.code.gson", module: "gson"
         exclude group: "org.json", module: "json"
@@ -527,9 +527,9 @@ dependencies {
     runtimeOnly 'com.google.errorprone:error_prone_annotations:2.22.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
-    runtimeOnly 'org.ow2.asm:asm:9.5'
+    runtimeOnly 'org.ow2.asm:asm:9.6'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.0'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.1'
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.0'
@@ -561,7 +561,7 @@ dependencies {
     runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.19'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.4'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.5.1'
@@ -629,7 +629,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.13.0'
+    integrationTestImplementation 'commons-io:commons-io:2.14.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'

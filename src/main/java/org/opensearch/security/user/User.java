@@ -83,6 +83,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         name = in.readString();
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
+        if (requestedTenant.isEmpty()) {
+            requestedTenant = null;
+        }
         attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         securityRoles.addAll(in.readList(StreamInput::readString));
     }
@@ -167,9 +170,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     /**
-     * Associate this user with a set of backend roles
+     * Associate this user with a set of custom attributes
      *
-     * @param roles The backend roles
+     * @param attributes custom attributes
      */
     public final void addAttributes(final Map<String, String> attributes) {
         if (attributes != null) {
@@ -255,7 +258,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeStringCollection(new ArrayList<String>(roles));
-        out.writeString(requestedTenant);
+        out.writeString(requestedTenant == null ? "" : requestedTenant);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
         out.writeStringCollection(securityRoles == null ? Collections.emptyList() : new ArrayList<String>(securityRoles));
     }
