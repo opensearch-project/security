@@ -392,9 +392,6 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
 INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 
-# Use sed to delete the block
-sed -i.bak '/^admin:/,/description: "Demo admin user"/d' $INTERNAL_USERS_FILE
-
 if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
 elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
