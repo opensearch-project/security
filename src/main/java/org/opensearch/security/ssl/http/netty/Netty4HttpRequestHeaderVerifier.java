@@ -28,6 +28,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestResponse;
 
 import java.util.regex.Matcher;
 
@@ -103,6 +106,10 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             } else {
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);
             }
+        } catch (OpenSearchSecurityException e) {
+            RestResponse earlyResponse = new BytesRestResponse(interceptingRestChannel, e);
+            ctx.channel().attr(EARLY_RESPONSE).set(earlyResponse);
+            ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
         } finally {
             ctx.fireChannelRead(msg);
         }
