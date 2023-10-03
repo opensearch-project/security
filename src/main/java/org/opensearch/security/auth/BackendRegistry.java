@@ -230,7 +230,7 @@ public class BackendRegistry {
 
         User authenticatedUser = null;
 
-        AuthCredentials authCredenetials = null;
+        AuthCredentials authCredentials = null;
 
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
 
@@ -272,7 +272,7 @@ public class BackendRegistry {
                 continue;
             }
 
-            authCredenetials = ac;
+            authCredentials = ac;
 
             if (ac == null) {
                 // no credentials found in request
@@ -280,12 +280,18 @@ public class BackendRegistry {
                     continue;
                 }
 
-                if (authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
-                    auditLog.logFailedLogin("<NONE>", false, null, request);
-                    if (isTraceEnabled) {
-                        log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                if (authDomain.isChallenge()) {
+                    final BytesRestResponse restResponse = httpAuthenticator.reRequestAuthentication(request, null);
+                    if (restResponse != null) {
+                        auditLog.logFailedLogin("<NONE>", false, null, request);
+                        if (isTraceEnabled) {
+                            log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                        }
+                        notifyIpAuthFailureListeners(request, authCredentials);
+                        channel.sendResponse(restResponse);
+                        return false;
                     }
-                    return false;
+
                 } else {
                     // no reRequest possible
                     if (isTraceEnabled) {
@@ -296,9 +302,12 @@ public class BackendRegistry {
             } else {
                 org.apache.logging.log4j.ThreadContext.put("user", ac.getUsername());
                 if (!ac.isComplete()) {
+                    final BytesRestResponse restResponse = httpAuthenticator.reRequestAuthentication(request, ac);
                     // credentials found in request but we need another client challenge
-                    if (httpAuthenticator.reRequestAuthentication(channel, ac)) {
+                    if (restResponse != null) {
                         // auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
+                        notifyIpAuthFailureListeners(request, ac);
+                        channel.sendResponse(restResponse);
                         return false;
                     } else {
                         // no reRequest possible
@@ -376,7 +385,7 @@ public class BackendRegistry {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
-            if (authCredenetials == null && anonymousAuthEnabled) {
+            if (authCredentials == null && anonymousAuthEnabled) {
                 final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
@@ -388,6 +397,7 @@ public class BackendRegistry {
                 }
                 return true;
             }
+            BytesRestResponse challengeResponse = null;
 
             if (firstChallengingHttpAuthenticator != null) {
 
@@ -395,31 +405,28 @@ public class BackendRegistry {
                     log.debug("Rerequest with {}", firstChallengingHttpAuthenticator.getClass());
                 }
 
-                if (firstChallengingHttpAuthenticator.reRequestAuthentication(channel, null)) {
+                challengeResponse = firstChallengingHttpAuthenticator.reRequestAuthentication(request, null);
+                if (challengeResponse != null) {
                     if (isDebugEnabled) {
                         log.debug("Rerequest {} failed", firstChallengingHttpAuthenticator.getClass());
                     }
-
-                    log.warn(
-                        "Authentication finally failed for {} from {}",
-                        authCredenetials == null ? null : authCredenetials.getUsername(),
-                        remoteAddress
-                    );
-                    auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
-                    return false;
                 }
             }
 
             log.warn(
                 "Authentication finally failed for {} from {}",
-                authCredenetials == null ? null : authCredenetials.getUsername(),
+                authCredentials == null ? null : authCredentials.getUsername(),
                 remoteAddress
             );
-            auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
+            auditLog.logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), false, null, request);
 
-            notifyIpAuthFailureListeners(request, authCredenetials);
+            notifyIpAuthFailureListeners(request, authCredentials);
 
-            channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
+            channel.sendResponse(
+                challengeResponse != null
+                    ? challengeResponse
+                    : new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed")
+            );
             return false;
         }
 
