@@ -97,7 +97,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     );
     public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected static final String CLIENT_TYPE = "client.type";
+    public static final String CLIENT_TYPE = "client.type";
     protected final boolean client;
     protected final boolean httpSSLEnabled;
     protected final boolean transportSSLEnabled;

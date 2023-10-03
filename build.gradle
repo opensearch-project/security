@@ -424,8 +424,10 @@ configurations {
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
             force "io.netty:netty-buffer:${versions.netty}"
+            force "io.netty:netty-codec:${versions.netty}"
             force "io.netty:netty-common:${versions.netty}"
             force "io.netty:netty-handler:${versions.netty}"
+            force "io.netty:netty-resolver:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "org.apache.bcel:bcel:6.7.0" // This line should be removed once Spotbugs is upgraded to 4.7.4

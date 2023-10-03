@@ -25,6 +25,9 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.InterceptingRestChannel;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
+import org.opensearch.common.settings.Settings;
 
 import java.util.regex.Matcher;
 
@@ -40,23 +43,37 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
     private final ThreadPool threadPool;
     private final NamedXContentRegistry xContentRegistry;
     private final HttpHandlingSettings handlingSettings;
+    private final Settings settings;
+    private final boolean passthrough;
 
     public Netty4HttpRequestHeaderVerifier(
         SecurityRestFilter restFilter,
         NamedXContentRegistry xContentRegistry,
         ThreadPool threadPool,
-        HttpHandlingSettings handlingSettings
+        HttpHandlingSettings handlingSettings,
+        Settings settings
     ) {
         this.restFilter = restFilter;
         this.xContentRegistry = xContentRegistry;
         this.threadPool = threadPool;
         this.handlingSettings = handlingSettings;
+        this.settings = settings;
+
+        boolean sslOnly = settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false);
+        boolean disabled = settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false);
+        boolean client = !"node".equals(settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE));
+        this.passthrough = client || disabled || sslOnly;
     }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, DefaultHttpRequest msg) throws Exception {
         // DefaultHttpRequest should always be first and contain headers
         ReferenceCountUtil.retain(msg);
+
+        if (passthrough) {
+            ctx.fireChannelRead(msg);
+            return;
+        }
 
         final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         final Netty4DefaultHttpRequest httpRequest = new Netty4DefaultHttpRequest(msg);
