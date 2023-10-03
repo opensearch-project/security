@@ -48,8 +48,9 @@ import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
-import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequestChannel;
+import org.opensearch.security.filter.OpenSearchRequest;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -371,7 +372,7 @@ public final class AuditMessage {
         }
     }
 
-    void addRestRequestInfo(final SecurityRequestChannel request, final AuditConfig.Filter filter) {
+    void addRestRequestInfo(final SecurityRequest request, final AuditConfig.Filter filter) {
         if (request != null) {
             final String path = request.path().toString();
             addPath(path);
@@ -381,12 +382,12 @@ public final class AuditMessage {
 
             if (filter.shouldLogRequestBody()) {
 
-                if (!(request instanceof SecurityRestRequestChannel)) {
+                if (!(request instanceof OpenSearchRequest)) {
                     // The request body is only avaliable on some request sources
                     return;
                 }
 
-                final SecurityRestRequestChannel securityRestRequest = (SecurityRestRequestChannel) request;
+                final OpenSearchRequest securityRestRequest = (OpenSearchRequest) request;
                 final RestRequest restRequest = securityRestRequest.breakEncapsulationForRequest();
 
                 if (!(restRequest.hasContentOrSourceParam())) {

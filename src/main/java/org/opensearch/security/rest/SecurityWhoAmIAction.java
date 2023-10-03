@@ -100,7 +100,6 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
 
                 try {
                     final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
-                    ;
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
                     if (sslInfo == null) {

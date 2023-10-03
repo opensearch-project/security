@@ -37,6 +37,7 @@ import org.opensearch.index.get.GetResult;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
@@ -44,14 +45,14 @@ import org.opensearch.transport.TransportRequest;
 public interface AuditLog extends Closeable {
 
     // login
-    void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequestChannel request);
+    void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
 
-    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequestChannel request);
+    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
 
     // privs
-    void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequestChannel request);
+    void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request);
 
-    void logGrantedPrivileges(String effectiveUser, SecurityRequestChannel request);
+    void logGrantedPrivileges(String effectiveUser, SecurityRequest request);
 
     void logMissingPrivileges(String privilege, TransportRequest request, Task task);
 
@@ -63,13 +64,13 @@ public interface AuditLog extends Closeable {
     // spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
 
-    void logBadHeaders(SecurityRequestChannel request);
+    void logBadHeaders(SecurityRequest request);
 
     void logSecurityIndexAttempt(TransportRequest request, String action, Task task);
 
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
 
-    void logSSLException(SecurityRequestChannel request, Throwable t);
+    void logSSLException(SecurityRequest request, Throwable t);
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
 

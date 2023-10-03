@@ -37,7 +37,7 @@ import org.opensearch.index.get.GetResult;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
-import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
@@ -49,12 +49,12 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequestChannel request) {
+    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 
     @Override
-    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequestChannel request) {
+    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 
@@ -79,7 +79,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logBadHeaders(SecurityRequestChannel request) {
+    public void logBadHeaders(SecurityRequest request) {
         // noop, intentionally left empty
     }
 
@@ -94,17 +94,17 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSSLException(SecurityRequestChannel request, Throwable t) {
+    public void logSSLException(SecurityRequest request, Throwable t) {
         // noop, intentionally left empty
     }
 
     @Override
-    public void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequestChannel request) {
+    public void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 
     @Override
-    public void logGrantedPrivileges(String effectiveUser, SecurityRequestChannel request) {
+    public void logGrantedPrivileges(String effectiveUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 
