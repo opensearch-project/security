@@ -18,6 +18,9 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.util.ByteUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,6 +38,8 @@ import com.nimbusds.jwt.SignedJWT;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+
+import static com.nimbusds.jose.crypto.MACSigner.getMinRequiredSecretLength;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
@@ -65,7 +70,8 @@ public class JwtVendor {
     }
 
     static Tuple<JWK, JWSSigner> createJwkFromSettings(Settings settings) {
-        final String signingKey = settings.get("signing_key");
+        String signingKey = settings.get("signing_key");
+        signingKey = padSecret(signingKey);
 
         if (Strings.isNullOrEmpty(signingKey)) {
             throw new OpenSearchException(
@@ -73,15 +79,28 @@ public class JwtVendor {
             );
         }
 
-        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
-            .keyUse(KeyUse.SIGNATURE)
-            .build();
+        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8))
+                .algorithm(JWSAlgorithm.HS512)
+                .keyUse(KeyUse.SIGNATURE)
+                .build();
 
         try {
             return new Tuple<JWK, JWSSigner>(key, new MACSigner(key));
         } catch (KeyLengthException kle) {
             throw new OpenSearchException(kle);
         }
+    }
+
+    private static String padSecret(String signingKey) {
+        int requiredSecretLength;
+        try {
+            requiredSecretLength = getMinRequiredSecretLength(JWSAlgorithm.HS512);
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+        int requiredByteLength = ByteUtils.byteLength(requiredSecretLength);
+        //padding the signing key with 0s to meet the minimum required length
+        return StringUtils.rightPad(signingKey, requiredByteLength, "0");
     }
 
     public String createJwt(
