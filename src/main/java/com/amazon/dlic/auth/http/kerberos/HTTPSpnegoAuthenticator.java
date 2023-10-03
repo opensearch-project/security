@@ -49,7 +49,6 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
@@ -280,8 +279,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-
+    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
         final BytesRestResponse wwwAuthenticateResponse;
         XContentBuilder response = getNegotiateResponseBody();
 
@@ -291,16 +289,15 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
             wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, EMPTY_STRING);
         }
 
-        if (creds == null || creds.getNativeCredentials() == null) {
+        if (credentials == null || credentials.getNativeCredentials() == null) {
             wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Negotiate");
         } else {
             wwwAuthenticateResponse.addHeader(
                 "WWW-Authenticate",
-                "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials())
+                "Negotiate " + Base64.getEncoder().encodeToString((byte[]) credentials.getNativeCredentials())
             );
         }
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+        return wwwAuthenticateResponse;
     }
 
     @Override

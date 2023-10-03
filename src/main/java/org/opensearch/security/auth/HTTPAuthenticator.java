@@ -28,7 +28,7 @@ package org.opensearch.security.auth;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -71,15 +71,14 @@ public interface HTTPAuthenticator {
 
     /**
      * If the {@code extractCredentials()} call was not successful or the authentication flow needs another roundtrip this method
-     * will be called. If the custom HTTP authenticator does not support this method is a no-op and false should be returned.
-     *
+     * will be called. If the custom HTTP authenticator does not support this method is a no-op and null response should be returned.
      * If the custom HTTP authenticator does support re-request authentication or supports authentication flows with multiple roundtrips
-     * then the response should be sent (through the channel) and true must be returned.
+     * then the response will be returned which can then be sent via response channel.
      *
-     * @param channel The rest channel to sent back the response via {@code channel.sendResponse()}
+     * @param request
      * @param credentials The credentials from the prior authentication attempt
-     * @return false  if re-request is not supported/necessary, true otherwise.
-     * If true is returned {@code channel.sendResponse()} must be called so that the request completes.
+     * @return null if re-request is not supported/necessary, response object otherwise.
+     * If an object is returned {@code channel.sendResponse()} must be called so that the request completes.
      */
-    boolean reRequestAuthentication(final RestChannel channel, AuthCredentials credentials);
+    BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials);
 }

@@ -39,7 +39,6 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
@@ -224,11 +223,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
+    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
         final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+        return wwwAuthenticateResponse;
     }
 
     @Override
