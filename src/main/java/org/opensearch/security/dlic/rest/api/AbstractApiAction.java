@@ -536,12 +536,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     @Override
     protected final RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        // consume all parameters first so we can return a correct HTTP status,
+        // not 400
+        consumeParameters(request);
+
         return channel -> {
             final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
 
-            // consume all parameters first so we can return a correct HTTP status,
-            // not 400
-            consumeParameters(request);
 
             // check if .opendistro_security index has been initialized
             if (!ensureIndexExists()) {

@@ -35,7 +35,9 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
 
         try {
             final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(statusCode), body);
-            headers.forEach(restResponse::addHeader);
+            if (headers != null) {
+                headers.forEach(restResponse::addHeader);
+            }
             underlyingChannel.sendResponse(restResponse);
 
             return true;
