@@ -232,7 +232,7 @@ public class BackendRegistry {
 
         User authenticatedUser = null;
 
-        AuthCredentials authCredenetials = null;
+        AuthCredentials authCredentials = null;
 
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
 
@@ -274,7 +274,7 @@ public class BackendRegistry {
                 continue;
             }
 
-            authCredenetials = ac;
+            authCredentials = ac;
 
             if (ac == null) {
                 // no credentials found in request
@@ -297,6 +297,7 @@ public class BackendRegistry {
             } else {
                 org.apache.logging.log4j.ThreadContext.put("user", ac.getUsername());
                 if (!ac.isComplete()) {
+                    final BytesRestResponse restResponse = httpAuthenticator.reRequestAuthentication(request, ac);
                     // credentials found in request but we need another client challenge
                     if (httpAuthenticator.reRequestAuthentication(request, ac)) {
                         // auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
@@ -373,7 +374,7 @@ public class BackendRegistry {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
-            if (authCredenetials == null && anonymousAuthEnabled) {
+            if (authCredentials == null && anonymousAuthEnabled) {
                 final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
@@ -385,6 +386,7 @@ public class BackendRegistry {
                 }
                 return;
             }
+            BytesRestResponse challengeResponse = null;
 
             if (firstChallengingHttpAuthenticator != null) {
 
@@ -409,12 +411,12 @@ public class BackendRegistry {
 
             log.warn(
                 "Authentication finally failed for {} from {}",
-                authCredenetials == null ? null : authCredenetials.getUsername(),
+                authCredentials == null ? null : authCredentials.getUsername(),
                 remoteAddress
             );
-            auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
+            auditLog.logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), false, null, request);
 
-            notifyIpAuthFailureListeners(request, authCredenetials);
+            notifyIpAuthFailureListeners(request, authCredentials);
 
             request.completeWithResponse(org.apache.http.HttpStatus.SC_UNAUTHORIZED, null, "Authentication finally failed");
         }
