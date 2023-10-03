@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-import com.google.common.base.Strings;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.KeyType;
@@ -31,6 +30,8 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.ExceptionUtils;
+
+import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
@@ -53,7 +54,7 @@ public class JwtVendor {
             throw ExceptionUtils.createJwkCreationException(e);
         }
         this.jwtProducer = jwtProducer;
-        if (settings.get("encryption_key") == null) {
+        if (isKeyNull(settings, "encryption_key")) {
             throw new IllegalArgumentException("encryption_key cannot be null");
         } else {
             this.claimsEncryptionKey = settings.get("encryption_key");
@@ -73,9 +74,8 @@ public class JwtVendor {
      *   Encryption Algorithm: HS512
      * */
     static JsonWebKey createJwkFromSettings(Settings settings) throws Exception {
-        String signingKey = settings.get("signing_key");
-
-        if (!Strings.isNullOrEmpty(signingKey)) {
+        if (!isKeyNull(settings, "signing_key")) {
+            String signingKey = settings.get("signing_key");
 
             JsonWebKey jwk = new JsonWebKey();
 
