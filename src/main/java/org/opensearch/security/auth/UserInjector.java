@@ -26,6 +26,7 @@
 
 package org.opensearch.security.auth;
 
+import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -36,6 +37,8 @@ import com.google.common.base.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
@@ -63,11 +66,16 @@ public class UserInjector {
 
     }
 
-    static class InjectedUser extends User {
+    public static class InjectedUser extends User {
         private transient TransportAddress transportAddress;
 
         public InjectedUser(String name) {
             super(name);
+        }
+
+        public InjectedUser(StreamInput in) throws IOException {
+            super(in);
+            this.setInjected(true);
         }
 
         private Object writeReplace() throws ObjectStreamException {
@@ -95,6 +103,11 @@ public class UserInjector {
             int port = Integer.parseInt(ipAndPort[1]);
 
             this.transportAddress = new TransportAddress(iAdress, port);
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            super.writeTo(out);
         }
     }
 

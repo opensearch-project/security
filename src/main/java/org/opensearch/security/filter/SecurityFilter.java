@@ -183,6 +183,10 @@ public class SecurityFilter implements ActionFilter {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
 
+            if (threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION) == null) {
+                threadContext.putTransient(ConfigConstants.USE_JDK_SERIALIZATION, false);
+            }
+
             final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
