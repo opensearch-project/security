@@ -32,8 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
-
-import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPHelper {
@@ -86,7 +85,7 @@ public class HTTPHelper {
         }
     }
 
-    public static boolean containsBadHeader(final SecurityRequestChannel request) {
+    public static boolean containsBadHeader(final SecurityRequest request) {
 
         final Map<String, List<String>> headers;
 

@@ -85,11 +85,6 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final SecurityRequestChannel response, AuthCredentials creds) {
-        return false;
-    }
-
-    @Override
     public String getType() {
         return "extended-proxy";
     }

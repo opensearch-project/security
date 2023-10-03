@@ -282,13 +282,14 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
     @Override
     public boolean reRequestAuthentication(final SecurityRequestChannel request, AuthCredentials creds) {
+        final Map<String, String> headers = new HashMap<>();
         String responseBody = "";
         final String negotiateResponseBody = getNegotiateResponseBody();
         if (negotiateResponseBody != null) {
             responseBody = negotiateResponseBody;
+            headers.put("Content-Type", "application/json");
         }
 
-        final Map<String, String> headers = new HashMap<>();
         if (creds == null || creds.getNativeCredentials() == null) {
             headers.put("WWW-Authenticate", "Negotiate");
         } else {
