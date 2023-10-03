@@ -342,11 +342,12 @@ if "%use_default_admin_password%"=="1" (
     ) else (
         for /f "delims=" %%a in ('type "%ADMIN_PASSWORD_FILE%"') do (
             set "ADMIN_PASSWORD=%%a"
-            goto :breakloop
+            goto breakloop
         )
-        :breakloop
     )
 )
+
+:breakloop
 
 if not defined ADMIN_PASSWORD (
     echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
