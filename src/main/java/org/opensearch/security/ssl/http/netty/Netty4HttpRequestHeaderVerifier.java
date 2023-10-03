@@ -24,6 +24,7 @@ import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.InterceptingRestChannel;
+import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
@@ -47,6 +48,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
     private final NamedXContentRegistry xContentRegistry;
     private final HttpHandlingSettings handlingSettings;
     private final Settings settings;
+    private final SSLConfig sslConfig;
     private final boolean injectUserEnabled;
     private final boolean passthrough;
 
@@ -64,11 +66,14 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         this.settings = settings;
 
         this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
-
-        boolean sslOnly = settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false);
         boolean disabled = settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false);
+        if (disabled) {
+            sslConfig = new SSLConfig(false, false);
+        } else {
+            sslConfig = new SSLConfig(settings);
+        }
         boolean client = !"node".equals(settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE));
-        this.passthrough = client || disabled || sslOnly;
+        this.passthrough = client || disabled || sslConfig.isSslOnlyMode();
     }
 
     @Override
