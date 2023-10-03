@@ -448,7 +448,10 @@ public class RestApiPrivilegesEvaluator {
         }
 
         // Certificate based access, Check if we have an admin TLS certificate
-        final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, /* OK to be null so long as a response isn't sent */ null);
+        final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(
+            request,
+            /* OK to be null so long as a response isn't sent */ null
+        );
         SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
         if (sslInfo == null) {

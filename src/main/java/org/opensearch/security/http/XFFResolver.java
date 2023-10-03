@@ -68,7 +68,7 @@ public class XFFResolver {
 
             requestFromNetty = restRequest.getHttpChannel() instanceof Netty4HttpChannel;
         }
-            
+
         if (enabled && request.getRemoteAddress().isPresent() && requestFromNetty) {
             final InetSocketAddress remoteAddress = request.getRemoteAddress().get();
             final InetSocketAddress isa = new InetSocketAddress(detector.detect(request, threadContext), remoteAddress.getPort());

@@ -49,7 +49,6 @@ import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequestChannel;
-import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
 import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequestChannel;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.WildcardMatcher;
@@ -387,7 +386,7 @@ public final class AuditMessage {
                     return;
                 }
 
-                final SecurityRestRequestChannel securityRestRequest = (SecurityRestRequestChannel)request;
+                final SecurityRestRequestChannel securityRestRequest = (SecurityRestRequestChannel) request;
                 final RestRequest restRequest = securityRestRequest.breakEncapsulationForRequest();
 
                 if (!(restRequest.hasContentOrSourceParam())) {

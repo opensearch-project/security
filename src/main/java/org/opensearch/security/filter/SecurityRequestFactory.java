@@ -30,11 +30,9 @@ public class SecurityRequestFactory {
         return new SecurityRestRequest(request);
     }
 
-
     public static SecurityRequestChannel from(final RestRequest request, final RestChannel channel) {
         return new SecurityRestRequestChannel(request, channel);
     }
-
 
     public static class SecurityRestRequest implements SecurityRequest {
 
@@ -90,7 +88,7 @@ public class SecurityRequestFactory {
         public Map<String, String> params() {
             return underlyingRequest.params();
         }
-        
+
         public RestRequest breakEncapsulationForRequest() {
             return underlyingRequest;
         }
@@ -108,7 +106,6 @@ public class SecurityRequestFactory {
             underlyingChannel = channel;
         }
 
-
         @Override
         public boolean hasCompleted() {
             return hasCompleted.get();
@@ -124,7 +121,7 @@ public class SecurityRequestFactory {
                 final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(statusCode), body);
                 headers.forEach(restResponse::addHeader);
                 underlyingChannel.sendResponse(restResponse);
-               
+
                 return true;
             } catch (final Exception e) {
                 log.error("Error when attempting to send response", e);
