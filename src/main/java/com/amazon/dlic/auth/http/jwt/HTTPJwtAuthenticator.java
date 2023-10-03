@@ -33,6 +33,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
@@ -83,7 +84,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext context)
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
@@ -101,7 +102,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final SecurityRequestChannel request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
@@ -184,7 +185,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return "jwt";
     }
 
-    protected String extractSubject(final Claims claims, final SecurityRequestChannel request) {
+    protected String extractSubject(final Claims claims, final SecurityRequest request) {
         String subject = claims.getSubject();
         if (subjectKey != null) {
             // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
@@ -208,7 +209,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(final Claims claims, final SecurityRequestChannel request) {
+    protected String[] extractRoles(final Claims claims, final SecurityRequest request) {
         // no roles key specified
         if (rolesKey == null) {
             return new String[0];

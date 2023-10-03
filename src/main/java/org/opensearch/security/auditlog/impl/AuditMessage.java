@@ -50,6 +50,7 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
+import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequestChannel;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -381,13 +382,13 @@ public final class AuditMessage {
 
             if (filter.shouldLogRequestBody()) {
 
-                if (!(request instanceof SecurityRestRequest)) {
+                if (!(request instanceof SecurityRestRequestChannel)) {
                     // The request body is only avaliable on some request sources
                     return;
                 }
 
-                final SecurityRestRequest securityRestRequest = (SecurityRestRequest)request;
-                final RestRequest restRequest = securityRestRequest.breakEncapsulation().v1();
+                final SecurityRestRequestChannel securityRestRequest = (SecurityRestRequestChannel)request;
+                final RestRequest restRequest = securityRestRequest.breakEncapsulationForRequest();
 
                 if (!(restRequest.hasContentOrSourceParam())) {
                     // If there is no content, don't attempt to save any body information

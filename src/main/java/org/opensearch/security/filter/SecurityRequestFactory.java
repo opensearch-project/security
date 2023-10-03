@@ -26,21 +26,22 @@ public class SecurityRequestFactory {
         return null;
     }
 
-    public static SecurityRequestChannel from(final RestRequest request, final RestChannel channel) {
-        return new SecurityRestRequest(request, channel);
+    public static SecurityRequest from(final RestRequest request) {
+        return new SecurityRestRequest(request);
     }
 
-    public static class SecurityRestRequest implements SecurityRequestChannel {
 
-        private final Logger log = LogManager.getLogger(SecurityRestRequest.class);
+    public static SecurityRequestChannel from(final RestRequest request, final RestChannel channel) {
+        return new SecurityRestRequestChannel(request, channel);
+    }
 
-        private AtomicBoolean hasCompleted = new AtomicBoolean(false);
-        private final RestRequest underlyingRequest;
-        private final RestChannel underlyingChannel;
 
-        SecurityRestRequest(final RestRequest request, final RestChannel channel) {
+    public static class SecurityRestRequest implements SecurityRequest {
+
+        protected final RestRequest underlyingRequest;
+
+        SecurityRestRequest(final RestRequest request) {
             underlyingRequest = request;
-            underlyingChannel = channel;
         }
 
         @Override
@@ -80,11 +81,6 @@ public class SecurityRequestFactory {
             return Optional.ofNullable(this.underlyingRequest.getHttpChannel().getRemoteAddress());
         }
 
-        // @Override
-        // public boolean sourcedFromNetty() {
-        //     return underlyingRequest.getHttpChannel() instanceof Netty4HttpChannel;
-        // }
-
         @Override
         public String uri() {
             return underlyingRequest.uri();
@@ -94,6 +90,24 @@ public class SecurityRequestFactory {
         public Map<String, String> params() {
             return underlyingRequest.params();
         }
+        
+        public RestRequest breakEncapsulationForRequest() {
+            return underlyingRequest;
+        }
+    }
+
+    public static class SecurityRestRequestChannel extends SecurityRestRequest implements SecurityRequestChannel {
+
+        private final Logger log = LogManager.getLogger(SecurityRestRequest.class);
+
+        private AtomicBoolean hasCompleted = new AtomicBoolean(false);
+        private final RestChannel underlyingChannel;
+
+        SecurityRestRequestChannel(final RestRequest request, final RestChannel channel) {
+            super(request);
+            underlyingChannel = channel;
+        }
+
 
         @Override
         public boolean hasCompleted() {
@@ -102,6 +116,10 @@ public class SecurityRequestFactory {
 
         @Override
         public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
+            if (underlyingChannel == null) {
+                throw new UnsupportedOperationException("Channel was not defined");
+            }
+
             try {
                 final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(statusCode), body);
                 headers.forEach(restResponse::addHeader);
@@ -126,6 +144,10 @@ public class SecurityRequestFactory {
         /** Marks a request completed */
         public void markCompleted() {
             hasCompleted.set(true);
+        }
+
+        public RestChannel breakEncapsulationForChannel() {
+            return underlyingChannel;
         }
     }
 

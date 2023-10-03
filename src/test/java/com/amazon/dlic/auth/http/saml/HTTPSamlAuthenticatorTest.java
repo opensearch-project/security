@@ -56,6 +56,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
+import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequestChannel;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
@@ -161,7 +162,7 @@ public class HTTPSamlAuthenticatorTest {
 
     private TestRestChannel sendToAuthenticator(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) {
         TestRestChannel testChannel = new TestRestChannel(request);
-        SecurityRestRequest tokenRestChannel = (SecurityRestRequest) SecurityRequestFactory.from(request, testChannel);
+        SecurityRestRequestChannel tokenRestChannel = (SecurityRestRequestChannel) SecurityRequestFactory.from(request, testChannel);
 
         samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
         return testChannel;

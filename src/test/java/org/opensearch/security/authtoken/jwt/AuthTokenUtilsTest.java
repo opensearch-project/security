@@ -34,7 +34,7 @@ public class AuthTokenUtilsTest {
             .withMethod(RestRequest.Method.POST)
             .build();
 
-        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request, null), "api/generateonbehalfoftoken"));
+        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request), "api/generateonbehalfoftoken"));
     }
 
     @Test
@@ -45,7 +45,7 @@ public class AuthTokenUtilsTest {
             .withMethod(RestRequest.Method.PUT)
             .build();
 
-        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request, null), "api/account"));
+        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request), "api/account"));
     }
 
     @Test
@@ -56,7 +56,7 @@ public class AuthTokenUtilsTest {
             .withMethod(RestRequest.Method.GET)
             .build();
 
-        assertFalse(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request, null), "api/someotherendpoint"));
+        assertFalse(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request), "api/someotherendpoint"));
     }
 
     @Test

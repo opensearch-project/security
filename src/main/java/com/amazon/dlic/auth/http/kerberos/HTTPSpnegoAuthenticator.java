@@ -53,6 +53,7 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -171,7 +172,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -188,7 +189,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final SecurityRequestChannel request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
 
         if (acceptorPrincipal == null || acceptorKeyTabPath == null) {
             log.error("Missing acceptor principal or keytab configuration. Kerberos authentication will not work");

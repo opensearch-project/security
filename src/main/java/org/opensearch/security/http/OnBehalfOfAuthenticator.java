@@ -35,6 +35,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
@@ -119,7 +120,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext context)
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
@@ -137,7 +138,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final SecurityRequestChannel request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
         if (!oboEnabled) {
             log.error("On-behalf-of authentication is disabled");
             return null;
@@ -201,7 +202,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-    private String extractJwtFromHeader(SecurityRequestChannel request) {
+    private String extractJwtFromHeader(SecurityRequest request) {
         String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
 
         if (jwtToken == null || jwtToken.isEmpty()) {
@@ -229,7 +230,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
     }
 
-    public Boolean isRequestAllowed(final SecurityRequestChannel request) {
+    public Boolean isRequestAllowed(final SecurityRequest request) {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (isAccessToRestrictedEndpoints(request, suffix)) {

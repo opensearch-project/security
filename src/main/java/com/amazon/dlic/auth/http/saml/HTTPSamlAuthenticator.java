@@ -61,8 +61,10 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
+import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequestChannel;
 import org.opensearch.security.filter.SecurityRequetChannelUnsupported;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
@@ -152,7 +154,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext threadContext)
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext)
         throws OpenSearchSecurityException {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
@@ -163,7 +165,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(request, threadContext);
 
         if (AUTHINFO_SUFFIX.equals(suffix)) {
-            this.initLogoutUrl(request, threadContext, authCredentials);
+            this.initLogoutUrl(threadContext, authCredentials);
         }
 
         return authCredentials;
@@ -182,12 +184,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
             if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
                 // Verficiation of SAML ASC endpoint only works with RestRequests
-                if (!(request instanceof SecurityRestRequest)) {
+                if (!(request instanceof SecurityRestRequestChannel)) {
                     throw new SecurityRequetChannelUnsupported();
                 } else {
-                    final SecurityRestRequest securityRequestChannel = (SecurityRestRequest) request;
-                    final RestRequest restRequest = securityRequestChannel.breakEncapsulation().v1();
-                    final RestChannel channel = securityRequestChannel.breakEncapsulation().v2();
+                    final SecurityRestRequestChannel securityRequestChannel = (SecurityRestRequestChannel) request;
+                    final RestRequest restRequest = securityRequestChannel.breakEncapsulationForRequest();
+                    final RestChannel channel = securityRequestChannel.breakEncapsulationForChannel();
                     if (this.authTokenProcessorHandler.handle(restRequest, channel)) {
                         // The ACS response was accepted
                         securityRequestChannel.markCompleted();
@@ -412,7 +414,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     }
 
-    private void initLogoutUrl(SecurityRequestChannel restRequest, ThreadContext threadContext, AuthCredentials authCredentials) {
+    private void initLogoutUrl(ThreadContext threadContext, AuthCredentials authCredentials) {
         threadContext.putTransient(ConfigConstants.SSO_LOGOUT_URL, buildLogoutUrl(authCredentials));
     }
 

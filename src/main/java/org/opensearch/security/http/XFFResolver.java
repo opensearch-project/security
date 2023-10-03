@@ -35,12 +35,10 @@ import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.http.netty4.Netty4HttpChannel;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory.SecurityRestRequest;
-import org.opensearch.security.filter.SecurityRequetChannelUnsupported;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -57,7 +55,7 @@ public class XFFResolver {
         this.threadContext = threadPool.getThreadContext();
     }
 
-    public TransportAddress resolve(final SecurityRequestChannel request) throws OpenSearchSecurityException {
+    public TransportAddress resolve(final SecurityRequest request) throws OpenSearchSecurityException {
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
             log.trace("resolve {}", request.getRemoteAddress().orElse(null));
@@ -66,7 +64,7 @@ public class XFFResolver {
         boolean requestFromNetty = false;
         if (request instanceof SecurityRestRequest) {
             final SecurityRestRequest securityRequestChannel = (SecurityRestRequest) request;
-            final RestRequest restRequest = securityRequestChannel.breakEncapsulation().v1();
+            final RestRequest restRequest = securityRequestChannel.breakEncapsulationForRequest();
 
             requestFromNetty = restRequest.getHttpChannel() instanceof Netty4HttpChannel;
         }

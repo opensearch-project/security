@@ -73,27 +73,29 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-        String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
+        return channel -> {
+            String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
 
-        // TODO: Need to re-write with a RestChannelConsumer
-        final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, null);
-        SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
+            final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
+            SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
-        if (sslInfo == null) {
-            return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
-        }
+            if (sslInfo == null) {
+                channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
+                return;
+            }
 
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-        // only allowed for admins
-        if (user == null || !adminDns.isAdmin(user)) {
-            return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
-        } else {
-            ConfigUpdateRequest configUpdateRequest = new ConfigUpdateRequest(configTypes);
-            return channel -> {
+            // only allowed for admins
+            if (user == null || !adminDns.isAdmin(user)) {
+                channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
+                return;
+            } else {
+                ConfigUpdateRequest configUpdateRequest = new ConfigUpdateRequest(configTypes);
                 client.execute(ConfigUpdateAction.INSTANCE, configUpdateRequest, new NodesResponseRestListener<>(channel));
-            };
-        }
+                return;
+            }
+        };
     }
 
     @Override

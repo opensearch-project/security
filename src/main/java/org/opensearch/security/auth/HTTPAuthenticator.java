@@ -29,6 +29,7 @@ package org.opensearch.security.auth;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -67,7 +68,7 @@ public interface HTTPAuthenticator {
      * If the authentication flow needs another roundtrip with the request originator do not mark it as complete.
      * @throws OpenSearchSecurityException
      */
-    AuthCredentials extractCredentials(final SecurityRequestChannel request, final ThreadContext context)
+    AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException;
 
     /**
