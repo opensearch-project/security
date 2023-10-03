@@ -37,7 +37,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
-import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.support.ConfigConstants;
@@ -89,8 +89,8 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        return false;
+    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
+        return null;
     }
 
     @Override

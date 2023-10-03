@@ -56,7 +56,6 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.Destroyable;
@@ -171,13 +170,15 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public boolean reRequestAuthentication(RestChannel restChannel, AuthCredentials authCredentials) {
+    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
         try {
-            RestRequest restRequest = restChannel.request();
-            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
             final String suffix = matcher.matches() ? matcher.group(2) : null;
-            if (API_AUTHTOKEN_SUFFIX.equals(suffix) && this.authTokenProcessorHandler.handle(restRequest, restChannel)) {
-                return true;
+            if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+                final BytesRestResponse restResponse = this.authTokenProcessorHandler.handle(request);
+                if (restResponse != null) {
+                    return restResponse;
+                }
             }
 
             Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
@@ -185,12 +186,10 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
             authenticateResponse.addHeader("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings));
 
-            restChannel.sendResponse(authenticateResponse);
-
-            return true;
+            return authenticateResponse;
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
-            return false;
+            return null;
         }
     }
 
