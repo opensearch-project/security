@@ -7,7 +7,11 @@ import java.util.Map;
  */
 public interface SecurityRequestChannel extends SecurityRequest {
 
+    /**
+     * If this channel has been been used to send a response
+     */
     public boolean hasCompleted();
 
+    /** Use this channel to send a response */
     public boolean completeWithResponse(final int statusCode, final Map<String, String> headers, final String body);
 }

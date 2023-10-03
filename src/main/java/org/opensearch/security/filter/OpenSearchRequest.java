@@ -13,6 +13,9 @@ import org.opensearch.rest.RestRequest.Method;
 
 import io.netty.handler.ssl.SslHandler;
 
+/**
+ * Wraps the functionality of RestRequest for use in the security plugin
+ */
 public class OpenSearchRequest implements SecurityRequest {
 
     protected final RestRequest underlyingRequest;
@@ -68,6 +71,7 @@ public class OpenSearchRequest implements SecurityRequest {
         return underlyingRequest.params();
     }
 
+    /** Gets access to the underlying request object */
     public RestRequest breakEncapsulationForRequest() {
         return underlyingRequest;
     }

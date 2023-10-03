@@ -33,6 +33,10 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
             throw new UnsupportedOperationException("Channel was not defined");
         }
 
+        if (hasCompleted()) {
+            throw new UnsupportedOperationException("This channel has already completed");
+        }
+
         try {
             final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(statusCode), body);
             if (headers != null) {
@@ -54,6 +58,7 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
         hasCompleted.set(true);
     }
 
+    /** Gets access to the underlying channel object */
     public RestChannel breakEncapsulationForChannel() {
         return underlyingChannel;
     }
