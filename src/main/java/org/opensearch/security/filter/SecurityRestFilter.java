@@ -129,23 +129,32 @@ public class SecurityRestFilter {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
+
+            // Authenticate request
             checkAndAuthenticateRequest(requestChannel);
-            if (!requestChannel.hasCompleted()) {
-                final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                if (userIsSuperAdmin(user, adminDNs)) {
-                    original.handleRequest(request, channel, client);
-                } else {
-
-                }
-
-                if (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
-                    && allowlistingSettings.checkRequestIsAllowed(request, channel, client)) {
-                    authorizeRequest(original, requestChannel, user);
-                }
+            if (requestChannel.hasCompleted()) {
+                // Unable to authenticate the caller
+                return;
             }
 
-            if (!(requestChannel.hasCompleted())) {
+            // Authorize Requset
+            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            if (userIsSuperAdmin(user, adminDNs)) {
+                // Super admins are always authorized
+                original.handleRequest(request, channel, client);
+                return;
+            }
 
+            if (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
+                && allowlistingSettings.checkRequestIsAllowed(request, channel, client)) {
+                authorizeRequest(original, requestChannel, user);
+                if (requestChannel.hasCompleted()) {
+                    // Caller was not authorized
+                    return;
+                } else {
+                    // Caller was authorized, forward the request to the handler
+                    original.handleRequest(request, channel, client);
+                }
             }
         };
     }
