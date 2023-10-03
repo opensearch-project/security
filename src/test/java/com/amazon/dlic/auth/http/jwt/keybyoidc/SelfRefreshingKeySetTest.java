@@ -31,7 +31,7 @@ public class SelfRefreshingKeySetTest {
         Assert.assertEquals(TestJwk.OCT_1_K, key1.getKeyValue().decodeToString());
         Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
 
-        OctetSequenceKey key2 = (OctetSequenceKey)  selfRefreshingKeySet.getKey("kid/b");
+        OctetSequenceKey key2 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/b");
         Assert.assertEquals(TestJwk.OCT_2_K, key2.getKeyValue().decodeToString());
         Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
 

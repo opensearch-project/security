@@ -22,7 +22,6 @@ import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.util.Base64URL;
 
-
 class TestJwk {
 
     // Keys generated with https://mkjwk.org/
@@ -83,18 +82,16 @@ class TestJwk {
     }
 
     private static JWK createOct(String keyId, String algorithm, String k) {
-        return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8))
-                .keyID(keyId)
-                .keyUse(KeyUse.SIGNATURE)
-                .algorithm(JWSAlgorithm.parse(algorithm))
-                .build();
+        return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).keyID(keyId)
+            .keyUse(KeyUse.SIGNATURE)
+            .algorithm(JWSAlgorithm.parse(algorithm))
+            .build();
     }
 
     private static JWK createRsa(String keyId, String algorithm, String e, String n, String d) {
-        RSAKey.Builder builder = new RSAKey.Builder(Base64URL.from(n), Base64URL.from(e))
-                .keyUse(KeyUse.SIGNATURE)
-                .algorithm(algorithm == null ? null : JWSAlgorithm.parse(algorithm))
-                .keyID(keyId);
+        RSAKey.Builder builder = new RSAKey.Builder(Base64URL.from(n), Base64URL.from(e)).keyUse(KeyUse.SIGNATURE)
+            .algorithm(algorithm == null ? null : JWSAlgorithm.parse(algorithm))
+            .keyID(keyId);
 
         if (d != null) {
             builder.privateExponent(Base64URL.from(d));

@@ -35,17 +35,12 @@ public class JwtVendorTest {
 
     @Test
     public void testCreateJwkFromSettings() {
-        final Settings settings = Settings.builder()
-            .put("signing_key", "abc123")
-            .build();
+        final Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
         final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
         Assert.assertEquals("HS512", jwk.v1().getAlgorithm().getName());
         Assert.assertEquals("sig", jwk.v1().getKeyUse().toString());
-        Assert.assertEquals(
-            "abc123",
-            jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString()
-        );
+        Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith("abc123"));
     }
 
     @Test
@@ -71,10 +66,7 @@ public class JwtVendorTest {
         int expirySeconds = 300;
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = "1234567890123456";
-        Settings settings = Settings.builder()
-            .put("signing_key", "abc123")
-            .put("encryption_key", claimsEncryptionKey)
-            .build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
 
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
         final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
@@ -83,7 +75,6 @@ public class JwtVendorTest {
 
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
-        //TODO audience_0 previously was not wrapped in an array, but now it is. Is this a breaking change?
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("exp"), is(notNullValue()));
@@ -133,10 +124,7 @@ public class JwtVendorTest {
         List<String> roles = List.of("admin");
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder()
-            .put("signing_key", "abc123")
-            .put("encryption_key", claimsEncryptionKey)
-            .build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
@@ -157,9 +145,7 @@ public class JwtVendorTest {
         List<String> roles = List.of("admin");
         Integer expirySeconds = 300;
 
-        Settings settings = Settings.builder()
-            .put("signing_key", "abc123")
-            .build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
             try {
@@ -179,10 +165,7 @@ public class JwtVendorTest {
         List<String> roles = null;
         Integer expirySeconds = 300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder()
-            .put("signing_key", "abc123")
-            .put("encryption_key", claimsEncryptionKey)
-            .build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {

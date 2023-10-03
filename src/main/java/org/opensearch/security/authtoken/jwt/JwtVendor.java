@@ -71,7 +71,7 @@ public class JwtVendor {
 
     static Tuple<JWK, JWSSigner> createJwkFromSettings(Settings settings) {
         String signingKey = settings.get("signing_key");
-        signingKey = padSecret(signingKey);
+        signingKey = padSecret(signingKey, JWSAlgorithm.HS512);
 
         if (Strings.isNullOrEmpty(signingKey)) {
             throw new OpenSearchException(
@@ -79,27 +79,26 @@ public class JwtVendor {
             );
         }
 
-        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8))
-                .algorithm(JWSAlgorithm.HS512)
-                .keyUse(KeyUse.SIGNATURE)
-                .build();
+        final OctetSequenceKey key = new OctetSequenceKey.Builder(signingKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
+            .keyUse(KeyUse.SIGNATURE)
+            .build();
 
         try {
-            return new Tuple<JWK, JWSSigner>(key, new MACSigner(key));
+            return new Tuple<>(key, new MACSigner(key));
         } catch (KeyLengthException kle) {
             throw new OpenSearchException(kle);
         }
     }
 
-    private static String padSecret(String signingKey) {
+    public static String padSecret(String signingKey, JWSAlgorithm jwsAlgorithm) {
         int requiredSecretLength;
         try {
-            requiredSecretLength = getMinRequiredSecretLength(JWSAlgorithm.HS512);
+            requiredSecretLength = getMinRequiredSecretLength(jwsAlgorithm);
         } catch (JOSEException e) {
             throw new RuntimeException(e);
         }
         int requiredByteLength = ByteUtils.byteLength(requiredSecretLength);
-        //padding the signing key with 0s to meet the minimum required length
+        // padding the signing key with 0s to meet the minimum required length
         return StringUtils.rightPad(signingKey, requiredByteLength, "0");
     }
 

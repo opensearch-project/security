@@ -55,7 +55,7 @@ public class JwtVerifier {
             if (!Strings.isNullOrEmpty(kid)) {
                 kid = StringEscapeUtils.unescapeJava(escapedKid);
             }
-             JWK key = keyProvider.getKey(kid);
+            JWK key = keyProvider.getKey(kid);
 
             JWSVerifier signatureVerifier = getInitializedSignatureVerifier(key, jwt);
             boolean signatureValid = jwt.verify(signatureVerifier);
@@ -97,8 +97,8 @@ public class JwtVerifier {
 
         validateSignatureAlgorithm(key, jwt);
         final JWSVerifier result;
-        if(key.getClass() == OctetSequenceKey.class) {
-             result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toOctetSequenceKey().toSecretKey());
+        if (key.getClass() == OctetSequenceKey.class) {
+            result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toOctetSequenceKey().toSecretKey());
         } else {
             result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toRSAKey().toRSAPublicKey());
         }

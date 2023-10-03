@@ -39,7 +39,6 @@ import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
-import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.onelogin.saml2.authn.SamlResponse;
@@ -51,6 +50,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.xml.sax.SAXException;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -266,46 +266,35 @@ class AuthTokenProcessorHandler {
     }
 
     JWK createJwkFromSettings(Settings settings, Settings jwtSettings) throws Exception {
-
-        String exchangeKey = settings.get("exchange_key");
+        String exchangeKey = JwtVendor.padSecret(settings.get("exchange_key"), JWSAlgorithm.HS512);
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
 
-            return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8))
-                    .algorithm(JWSAlgorithm.HS512)
-                    .keyUse(KeyUse.SIGNATURE)
-                    .build();
+            return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
+                .keyUse(KeyUse.SIGNATURE)
+                .build();
         } else {
-
             Settings jwkSettings = jwtSettings.getAsSettings("key");
 
-            if (jwkSettings.isEmpty()) {
+            if (jwkSettings.isEmpty() || jwkSettings.get("k") == null || jwkSettings.get("k").isBlank()) {
                 throw new Exception(
                     "Settings for key exchange missing. Please specify at least the option exchange_key with a shared secret."
                 );
             }
-
-            //TODO nimbus library doesn't accept generic key creation. Decide between RSAKey, OCTET, ECKey and create key from raw settings
-//            JsonWebKey jwk = new JsonWebKey();
-//
-//            for (String key : jwkSettings.keySet()) {
-//                jwk.setProperty(key, jwkSettings.get(key));
-//            }
-
-//            for (String key : jwkSettings.keySet()) {
-//                jwk.setProperty(key, jwkSettings.get(key));
-//            }
-
-            return null;
+            // try to create OCTET, HMAC key
+            String k = JwtVendor.padSecret(jwkSettings.get("k"), JWSAlgorithm.HS512);
+            return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
+                .keyUse(KeyUse.SIGNATURE)
+                .build();
         }
     }
 
     private String createJwt(SamlResponse samlResponse) throws Exception {
-        JWTClaimsSet.Builder jwtClaimsBuilder = new JWTClaimsSet.Builder()
-                //TODO check milis
-                .notBeforeTime(new Date(new Timestamp(System.currentTimeMillis()).getTime()))
-                .expirationTime(new Date(getJwtExpiration(samlResponse)))
-                .claim(this.jwtSubjectKey, this.extractSubject(samlResponse));
+        JWTClaimsSet.Builder jwtClaimsBuilder = new JWTClaimsSet.Builder().notBeforeTime(
+            new Date(new Timestamp(System.currentTimeMillis()).getTime())
+        )
+            .expirationTime(new Date(new Timestamp(getJwtExpiration(samlResponse)).getTime()))
+            .claim(this.jwtSubjectKey, this.extractSubject(samlResponse));
 
         if (this.samlSubjectKey != null) {
             jwtClaimsBuilder.claim("saml_ni", samlResponse.getNameId());
@@ -332,14 +321,7 @@ class AuthTokenProcessorHandler {
         String encodedJwt = jwt.serialize();
 
         if (token_log.isDebugEnabled()) {
-            token_log.debug(
-                "Created JWT: "
-                    + encodedJwt
-                    + "\n"
-                    + jwt.getHeader().toString()
-                    + "\n"
-                    + jwt.getJWTClaimsSet().toString()
-            );
+            token_log.debug("Created JWT: " + encodedJwt + "\n" + jwt.getHeader().toString() + "\n" + jwt.getJWTClaimsSet().toString());
         }
 
         return encodedJwt;
@@ -349,10 +331,10 @@ class AuthTokenProcessorHandler {
         DateTime sessionNotOnOrAfter = samlResponse.getSessionNotOnOrAfter();
 
         if (this.expiryBaseValue == ExpiryBaseValue.NOW) {
-            return System.currentTimeMillis() / 1000 + this.expiryOffset;
+            return System.currentTimeMillis() + this.expiryOffset * 1000;
         } else if (this.expiryBaseValue == ExpiryBaseValue.SESSION) {
             if (sessionNotOnOrAfter != null) {
-                return sessionNotOnOrAfter.getMillis() / 1000 + this.expiryOffset;
+                return sessionNotOnOrAfter.getMillis() + this.expiryOffset * 1000;
             } else {
                 throw new Exception("Error while determining JWT expiration time: SamlResponse did not contain sessionNotOnOrAfter value");
             }
@@ -360,9 +342,9 @@ class AuthTokenProcessorHandler {
             // AUTO
 
             if (sessionNotOnOrAfter != null) {
-                return sessionNotOnOrAfter.getMillis() / 1000;
+                return sessionNotOnOrAfter.getMillis();
             } else {
-                return System.currentTimeMillis() / 1000 + (this.expiryOffset > 0 ? this.expiryOffset : 60 * 60);
+                return System.currentTimeMillis() + (this.expiryOffset > 0 ? this.expiryOffset * 1000 : 60 * 60_000);
             }
         }
     }

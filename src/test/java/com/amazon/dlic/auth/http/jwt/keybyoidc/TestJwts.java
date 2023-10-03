@@ -47,13 +47,13 @@ class TestJwts {
     static final JWTClaimsSet MC_COY_NO_ISSUER = create(MCCOY_SUBJECT, TEST_AUDIENCE, null, ROLES_CLAIM, TEST_ROLES_STRING);
 
     static final JWTClaimsSet MC_COY_EXPIRED = create(
-            MCCOY_SUBJECT,
-            TEST_AUDIENCE,
-            TEST_ISSUER,
-            ROLES_CLAIM,
-            TEST_ROLES_STRING,
-            EXPIRATION_TIME,
-            10
+        MCCOY_SUBJECT,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        ROLES_CLAIM,
+        TEST_ROLES_STRING,
+        EXPIRATION_TIME,
+        10
     );
 
     static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
@@ -98,14 +98,12 @@ class TestJwts {
             }
         }
 
-//        JwtToken result = new JwtToken(claimsBuilder);
+        // JwtToken result = new JwtToken(claimsBuilder);
         return claimsBuilder.build();
     }
 
     static String createSigned(JWTClaimsSet jwtClaimsSet, JWK jwk) {
-        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName()))
-                .keyID(jwk.getKeyID())
-                .build();
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName())).keyID(jwk.getKeyID()).build();
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
         try {
             JWSSigner signer = new DefaultJWSSignerFactory().createJWSSigner(jwk);
@@ -118,9 +116,7 @@ class TestJwts {
     }
 
     static String createSignedWithoutKeyId(JWTClaimsSet jwtClaimsSet, JWK jwk) {
-        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName()))
-                .keyID(jwk.getKeyID())
-                .build();
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName())).keyID(jwk.getKeyID()).build();
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
         try {
             JWSSigner signer = new DefaultJWSSignerFactory().createJWSSigner(jwk);
@@ -133,9 +129,9 @@ class TestJwts {
     }
 
     static String createSignedWithPeculiarEscaping(JWTClaimsSet jwtClaimsSet, JWK jwk) {
-        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName()))
-                .keyID(jwk.getKeyID().replace("/", "\\/"))
-                .build();
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName())).keyID(
+            jwk.getKeyID().replace("/", "\\/")
+        ).build();
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
         try {
             JWSSigner signer = new DefaultJWSSignerFactory().createJWSSigner(jwk);
@@ -149,15 +145,15 @@ class TestJwts {
 
     static String createMcCoySignedOct1(long nbf, long exp) {
         JWTClaimsSet jwtClaimsSet = create(
-                MCCOY_SUBJECT,
-                TEST_AUDIENCE,
-                TEST_ISSUER,
-                ROLES_CLAIM,
-                TEST_ROLES_STRING,
-                NOT_BEFORE,
-                nbf,
-                EXPIRATION_TIME,
-                exp
+            MCCOY_SUBJECT,
+            TEST_AUDIENCE,
+            TEST_ISSUER,
+            ROLES_CLAIM,
+            TEST_ROLES_STRING,
+            NOT_BEFORE,
+            nbf,
+            EXPIRATION_TIME,
+            exp
         );
 
         return createSigned(jwtClaimsSet, TestJwk.OCT_1);

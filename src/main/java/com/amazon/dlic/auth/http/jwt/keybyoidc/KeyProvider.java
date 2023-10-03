@@ -15,5 +15,6 @@ import com.nimbusds.jose.jwk.JWK;
 
 public interface KeyProvider {
     JWK getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException;
+
     JWK getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException;
 }
