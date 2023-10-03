@@ -392,6 +392,9 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
 INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 
+# Use sed to delete the block
+sed -i.bak '/^admin:/,/description: "Demo admin user"/d' $INTERNAL_USERS_FILE
+
 if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
 elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
@@ -415,15 +418,18 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Find the line number containing 'admin:' in the internal_users.yml file
-ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
+# Append content to the end of the YAML file
+cat >> $INTERNAL_USERS_FILE <<EOL
 
-awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
-  /^ *hash: *"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/ {
-    sub(/"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/, "\"" hashed_admin_password "\"");
-  }
-  { print }
-' "$INTERNAL_USERS_FILE" > temp_file && mv temp_file "$INTERNAL_USERS_FILE"
+admin:
+  hash: "$HASHED_ADMIN_PASSWORD"
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "Demo admin user"
+EOL
+
+echo "Admin user has been appended to $INTERNAL_USERS_FILE"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
