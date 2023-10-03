@@ -138,11 +138,14 @@ public class BackendRegistry {
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.restAuthDomains = Collections.emptySortedSet();
+        this.ipAuthFailureListeners = Collections.emptyList();
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60);
 
         // This is going to be defined in the opensearch.yml, so it's best suited to be initialized once.
         this.injectedUserEnabled = opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        initialized = this.injectedUserEnabled;
 
         createCaches();
     }

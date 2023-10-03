@@ -44,10 +44,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     @Test
     public void testInjectedUserMalformed() throws Exception {
 
-        final Settings settings = Settings.builder()
-            .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-            .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
-            .build();
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true).build();
 
         setup(settings, ClusterConfiguration.USERINJECTOR);
 
@@ -115,10 +112,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     @Test
     public void testInjectedUser() throws Exception {
 
-        final Settings settings = Settings.builder()
-            .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-            .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
-            .build();
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true).build();
 
         setup(settings, ClusterConfiguration.USERINJECTOR);
 
@@ -132,6 +126,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin||127.0.0:80|")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        System.out.println("resc.getBody(): " + resc.getBody());
         Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[], requestedTenant=null]"));
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"127.0.0.0:80\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[]"));
@@ -250,7 +245,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     @Test
     public void testInjectedUserDisabled() throws Exception {
 
-        final Settings settings = Settings.builder().put("http.type", "org.opensearch.security.http.UserInjectingServerTransport").build();
+        final Settings settings = Settings.builder().build();
 
         setup(settings, ClusterConfiguration.USERINJECTOR);
 
@@ -276,7 +271,6 @@ public class SystemIntegratorsTests extends SingleClusterTest {
                 ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN,
                 Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE", "injectedadmin")
             )
-            .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
             .build();
 
         setup(settings, ClusterConfiguration.USERINJECTOR);
@@ -312,7 +306,6 @@ public class SystemIntegratorsTests extends SingleClusterTest {
                 ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN,
                 Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE", "injectedadmin")
             )
-            .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
             .build();
 
         setup(settings, ClusterConfiguration.USERINJECTOR);

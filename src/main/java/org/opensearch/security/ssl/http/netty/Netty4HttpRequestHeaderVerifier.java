@@ -47,6 +47,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
     private final NamedXContentRegistry xContentRegistry;
     private final HttpHandlingSettings handlingSettings;
     private final Settings settings;
+    private final boolean injectUserEnabled;
     private final boolean passthrough;
 
     public Netty4HttpRequestHeaderVerifier(
@@ -61,6 +62,8 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         this.threadPool = threadPool;
         this.handlingSettings = handlingSettings;
         this.settings = settings;
+
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
 
         boolean sslOnly = settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false);
         boolean disabled = settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false);
@@ -88,6 +91,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         );
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
+            injectUser(restRequest, threadContext);
             boolean isAuthenticated = !restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
@@ -112,6 +116,15 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
         } finally {
             ctx.fireChannelRead(msg);
+        }
+    }
+
+    private void injectUser(RestRequest request, ThreadContext threadContext) {
+        if (this.injectUserEnabled) {
+            threadContext.putTransient(
+                ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+                request.header(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER)
+            );
         }
     }
 }
