@@ -297,7 +297,6 @@ public class BackendRegistry {
             } else {
                 org.apache.logging.log4j.ThreadContext.put("user", ac.getUsername());
                 if (!ac.isComplete()) {
-                    final BytesRestResponse restResponse = httpAuthenticator.reRequestAuthentication(request, ac);
                     // credentials found in request but we need another client challenge
                     if (httpAuthenticator.reRequestAuthentication(request, ac)) {
                         // auditLog.logFailedLogin(ac.getUsername()+" <incomplete>", request); --noauditlog
@@ -386,8 +385,6 @@ public class BackendRegistry {
                 }
                 return;
             }
-            BytesRestResponse challengeResponse = null;
-
             if (firstChallengingHttpAuthenticator != null) {
 
                 if (isDebugEnabled) {
@@ -398,13 +395,6 @@ public class BackendRegistry {
                     if (isDebugEnabled) {
                         log.debug("Rerequest {} failed", firstChallengingHttpAuthenticator.getClass());
                     }
-
-                    log.warn(
-                        "Authentication finally failed for {} from {}",
-                        authCredenetials == null ? null : authCredenetials.getUsername(),
-                        remoteAddress
-                    );
-                    auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
                     return;
                 }
             }

@@ -204,7 +204,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             );
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
-            return null;
+            return false;
         }
     }
 
