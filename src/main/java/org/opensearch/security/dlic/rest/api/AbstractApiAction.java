@@ -544,58 +544,51 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         // not 400
         consumeParameters(request);
 
-        return channel -> {
-            final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
+        // check if .opendistro_security index has been initialized
+        if (!ensureIndexExists()) {
+            return channel -> internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
+        }
 
+        // check if request is authorized
+        final String authError = securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, endpoint);
 
-            // check if .opendistro_security index has been initialized
-            if (!ensureIndexExists()) {
-                internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
-                return;
-            }
+        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final String userName = user == null ? null : user.getName();
+        if (authError != null) {
+            LOGGER.error("No permission to access REST API: " + authError);
+            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, SecurityRequestFactory.from(request));
+            // for rest request
+            request.params().clear();
+            return channel -> forbidden(channel, "No permission to access REST API: " + authError);
+        } else {
+            securityApiDependencies.auditLog().logGrantedPrivileges(userName, SecurityRequestFactory.from(request));
+        }
 
-            // check if request is authorized
-            final String authError = securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, endpoint);
+    final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
+        final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
 
-            final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            final String userName = user == null ? null : user.getName();
+        return channel -> threadPool.generic().submit(() -> {
+            try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
+                System.out.println("Inside validation handler path");
+                threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+                threadPool.getThreadContext()
+                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+                threadPool.getThreadContext()
+                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalUserAndRemoteAddress.getRight());
+                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
 
-            if (authError != null) {
-                LOGGER.error("No permission to access REST API: " + authError);
-                securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, securityRequest);
-                // for rest request
-                request.params().clear();
-                forbidden(channel, "No permission to access REST API: " + authError);
-                return;
-            } else {
-                securityApiDependencies.auditLog().logGrantedPrivileges(userName, securityRequest);
-            }
-
-            final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
-            final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
-
-            threadPool.generic().submit(() -> {
-                try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
-                    threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-                    threadPool.getThreadContext()
-                        .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
-                    threadPool.getThreadContext()
-                        .putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalUserAndRemoteAddress.getRight());
-                    threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
-
-                    requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
-                    final var requestHandler = requestHandlers.getOrDefault(request.method(), methodNotImplementedHandler);
-                    requestHandler.handle(channel, request, client);
-                } catch (Exception e) {
-                    LOGGER.error("Error processing request {}", request, e);
-                    try {
-                        channel.sendResponse(new BytesRestResponse(channel, e));
-                    } catch (IOException ioe) {
-                        throw ExceptionsHelper.convertToOpenSearchException(e);
-                    }
+                requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
+                final var requestHandler = requestHandlers.getOrDefault(request.method(), methodNotImplementedHandler);
+                requestHandler.handle(channel, request, client);
+            } catch (Exception e) {
+                LOGGER.error("Error processing request {}", request, e);
+                try {
+                    channel.sendResponse(new BytesRestResponse(channel, e));
+                } catch (IOException ioe) {
+                    throw ExceptionsHelper.convertToOpenSearchException(e);
                 }
-            });
-        };
+            }
+        });
     }
 
     /**
