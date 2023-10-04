@@ -7,6 +7,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
@@ -17,9 +18,12 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -71,7 +75,12 @@ public class SecurityRestFilterUnitTests {
         doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
         doReturn(true).when(filterSpy).authorizeRequest(any(), any(), any(), any());
 
-        wrappedRestHandler.handleRequest(mock(RestRequest.class), mock(RestChannel.class), mock(NodeClient.class));
+        FakeRestRequest fakeRequest = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).withPath("/test")
+            .withMethod(RestRequest.Method.POST)
+            .withHeaders(Map.of("Content-Type", List.of("application/json")))
+            .build();
+
+        wrappedRestHandler.handleRequest(fakeRequest, mock(RestChannel.class), mock(NodeClient.class));
 
         verify(testRestHandlerSpy).handleRequest(any(), any(), any());
     }
@@ -87,7 +96,12 @@ public class SecurityRestFilterUnitTests {
         doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
         doReturn(false).when(filterSpy).authorizeRequest(any(), any(), any(), any());
 
-        wrappedRestHandler.handleRequest(mock(RestRequest.class), mock(RestChannel.class), mock(NodeClient.class));
+        FakeRestRequest fakeRequest = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).withPath("/test")
+            .withMethod(RestRequest.Method.POST)
+            .withHeaders(Map.of("Content-Type", List.of("application/json")))
+            .build();
+
+        wrappedRestHandler.handleRequest(fakeRequest, mock(RestChannel.class), mock(NodeClient.class));
 
         verify(testRestHandlerSpy, never()).handleRequest(any(), any(), any());
     }
