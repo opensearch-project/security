@@ -44,6 +44,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.env.Environment;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
@@ -119,7 +120,7 @@ public class SSLRequestHelper {
     public static SSLInfo getSSLInfo(
         final Settings settings,
         final Path configPath,
-        final SecurityRequestChannel request,
+        final SecurityRequest request,
         PrincipalExtractor principalExtractor
     ) throws SSLPeerUnverifiedException {
         final SSLEngine engine = request.getSSLEngine();
