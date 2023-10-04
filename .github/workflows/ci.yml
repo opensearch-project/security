@@ -52,6 +52,11 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v4
 
+    - name: Add Admin Credential
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        pwd
+
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
       with:
