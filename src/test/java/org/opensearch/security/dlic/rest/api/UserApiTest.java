@@ -51,7 +51,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         return PLUGINS_PREFIX;
     }
 
-    final int USER_SETTING_SIZE = 133; // Lines per account entry * number of accounts
+    final int USER_SETTING_SIZE = 140; // Lines per account entry * number of accounts
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY = "{"
         + " \"attributes\": { \"service\": \"true\", "
@@ -614,7 +614,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet(restApiAdminHeader);
         verifyPut(restApiAdminHeader);
         verifyPatch(false, restApiAdminHeader);
@@ -632,7 +632,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiInternalUsersAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet(restApiInternalUsersAdminHeader);
         verifyPut(restApiInternalUsersAdminHeader);
         verifyPatch(false, restApiInternalUsersAdminHeader);
