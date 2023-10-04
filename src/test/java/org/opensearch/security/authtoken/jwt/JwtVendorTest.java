@@ -49,9 +49,7 @@ public class JwtVendorTest {
         Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(
             exception.getMessage(),
-            equalTo(
-                "Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
-            )
+            equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
         );
     }
 

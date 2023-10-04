@@ -109,34 +109,26 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         }
 
         SignedJWT jwt;
+        JWTClaimsSet claimsSet;
 
         try {
             jwt = jwtVerifier.getVerifiedJwtToken(jwtString);
+            claimsSet = jwt.getJWTClaimsSet();
         } catch (AuthenticatorUnavailableException e) {
             log.info(e.toString());
             throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
-        } catch (BadCredentialsException e) {
-            log.info("Extracting JWT token from {} failed", jwtString, e);
-            return null;
-        }
-
-        JWTClaimsSet claimsSet;
-        try {
-            claimsSet = jwt.getJWTClaimsSet();
-        } catch (ParseException e) {
+        } catch (BadCredentialsException | ParseException e) {
             log.info("Extracting JWT token from {} failed", jwtString, e);
             return null;
         }
 
         final String subject = extractSubject(claimsSet);
-
         if (subject == null) {
             log.error("No subject found in JWT token");
             return null;
         }
 
         final String[] roles = extractRoles(claimsSet);
-
         final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
         for (Entry<String, Object> claim : claimsSet.getClaims().entrySet()) {

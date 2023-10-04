@@ -49,7 +49,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
-import org.xml.sax.SAXException;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;

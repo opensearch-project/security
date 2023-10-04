@@ -28,7 +28,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.List;
 
 public class JwtVerifier {
 
@@ -122,10 +121,10 @@ public class JwtVerifier {
     }
 
     private void validateRequiredAudienceAndIssuer(JWTClaimsSet claims) throws BadJWTException {
-        List<String> audience = claims.getAudience();
+        String audience = claims.getAudience().stream().findFirst().orElse("");
         String issuer = claims.getIssuer();
 
-        if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience.stream().findFirst().orElse(""))) {
+        if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience)) {
             throw new BadJWTException("Invalid audience");
         }
 
