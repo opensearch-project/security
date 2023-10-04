@@ -81,7 +81,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
             SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
             if (sslInfo == null) {
-                
+
                 channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
                 return;
             }
@@ -90,7 +90,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
 
             // only allowed for admins
             if (user == null || !adminDns.isAdmin(user)) {
-                
+
                 channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
                 return;
             } else {

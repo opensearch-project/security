@@ -1,6 +1,5 @@
 package org.opensearch.security.filter;
 
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
@@ -29,7 +28,7 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
 
     @Override
     public boolean completeWithResponse(final SecurityResponse response) {
-        
+
         if (underlyingChannel == null) {
             throw new UnsupportedOperationException("Channel was not defined");
         }

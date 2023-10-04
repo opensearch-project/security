@@ -49,7 +49,6 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -373,7 +372,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     ) {
         final var configuration = load(cType, logComplianceEvent);
         if (configuration.getSeqNo() < 0) {
-            
+
             return ValidationResult.error(
                 RestStatus.FORBIDDEN,
                 forbiddenMessage(
@@ -414,19 +413,19 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigDelete(SecurityConfiguration securityConfiguration) throws IOException {
-                
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigLoad(SecurityConfiguration securityConfiguration) throws IOException {
-                
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
-                
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
@@ -564,7 +563,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             securityApiDependencies.auditLog().logGrantedPrivileges(userName, SecurityRequestFactory.from(request));
         }
 
-    final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
+        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
         final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
 
         return channel -> threadPool.generic().submit(() -> {

@@ -63,7 +63,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequetChannelUnsupported;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.OpenSearchRequestChannel;
@@ -200,11 +199,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             }
 
             final Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
-            return Optional.of(new SecurityResponse(
-                HttpStatus.SC_UNAUTHORIZED,
-                Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)),
-                ""
-            ));
+            return Optional.of(
+                new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "")
+            );
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
             return Optional.empty();

@@ -53,9 +53,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
@@ -221,7 +219,9 @@ public class BackendRegistry {
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            request.completeWithResponse(new SecurityResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized."));
+            request.completeWithResponse(
+                new SecurityResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized.")
+            );
             return false;
         }
 
@@ -350,11 +350,13 @@ public class BackendRegistry {
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
-                request.completeWithResponse(new SecurityResponse(
-                    HttpStatus.SC_FORBIDDEN,
-                    null,
-                    "Cannot authenticate user because admin user is not permitted to login via HTTP"
-                ));
+                request.completeWithResponse(
+                    new SecurityResponse(
+                        HttpStatus.SC_FORBIDDEN,
+                        null,
+                        "Cannot authenticate user because admin user is not permitted to login via HTTP"
+                    )
+                );
                 return false;
             }
 
@@ -397,7 +399,7 @@ public class BackendRegistry {
                 }
                 return true;
             }
-            
+
             Optional<SecurityResponse> challengeResponse = Optional.empty();
 
             if (firstChallengingHttpAuthenticator != null) {
@@ -592,7 +594,7 @@ public class BackendRegistry {
         }
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {
-            
+
             throw new OpenSearchSecurityException(
                 "It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
                 RestStatus.FORBIDDEN
@@ -600,7 +602,7 @@ public class BackendRegistry {
         }
 
         if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
-            
+
             throw new OpenSearchSecurityException(
                 "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'",
                 RestStatus.FORBIDDEN

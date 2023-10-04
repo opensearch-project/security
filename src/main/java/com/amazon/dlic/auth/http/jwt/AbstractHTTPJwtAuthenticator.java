@@ -41,7 +41,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -241,11 +240,9 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     @Override
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials authCredentials) {
-        return Optional.of(new SecurityResponse(
-            HttpStatus.SC_UNAUTHORIZED,
-            Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""),
-            ""
-        ));
+        return Optional.of(
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+        );
     }
 
     public String getRequiredAudience() {

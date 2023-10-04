@@ -464,7 +464,7 @@ public class SecurityFilter implements ActionFilter {
                         : String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
-                
+
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
             }
         } catch (OpenSearchException e) {
@@ -515,7 +515,7 @@ public class SecurityFilter implements ActionFilter {
             || request instanceof IndicesAliasesRequest;
 
         if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
-            
+
             listener.onFailure(new OpenSearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
