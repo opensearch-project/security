@@ -53,10 +53,15 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Add Admin Credential
-      if: ${{ runner.os == 'Linux' }}
       run: |
-        pwd
-        ls
+        cat <<EOL >> /home/runner/work/security/security/config/internal_users.yml
+        admin:
+          hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
+          reserved: true
+          backend_roles:
+            - "admin"
+          description: "Demo admin user"
+        EOL
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
