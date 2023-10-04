@@ -58,7 +58,7 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v4
 
-    - name: Add Admin Credential on Linux
+    - name: Insert Admin Credential on Linux
       if: ${{ runner.os == 'Linux' }}
       run: |
         cat <<EOL >> /home/runner/work/security/security/config/internal_users.yml
@@ -74,13 +74,15 @@ jobs:
     - name: Add Admin Credential on Windows
       if: ${{ runner.os == 'Windows' }}
       run: |
-        Add-Content -Path D:\a\security\security\config\internal_users.yml -Value "admin:"
-        Add-Content -Path D:\a\security\security\config\internal_users.yml -Value "  hash: `"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG`""
-        Add-Content -Path D:\a\security\security\config\internal_users.yml -Value "  reserved: true"
-        Add-Content -Path D:\a\security\security\config\internal_users.yml -Value "  backend_roles:"
-        Add-Content -Path D:\a\security\security\config\internal_users.yml -Value "  - `"admin`""
-        Add-Content -Path D:\a\security\security\config\internal_users.yml -Value "  description: `"Demo admin user`""
+        $filePath = "D:\a\security\security\config\internal_users.yml"
+        Add-Content -Path $filePath -Value "admin:"
+        Add-Content -Path $filePath -Value "  hash: `"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG`""
+        Add-Content -Path $filePath -Value "  reserved: true"
+        Add-Content -Path $filePath -Value "  backend_roles:"
+        Add-Content -Path $filePath -Value "  - `"admin`""
+        Add-Content -Path $filePath -Value "  description: `"Demo admin user`""
       shell: pwsh
+
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
