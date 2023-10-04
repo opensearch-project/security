@@ -198,6 +198,10 @@ test {
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
     }
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 5
+    }
     jacoco {
         excludes = [
                 "com.sun.jndi.dns.*",
@@ -241,10 +245,10 @@ def setCommonTestConfig(Test task) {
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
     }
-    // task.retry {
-    //     failOnPassedAfterRetry = false
-    //     maxRetries = 5
-    // }
+    task.retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 5
+    }
     task.jacoco {
         excludes = [
                 "com.sun.jndi.dns.*",
@@ -460,11 +464,11 @@ task integrationTest(type: Test) {
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
-    // retry {
-    //     failOnPassedAfterRetry = false
-    //     maxRetries = 2
-    //     maxFailures = 10
-    // }
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 2
+        maxFailures = 10
+    }
     //run the integrationTest task after the test task
     shouldRunAfter test
 }
