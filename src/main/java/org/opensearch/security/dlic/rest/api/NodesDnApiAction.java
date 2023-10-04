@@ -139,7 +139,7 @@ public class NodesDnApiAction extends AbstractApiAction {
             public ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(SecurityConfiguration securityConfiguration)
                 throws IOException {
                 if (STATIC_OPENSEARCH_YML_NODES_DN.equals(securityConfiguration.entityName())) {
-                    System.out.println("@142 - nodes dn API action, 403");
+                    
                     return ValidationResult.error(
                         RestStatus.FORBIDDEN,
                         forbiddenMessage("Resource '" + STATIC_OPENSEARCH_YML_NODES_DN + "' is read-only.")

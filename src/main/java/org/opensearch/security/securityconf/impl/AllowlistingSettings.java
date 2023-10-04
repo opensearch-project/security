@@ -110,7 +110,7 @@ public class AllowlistingSettings {
     public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
         // if allowlisting is enabled but the request is not allowlisted, then return false, otherwise true.
         if (this.enabled && !requestIsAllowlisted(request)) {
-            System.out.println("@113 - checkRequestIsAllowed 403");
+            
             channel.sendResponse(
                 new BytesRestResponse(
                     RestStatus.FORBIDDEN,

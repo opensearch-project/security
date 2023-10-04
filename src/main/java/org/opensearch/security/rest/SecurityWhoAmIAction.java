@@ -103,7 +103,7 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
                     if (sslInfo == null) {
-                        System.out.println("@104 - who am i action, 403");
+                        
                         response = new BytesRestResponse(RestStatus.FORBIDDEN, "No security data");
                     } else {
 

@@ -373,7 +373,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     ) {
         final var configuration = load(cType, logComplianceEvent);
         if (configuration.getSeqNo() < 0) {
-            System.out.println("@374 - abstract API action, 403");
+            
             return ValidationResult.error(
                 RestStatus.FORBIDDEN,
                 forbiddenMessage(
@@ -414,19 +414,19 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigDelete(SecurityConfiguration securityConfiguration) throws IOException {
-                System.out.println("@415 - abstract API action, 403");
+                
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigLoad(SecurityConfiguration securityConfiguration) throws IOException {
-                System.out.println("@421 - abstract API action, 403");
+                
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
-                System.out.println("@427 - abstract API action, 403");
+                
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 

@@ -592,7 +592,7 @@ public class BackendRegistry {
         }
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {
-            System.out.println("@607 - impersonate, 403");
+            
             throw new OpenSearchSecurityException(
                 "It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
                 RestStatus.FORBIDDEN
@@ -600,7 +600,7 @@ public class BackendRegistry {
         }
 
         if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
-            System.out.println("@615 - impersonate, 403");
+            
             throw new OpenSearchSecurityException(
                 "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'",
                 RestStatus.FORBIDDEN
