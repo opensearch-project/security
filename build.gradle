@@ -32,6 +32,7 @@ buildscript {
         jjwt_version = '0.11.5'
         guava_version = '32.1.2-jre'
         jaxb_version = '2.3.8'
+        checkstyle_version = '10.12.4'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -639,7 +640,7 @@ dependencies {
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
 
     //Checkstyle
-    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
+    implementation "com.puppycrawl.tools:checkstyle:${checkstyle_version}"
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
