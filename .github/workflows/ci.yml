@@ -117,6 +117,7 @@ jobs:
             - "admin"
           description: "Demo admin user"
         EOL
+        cat /home/runner/work/security/security/config/internal_users.yml
       shell: bash
 
     - name: Add Admin Credential on Windows
