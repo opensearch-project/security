@@ -183,7 +183,7 @@ public class SecurityRolesPermissionsTest {
 
     @Test
     public void hasExplicitClusterPermissionPermissionForRestAdmin() {
-        // verify all endpoint except SSL
+        // verify all endpoint except SSL and verify CONFIG endpoints
         final Collection<Endpoint> noSslEndpoints = ENDPOINTS_WITH_PERMISSIONS.keySet()
             .stream()
             .filter(e -> e != Endpoint.SSL && e != Endpoint.CONFIG)

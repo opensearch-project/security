@@ -86,10 +86,8 @@ public class SecurityConfigApiAction extends AbstractApiAction {
         switch (request.method()) {
             case PATCH:
             case PUT:
-                if (!allowPutOrPatch && !restApiAdminEnabled) {
-                    return false;
-                } else if (allowPutOrPatch && !restApiAdminEnabled) {
-                    return true;
+                if (!restApiAdminEnabled) {
+                    return allowPutOrPatch;
                 } else {
                     return securityApiDependencies.restApiAdminPrivilegesEvaluator()
                         .isCurrentUserAdminFor(endpoint, SECURITY_CONFIG_UPDATE);
