@@ -30,9 +30,9 @@ To get started, follow the [getting started section](https://github.com/opensear
 
 Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running the OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
 ```bash
-export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-*
-export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-*
-cp -Rf $OPENSEARCH_BUILD $OPENSEARCH_HOME
+export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-{VERSION-NUMBER}
+export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-{VERSION-NUMBER}-SNAPSHOT
+cp -Rf $OPENSEARCH_BUILD/* $OPENSEARCH_HOME
 ```
 
 Choose `$OPENSEARCH_HOME` as the base folder where your server will live, and adjust `$OPENSEARCH_BUILD` based on your version and OS (this is an example running on MacOS, hence `darwin`.)
@@ -69,12 +69,12 @@ To install the built plugin into the OpenSearch server run:
 
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
-mkdir $OPENSEARCH_SECURITY_HOME
+mkdir -p $OPENSEARCH_SECURITY_HOME
 cp build/distributions/opensearch-security-*.zip $OPENSEARCH_SECURITY_HOME
 cd $OPENSEARCH_SECURITY_HOME
 unzip opensearch-security-*.zip
 rm opensearch-security-*.zip
-mkdir $OPENSEARCH_HOME/config/opensearch-security
+mkdir -p $OPENSEARCH_HOME/config/opensearch-security
 mv config/* $OPENSEARCH_HOME/config/opensearch-security/
 rm -rf config/
 ```
