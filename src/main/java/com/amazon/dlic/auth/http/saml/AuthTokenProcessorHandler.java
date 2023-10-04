@@ -31,7 +31,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Strings;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
@@ -48,6 +47,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -255,7 +255,7 @@ class AuthTokenProcessorHandler {
         } else {
             Settings jwkSettings = jwtSettings.getAsSettings("key");
 
-            if (jwkSettings.isEmpty() || jwkSettings.get("k") == null || jwkSettings.get("k").isBlank()) {
+            if (!jwkSettings.hasValue("k") && !Strings.isNullOrEmpty(jwkSettings.get("k"))) {
                 throw new Exception(
                     "Settings for key exchange missing. Please specify at least the option exchange_key with a shared secret."
                 );
@@ -270,9 +270,9 @@ class AuthTokenProcessorHandler {
 
     private String createJwt(SamlResponse samlResponse) throws Exception {
         JWTClaimsSet.Builder jwtClaimsBuilder = new JWTClaimsSet.Builder().notBeforeTime(
-            new Date(new Timestamp(System.currentTimeMillis()).getTime())
+            new Date()
         )
-            .expirationTime(new Date(new Timestamp(getJwtExpiration(samlResponse)).getTime()))
+            .expirationTime(new Date(getJwtExpiration(samlResponse)))
             .claim(this.jwtSubjectKey, this.extractSubject(samlResponse));
 
         if (this.samlSubjectKey != null) {

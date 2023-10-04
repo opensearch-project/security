@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
@@ -62,7 +63,8 @@ public class JwtVendorTest {
         List<String> backendRoles = List.of("Sales", "Support");
         String expectedRoles = "IT,HR";
         int expirySeconds = 300;
-        LongSupplier currentTime = () -> (long) 100;
+        //2023 oct 4, 10:00:00 AM GMT
+        LongSupplier currentTime = () -> 1696413600000L;
         String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
 
@@ -74,8 +76,10 @@ public class JwtVendorTest {
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("exp"), is(notNullValue()));
+        //2023 oct 4, 10:00:00 AM GMT
+        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("iat")).getTime(), is(1696413600000L));
+        //2023 oct 4, 10:05:00 AM GMT
+        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
         assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
     }
@@ -96,7 +100,9 @@ public class JwtVendorTest {
         Settings settings = Settings.builder()
             .put("signing_key", "abc123")
             .put("encryption_key", claimsEncryptionKey)
+            // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
+            // CS-ENFORCE-SINGLE
             .build();
         final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
         final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);

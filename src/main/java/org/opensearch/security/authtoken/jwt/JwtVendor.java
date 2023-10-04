@@ -143,7 +143,7 @@ public class JwtVendor {
         if (expirySeconds <= 0) {
             throw new Exception("The expiration time should be a positive integer");
         }
-        final Date expiryTime = new Date(timeProvider.getAsLong() + expirySeconds);
+        final Date expiryTime = new Date(timeProvider.getAsLong() + expirySeconds * 1000);
         claimsBuilder.expirationTime(expiryTime);
 
         if (roles != null) {
