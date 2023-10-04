@@ -28,8 +28,8 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
     }
 
     @Override
-    public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
-        System.out.println("@32 - completeWithResponse" + statusCode);
+    public boolean completeWithResponse(final SecurityResponse response) {
+        System.out.println("@32 - completeWithResponse" + response.getStatus());
         // TODO: Remove
         new Exception("&&& completeWithResponse calling stack trace").printStackTrace();
 
@@ -42,9 +42,9 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
         }
 
         try {
-            final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(statusCode), body);
-            if (headers != null) {
-                headers.forEach(restResponse::addHeader);
+            final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(response.getStatus()), response.getBody());
+            if (response.getHeaders() != null) {
+                response.getHeaders().forEach(restResponse::addHeader);
             }
             underlyingChannel.sendResponse(restResponse);
 

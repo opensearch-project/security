@@ -145,17 +145,20 @@ public class SecurityRestFilter {
                 return;
             }
 
-            if (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
-                && allowlistingSettings.checkRequestIsAllowed(request, channel, client)) {
-                authorizeRequest(original, requestChannel, user);
-                if (requestChannel.hasCompleted()) {
-                    // Caller was not authorized
-                    return;
-                } else {
-                    // Caller was authorized, forward the request to the handler
-                    original.handleRequest(request, channel, client);
-                }
-        }
+            if (!(whitelistingSettings.checkRequestIsAllowed(request, channel, client)
+                && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
+                // Request is not allowed
+                return;
+            }
+
+            authorizeRequest(original, requestChannel, user);
+            if (requestChannel.hasCompleted()) {
+                // Caller was not authorized
+                return;
+            }
+
+            // Caller was authorized, forward the request to the handler
+            original.handleRequest(request, channel, client);
         };
     }
 
@@ -260,8 +263,7 @@ public class SecurityRestFilter {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(requestChannel.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (requestChannel.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
-            registry.authenticate(requestChannel, null);
-            if (requestChannel.hasCompleted()) {
+            if (!registry.authenticate(requestChannel)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
                 return;

@@ -11,6 +11,8 @@
 
 package com.amazon.dlic.auth.http.kerberos;
 
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
+
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.security.auth.Subject;
@@ -32,7 +35,6 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Strings;
 
-import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.ietf.jgss.GSSContext;
@@ -55,6 +57,7 @@ import org.opensearch.env.Environment;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
@@ -281,7 +284,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final SecurityRequestChannel request, AuthCredentials creds) {
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials creds) {
         final Map<String, String> headers = new HashMap<>();
         String responseBody = "";
         final String negotiateResponseBody = getNegotiateResponseBody();
@@ -296,7 +299,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
             headers.put("WWW-Authenticate", "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials()));
         }
 
-        return request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, headers, responseBody);
+        return Optional.of(new SecurityResponse(SC_UNAUTHORIZED, headers, responseBody));
     }
 
     @Override
