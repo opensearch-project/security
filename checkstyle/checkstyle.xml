@@ -120,6 +120,7 @@
     </module>
     <module name="IllegalImport"> <!-- defaults to sun.* packages -->
       <property name="severity" value="error"/>
+      <property name="illegalPkgs" value="org.apache.cxf.rs.security.jose"/>
     </module>
     <module name="RedundantImport">
       <property name="severity" value="error"/>

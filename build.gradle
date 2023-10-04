@@ -512,9 +512,6 @@ dependencies {
 
     runtimeOnly 'net.minidev:accessors-smart:2.5.0'
 
-    implementation("org.apache.cxf:cxf-rt-rs-security-jose:${apache_cxf_version}") {
-        exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
-    }
     runtimeOnly "org.apache.cxf:cxf-core:${apache_cxf_version}"
     implementation "org.apache.cxf:cxf-rt-rs-json-basic:${apache_cxf_version}"
     runtimeOnly "org.apache.cxf:cxf-rt-security:${apache_cxf_version}"
