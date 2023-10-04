@@ -345,10 +345,10 @@ public class HTTPSamlAuthenticatorTest {
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
         SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
-        Assert.assertEquals("ABC\\User1", jwt.getJWTClaimsSet().getClaim("sub"));
-        Assert.assertEquals("ABC\\User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
-        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
-        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
+        Assert.assertEquals("ABC\"User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC\"User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC\"Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC\"Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
     }
 
     @Test
@@ -395,10 +395,10 @@ public class HTTPSamlAuthenticatorTest {
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
         SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
-        Assert.assertEquals("ABC\\User1", jwt.getJWTClaimsSet().getClaim("sub"));
-        Assert.assertEquals("ABC\\User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
-        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
-        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
+        Assert.assertEquals("ABC/User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC/User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC/Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC/Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
     }
 
     @Test
@@ -445,7 +445,7 @@ public class HTTPSamlAuthenticatorTest {
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
         SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
-        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
+        Assert.assertEquals("ABC/Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
 
     }
 

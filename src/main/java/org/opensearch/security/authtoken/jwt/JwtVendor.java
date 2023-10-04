@@ -114,7 +114,7 @@ public class JwtVendor {
         }
         int requiredByteLength = ByteUtils.byteLength(requiredSecretLength);
         // padding the signing key with 0s to meet the minimum required length
-        return StringUtils.rightPad(signingKey, requiredByteLength, "0");
+        return StringUtils.rightPad(signingKey, requiredByteLength, "\0");
     }
 
     public String createJwt(
