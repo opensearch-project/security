@@ -55,6 +55,7 @@ public interface EndpointValidator {
 
     default ValidationResult<String> withRequiredEntityName(final String entityName) {
         if (entityName == null) {
+            System.out.println("@152 - Endpoint validator 400");
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + resourceName() + " specified."));
         }
         return ValidationResult.success(entityName);
@@ -104,6 +105,7 @@ public interface EndpointValidator {
         final var configuration = securityConfiguration.configuration();
         final var entityName = securityConfiguration.entityName();
         if (configuration.isStatic(entityName)) {
+            System.out.println("@107 - Endpoint validator 403");
             return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Resource '" + entityName + "' is static."));
         }
         return ValidationResult.success(securityConfiguration);
@@ -113,6 +115,11 @@ public interface EndpointValidator {
         final var configuration = securityConfiguration.configuration();
         final var entityName = securityConfiguration.entityName();
         if (configuration.isReserved(entityName)) {
+            System.out.println("@117 - Endpoint validator 403");
+            // TODO: Remove
+            new Exception("&&& entityReserved denied calling stack trace").printStackTrace();
+            
+
             return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Resource '" + entityName + "' is reserved."));
         }
         return ValidationResult.success(securityConfiguration);
@@ -122,6 +129,7 @@ public interface EndpointValidator {
         final var configuration = securityConfiguration.configuration();
         final var entityName = securityConfiguration.entityName();
         if (configuration.isHidden(entityName)) {
+            System.out.println("@152 - Endpoint validator 404");
             return ValidationResult.error(RestStatus.NOT_FOUND, notFoundMessage("Resource '" + entityName + "' is not available."));
         }
         return ValidationResult.success(securityConfiguration);
@@ -149,6 +157,7 @@ public interface EndpointValidator {
             final var configuration = securityConfiguration.configuration();
             final var existingEntity = configuration.getCEntry(securityConfiguration.entityName());
             if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(existingEntity)) {
+                System.out.println("@152 - Endpoint validator 403");
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         } else {
@@ -158,6 +167,7 @@ public interface EndpointValidator {
                 configuration.getImplementingClass()
             );
             if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(configEntityContent)) {
+                System.out.println("@162 - Endpoint validator 403");
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         }
