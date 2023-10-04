@@ -136,19 +136,21 @@ public class SecurityRestFilter {
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
-            Channel nettyChannel = ((Netty4HttpChannel) request.getHttpChannel()).getNettyChannel();
-            final RestResponse earlyResponse = nettyChannel.attr(EARLY_RESPONSE).get();
-            final ThreadContext.StoredContext storedContext = nettyChannel.attr(CONTEXT_TO_RESTORE).get();
-            nettyChannel.attr(CONTEXT_TO_RESTORE).set(null);
-            nettyChannel.attr(EARLY_RESPONSE).set(null);
+            if (request.getHttpChannel() instanceof Netty4HttpChannel) {
+                Channel nettyChannel = ((Netty4HttpChannel) request.getHttpChannel()).getNettyChannel();
+                final RestResponse earlyResponse = nettyChannel.attr(EARLY_RESPONSE).get();
+                final ThreadContext.StoredContext storedContext = nettyChannel.attr(CONTEXT_TO_RESTORE).get();
+                nettyChannel.attr(CONTEXT_TO_RESTORE).set(null);
+                nettyChannel.attr(EARLY_RESPONSE).set(null);
 
-            if (earlyResponse != null) {
-                channel.sendResponse(earlyResponse);
-                return;
-            }
+                if (earlyResponse != null) {
+                    channel.sendResponse(earlyResponse);
+                    return;
+                }
 
-            if (storedContext != null) {
-                storedContext.restore();
+                if (storedContext != null) {
+                    storedContext.restore();
+                }
             }
 
             org.apache.logging.log4j.ThreadContext.clearAll();
