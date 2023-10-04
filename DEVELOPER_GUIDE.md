@@ -9,6 +9,7 @@ So you want to contribute code to this project? Excellent! We're glad you're her
   - [Running integration tests](#running-integration-tests)
     - [Bulk test runs](#bulk-test-runs)
     - [Checkstyle Violations](#checkstyle-violations)
+  - [Authorization in REST Layer](#authorization-in-rest-layer)
   - [Submitting Changes](#submitting-changes)
   - [Backports](#backports)
 
@@ -260,6 +261,11 @@ Checkstyle enforced several rules within this codebase.  Sometimes exceptions wi
   ...
   // CS-ENFORCE-ALL
 ```
+
+## Authorization in REST Layer
+
+See [REST_AUTHZ_FOR_PLUGINS](REST_AUTHZ_FOR_PLUGINS.md).
+
 
 ## Submitting Changes
 

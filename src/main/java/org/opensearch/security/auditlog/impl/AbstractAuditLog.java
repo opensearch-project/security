@@ -184,6 +184,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRemoteAddress(remoteAddress);
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
+        msg.addPrivilege(privilege);
         save(msg);
     }
 
