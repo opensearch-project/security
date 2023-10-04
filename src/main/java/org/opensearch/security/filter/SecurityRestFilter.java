@@ -155,7 +155,7 @@ public class SecurityRestFilter {
                     // Caller was authorized, forward the request to the handler
                     original.handleRequest(request, channel, client);
                 }
-            }
+        }
         };
     }
 
@@ -203,6 +203,7 @@ public class SecurityRestFilter {
                     err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
+                System.out.println("@206 - authorizeRequest 401");
                 request.completeWithResponse(HttpStatus.SC_UNAUTHORIZED, null, err);
                 return;
             }
@@ -216,6 +217,7 @@ public class SecurityRestFilter {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
+            System.out.println("@220 - checkAndAuthenticateRequest 403");
             requestChannel.completeWithResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString());
             return;
         }
@@ -224,6 +226,7 @@ public class SecurityRestFilter {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
+            System.out.println("@229 - checkAndAuthenticateRequest 403");
             requestChannel.completeWithResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString());
             return;
         }
@@ -244,6 +247,7 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
+            System.out.println("@250 - authorizeRequest 403");
             requestChannel.completeWithResponse(HttpStatus.SC_FORBIDDEN, null, null);
             return;
         }

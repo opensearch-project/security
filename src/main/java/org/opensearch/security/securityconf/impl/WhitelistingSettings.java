@@ -111,6 +111,7 @@ public class WhitelistingSettings extends AllowlistingSettings {
     public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
         // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
         if (this.enabled && !requestIsWhitelisted(request)) {
+            System.out.println("@114 - checkRequestIsAllowed 403");
             channel.sendResponse(
                 new BytesRestResponse(
                     RestStatus.FORBIDDEN,

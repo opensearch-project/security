@@ -29,6 +29,7 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
 
     @Override
     public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
+        System.out.println("@32 - completeWithResponse" + statusCode);
         // TODO: Remove
         new Exception("&&& completeWithResponse calling stack trace").printStackTrace();
 
