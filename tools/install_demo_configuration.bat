@@ -367,7 +367,7 @@ echo   backend_roles: >> !INTERNAL_USERS_FILE!
 echo   - "admin" >> !INTERNAL_USERS_FILE!
 echo   description: "Demo admin user" >> !INTERNAL_USERS_FILE!
 
-echo Content appended to !INTERNAL_USERS_FILE!
+echo Admin user has been appended to !INTERNAL_USERS_FILE!
 endlocal
 
 :: network.host
