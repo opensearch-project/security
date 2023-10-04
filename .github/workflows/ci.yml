@@ -83,7 +83,6 @@ jobs:
         Add-Content -Path $filePath -Value "  description: `"Demo admin user`""
       shell: pwsh
 
-
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
       with:
