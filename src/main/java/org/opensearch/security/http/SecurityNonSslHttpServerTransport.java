@@ -38,6 +38,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
@@ -93,5 +94,10 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
     @Override
     protected ChannelInboundHandlerAdapter createHeaderVerifier() {
         return new Netty4HttpRequestHeaderVerifier(restFilter, xContentRegistry, threadPool, handlingSettings, settings);
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createDecompressor() {
+        return new Netty4ConditionalDecompressor();
     }
 }

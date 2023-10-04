@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import io.netty.channel.Channel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
@@ -42,6 +43,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
@@ -49,6 +51,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -71,6 +74,8 @@ import org.opensearch.threadpool.ThreadPool;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
+import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 
 public class SecurityRestFilter {
 
@@ -131,6 +136,21 @@ public class SecurityRestFilter {
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
+            Channel nettyChannel = ((Netty4HttpChannel) request.getHttpChannel()).getNettyChannel();
+            final RestResponse earlyResponse = nettyChannel.attr(EARLY_RESPONSE).get();
+            final ThreadContext.StoredContext storedContext = nettyChannel.attr(CONTEXT_TO_RESTORE).get();
+            nettyChannel.attr(CONTEXT_TO_RESTORE).set(null);
+            nettyChannel.attr(EARLY_RESPONSE).set(null);
+
+            if (earlyResponse != null) {
+                channel.sendResponse(earlyResponse);
+                return;
+            }
+
+            if (storedContext != null) {
+                storedContext.restore();
+            }
+
             org.apache.logging.log4j.ThreadContext.clearAll();
             if (request.uri().endsWith(API_AUTHTOKEN_SUFFIX)) {
                 boolean isAuthenticated = !checkAndAuthenticateRequest(request, channel, threadContext);

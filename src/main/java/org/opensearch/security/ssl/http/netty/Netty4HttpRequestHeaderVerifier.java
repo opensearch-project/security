@@ -36,12 +36,12 @@ import org.opensearch.rest.RestResponse;
 import java.util.regex.Matcher;
 
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
-import static org.opensearch.http.netty4.Netty4HttpServerTransport.CONTEXT_TO_RESTORE;
-import static org.opensearch.http.netty4.Netty4HttpServerTransport.EARLY_RESPONSE;
-import static org.opensearch.http.netty4.Netty4HttpServerTransport.SHOULD_DECOMPRESS;
 import static org.opensearch.security.filter.SecurityRestFilter.HEALTH_SUFFIX;
 import static org.opensearch.security.filter.SecurityRestFilter.PATTERN_PATH_PREFIX;
 import static org.opensearch.security.filter.SecurityRestFilter.WHO_AM_I_SUFFIX;
+import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
+import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
+import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
 
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
     private final SecurityRestFilter restFilter;
