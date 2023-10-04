@@ -16,6 +16,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -35,6 +36,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
@@ -172,12 +174,12 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final SecurityRequestChannel channel, AuthCredentials creds) {
-        return channel.completeWithResponse(
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest channel, AuthCredentials creds) {
+        return Optional.of(new SecurityResponse(
             HttpStatus.SC_UNAUTHORIZED,
             Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""),
             ""
-        );
+        ));
     }
 
     @Override

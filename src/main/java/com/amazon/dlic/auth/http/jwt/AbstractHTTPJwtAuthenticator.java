@@ -16,6 +16,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -41,6 +42,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator {
@@ -238,12 +240,12 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     protected abstract KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception;
 
     @Override
-    public boolean reRequestAuthentication(final SecurityRequestChannel request, AuthCredentials authCredentials) {
-        return request.completeWithResponse(
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials authCredentials) {
+        return Optional.of(new SecurityResponse(
             HttpStatus.SC_UNAUTHORIZED,
             Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""),
             ""
-        );
+        ));
     }
 
     public String getRequiredAudience() {

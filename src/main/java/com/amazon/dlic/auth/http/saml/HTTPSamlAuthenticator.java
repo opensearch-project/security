@@ -19,6 +19,7 @@ import java.security.PrivateKey;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,6 +65,7 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequetChannelUnsupported;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.OpenSearchRequestChannel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
@@ -176,7 +178,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public boolean reRequestAuthentication(final SecurityRequestChannel request, final AuthCredentials authCredentials) {
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, final AuthCredentials authCredentials) {
         try {
             Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
             final String suffix = matcher.matches() ? matcher.group(2) : null;
@@ -192,20 +194,20 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                     if (this.authTokenProcessorHandler.handle(restRequest, channel)) {
                         // The ACS response was accepted
                         securityRequestChannel.markCompleted();
-                        return true;
+                        return Optional.empty();
                     }
                 }
             }
 
             final Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
-            return request.completeWithResponse(
+            return Optional.of(new SecurityResponse(
                 HttpStatus.SC_UNAUTHORIZED,
                 Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)),
                 ""
-            );
+            ));
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
-            return false;
+            return Optional.empty();
         }
     }
 

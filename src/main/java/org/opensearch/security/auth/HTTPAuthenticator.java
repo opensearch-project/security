@@ -26,11 +26,14 @@
 
 package org.opensearch.security.auth;
 
+import java.util.Optional;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 /**
@@ -76,10 +79,9 @@ public interface HTTPAuthenticator {
      * If the custom HTTP authenticator does support re-request authentication or supports authentication flows with multiple roundtrips
      * then the response will be returned which can then be sent via response channel.
      *
-     * @param channel The channel to sent back the response
+     * @param request The request to reauthenticate or not
      * @param credentials The credentials from the prior authentication attempt
-     * @return null if re-request is not supported/necessary, response object otherwise.
-     * If an object is returned {@code channel.sendResponse()} must be called so that the request completes.
+     * @return Optional response if is not supported/necessary, response object otherwise.
      */
-    boolean reRequestAuthentication(final SecurityRequestChannel channel, AuthCredentials credentials);
+    Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials credentials);
 }
