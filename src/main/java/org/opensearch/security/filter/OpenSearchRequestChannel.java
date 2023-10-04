@@ -38,7 +38,7 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
     }
 
     @Override
-    public boolean completeWithResponse(final SecurityResponse response) {
+    public boolean completeWith(final SecurityResponse response) {
 
         if (underlyingChannel == null) {
             throw new UnsupportedOperationException("Channel was not defined");

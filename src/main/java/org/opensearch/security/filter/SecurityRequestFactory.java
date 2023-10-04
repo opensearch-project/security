@@ -19,7 +19,7 @@ import org.opensearch.rest.RestRequest;
  */
 public class SecurityRequestFactory {
 
-    /** Creates a security requset from a RestRequest */
+    /** Creates a security request from a RestRequest */
     public static SecurityRequest from(final RestRequest request) {
         return new OpenSearchRequest(request);
     }

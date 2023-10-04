@@ -568,7 +568,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
         return channel -> threadPool.generic().submit(() -> {
             try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
-                System.out.println("Inside validation handler path");
                 threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                 threadPool.getThreadContext()
                     .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());

@@ -137,7 +137,7 @@ public class SecurityRestFilter {
                 return;
             }
 
-            // Authorize Requset
+            // Authorize Request
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (userIsSuperAdmin(user, adminDNs)) {
                 // Super admins are always authorized
@@ -207,7 +207,7 @@ public class SecurityRestFilter {
                 }
                 log.debug(err);
 
-                request.completeWithResponse(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
+                request.completeWith(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
                 return;
             }
         }
@@ -221,7 +221,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.completeWithResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -230,7 +230,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.completeWithResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -251,7 +251,7 @@ public class SecurityRestFilter {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
 
-            requestChannel.completeWithResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
+            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
             return;
         }
 

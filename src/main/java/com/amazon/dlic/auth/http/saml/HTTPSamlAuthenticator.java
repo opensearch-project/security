@@ -64,7 +64,6 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
-import org.opensearch.security.filter.SecurityRequetChannelUnsupported;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.OpenSearchRequestChannel;
 import org.opensearch.security.support.ConfigConstants;

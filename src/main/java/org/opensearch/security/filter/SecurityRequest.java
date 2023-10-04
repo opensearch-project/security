@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
- package org.opensearch.security.filter;
+package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
 import java.util.List;

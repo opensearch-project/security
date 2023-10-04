@@ -12,7 +12,7 @@
 package org.opensearch.security.filter;
 
 /**
- * When a request is recieved by the security plugin this governs getting information about the request as well as a way to complet
+ * When a request is recieved by the security plugin this governs getting information about the request and complete with with a response
  */
 public interface SecurityRequestChannel extends SecurityRequest {
 
@@ -22,5 +22,5 @@ public interface SecurityRequestChannel extends SecurityRequest {
     public boolean hasCompleted();
 
     /** Use this channel to send a response */
-    public boolean completeWithResponse(final SecurityResponse response);
+    public boolean completeWith(final SecurityResponse response);
 }

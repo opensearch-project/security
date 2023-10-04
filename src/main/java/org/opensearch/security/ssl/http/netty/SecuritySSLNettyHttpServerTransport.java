@@ -94,12 +94,6 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         super.onException(channel, cause0);
     }
 
-    // TODO: Disable since changes in core aren't avaliable yet
-    // @Override
-    // protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-    // return new AuthenicationVerifier();
-    // }
-
     protected class SSLHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
         /**
          * Application negotiation handler to select either HTTP 1.1 or HTTP 2 protocol, based

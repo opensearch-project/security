@@ -48,6 +48,8 @@ public class OpenSearchRequest implements SecurityRequest {
             return null;
         }
 
+        // We look for Ssl_handler called `ssl_http` in the outbound pipeline of Netty channel first, and if its not
+        // present we look for it in inbound channel. If its present in neither we return null, else we return the sslHandler.
         final Netty4HttpChannel httpChannel = (Netty4HttpChannel) underlyingRequest.getHttpChannel();
         SslHandler sslhandler = (SslHandler) httpChannel.getNettyChannel().pipeline().get("ssl_http");
         if (sslhandler == null && httpChannel.inboundPipeline() != null) {
