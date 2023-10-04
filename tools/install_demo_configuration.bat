@@ -359,17 +359,16 @@ if errorlevel 1 (
   exit /b 1
 )
 
-set "default_line=  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG""
-set "search=%default_line%"
-set "replace=  hash: "%HASHED_ADMIN_PASSWORD%""
+:: Append the admin credential to the end of the internal_users.yml file
+echo admin: >> !INTERNAL_USERS_FILE!
+echo   hash: "!HASHED_ADMIN_PASSWORD!" >> !INTERNAL_USERS_FILE!
+echo   reserved: true >> !INTERNAL_USERS_FILE!
+echo   backend_roles: >> !INTERNAL_USERS_FILE!
+echo   - "admin" >> !INTERNAL_USERS_FILE!
+echo   description: "Demo admin user" >> !INTERNAL_USERS_FILE!
 
-setlocal enableextensions
-for /f "delims=" %%i in ('type "%INTERNAL_USERS_FILE%" ^& break ^> "%INTERNAL_USERS_FILE%" ') do (
-    set "line=%%i"
-    setlocal enabledelayedexpansion
-    >>"%INTERNAL_USERS_FILE%" echo(!line:%search%=%replace%!
-    endlocal
-)
+echo Content appended to !INTERNAL_USERS_FILE!
+endlocal
 
 :: network.host
 >nul findstr /b /c:"network.host" "%OPENSEARCH_CONF_FILE%" && (
