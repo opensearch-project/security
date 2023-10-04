@@ -35,6 +35,7 @@ import org.opensearch.rest.RestResponse;
 
 import java.util.regex.Matcher;
 
+import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.http.netty4.Netty4HttpServerTransport.SHOULD_DECOMPRESS;
@@ -94,6 +95,14 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             restRequest,
             handlingSettings.getDetailedErrorsEnabled()
         );
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+        final String suffix = matcher.matches() ? matcher.group(2) : null;
+        if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+            ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
+            ctx.fireChannelRead(msg);
+            return;
+        }
+
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             injectUser(restRequest, threadContext);
@@ -104,8 +113,6 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
-            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
-            final String suffix = matcher.matches() ? matcher.group(2) : null;
             if (!isAuthenticated
                 || HttpMethod.OPTIONS.equals(msg.method())
                 || HEALTH_SUFFIX.equals(suffix)

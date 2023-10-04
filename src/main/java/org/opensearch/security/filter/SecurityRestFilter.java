@@ -68,6 +68,7 @@ import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
@@ -131,6 +132,12 @@ public class SecurityRestFilter {
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
+            if (request.uri().endsWith(API_AUTHTOKEN_SUFFIX)) {
+                boolean isAuthenticated = !checkAndAuthenticateRequest(request, channel, threadContext);
+                if (!isAuthenticated) {
+                    return;
+                }
+            }
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
             if (isSuperAdminUser
@@ -199,7 +206,6 @@ public class SecurityRestFilter {
 
     public boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, ThreadContext restoringThreadContext)
         throws Exception {
-
         restoringThreadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
 
         if (HTTPHelper.containsBadHeader(request)) {
