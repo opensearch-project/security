@@ -68,6 +68,7 @@ jobs:
     - name: Add Admin Credential on Windows
       if: ${{ runner.os == 'Windows' }}
       run: |
+        Get-Location
         Add-Content -Path D:\a\work\security\security\config\internal_users.yml -Value "admin:"
         Add-Content -Path D:\a\work\security\security\config\internal_users.yml -Value "  hash: `"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG`""
         Add-Content -Path D:\a\work\security\security\config\internal_users.yml -Value "  reserved: true"
