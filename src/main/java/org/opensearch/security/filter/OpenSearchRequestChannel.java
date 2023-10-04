@@ -29,6 +29,9 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
 
     @Override
     public boolean completeWithResponse(int statusCode, Map<String, String> headers, String body) {
+        // TODO: Remove
+        new Exception("&&& completeWithResponse calling stack trace").printStackTrace();
+
         if (underlyingChannel == null) {
             throw new UnsupportedOperationException("Channel was not defined");
         }
