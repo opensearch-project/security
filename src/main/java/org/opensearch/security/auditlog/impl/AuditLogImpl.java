@@ -132,6 +132,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 
     @Override
     public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, SecurityRequest request) {
+        new Exception("&&& logFailedLogin").printStackTrace();
         if (enabled) {
             super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request);
         }
@@ -139,6 +140,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 
     @Override
     public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, SecurityRequest request) {
+        new Exception("&&& logSucceededLogin").printStackTrace();
         if (enabled) {
             super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request);
         }
