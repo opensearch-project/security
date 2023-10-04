@@ -63,6 +63,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityRequetChannelUnsupported;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.OpenSearchRequestChannel;
@@ -185,7 +186,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
                 // Verficiation of SAML ASC endpoint only works with RestRequests
                 if (!(request instanceof OpenSearchRequestChannel)) {
-                    throw new SecurityRequetChannelUnsupported();
+                    throw new SecurityRequestChannelUnsupported();
                 } else {
                     final OpenSearchRequestChannel securityRequestChannel = (OpenSearchRequestChannel) request;
                     final RestRequest restRequest = securityRequestChannel.breakEncapsulationForRequest();
