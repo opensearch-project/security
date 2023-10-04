@@ -13,10 +13,11 @@ package org.opensearch.security.securityconf.impl.v7;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 import org.opensearch.security.DefaultObjectMapper;
 
@@ -30,47 +31,33 @@ public class ConfigV7Test {
     }
 
     public void assertEquals(ConfigV7.Kibana expected, JsonNode node) {
-        Assert.assertEquals(expected.multitenancy_enabled, node.get("multitenancy_enabled").asBoolean());
-        if (expected.server_username == null) {
-            Assert.assertNull(node.get("server_username"));
-        } else {
-            Assert.assertEquals(expected.server_username, node.get("server_username").asText());
-        }
-        if (expected.index == null) {
-            // null is not persisted
-            Assert.assertNull(node.get("index"));
-        } else {
-            Assert.assertEquals(expected.index, node.get("index").asText());
-        }
-        if (expected.opendistro_role == null) {
-            Assert.assertNull(node.get("opendistro_role"));
-        } else {
-            Assert.assertEquals(expected.opendistro_role, node.get("opendistro_role").asText());
-        }
+        // Replaced if else statements with inline operator for optimization
+        assertThat(node.get("multitenancy_enabled").asBoolean(), is(expected.multitenancy_enabled));
+        assertThat(node.get("server_username").asText(), is(expected.server_username == null ? nullValue() : expected.server_username));
+        // null is not persisted if expected.index is null
+        assertThat(node.get("index").asText(), is(expected.index == null ? nullValue() : expected.index));
+        assertThat(node.get("opendistro_role").asText(), is(expected.opendistro_role == null ? nullValue() : expected.opendistro_role));
     }
 
     private void assertEquals(ConfigV7.Kibana expected, ConfigV7.Kibana actual) {
-        Assert.assertEquals(expected.multitenancy_enabled, actual.multitenancy_enabled);
-        if (expected.server_username == null) {
-            // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.Kibana().server_username, actual.server_username);
-        } else {
-            Assert.assertEquals(expected.server_username, actual.server_username);
-        }
+        // Replaced if else statements with inline operator for optimization
+        assertThat(actual.multitenancy_enabled, is(expected.multitenancy_enabled));
+        // if expected.server_username is null, then null is restored to default instead of null
+        assertThat(
+            actual.server_username,
+            is(expected.server_username == null ? equalTo(new ConfigV7.Kibana().server_username) : expected.server_username)
+        );
         // null is restored to default (which is null).
-        Assert.assertEquals(expected.opendistro_role, actual.opendistro_role);
-        if (expected.index == null) {
-            // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.Kibana().index, actual.index);
-        } else {
-            Assert.assertEquals(expected.index, actual.index);
-        }
+        assertThat(actual.opendistro_role, is(equalTo(expected.opendistro_role)));
+        // if expected.index is null, null is restored to default instead of null
+        assertThat(actual.index, is(expected.index == null ? equalTo(new ConfigV7.Kibana().index) : expected.index));
     }
 
     public ConfigV7Test(boolean omitDefaults) {
         this.omitDefaults = omitDefaults;
     }
 
+    // assertEquals() is still used but the internal assertions now use assertThat() for handling null checks
     @Test
     public void testDashboards() throws Exception {
         ConfigV7.Kibana kibana;
