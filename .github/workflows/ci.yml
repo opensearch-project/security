@@ -43,6 +43,12 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
+    # Configure longpath names if on Windows
+    - name: Enable Longpaths if on Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: git config --system core.longpaths true
+      shell: pwsh
+
     - name: Set up JDK for build and test
       uses: actions/setup-java@v3
       with:
