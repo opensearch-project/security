@@ -81,6 +81,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
             SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
 
             if (sslInfo == null) {
+                System.out.println("@84 - update config action 403");
                 channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
                 return;
             }
@@ -89,6 +90,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
 
             // only allowed for admins
             if (user == null || !adminDns.isAdmin(user)) {
+                System.out.println("@93 - update config action 403");
                 channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
                 return;
             } else {

@@ -35,6 +35,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
@@ -138,6 +139,7 @@ public class NodesDnApiAction extends AbstractApiAction {
             public ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(SecurityConfiguration securityConfiguration)
                 throws IOException {
                 if (STATIC_OPENSEARCH_YML_NODES_DN.equals(securityConfiguration.entityName())) {
+                    System.out.println("@142 - nodes dn API action, 403");
                     return ValidationResult.error(
                         RestStatus.FORBIDDEN,
                         forbiddenMessage("Resource '" + STATIC_OPENSEARCH_YML_NODES_DN + "' is read-only.")
