@@ -19,6 +19,8 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,6 +38,10 @@ import com.onelogin.saml2.exception.SettingsException;
 import com.onelogin.saml2.exception.ValidationError;
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Util;
+
+import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaderNames;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
@@ -46,6 +52,7 @@ import org.apache.cxf.rs.security.jose.jwt.JoseJwtProducer;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -63,6 +70,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
+import org.opensearch.security.filter.SecurityResponse;
 
 class AuthTokenProcessorHandler {
     private static final Logger log = LogManager.getLogger(AuthTokenProcessorHandler.class);
@@ -122,7 +130,7 @@ class AuthTokenProcessorHandler {
     }
 
     @SuppressWarnings("removal")
-    boolean handle(RestRequest restRequest, RestChannel restChannel) throws Exception {
+    Optional<SecurityResponse> handle(RestRequest restRequest) throws Exception {
         try {
             final SecurityManager sm = System.getSecurityManager();
 
@@ -130,11 +138,10 @@ class AuthTokenProcessorHandler {
                 sm.checkPermission(new SpecialPermission());
             }
 
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<Boolean>() {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<Optional<SecurityResponse>>() {
                 @Override
-                public Boolean run() throws XPathExpressionException, SamlConfigException, IOException, ParserConfigurationException,
-                    SAXException, SettingsException {
-                    return handleLowLevel(restRequest, restChannel);
+                public Optional<SecurityResponse> run() throws SamlConfigException, IOException {
+                    return handleLowLevel(restRequest);
                 }
             });
         } catch (PrivilegedActionException e) {
@@ -147,13 +154,11 @@ class AuthTokenProcessorHandler {
     }
 
     private AuthTokenProcessorAction.Response handleImpl(
-        RestRequest restRequest,
-        RestChannel restChannel,
         String samlResponseBase64,
         String samlRequestId,
         String acsEndpoint,
         Saml2Settings saml2Settings
-    ) throws XPathExpressionException, ParserConfigurationException, SAXException, IOException, SettingsException {
+    ) {
         if (token_log.isDebugEnabled()) {
             try {
                 token_log.debug(
@@ -188,8 +193,7 @@ class AuthTokenProcessorHandler {
         }
     }
 
-    private boolean handleLowLevel(RestRequest restRequest, RestChannel restChannel) throws SamlConfigException, IOException,
-        XPathExpressionException, ParserConfigurationException, SAXException, SettingsException {
+    private Optional<SecurityResponse> handleLowLevel(RestRequest restRequest) throws SamlConfigException, IOException {
         try {
 
             if (restRequest.getMediaType() != XContentType.JSON) {
@@ -234,31 +238,18 @@ class AuthTokenProcessorHandler {
                 acsEndpoint = getAbsoluteAcsEndpoint(((ObjectNode) jsonRoot).get("acsEndpoint").textValue());
             }
 
-            AuthTokenProcessorAction.Response responseBody = this.handleImpl(
-                restRequest,
-                restChannel,
-                samlResponseBase64,
-                samlRequestId,
-                acsEndpoint,
-                saml2Settings
-            );
+            AuthTokenProcessorAction.Response responseBody = this.handleImpl(samlResponseBase64, samlRequestId, acsEndpoint, saml2Settings);
 
             if (responseBody == null) {
-                return false;
+                return Optional.empty();
             }
 
             String responseBodyString = DefaultObjectMapper.objectMapper.writeValueAsString(responseBody);
 
-            BytesRestResponse authenticateResponse = new BytesRestResponse(RestStatus.OK, "application/json", responseBodyString);
-            restChannel.sendResponse(authenticateResponse);
-
-            return true;
+            return Optional.of(new SecurityResponse(HttpStatus.SC_OK, Map.of(HttpHeaderNames.CONTENT_TYPE.toString(), "application/json"), responseBodyString));
         } catch (JsonProcessingException e) {
             log.warn("Error while parsing JSON for /_opendistro/_security/api/authtoken", e);
-
-            BytesRestResponse authenticateResponse = new BytesRestResponse(RestStatus.BAD_REQUEST, "JSON could not be parsed");
-            restChannel.sendResponse(authenticateResponse);
-            return true;
+            return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, null, "JSON could not be parsed"));
         }
     }
 
