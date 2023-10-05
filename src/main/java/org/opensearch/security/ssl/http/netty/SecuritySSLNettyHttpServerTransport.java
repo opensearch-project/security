@@ -49,6 +49,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
     private final SecurityRestFilter restFilter;
+    private final NamedXContentRegistry namedXContentRegistry;
 
     public SecuritySSLNettyHttpServerTransport(
         final Settings settings,
@@ -78,6 +79,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         this.sks = sks;
         this.errorHandler = errorHandler;
         this.restFilter = restFilter;
+        this.namedXContentRegistry = namedXContentRegistry;
     }
 
     @Override
@@ -157,7 +159,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
 
     @Override
     protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-        return new Netty4HttpRequestHeaderVerifier(restFilter, xContentRegistry, threadPool, handlingSettings, settings);
+        return new Netty4HttpRequestHeaderVerifier(restFilter, namedXContentRegistry, threadPool, handlingSettings, settings);
     }
 
     @Override
