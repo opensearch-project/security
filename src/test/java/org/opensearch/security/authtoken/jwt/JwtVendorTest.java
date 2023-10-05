@@ -15,8 +15,15 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -24,7 +31,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 public class JwtVendorTest {
+    private Appender mockAppender;
+    private ArgumentCaptor<LogEvent> logEventCaptor;
 
     @Test
     public void testCreateJwkFromSettings() throws Exception {
@@ -209,5 +221,45 @@ public class JwtVendorTest {
             }
         });
         Assert.assertEquals("java.lang.Exception: Roles cannot be null", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateJwtLogsCorrectly() throws Exception {
+        mockAppender = Mockito.mock(Appender.class);
+        logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        Mockito.when(mockAppender.getName()).thenReturn("MockAppender");
+        Mockito.when(mockAppender.isStarted()).thenReturn(true);
+        Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.DEBUG);
+
+        // Mock settings and other required dependencies
+        LongSupplier currentTime = () -> (long) 100;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "audience_0";
+        List<String> roles = List.of("IT", "HR");
+        List<String> backendRoles = List.of("Sales", "Support");
+        int expirySeconds = 300;
+
+        // Create instance of JwtVendor
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+
+        // Call the method under test
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+
+        // Verify the log was captured
+        verify(mockAppender, times(1)).append(logEventCaptor.capture());
+
+        // Check the log message
+        LogEvent logEvent = logEventCaptor.getValue();
+        String logMessage = logEvent.getMessage().getFormattedMessage();
+        Assert.assertTrue(logMessage.startsWith("Created JWT:"));
+
+        String[] parts = logMessage.split("\\.");
+        Assert.assertTrue(parts.length >= 3); // JWTs typically have 3 parts: Header.Payload.Signature
     }
 }
