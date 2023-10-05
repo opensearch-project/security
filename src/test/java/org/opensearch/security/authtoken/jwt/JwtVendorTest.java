@@ -116,6 +116,7 @@ public class JwtVendorTest {
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("exp"), is(notNullValue()));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), is(notNullValue()));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br").toString(), equalTo(expectedBackendRoles));
+
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
         assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
     }
@@ -138,7 +139,7 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.Exception: The expiration time should be a positive integer", exception.getMessage());
+        Assert.assertEquals("java.lang.IllegalArgumentException: The expiration time should be a positive integer", exception.getMessage());
     }
 
     @Test
@@ -179,6 +180,6 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.Exception: Roles cannot be null", exception.getMessage());
+        Assert.assertEquals("java.lang.IllegalArgumentException: Roles cannot be null", exception.getMessage());
     }
 }
