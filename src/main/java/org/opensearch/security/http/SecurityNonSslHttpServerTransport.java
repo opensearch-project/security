@@ -71,12 +71,6 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         return new NonSslHttpChannelHandler(this, handlingSettings);
     }
 
-    // TODO: Disabled for confirming refactor around SecurityRequest is working as expected
-    // @Override
-    // protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-    // return new AuthenicationVerifier();
-    // }
-
     protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
 
         protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings) {
@@ -88,5 +82,4 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
             super.initChannel(ch);
         }
     }
-
 }

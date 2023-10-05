@@ -11,6 +11,8 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
+
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -24,7 +26,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.security.WeakKeyException;
-import org.apache.hc.core5.http.HttpHeaders;
+
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,8 +62,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
         String signingKey = settings.get("signing_key");
         jwtUrlParameter = settings.get("jwt_url_parameter");
-        jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
-        isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
+        jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
+        isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         requireAudience = settings.get("required_audience");

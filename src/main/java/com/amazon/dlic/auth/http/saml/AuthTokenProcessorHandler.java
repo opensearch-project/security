@@ -11,6 +11,8 @@
 
 package com.amazon.dlic.auth.http.saml;
 
+import static org.apache.http.HttpHeaders.CONTENT_TYPE;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,7 +27,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -34,13 +35,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import com.onelogin.saml2.authn.SamlResponse;
-import com.onelogin.saml2.exception.SettingsException;
 import com.onelogin.saml2.exception.ValidationError;
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Util;
-
-import io.netty.handler.codec.http.HttpContent;
-import io.netty.handler.codec.http.HttpHeaderNames;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
@@ -56,15 +53,11 @@ import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
-import org.xml.sax.SAXException;
-
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
@@ -246,7 +239,7 @@ class AuthTokenProcessorHandler {
 
             String responseBodyString = DefaultObjectMapper.objectMapper.writeValueAsString(responseBody);
 
-            return Optional.of(new SecurityResponse(HttpStatus.SC_OK, Map.of(HttpHeaderNames.CONTENT_TYPE.toString(), "application/json"), responseBodyString));
+            return Optional.of(new SecurityResponse(HttpStatus.SC_OK, Map.of(CONTENT_TYPE, "application/json"), responseBodyString));
         } catch (JsonProcessingException e) {
             log.warn("Error while parsing JSON for /_opendistro/_security/api/authtoken", e);
             return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, null, "JSON could not be parsed"));

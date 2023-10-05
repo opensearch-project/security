@@ -29,7 +29,6 @@ import org.opensearch.rest.action.RestActions.NodesResponseRestListener;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -75,30 +74,28 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
 
-        return channel -> {
+        SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(
+            settings,
+            configPath,
+            SecurityRequestFactory.from(request),
+            principalExtractor
+        );
 
-            final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
-            SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
+        if (sslInfo == null) {
+            return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
+        }
 
-            if (sslInfo == null) {
+        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-                channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
-                return;
-            }
-
-            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-
-            // only allowed for admins
-            if (user == null || !adminDns.isAdmin(user)) {
-
-                channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
-                return;
-            } else {
-                ConfigUpdateRequest configUpdateRequest = new ConfigUpdateRequest(configTypes);
+        // only allowed for admins
+        if (user == null || !adminDns.isAdmin(user)) {
+            return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
+        } else {
+            ConfigUpdateRequest configUpdateRequest = new ConfigUpdateRequest(configTypes);
+            return channel -> {
                 client.execute(ConfigUpdateAction.INSTANCE, configUpdateRequest, new NodesResponseRestListener<>(channel));
-                return;
-            }
-        };
+            };
+        }
     }
 
     @Override

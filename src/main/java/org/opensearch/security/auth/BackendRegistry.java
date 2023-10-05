@@ -45,7 +45,6 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
 
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
@@ -58,6 +57,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.http.OnBehalfOfAuthenticator;
@@ -69,6 +69,8 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 
 public class BackendRegistry {
@@ -199,7 +201,7 @@ public class BackendRegistry {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getRemoteAddress().orElse(null));
             }
 
-            request.completeWith(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, "Authentication finally failed"));
+            request.completeWith(new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"));
             return false;
         }
 
@@ -219,7 +221,7 @@ public class BackendRegistry {
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            request.completeWith(new SecurityResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized."));
+            request.completeWith(new SecurityResponse(SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized."));
             return false;
         }
 
@@ -350,7 +352,7 @@ public class BackendRegistry {
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 request.completeWith(
                     new SecurityResponse(
-                        HttpStatus.SC_FORBIDDEN,
+                        SC_FORBIDDEN,
                         null,
                         "Cannot authenticate user because admin user is not permitted to login via HTTP"
                     )
@@ -579,7 +581,7 @@ public class BackendRegistry {
         }
     }
 
-    private User impersonate(final SecurityRequestChannel request, final User originalUser) throws OpenSearchSecurityException {
+    private User impersonate(final SecurityRequest request, final User originalUser) throws OpenSearchSecurityException {
 
         final String impersonatedUserHeader = request.header("opendistro_security_impersonate_as");
 
@@ -592,7 +594,6 @@ public class BackendRegistry {
         }
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {
-
             throw new OpenSearchSecurityException(
                 "It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
                 RestStatus.FORBIDDEN
@@ -600,7 +601,6 @@ public class BackendRegistry {
         }
 
         if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
-
             throw new OpenSearchSecurityException(
                 "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'",
                 RestStatus.FORBIDDEN

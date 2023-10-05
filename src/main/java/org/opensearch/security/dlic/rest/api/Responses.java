@@ -73,7 +73,6 @@ public class Responses {
     public static void response(final RestChannel channel, final RestStatus status, final ToXContent toXContent) {
         try (final var builder = channel.newBuilder()) {
             toXContent.toXContent(builder, ToXContent.EMPTY_PARAMS);
-
             channel.sendResponse(new BytesRestResponse(status, builder));
         } catch (final IOException ioe) {
             throw ExceptionsHelper.convertToOpenSearchException(ioe);

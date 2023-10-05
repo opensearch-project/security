@@ -515,7 +515,6 @@ public class SecurityFilter implements ActionFilter {
             || request instanceof IndicesAliasesRequest;
 
         if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
-
             listener.onFailure(new OpenSearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }

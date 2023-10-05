@@ -149,5 +149,4 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
             ch.pipeline().addLast(new Http2OrHttpHandler());
         }
     }
-
 }

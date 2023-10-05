@@ -114,7 +114,6 @@ public class TenantInfoAction extends BaseRestHandler {
 
                     // only allowed for admins or the kibanaserveruser
                     if (!isAuthorized()) {
-
                         response = new BytesRestResponse(RestStatus.FORBIDDEN, "");
                     } else {
 

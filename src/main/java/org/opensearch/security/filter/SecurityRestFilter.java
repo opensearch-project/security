@@ -250,7 +250,6 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
-
             requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
             return;
         }

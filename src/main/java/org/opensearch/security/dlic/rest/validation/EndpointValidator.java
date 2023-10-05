@@ -55,7 +55,6 @@ public interface EndpointValidator {
 
     default ValidationResult<String> withRequiredEntityName(final String entityName) {
         if (entityName == null) {
-
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + resourceName() + " specified."));
         }
         return ValidationResult.success(entityName);

@@ -11,6 +11,8 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
+
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -23,7 +25,6 @@ import java.util.regex.Pattern;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
-import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,8 +66,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
-        jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
-        isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
+        jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
+        isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);

@@ -39,7 +39,6 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -86,8 +85,12 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-                    final SecurityRequestChannel securityRequest = SecurityRequestFactory.from(request, channel);
-                    SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
+                    SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(
+                        settings,
+                        configPath,
+                        SecurityRequestFactory.from(request),
+                        principalExtractor
+                    );
                     X509Certificate[] certs = sslInfo == null ? null : sslInfo.getX509Certs();
                     X509Certificate[] localCerts = sslInfo == null ? null : sslInfo.getLocalCertificates();
 
