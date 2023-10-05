@@ -11,7 +11,6 @@
 
 package org.opensearch.security.filter;
 
-import io.netty.handler.codec.http.HttpRequest;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 
@@ -28,10 +27,5 @@ public class SecurityRequestFactory {
     /** Creates a security request channel from a RestRequest & RestChannel */
     public static SecurityRequestChannel from(final RestRequest request, final RestChannel channel) {
         return new OpenSearchRequestChannel(request, channel);
-    }
-
-    /** Creates a security request from a netty HttpRequest object */
-    public static SecurityRequestChannel from(final HttpRequest request, final RestChannel channel) {
-        return new NettyRequestChannel(request, channel);
     }
 }

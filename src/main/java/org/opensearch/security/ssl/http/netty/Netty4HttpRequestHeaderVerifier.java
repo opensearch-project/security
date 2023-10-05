@@ -22,7 +22,7 @@ import org.opensearch.http.netty4.Netty4DefaultHttpRequest;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.filter.NettyRequestChannel;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.InterceptingRestChannel;
@@ -96,24 +96,31 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             restRequest,
             handlingSettings.getDetailedErrorsEnabled()
         );
-        final NettyRequestChannel requestChannel = (NettyRequestChannel) SecurityRequestFactory.from(msg, interceptingRestChannel);
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
-        final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
-            ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
-            ctx.fireChannelRead(msg);
-            return;
-        }
-
+        final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(restRequest, interceptingRestChannel);
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
+            if (ctx.channel().attr(SHOULD_DECOMPRESS).get() != null
+                || ctx.channel().attr(EARLY_RESPONSE).get() != null
+                || ctx.channel().attr(CONTEXT_TO_RESTORE).get() != null) {
+                throw new OpenSearchSecurityException("Channel attributes must be reset on Keep-Alive connections");
+            }
+
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+            final String suffix = matcher.matches() ? matcher.group(2) : null;
+            if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+                ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
+                ctx.fireChannelRead(msg);
+                return;
+            }
             injectUser(restRequest, threadContext);
             // If request channel gets completed and a response is sent, then there was a failure during authentication
             restFilter.checkAndAuthenticateRequest(requestChannel);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
 
-            ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
+            if (interceptingRestChannel.getInterceptedResponse() != null) {
+                ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
+            }
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
             if (requestChannel.hasCompleted()
