@@ -100,7 +100,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             injectUser(msg, threadContext);
-            // If request channel gets completed and a response is sent, then there was a failure during authentication
+            // If request channel is completed and a response is sent, then there was a failure during authentication
             restFilter.checkAndAuthenticateRequest(requestChannel);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
