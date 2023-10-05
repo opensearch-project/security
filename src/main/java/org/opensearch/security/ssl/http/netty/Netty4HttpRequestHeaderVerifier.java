@@ -18,8 +18,8 @@ import org.opensearch.http.AbstractHttpServerTransport;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.HttpHandlingSettings;
-import org.opensearch.http.netty4.Netty4DefaultHttpRequest;
 import org.opensearch.http.netty4.Netty4HttpChannel;
+import org.opensearch.http.netty4.Netty4HttpRequest;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRestFilter;
@@ -88,7 +88,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         }
 
         final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
-        final Netty4DefaultHttpRequest httpRequest = new Netty4DefaultHttpRequest(msg);
+        final Netty4HttpRequest httpRequest = new Netty4HttpRequest(msg);
         RestRequest restRequest = AbstractHttpServerTransport.createRestRequest(xContentRegistry, httpRequest, httpChannel);
 
         InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel(
