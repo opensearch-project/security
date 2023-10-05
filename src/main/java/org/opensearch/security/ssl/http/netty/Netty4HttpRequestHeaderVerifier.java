@@ -20,7 +20,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
-import org.opensearch.http.netty4.Netty4HttpRequest;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
