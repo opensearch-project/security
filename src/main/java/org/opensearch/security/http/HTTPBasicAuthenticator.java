@@ -60,13 +60,14 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        final String authorizationHeader = request.header("Authorization");
+        String authorizationHeader = request.header("Authorization");
 
         return HTTPHelper.extractCredentials(authorizationHeader, log);
     }
 
     @Override
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials creds) {
+        System.out.println("HTTPBasicAuthenticator.reRequestAuthentication");
         return Optional.of(
             new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Basic realm=\"OpenSearch Security\""), "")
         );

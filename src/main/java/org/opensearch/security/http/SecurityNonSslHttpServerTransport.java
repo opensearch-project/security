@@ -47,6 +47,7 @@ import org.opensearch.transport.SharedGroupFactory;
 public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
     private SecurityRestFilter restFilter;
+    private final NamedXContentRegistry namedXContentRegistry;
 
     public SecurityNonSslHttpServerTransport(
         final Settings settings,
@@ -72,6 +73,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
             tracer
         );
         this.restFilter = restFilter;
+        this.namedXContentRegistry = namedXContentRegistry;
     }
 
     @Override
@@ -93,7 +95,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
 
     @Override
     protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-        return new Netty4HttpRequestHeaderVerifier(restFilter, xContentRegistry, threadPool, handlingSettings, settings);
+        return new Netty4HttpRequestHeaderVerifier(restFilter, namedXContentRegistry, threadPool, handlingSettings, settings);
     }
 
     @Override

@@ -11,25 +11,30 @@
 
 package org.opensearch.security.filter;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.lang3.tuple.Triple;
+import io.netty.handler.codec.http.HttpRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
 
-public class OpenSearchRequestChannel extends OpenSearchRequest implements SecurityRequestChannel {
-
-    private final Logger log = LogManager.getLogger(OpenSearchRequest.class);
+public class NettyRequestChannel extends NettyRequest implements SecurityRequestChannel {
+    private final Logger log = LogManager.getLogger(NettyRequestChannel.class);
 
     private AtomicBoolean hasCompleted = new AtomicBoolean(false);
     private RestResponse capturedResponse;
 
-    OpenSearchRequestChannel(final RestRequest request) {
-        super(request);
+    private final AtomicReference<Triple<Integer, Map<String, String>, String>> completedResult = new AtomicReference<>();
+
+    NettyRequestChannel(final HttpRequest request, Netty4HttpChannel channel) {
+        super(request, channel);
     }
 
     @Override

@@ -73,7 +73,7 @@ public class SecurityRestFilterUnitTests {
         RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs);
 
         doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
-        doReturn(true).when(filterSpy).authorizeRequest(any(), any(), any(), any());
+        doReturn(true).when(filterSpy).authorizeRequest(any(), any(), any());
 
         FakeRestRequest fakeRequest = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).withPath("/test")
             .withMethod(RestRequest.Method.POST)
@@ -94,7 +94,7 @@ public class SecurityRestFilterUnitTests {
         RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs);
 
         doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
-        doReturn(false).when(filterSpy).authorizeRequest(any(), any(), any(), any());
+        doReturn(false).when(filterSpy).authorizeRequest(any(), any(), any());
 
         FakeRestRequest fakeRequest = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).withPath("/test")
             .withMethod(RestRequest.Method.POST)

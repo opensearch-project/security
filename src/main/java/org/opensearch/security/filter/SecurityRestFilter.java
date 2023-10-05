@@ -157,11 +157,12 @@ public class SecurityRestFilter {
             }
 
             org.apache.logging.log4j.ThreadContext.clearAll();
-            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
+            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request);
             if (request.uri().endsWith(API_AUTHTOKEN_SUFFIX)) {
                 checkAndAuthenticateRequest(requestChannel);
-                if (requestChannel.hasCompleted()) {
+                if (requestChannel.hasResponse()) {
                     // Unable to authenticate the caller
+                    requestChannel.sendResponseToChannel(channel);
                     return;
                 }
             }
@@ -181,8 +182,8 @@ public class SecurityRestFilter {
             }
 
             authorizeRequest(original, requestChannel, user);
-            if (requestChannel.hasCompleted()) {
-                // Caller was not authorized
+            if (requestChannel.hasResponse()) {
+                requestChannel.sendResponseToChannel(channel);
                 return;
             }
 
@@ -198,7 +199,7 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    private void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
+    void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
             .filter(rh -> rh.getMethod().equals(request.method()))
@@ -236,7 +237,7 @@ public class SecurityRestFilter {
                 }
                 log.debug(err);
 
-                request.completeWith(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
+                request.captureResponse(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
                 return;
             }
         }
@@ -250,7 +251,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.captureResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -259,7 +260,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.captureResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -279,7 +280,7 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
-            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
+            requestChannel.captureResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
             return;
         }
 
