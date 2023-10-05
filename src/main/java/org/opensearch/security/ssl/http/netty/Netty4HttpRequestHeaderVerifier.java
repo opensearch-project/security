@@ -96,22 +96,17 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             restRequest,
             handlingSettings.getDetailedErrorsEnabled()
         );
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+        final String suffix = matcher.matches() ? matcher.group(2) : null;
+        if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+            ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
+            ctx.fireChannelRead(msg);
+            return;
+        }
+
         final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(restRequest, interceptingRestChannel);
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
-            if (ctx.channel().attr(SHOULD_DECOMPRESS).get() != null
-                || ctx.channel().attr(EARLY_RESPONSE).get() != null
-                || ctx.channel().attr(CONTEXT_TO_RESTORE).get() != null) {
-                throw new OpenSearchSecurityException("Channel attributes must be reset on Keep-Alive connections");
-            }
-
-            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
-            final String suffix = matcher.matches() ? matcher.group(2) : null;
-            if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
-                ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
-                ctx.fireChannelRead(msg);
-                return;
-            }
             injectUser(restRequest, threadContext);
             // If request channel gets completed and a response is sent, then there was a failure during authentication
             restFilter.checkAndAuthenticateRequest(requestChannel);

@@ -66,6 +66,7 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
+import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
@@ -146,7 +147,12 @@ public class SecurityRestFilter {
                 }
 
                 if (storedContext != null) {
+                    // TODO find a more generic way of restoring headers added in the RestController
+                    // Relates to TaskTests.testXOpaqueIdHeader
+                    // https://github.com/opensearch-project/OpenSearch/blob/main/server/src/main/java/org/opensearch/rest/RestController.java#L360-L378
+                    String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
                     storedContext.restore();
+                    threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
                 }
             }
 
