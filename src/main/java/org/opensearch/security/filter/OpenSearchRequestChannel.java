@@ -72,7 +72,7 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
             throw new UnsupportedOperationException("This channel has already completed");
         }
 
-        if (getQueuedResponse()) {
+        if (getQueuedResponse().isEmpty()) {
             throw new UnsupportedOperationException("No response has been associated with this channel");
         }
 

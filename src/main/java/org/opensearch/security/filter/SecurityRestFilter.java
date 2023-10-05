@@ -132,8 +132,8 @@ public class SecurityRestFilter {
 
             // Authenticate request
             checkAndAuthenticateRequest(requestChannel);
-            if (requestChannel.hasCompleted()) {
-                // Unable to authenticate the caller
+            if (requestChannel.getQueuedResponse().isPresent()) {
+                requestChannel.sendResponse();
                 return;
             }
 
@@ -149,13 +149,14 @@ public class SecurityRestFilter {
                 .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
 
             if (deniedResponse.isPresent()) {
-                requestChannel.completeWith(deniedResponse.orElseThrow());
+                requestChannel.queueForSending(deniedResponse.orElseThrow());
+                requestChannel.sendResponse();
                 return;
             }
 
             authorizeRequest(original, requestChannel, user);
-            if (requestChannel.hasCompleted()) {
-                // Caller was not authorized
+            if (requestChannel.getQueuedResponse().isPresent()) {
+                requestChannel.sendResponse();
                 return;
             }
 
@@ -209,7 +210,7 @@ public class SecurityRestFilter {
                 }
                 log.debug(err);
 
-                request.completeWith(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
+                request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
                 return;
             }
         }
@@ -223,7 +224,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -232,7 +233,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -252,7 +253,7 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
-            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
             return;
         }
 
