@@ -64,7 +64,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 import org.opensearch.transport.TcpChannel;
 import org.opensearch.transport.netty4.Netty4Transport;
-import org.opensearch.telemetry.tracing.Tracer;
 
 public class SecuritySSLNettyTransport extends Netty4Transport {
 
