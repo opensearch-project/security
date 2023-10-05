@@ -824,7 +824,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         PageCacheRecycler pageCacheRecycler,
         CircuitBreakerService circuitBreakerService,
         NamedWriteableRegistry namedWriteableRegistry,
-        NetworkService networkService
+        NetworkService networkService,
+        Tracer tracer
     ) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
 
@@ -835,7 +836,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 pageCacheRecycler,
                 circuitBreakerService,
                 namedWriteableRegistry,
-                networkService
+                networkService,
+                tracer
             );
         }
 
@@ -853,7 +855,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     sks,
                     evaluateSslExceptionHandler(),
                     sharedGroupFactory,
-                    SSLConfig
+                    SSLConfig,
+                    tracer
                 )
             );
         }

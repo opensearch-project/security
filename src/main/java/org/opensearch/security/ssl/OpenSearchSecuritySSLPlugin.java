@@ -315,7 +315,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         PageCacheRecycler pageCacheRecycler,
         CircuitBreakerService circuitBreakerService,
         NamedWriteableRegistry namedWriteableRegistry,
-        NetworkService networkService
+        NetworkService networkService,
+        Tracer tracer
     ) {
 
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
@@ -333,7 +334,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                     sks,
                     NOOP_SSL_EXCEPTION_HANDLER,
                     sharedGroupFactory,
-                    SSLConfig
+                    SSLConfig,
+                    tracer
                 )
             );
 
