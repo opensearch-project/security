@@ -127,3 +127,9 @@ rest_api_admin_tenants:
   hidden: false
   backend_roles: []
   description: "REST API Tenats admin user"
+rest_api_admin_config_update:
+  hash: "$2y$12$capXg1HNP49Vxeb6ijzRnu5BLMUE0ZePq1l3MhF8tjnuxg614uaY6"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  description: "REST API Config update admin user"

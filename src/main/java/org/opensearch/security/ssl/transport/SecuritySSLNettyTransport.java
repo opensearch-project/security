@@ -59,6 +59,7 @@ import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.ssl.util.SSLConnectionTestResult;
 import org.opensearch.security.ssl.util.SSLConnectionTestUtil;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 import org.opensearch.transport.TcpChannel;

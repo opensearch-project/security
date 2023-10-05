@@ -13,29 +13,32 @@ package org.opensearch.security.dlic.rest.api;
 
 import org.junit.Test;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.security.util.FakeRestRequest;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
 public class SecurityConfigApiActionValidationTest extends AbstractApiActionValidationTest {
 
     @Test
-    public void withAllowedEndpoint() {
-        var securityConfigApiAction = new SecurityConfigApiAction(
+    public void accessHandlerForDefaultSettings() {
+        final var securityConfigApiAction = new SecurityConfigApiAction(
             clusterService,
             threadPool,
             new SecurityApiDependencies(null, configurationRepository, null, null, restApiAdminPrivilegesEvaluator, null, Settings.EMPTY)
         );
+        assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
+        assertFalse(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
+        assertFalse(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PATCH).build()));
+    }
 
-        var result = securityConfigApiAction.withAllowedEndpoint(FakeRestRequest.builder().build());
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_IMPLEMENTED, result.status());
-
-        securityConfigApiAction = new SecurityConfigApiAction(
+    @Test
+    public void accessHandlerForUnsupportedSetting() {
+        final var securityConfigApiAction = new SecurityConfigApiAction(
             clusterService,
             threadPool,
             new SecurityApiDependencies(
@@ -45,11 +48,32 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
                 null,
                 restApiAdminPrivilegesEvaluator,
                 null,
-                Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build()
+                Settings.builder().put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build()
             )
         );
-        result = securityConfigApiAction.withAllowedEndpoint(FakeRestRequest.builder().build());
-        assertTrue(result.isValid());
+        assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
+        assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
+        assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PATCH).build()));
     }
 
+    @Test
+    public void accessHandlerForRestAdmin() {
+        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.CONFIG, RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE)).thenReturn(true);
+        final var securityConfigApiAction = new SecurityConfigApiAction(
+                clusterService,
+                threadPool,
+                new SecurityApiDependencies(
+                        null,
+                        configurationRepository,
+                        null,
+                        null,
+                        restApiAdminPrivilegesEvaluator,
+                        null,
+                        Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build()
+                )
+        );
+        assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
+        assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
+        assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PATCH).build()));
+    }
 }
