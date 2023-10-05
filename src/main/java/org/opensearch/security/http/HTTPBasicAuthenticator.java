@@ -68,7 +68,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     @Override
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials creds) {
         return Optional.of(
-            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Basic realm=\"OpenSearch Security\""), "")
         );
     }
 
