@@ -837,7 +837,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 circuitBreakerService,
                 namedWriteableRegistry,
                 networkService,
-                    tracer
+                tracer
             );
         }
 
@@ -856,7 +856,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     evaluateSslExceptionHandler(),
                     sharedGroupFactory,
                     SSLConfig,
-                        tracer
+                    tracer
                 )
             );
         }

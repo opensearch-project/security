@@ -335,7 +335,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                     NOOP_SSL_EXCEPTION_HANDLER,
                     sharedGroupFactory,
                     SSLConfig,
-                        tracer
+                    tracer
                 )
             );
 
