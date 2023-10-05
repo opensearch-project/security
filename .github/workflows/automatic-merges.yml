@@ -26,6 +26,7 @@ jobs:
           pull-request-number: ${{ steps.find-triggering-pr.outputs.pr-number }}
           allowed-authors: |
             dependabot%5Bbot%5D
+            opensearch-trigger-bot[bot]
           allowed-files: |
             build.gradle
             .github/workflows/*.yml
