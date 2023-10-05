@@ -17,6 +17,7 @@ set "assumeyes=0"
 set "initsecurity=0"
 set "cluster_mode=0"
 set "skip_updates=-1"
+set "generate_random_password=0"
 
 goto :GETOPTS
 
@@ -27,6 +28,7 @@ echo   -y confirm all installation dialogues automatically
 echo   -i initialize Security plugin with default configuration (default is to ask if -y is not given)
 echo   -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)
 echo   -s skip updates if config is already applied to opensearch.yml
+echo   -g generates random password for admin
 EXIT /B 0
 
 :GETOPTS
@@ -35,6 +37,7 @@ if /I "%1" == "-y" set "assumeyes=1"
 if /I "%1" == "-i" set "initsecurity=1"
 if /I "%1" == "-c" set "cluster_mode=1"
 if /I "%1" == "-s" set "skip_updates=0"
+if /I "%1" == "-g" set "generate_random_password=1"
 shift
 if not "%1" == "" goto :GETOPTS
 
@@ -325,23 +328,24 @@ setlocal enabledelayedexpansion
 set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%initialAdminPassword.txt"
 set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users.yml"
 
-echo "what is in the config directory"  
+echo "what is in the config directory"
 dir %OPENSEARCH_CONF_DIR%
 
 echo "what is in the password file"
 type "%ADMIN_PASSWORD_FILE%"
 
-
-if "%initialAdminPassword%" NEQ "" (
-  set "ADMIN_PASSWORD=!initialAdminPassword!"
+if not "%initialAdminPassword%"=="" (
+    set "ADMIN_PASSWORD=%initialAdminPassword%"
+) else if exist "%ADMIN_PASSWORD_FILE%" (
+    for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
+) else if "%generate_random_password%"=="1" (
+    set "generate_password_script=%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\generate-password.bat"
+    for /f %%a in ('"!generate_password_script!" 16') do set "ADMIN_PASSWORD=%%a"
 ) else (
-  for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
+    echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
+    exit /b 1
 )
 
-if not defined ADMIN_PASSWORD (
-  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
-  exit /b 1
-)
 
 echo "   ***************************************************"
 echo "   ***   ADMIN PASSWORD SET TO: %ADMIN_PASSWORD%   ***"
@@ -349,12 +353,16 @@ echo "   ***************************************************"
 
 set "HASH_SCRIPT=%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat"
 
+REM The error level is set to 1 here if initialAdminPassword.txt was not provided
+REM so we set it to 0 otherwise it would falsely fail this script on line 367
+set ERRORLEVEL=0
+
 REM Run the command and capture its output
 for /f %%a in ('%HASH_SCRIPT% -p !ADMIN_PASSWORD!') do (
   set "HASHED_ADMIN_PASSWORD=%%a"
 )
 
-if errorlevel 1 (
+if %ERRORLEVEL% == 1 (
   echo Failed to hash the admin password
   exit /b 1
 )
@@ -397,14 +405,14 @@ echo. > securityadmin_demo.bat
 echo %OPENSEARCH_PLUGINS_DIR%opensearch-security\tools\securityadmin.bat -cd %OPENSEARCH_CONF_DIR%opensearch-security -icl -key %OPENSEARCH_CONF_DIR%kirk-key.pem -cert %OPENSEARCH_CONF_DIR%kirk.pem -cacert %OPENSEARCH_CONF_DIR%root-ca.pem -nhnv >> securityadmin_demo.bat
 
 if %initsecurity% == 0 (
-	echo ### After the whole cluster is up execute: 
+	echo ### After the whole cluster is up execute:
 	type securityadmin_demo.bat
 	echo ### or run ./securityadmin_demo.bat
     echo ### After that you can also use the Security Plugin ConfigurationGUI
 ) else (
     echo ### OpenSearch Security will be automatically initialized.
-    echo ### If you like to change the runtime configuration 
-    echo ### change the files in ../../../config/opensearch-security and execute: 
+    echo ### If you like to change the runtime configuration
+    echo ### change the files in ../../../config/opensearch-security and execute:
 	type securityadmin_demo.bat
 	echo ### or run ./securityadmin_demo.bat
 	echo ### To use the Security Plugin ConfigurationGUI

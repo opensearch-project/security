@@ -29,6 +29,7 @@ assumeyes=0
 initsecurity=0
 cluster_mode=0
 skip_updates=-1
+generate_random_password=0
 
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i] [-c]"
@@ -37,9 +38,10 @@ function show_help() {
     echo "  -i initialize Security plugin with default configuration (default is to ask if -y is not given)"
     echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
     echo "  -s skip updates if config is already applied to opensearch.yml"
+    echo "  -g generates random password for admin"
 }
 
-while getopts "h?yics" opt; do
+while getopts "h?yicsg" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -52,6 +54,8 @@ while getopts "h?yics" opt; do
     c)  cluster_mode=1
         ;;
     s)  skip_updates=0
+        ;;
+    g)  generate_random_password=1
     esac
 done
 
@@ -392,10 +396,14 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
 INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
 
+
 if [[ -n "$initialAdminPassword" ]]; then
   ADMIN_PASSWORD="$initialAdminPassword"
 elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
   ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
+elif [ "$generate_random_password" == 1 ]; then  # Added double quotes around "1"
+  $SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/generate-password.sh"
+  ADMIN_PASSWORD=$("$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/generate-password.sh" 16)
 else
   echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
   exit 1
