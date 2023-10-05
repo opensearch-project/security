@@ -54,7 +54,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         return PLUGINS_PREFIX;
     }
 
-    final int USER_SETTING_SIZE = 7 * 19; // Lines per account entry * number of accounts
+    final int USER_SETTING_SIZE = 7 * 20; // Lines per account entry * number of accounts
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY = "{"
         + " \"attributes\": { \"service\": \"true\", "
@@ -98,7 +98,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         response = rh.executePatchRequest(
             ENDPOINT + "/internalusers",
             "[{ \"op\": \"add\", \"path\": \"/newuser\", "
@@ -153,7 +153,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
-        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 19;
+        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 20;
         final String serviceAccountName = "JohnDoeService";
         HttpResponse response;
 
@@ -845,7 +845,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
 
         addUserWithPassword(
             "admin",
