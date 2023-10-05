@@ -18,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -269,9 +268,7 @@ class AuthTokenProcessorHandler {
     }
 
     private String createJwt(SamlResponse samlResponse) throws Exception {
-        JWTClaimsSet.Builder jwtClaimsBuilder = new JWTClaimsSet.Builder().notBeforeTime(
-            new Date()
-        )
+        JWTClaimsSet.Builder jwtClaimsBuilder = new JWTClaimsSet.Builder().notBeforeTime(new Date())
             .expirationTime(new Date(getJwtExpiration(samlResponse)))
             .claim(this.jwtSubjectKey, this.extractSubject(samlResponse));
 

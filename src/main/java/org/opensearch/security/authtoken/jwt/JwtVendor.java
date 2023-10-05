@@ -12,6 +12,7 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -125,7 +126,7 @@ public class JwtVendor {
         List<String> roles,
         List<String> backendRoles,
         boolean roleSecurityMode
-    ) throws Exception {
+    ) throws JOSEException, ParseException {
         final Date now = new Date(timeProvider.getAsLong());
 
         final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
@@ -136,12 +137,14 @@ public class JwtVendor {
         claimsBuilder.notBeforeTime(now);
 
         if (expirySeconds > MAX_EXPIRY_SECONDS) {
-            throw new Exception("The provided expiration time exceeds the maximum allowed duration of " + MAX_EXPIRY_SECONDS + " seconds");
+            throw new IllegalArgumentException(
+                "The provided expiration time exceeds the maximum allowed duration of " + MAX_EXPIRY_SECONDS + " seconds"
+            );
         }
 
         expirySeconds = (expirySeconds == null) ? DEFAULT_EXPIRY_SECONDS : Math.min(expirySeconds, MAX_EXPIRY_SECONDS);
         if (expirySeconds <= 0) {
-            throw new Exception("The expiration time should be a positive integer");
+            throw new IllegalArgumentException("The expiration time should be a positive integer");
         }
         final Date expiryTime = new Date(timeProvider.getAsLong() + expirySeconds * 1000);
         claimsBuilder.expirationTime(expiryTime);
@@ -150,7 +153,7 @@ public class JwtVendor {
             String listOfRoles = String.join(",", roles);
             claimsBuilder.claim("er", encryptionDecryptionUtil.encrypt(listOfRoles));
         } else {
-            throw new Exception("Roles cannot be null");
+            throw new IllegalArgumentException("Roles cannot be null");
         }
 
         if (!roleSecurityMode && backendRoles != null) {
