@@ -11,6 +11,8 @@
 
 package com.amazon.dlic.auth.http.kerberos;
 
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
+
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,13 +24,17 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Strings;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.ietf.jgss.GSSContext;
@@ -48,15 +54,13 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
-    private static final String EMPTY_STRING = "";
     private static final Oid[] KRB_OIDS = new Oid[] { KrbConstants.SPNEGO, KrbConstants.KRB5MECH };
 
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -170,7 +174,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -187,7 +191,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final RestRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
 
         if (acceptorPrincipal == null || acceptorKeyTabPath == null) {
             log.error("Missing acceptor principal or keytab configuration. Kerberos authentication will not work");
@@ -279,25 +283,22 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
-        final BytesRestResponse wwwAuthenticateResponse;
-        XContentBuilder response = getNegotiateResponseBody();
-
-        if (response != null) {
-            wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, response);
-        } else {
-            wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, EMPTY_STRING);
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials creds) {
+        final Map<String, String> headers = new HashMap<>();
+        String responseBody = "";
+        final String negotiateResponseBody = getNegotiateResponseBody();
+        if (negotiateResponseBody != null) {
+            responseBody = negotiateResponseBody;
+            headers.put("Content-Type", "application/json");
         }
 
-        if (credentials == null || credentials.getNativeCredentials() == null) {
-            wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Negotiate");
+        if (creds == null || creds.getNativeCredentials() == null) {
+            headers.put("WWW-Authenticate", "Negotiate");
         } else {
-            wwwAuthenticateResponse.addHeader(
-                "WWW-Authenticate",
-                "Negotiate " + Base64.getEncoder().encodeToString((byte[]) credentials.getNativeCredentials())
-            );
+            headers.put("WWW-Authenticate", "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials()));
         }
-        return wwwAuthenticateResponse;
+
+        return Optional.of(new SecurityResponse(SC_UNAUTHORIZED, headers, responseBody));
     }
 
     @Override
@@ -369,7 +370,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-    private XContentBuilder getNegotiateResponseBody() {
+    private String getNegotiateResponseBody() {
         try {
             XContentBuilder negotiateResponseBody = XContentFactory.jsonBuilder();
             negotiateResponseBody.startObject();
@@ -381,7 +382,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
             negotiateResponseBody.endObject();
             negotiateResponseBody.endObject();
             negotiateResponseBody.endObject();
-            return negotiateResponseBody;
+            return negotiateResponseBody.toString();
         } catch (Exception ex) {
             log.error("Can't construct response body", ex);
             return null;

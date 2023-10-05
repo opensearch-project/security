@@ -36,7 +36,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
-import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -45,8 +44,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.env.Environment;
-import org.opensearch.http.netty4.Netty4HttpChannel;
-import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
 
@@ -121,25 +119,14 @@ public class SSLRequestHelper {
     public static SSLInfo getSSLInfo(
         final Settings settings,
         final Path configPath,
-        final RestRequest request,
+        final SecurityRequest request,
         PrincipalExtractor principalExtractor
     ) throws SSLPeerUnverifiedException {
-
-        if (request == null || request.getHttpChannel() == null || !(request.getHttpChannel() instanceof Netty4HttpChannel)) {
+        final SSLEngine engine = request.getSSLEngine();
+        if (engine == null) {
             return null;
         }
 
-        final Netty4HttpChannel httpChannel = (Netty4HttpChannel) request.getHttpChannel();
-        SslHandler sslhandler = (SslHandler) httpChannel.getNettyChannel().pipeline().get("ssl_http");
-        if (sslhandler == null && httpChannel.inboundPipeline() != null) {
-            sslhandler = (SslHandler) httpChannel.inboundPipeline().get("ssl_http");
-        }
-
-        if (sslhandler == null) {
-            return null;
-        }
-
-        final SSLEngine engine = sslhandler.engine();
         final SSLSession session = engine.getSession();
 
         X509Certificate[] x509Certs = null;

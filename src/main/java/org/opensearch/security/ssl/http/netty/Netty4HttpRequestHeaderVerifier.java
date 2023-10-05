@@ -11,19 +11,20 @@ package org.opensearch.security.ssl.http.netty;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.http.AbstractHttpServerTransport;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpRequest;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
-import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.InterceptingRestChannel;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.support.ConfigConstants;
@@ -88,14 +89,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         }
 
         final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
-        final Netty4HttpRequest httpRequest = new Netty4HttpRequest(msg);
-        RestRequest restRequest = AbstractHttpServerTransport.createRestRequest(xContentRegistry, httpRequest, httpChannel);
-
-        InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel(
-            restRequest,
-            handlingSettings.getDetailedErrorsEnabled()
-        );
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(msg.uri());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
@@ -103,19 +97,21 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             return;
         }
 
+        final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(msg, httpChannel);
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
-            injectUser(restRequest, threadContext);
-            boolean isAuthenticated = !restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
+            injectUser(msg, threadContext);
+            // If request channel is completed and a response is sent, then there was a failure during authentication
+            restFilter.checkAndAuthenticateRequest(requestChannel);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
 
-            if (interceptingRestChannel.getInterceptedResponse() != null) {
-                ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
+            if (requestChannel.hasResponse()) {
+                ctx.channel().attr(EARLY_RESPONSE).set(requestChannel.getCapturedResponse());
             }
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
-            if (!isAuthenticated
+            if (requestChannel.hasResponse()
                 || HttpMethod.OPTIONS.equals(msg.method())
                 || HEALTH_SUFFIX.equals(suffix)
                 || WHO_AM_I_SUFFIX.equals(suffix)) {
@@ -125,7 +121,8 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);
             }
         } catch (OpenSearchSecurityException e) {
-            RestResponse earlyResponse = new BytesRestResponse(interceptingRestChannel, e);
+            e.printStackTrace();
+            RestResponse earlyResponse = new BytesRestResponse(ExceptionsHelper.status(e), e.getMessage());
             ctx.channel().attr(EARLY_RESPONSE).set(earlyResponse);
             ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
         } finally {
@@ -133,11 +130,11 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         }
     }
 
-    private void injectUser(RestRequest request, ThreadContext threadContext) {
+    private void injectUser(HttpRequest request, ThreadContext threadContext) {
         if (this.injectUserEnabled) {
             threadContext.putTransient(
                 ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
-                request.header(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER)
+                request.headers().get(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER)
             );
         }
     }

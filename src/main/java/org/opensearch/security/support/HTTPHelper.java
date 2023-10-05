@@ -32,13 +32,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
-
-import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPHelper {
 
     public static AuthCredentials extractCredentials(String authorizationHeader, Logger log) {
+        System.out.println("authorization header: " + authorizationHeader);
 
         if (authorizationHeader != null) {
             if (!authorizationHeader.trim().toLowerCase().startsWith("basic ")) {
@@ -50,6 +50,8 @@ public class HTTPHelper {
                     Base64.getDecoder().decode(authorizationHeader.split(" ")[1]),
                     StandardCharsets.UTF_8
                 );
+
+                System.out.println("decodedBasicHeader: " + decodedBasicHeader);
 
                 // username:password
                 // special case
@@ -86,7 +88,7 @@ public class HTTPHelper {
         }
     }
 
-    public static boolean containsBadHeader(final RestRequest request) {
+    public static boolean containsBadHeader(final SecurityRequest request) {
 
         final Map<String, List<String>> headers;
 

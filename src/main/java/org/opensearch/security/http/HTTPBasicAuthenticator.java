@@ -27,16 +27,18 @@
 package org.opensearch.security.http;
 
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.Optional;
 
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -50,24 +52,25 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
 
-        final boolean forceLogin = request.paramAsBoolean("force_login", false);
+        final boolean forceLogin = Boolean.getBoolean(request.params().get("force_login"));
 
         if (forceLogin) {
             return null;
         }
 
-        final String authorizationHeader = request.header("Authorization");
+        String authorizationHeader = request.header("Authorization");
 
         return HTTPHelper.extractCredentials(authorizationHeader, log);
     }
 
     @Override
-    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "Unauthorized");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Basic realm=\"OpenSearch Security\"");
-        return wwwAuthenticateResponse;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials creds) {
+        System.out.println("HTTPBasicAuthenticator.reRequestAuthentication");
+        return Optional.of(
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Basic realm=\"OpenSearch Security\""), "")
+        );
     }
 
     @Override
