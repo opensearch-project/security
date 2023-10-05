@@ -22,6 +22,8 @@ import org.opensearch.http.netty4.Netty4DefaultHttpRequest;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.NettyRequestChannel;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.InterceptingRestChannel;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -90,11 +92,11 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         final Netty4DefaultHttpRequest httpRequest = new Netty4DefaultHttpRequest(msg);
         RestRequest restRequest = AbstractHttpServerTransport.createRestRequest(xContentRegistry, httpRequest, httpChannel);
-
         InterceptingRestChannel interceptingRestChannel = new InterceptingRestChannel(
             restRequest,
             handlingSettings.getDetailedErrorsEnabled()
         );
+        final NettyRequestChannel requestChannel = (NettyRequestChannel) SecurityRequestFactory.from(msg, interceptingRestChannel);
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
@@ -106,14 +108,15 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             injectUser(restRequest, threadContext);
-            boolean isAuthenticated = !restFilter.checkAndAuthenticateRequest(restRequest, interceptingRestChannel, threadContext);
+            // If request channel gets completed and a response is sent, then there was a failure during authentication
+            restFilter.checkAndAuthenticateRequest(requestChannel);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
 
             ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
-            if (!isAuthenticated
+            if (requestChannel.hasCompleted()
                 || HttpMethod.OPTIONS.equals(msg.method())
                 || HEALTH_SUFFIX.equals(suffix)
                 || WHO_AM_I_SUFFIX.equals(suffix)) {

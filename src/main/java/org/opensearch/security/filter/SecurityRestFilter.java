@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import io.netty.channel.Channel;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
@@ -46,9 +47,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestResponse;
@@ -154,21 +153,37 @@ public class SecurityRestFilter {
             }
 
             org.apache.logging.log4j.ThreadContext.clearAll();
+            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
             if (request.uri().endsWith(API_AUTHTOKEN_SUFFIX)) {
-                boolean isAuthenticated = !checkAndAuthenticateRequest(request, channel, threadContext);
-                if (!isAuthenticated) {
+                checkAndAuthenticateRequest(requestChannel);
+                if (requestChannel.hasCompleted()) {
+                    // Unable to authenticate the caller
                     return;
                 }
             }
-            User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
-            if (isSuperAdminUser
-                || (whitelistingSettings.checkRequestIsAllowed(request, channel)
-                    && allowlistingSettings.checkRequestIsAllowed(request, channel))) {
-                if (isSuperAdminUser || authorizeRequest(original, request, channel, user)) {
-                    original.handleRequest(request, channel, client);
-                }
+
+            // Authorize Request
+            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            if (userIsSuperAdmin(user, adminDNs)) {
+                // Super admins are always authorized
+                original.handleRequest(request, channel, client);
+                return;
             }
+
+            if (!(whitelistingSettings.checkRequestIsAllowed(request, channel)
+                && allowlistingSettings.checkRequestIsAllowed(request, channel))) {
+                // Request is not allowed
+                return;
+            }
+
+            authorizeRequest(original, requestChannel, user);
+            if (requestChannel.hasCompleted()) {
+                // Caller was not authorized
+                return;
+            }
+
+            // Caller was authorized, forward the request to the handler
+            original.handleRequest(request, channel, client);
         };
     }
 
@@ -179,8 +194,7 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    boolean authorizeRequest(RestHandler original, RestRequest request, RestChannel channel, User user) {
-
+    private void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
             .filter(rh -> rh.getMethod().equals(request.method()))
@@ -217,76 +231,74 @@ public class SecurityRestFilter {
                     err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
-                channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
-                return false;
+
+                request.completeWith(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
+                return;
             }
         }
-
-        // if handler is not an instance of NamedRoute then we pass through to eval at Transport Layer.
-        return true;
     }
 
-    public boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel, ThreadContext restoringThreadContext)
-        throws Exception {
-        restoringThreadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
+    public void checkAndAuthenticateRequest(SecurityRequestChannel requestChannel) throws Exception {
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
 
-        if (HTTPHelper.containsBadHeader(request)) {
+        if (HTTPHelper.containsBadHeader(requestChannel)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
-            auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return true;
+            auditLog.logBadHeaders(requestChannel);
+
+            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            return;
         }
 
-        if (SSLRequestHelper.containsBadHeader(restoringThreadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
+        if (SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
-            auditLog.logBadHeaders(request);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-            return true;
+            auditLog.logBadHeaders(requestChannel);
+
+            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            return;
         }
 
         final SSLInfo sslInfo;
         try {
-            if ((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
+            if ((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, requestChannel, principalExtractor)) != null) {
                 if (sslInfo.getPrincipal() != null) {
-                    restoringThreadContext.putTransient("_opendistro_security_ssl_principal", sslInfo.getPrincipal());
+                    threadContext.putTransient("_opendistro_security_ssl_principal", sslInfo.getPrincipal());
                 }
 
                 if (sslInfo.getX509Certs() != null) {
-                    restoringThreadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
+                    threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
                 }
-                restoringThreadContext.putTransient("_opendistro_security_ssl_protocol", sslInfo.getProtocol());
-                restoringThreadContext.putTransient("_opendistro_security_ssl_cipher", sslInfo.getCipher());
+                threadContext.putTransient("_opendistro_security_ssl_protocol", sslInfo.getProtocol());
+                threadContext.putTransient("_opendistro_security_ssl_cipher", sslInfo.getCipher());
             }
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
-            auditLog.logSSLException(request, e);
-            channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
-            return true;
+            auditLog.logSSLException(requestChannel, e);
+            requestChannel.completeWith(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
+            return;
         }
 
         if (!compatConfig.restAuthEnabled()) {
-            return false;
+            // Authentication is disabled
+            return;
         }
 
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(requestChannel.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
-            if (!registry.authenticate(request, channel, restoringThreadContext)) {
+        if (requestChannel.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
+            if (!registry.authenticate(requestChannel)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
-                return true;
+                return;
             } else {
                 // make it possible to filter logs by username
                 org.apache.logging.log4j.ThreadContext.put(
                     "user",
-                    ((User) restoringThreadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName()
+                    ((User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName()
                 );
             }
         }
-
-        return false;
     }
 
     @Subscribe
