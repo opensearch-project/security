@@ -37,6 +37,8 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -45,7 +47,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * This action serves GET request for _plugins/_security/api/ssl/certs endpoint and
  * PUT _plugins/_security/api/ssl/{certType}/reloadcerts
  */
-public class SecuritySSLCertsAction extends AbstractApiAction {
+public class SecuritySSLCertsApiAction extends AbstractApiAction {
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(Method.GET, "/ssl/certs"), new Route(Method.PUT, "/ssl/{certType}/reloadcerts/"))
     );
@@ -56,7 +58,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
 
     private final boolean httpsEnabled;
 
-    public SecuritySSLCertsAction(
+    public SecuritySSLCertsApiAction(
         final ClusterService clusterService,
         final ThreadPool threadPool,
         final SecurityKeyStore securityKeyStore,
@@ -116,18 +118,17 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
             }).error((status, toXContent) -> response(channel, status, toXContent)));
     }
 
-    private boolean accessHandler(final RestRequest request) {
-        switch (request.method()) {
-            case GET:
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, "certs");
-            case PUT:
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, "reloadcerts");
-            default:
-                return false;
+    boolean accessHandler(final RestRequest request) {
+        if (request.method() == Method.GET) {
+            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
+        } else if (request.method() == Method.PUT) {
+            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, RELOAD_CERTS_ACTION);
+        } else {
+            return false;
         }
     }
 
-    private ValidationResult<SecurityKeyStore> withSecurityKeyStore() {
+    ValidationResult<SecurityKeyStore> withSecurityKeyStore() {
         if (securityKeyStore == null) {
             return ValidationResult.error(RestStatus.OK, badRequestMessage("keystore is not initialized"));
         }

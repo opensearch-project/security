@@ -36,31 +36,47 @@ public class SecurityConfigApiActionTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testSecurityConfigApiRead() throws Exception {
+    public void testSecurityConfigApiReadForSuperAdmin() throws Exception {
 
         setup();
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
+        verifyResponsesWithoutPermissionOrUnsupportedFlag();
+    }
+
+    @Test
+    public void testSecurityConfigApiReadRestApiUser() throws Exception {
+
+        setupWithRestRoles();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = false;
+
+        final var restApiHeader = encodeBasicHeader("test", "test");
+        verifyResponsesWithoutPermissionOrUnsupportedFlag(restApiHeader);
+    }
+
+    private void verifyResponsesWithoutPermissionOrUnsupportedFlag(final Header... headers) {
+        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/securityconfig", headers);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", new Header[0]);
+        response = rh.executePutRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", headers);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
-        response = rh.executePostRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", new Header[0]);
+        response = rh.executePostRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", headers);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
-        response = rh.executePatchRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
+        response = rh.executePatchRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", headers);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
-        response = rh.executeDeleteRequest(ENDPOINT + "/securityconfig", new Header[0]);
+        response = rh.executeDeleteRequest(ENDPOINT + "/securityconfig", headers);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
     }
 
     @Test
-    public void testSecurityConfigApiWrite() throws Exception {
+    public void testSecurityConfigApiWriteWithUnsupportedFlagForSuperAdmin() throws Exception {
 
         Settings settings = Settings.builder()
             .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
@@ -70,52 +86,66 @@ public class SecurityConfigApiActionTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
+        verifyWriteOperations();
+    }
+
+    @Test
+    public void testSecurityConfigApiWriteWithFullListOfPermissions() throws Exception {
+
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED, true).build();
+        setupWithRestRoles(settings);
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = false;
+
+        final var restAdminFullAccess = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
+        verifyWriteOperations(restAdminFullAccess);
+    }
+
+    @Test
+    public void testSecurityConfigApiWriteWithOnePermission() throws Exception {
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED, true).build();
+        setupWithRestRoles(settings);
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = false;
+        final var updateOnlyRestApiHeader = encodeBasicHeader("rest_api_admin_config_update", "rest_api_admin_config_update");
+        verifyWriteOperations(updateOnlyRestApiHeader);
+    }
+
+    private void verifyWriteOperations(final Header... header) throws Exception {
+        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/securityconfig", header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(
-            ENDPOINT + "/securityconfig/xxx",
-            FileHelper.loadFile("restapi/securityconfig.json"),
-            new Header[0]
-        );
+        response = rh.executePutRequest(ENDPOINT + "/securityconfig/xxx", FileHelper.loadFile("restapi/securityconfig.json"), header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePutRequest(
-            ENDPOINT + "/securityconfig/config",
-            FileHelper.loadFile("restapi/securityconfig.json"),
-            new Header[0]
-        );
+        response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", FileHelper.loadFile("restapi/securityconfig.json"), header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(
-            ENDPOINT + "/securityconfig/config",
-            FileHelper.loadFile("restapi/invalid_config.json"),
-            new Header[0]
-        );
+        response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", FileHelper.loadFile("restapi/invalid_config.json"), header);
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
         Assert.assertTrue(response.getContentType(), response.isJsonContentType());
         Assert.assertTrue(response.getBody().contains("Unrecognized field"));
 
-        response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
+        response = rh.executeGetRequest(ENDPOINT + "/securityconfig", header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePostRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", new Header[0]);
+        response = rh.executePostRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", header);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         response = rh.executePatchRequest(
             ENDPOINT + "/securityconfig",
             "[{\"op\": \"replace\",\"path\": \"/config/dynamic/hosts_resolver_mode\",\"value\": \"other\"}]",
-            new Header[0]
+            header
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executeDeleteRequest(ENDPOINT + "/securityconfig", new Header[0]);
+        response = rh.executeDeleteRequest(ENDPOINT + "/securityconfig", header);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
-
     }
 
     @Test
-    public void testSecurityConfigForHTTPPatch() throws Exception {
+    public void testSecurityConfigForPatchWithUnsupportedFlag() throws Exception {
 
         Settings settings = Settings.builder()
             .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
@@ -124,28 +154,58 @@ public class SecurityConfigApiActionTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
+        verifyPatch();
+    }
+
+    @Test
+    public void testSecurityConfigForPatchWithFullPermissions() throws Exception {
+
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED, true).build();
+        setupWithRestRoles(settings);
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = false;
 
         // non-default config
+        final var restAdminFullAccess = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
+        verifyPatch(restAdminFullAccess);
+    }
+
+    @Test
+    public void testSecurityConfigForPatchWithOnePermission() throws Exception {
+
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED, true).build();
+        setupWithRestRoles(settings);
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = false;
+
+        // non-default config
+        final var updateOnlyRestApiHeader = encodeBasicHeader("rest_api_admin_config_update", "rest_api_admin_config_update");
+        verifyPatch(updateOnlyRestApiHeader);
+    }
+
+    private void verifyPatch(final Header... header) throws Exception {
         String updatedConfig = FileHelper.loadFile("restapi/securityconfig_nondefault.json");
 
         // update config
-        HttpResponse response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", updatedConfig, new Header[0]);
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", updatedConfig, header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // make patch request
         response = rh.executePatchRequest(
             ENDPOINT + "/securityconfig",
             "[{\"op\": \"add\",\"path\": \"/config/dynamic/do_not_fail_on_forbidden\",\"value\": \"false\"}]",
-            new Header[0]
+            header
         );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // get config
-        response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
+        response = rh.executeGetRequest(ENDPOINT + "/securityconfig", header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // verify configs are same
         Assert.assertEquals(DefaultObjectMapper.readTree(updatedConfig), DefaultObjectMapper.readTree(response.getBody()).get("config"));
-
     }
+
 }

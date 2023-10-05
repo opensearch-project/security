@@ -137,6 +137,7 @@ import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
+import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
@@ -191,6 +192,11 @@ import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
+
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
 
@@ -319,20 +325,23 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             sm.checkPermission(new SpecialPermission());
         }
 
-        AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                if (Security.getProvider("BC") == null) {
-                    Security.addProvider(new BouncyCastleProvider());
-                }
-                return null;
+        AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            if (Security.getProvider("BC") == null) {
+                Security.addProvider(new BouncyCastleProvider());
             }
+            return null;
         });
 
         final String advancedModulesEnabledKey = ConfigConstants.SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
             deprecationLogger.deprecate("Setting {} is ignored.", advancedModulesEnabledKey);
         }
+
+        checkForDeprecatedSetting(
+            settings,
+            SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
+            ENDPOINTS_WITH_PERMISSIONS.get(Endpoint.CONFIG).build(SECURITY_CONFIG_UPDATE) + " permission"
+        );
 
         log.info("Clustername: {}", settings.get("cluster.name", "opensearch"));
 
@@ -1773,7 +1782,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             );
             settings.add(
                 Setting.boolSetting(
-                    ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
+                    SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
                     false,
                     Property.NodeScope,
                     Property.Filtered

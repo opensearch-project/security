@@ -195,6 +195,7 @@ opendistro_security_test:
   - "rest_api_admin_tenants"
   - "rest_api_admin_ssl_info"
   - "rest_api_admin_ssl_reloadcerts"
+  - "rest_api_admin_config_update"
   and_backend_roles: []
   description: "Migrated from v6"
 opendistro_security_role_starfleet_captains:
@@ -260,3 +261,7 @@ rest_api_admin_tenants_only:
   reserved: false
   hidden: true
   users: [rest_api_admin_tenants]
+rest_api_admin_config_update_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_config_update]
