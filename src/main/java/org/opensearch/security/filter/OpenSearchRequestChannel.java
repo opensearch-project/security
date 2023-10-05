@@ -11,7 +11,9 @@
 
 package org.opensearch.security.filter;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +26,8 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
 
     private final Logger log = LogManager.getLogger(OpenSearchRequest.class);
 
-    private AtomicBoolean hasCompleted = new AtomicBoolean(false);
+    private final AtomicReference<SecurityResponse> responseRef = new AtomicReference<SecurityResponse>(null);
+    private final AtomicBoolean hasCompleted = new AtomicBoolean(false);
     private final RestChannel underlyingChannel;
 
     OpenSearchRequestChannel(final RestRequest request, final RestChannel channel) {
@@ -32,21 +35,48 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
         underlyingChannel = channel;
     }
 
-    @Override
-    public boolean hasCompleted() {
-        return hasCompleted.get();
+    /** Gets access to the underlying channel object */
+    public RestChannel breakEncapsulationForChannel() {
+        return underlyingChannel;
     }
 
     @Override
-    public boolean completeWith(final SecurityResponse response) {
-
+    public void queueForSending(final SecurityResponse response) {
         if (underlyingChannel == null) {
             throw new UnsupportedOperationException("Channel was not defined");
         }
 
-        if (hasCompleted()) {
+        if (hasCompleted.get()) {
             throw new UnsupportedOperationException("This channel has already completed");
         }
+
+        if (getQueuedResponse().isPresent()) {
+            throw new UnsupportedOperationException("Another response was already queued");
+        }
+
+        responseRef.set(response);
+    }
+
+    @Override
+    public Optional<SecurityResponse> getQueuedResponse() {
+        return Optional.ofNullable(responseRef.get());
+    }
+
+    @Override
+    public boolean sendResponse() {
+        if (underlyingChannel == null) {
+            throw new UnsupportedOperationException("Channel was not defined");
+        }
+
+        if (hasCompleted.get()) {
+            throw new UnsupportedOperationException("This channel has already completed");
+        }
+
+        if (getQueuedResponse()) {
+            throw new UnsupportedOperationException("No response has been associated with this channel");
+        }
+
+        final SecurityResponse response = responseRef.get();
 
         try {
             final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(response.getStatus()), response.getBody());
@@ -62,15 +92,6 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
         } finally {
             hasCompleted.set(true);
         }
-    }
 
-    /** Marks a request completed */
-    public void markCompleted() {
-        hasCompleted.set(true);
-    }
-
-    /** Gets access to the underlying channel object */
-    public RestChannel breakEncapsulationForChannel() {
-        return underlyingChannel;
     }
 }

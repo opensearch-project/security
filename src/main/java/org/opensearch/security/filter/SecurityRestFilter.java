@@ -145,9 +145,11 @@ public class SecurityRestFilter {
                 return;
             }
 
-            if (!(whitelistingSettings.checkRequestIsAllowed(request, channel, client)
-                && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
-                // Request is not allowed
+            final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel)
+                .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
+
+            if (deniedResponse.isPresent()) {
+                requestChannel.completeWith(deniedResponse.orElseThrow());
                 return;
             }
 

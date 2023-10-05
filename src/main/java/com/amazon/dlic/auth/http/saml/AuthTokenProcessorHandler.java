@@ -11,8 +11,6 @@
 
 package com.amazon.dlic.auth.http.saml;
 
-import static org.apache.http.HttpHeaders.CONTENT_TYPE;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -21,7 +19,6 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -239,7 +236,7 @@ class AuthTokenProcessorHandler {
 
             String responseBodyString = DefaultObjectMapper.objectMapper.writeValueAsString(responseBody);
 
-            return Optional.of(new SecurityResponse(HttpStatus.SC_OK, Map.of(CONTENT_TYPE, "application/json"), responseBodyString));
+            return Optional.of(new SecurityResponse(HttpStatus.SC_OK, SecurityResponse.CONTENT_TYPE_APP_JSON, responseBodyString));
         } catch (JsonProcessingException e) {
             log.warn("Error while parsing JSON for /_opendistro/_security/api/authtoken", e);
             return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, null, "JSON could not be parsed"));

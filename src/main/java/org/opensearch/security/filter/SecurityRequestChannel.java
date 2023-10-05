@@ -11,16 +11,19 @@
 
 package org.opensearch.security.filter;
 
+import java.util.Optional;
+
 /**
  * When a request is recieved by the security plugin this governs getting information about the request and complete with with a response
  */
 public interface SecurityRequestChannel extends SecurityRequest {
 
-    /**
-     * If this channel has been been used to send a response
-     */
-    public boolean hasCompleted();
+    /** Associate a response with this channel */
+    public void queueForSending(final SecurityResponse response);
 
-    /** Use this channel to send a response */
-    public boolean completeWith(final SecurityResponse response);
+    /** Acess the queued response */
+    public Optional<SecurityResponse> getQueuedResponse();
+
+    /** Send the response through the channel */
+    public boolean sendResponse();
 }
