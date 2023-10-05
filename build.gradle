@@ -638,9 +638,6 @@ dependencies {
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
 
-    //Checkstyle
-    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
-
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
         exclude group: 'com.google.guava'
