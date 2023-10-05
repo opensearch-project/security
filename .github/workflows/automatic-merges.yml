@@ -25,7 +25,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.find-triggering-pr.outputs.pr-number }}
           allowed-authors: |
-            dependabot%5Bbot%5D
+            dependabot[bot]
             opensearch-trigger-bot[bot]
           allowed-files: |
             build.gradle
