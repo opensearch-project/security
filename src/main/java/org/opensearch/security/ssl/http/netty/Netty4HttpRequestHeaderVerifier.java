@@ -110,7 +110,9 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
 
-            ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
+            if (interceptingRestChannel.getInterceptedResponse() != null) {
+                ctx.channel().attr(EARLY_RESPONSE).set(interceptingRestChannel.getInterceptedResponse());
+            }
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
             if (!isAuthenticated
