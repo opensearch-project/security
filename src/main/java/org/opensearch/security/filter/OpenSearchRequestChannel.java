@@ -11,18 +11,11 @@
 
 package org.opensearch.security.filter;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestResponse;
 
 public class OpenSearchRequestChannel extends OpenSearchRequest implements SecurityRequestChannel {
 

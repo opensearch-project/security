@@ -38,7 +38,6 @@ import org.opensearch.security.user.AuthCredentials;
 public class HTTPHelper {
 
     public static AuthCredentials extractCredentials(String authorizationHeader, Logger log) {
-        System.out.println("authorization header: " + authorizationHeader);
 
         if (authorizationHeader != null) {
             if (!authorizationHeader.trim().toLowerCase().startsWith("basic ")) {
@@ -50,8 +49,6 @@ public class HTTPHelper {
                     Base64.getDecoder().decode(authorizationHeader.split(" ")[1]),
                     StandardCharsets.UTF_8
                 );
-
-                System.out.println("decodedBasicHeader: " + decodedBasicHeader);
 
                 // username:password
                 // special case

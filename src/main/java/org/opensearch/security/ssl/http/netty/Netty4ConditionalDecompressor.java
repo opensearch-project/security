@@ -24,8 +24,8 @@ public class Netty4ConditionalDecompressor extends HttpContentDecompressor {
         final boolean shouldDecompress = NettyAttribute.popFrom(ctx, SHOULD_DECOMPRESS).orElse(false);
         if (hasAnEarlyReponse || !shouldDecompress) {
             // If there was an error prompting an early response,... don't decompress
-            // If there is no explicit decompress flag,...           don't decompress
-            // If there is a decompress flag and it is false,...     don't decompress
+            // If there is no explicit decompress flag,... don't decompress
+            // If there is a decompress flag and it is false,... don't decompress
             return super.newContentDecoder("identity");
         }
 

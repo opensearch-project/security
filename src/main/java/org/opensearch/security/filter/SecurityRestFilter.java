@@ -148,7 +148,7 @@ public class SecurityRestFilter {
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
 
             // TODO: Not sure what this was doing here
-            //org.apache.logging.log4j.ThreadContext.clearAll();
+            // org.apache.logging.log4j.ThreadContext.clearAll();
 
             // Authenticate request
             checkAndAuthenticateRequest(requestChannel);

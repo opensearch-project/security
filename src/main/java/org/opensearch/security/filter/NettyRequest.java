@@ -92,7 +92,8 @@ public class NettyRequest implements SecurityRequest {
     }
 
     private static Map<String, String> params(String uri) {
-        // Sourced from https://github.com/opensearch-project/OpenSearch/blob/main/server/src/main/java/org/opensearch/http/AbstractHttpServerTransport.java#L419-L422
+        // Sourced from
+        // https://github.com/opensearch-project/OpenSearch/blob/main/server/src/main/java/org/opensearch/http/AbstractHttpServerTransport.java#L419-L422
         final Map<String, String> params = new HashMap<>();
         final int index = uri.indexOf(63);
         if (index >= 0) {

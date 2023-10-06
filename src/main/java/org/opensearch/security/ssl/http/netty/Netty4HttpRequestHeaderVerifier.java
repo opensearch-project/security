@@ -21,8 +21,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
-import org.opensearch.http.netty4.Netty4HttpServerTransport;
-import org.opensearch.security.filter.NettyAttribute;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityRequestFactory;
@@ -34,8 +32,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestResponse;
 
 import java.util.regex.Matcher;
 
@@ -88,14 +84,15 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         // Start by setting this value to false, only requests that meet all the criteria will be decompressed
         ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
 
-
         // TODO: GET PROPER MAVEN BUILD
-//        final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
-        final Netty4HttpChannel httpChannel = ctx.channel().attr(AttributeKey.<Netty4HttpChannel>newInstance("opensearch-http-channel")).get();
+        // final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
+        final Netty4HttpChannel httpChannel = ctx.channel()
+            .attr(AttributeKey.<Netty4HttpChannel>newInstance("opensearch-http-channel"))
+            .get();
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(msg.uri());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
-            // TODO:           I think this is going to create problems - we should have a sensible size limit, not prevention of
+            // TODO: I think this is going to create problems - we should have a sensible size limit, not prevention of
             // TODO_CONTINUED: decompression - it will prevent valid response bodies that are gzip'ed from being usable no?
             ctx.fireChannelRead(msg);
             return;
@@ -111,9 +108,8 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
-            requestChannel.getQueuedResponse()
-                .ifPresent(response -> ctx.channel().attr(EARLY_RESPONSE).set(response));
-                
+            requestChannel.getQueuedResponse().ifPresent(response -> ctx.channel().attr(EARLY_RESPONSE).set(response));
+
             if (requestChannel.getQueuedResponse().isEmpty()
                 && !HttpMethod.OPTIONS.equals(msg.method())
                 && !HEALTH_SUFFIX.equals(suffix)
