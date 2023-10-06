@@ -70,6 +70,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
+import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
 
 public class SecurityRestFilter {
 
@@ -147,11 +148,11 @@ public class SecurityRestFilter {
 
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
 
-            // TODO: Not sure what this was doing here
-            // org.apache.logging.log4j.ThreadContext.clearAll();
-
             // Authenticate request
-            checkAndAuthenticateRequest(requestChannel);
+            if(!NettyAttribute.popFrom(request, IS_AUTHENTICATED).orElse(false)) {
+                // we aren't authenticated so we should skip this step
+                checkAndAuthenticateRequest(requestChannel);
+            }
             if (requestChannel.getQueuedResponse().isPresent()) {
                 channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
                 return;

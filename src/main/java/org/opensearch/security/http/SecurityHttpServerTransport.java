@@ -50,6 +50,7 @@ public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTrans
         "opensearch-http-request-thread-context"
     );
     public static final AttributeKey<Boolean> SHOULD_DECOMPRESS = AttributeKey.newInstance("opensearch-http-should-decompress");
+    public static final AttributeKey<Boolean> IS_AUTHENTICATED = AttributeKey.newInstance("opensearch-http-is-authenticated");
 
     public SecurityHttpServerTransport(
         final Settings settings,

@@ -42,6 +42,7 @@ import static org.opensearch.security.filter.SecurityRestFilter.WHO_AM_I_SUFFIX;
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
+import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
 
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
     private final SecurityRestFilter restFilter;
@@ -83,6 +84,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
 
         // Start by setting this value to false, only requests that meet all the criteria will be decompressed
         ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
+        ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.FALSE);
 
         // TODO: GET PROPER MAVEN BUILD
         // final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
@@ -116,6 +118,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
                 && !WHO_AM_I_SUFFIX.equals(suffix)) {
                 // Only allow decompression on authenticated requests that also aren't one of those ^
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);
+                ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.TRUE);
             }
         } catch (final OpenSearchSecurityException e) {
             final SecurityResponse earlyResponse = new SecurityResponse(ExceptionsHelper.status(e).getStatus(), null, e.getMessage());
