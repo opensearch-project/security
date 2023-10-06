@@ -63,7 +63,11 @@ public class NettyRequest implements SecurityRequest {
 
     @Override
     public String path() {
-        return URI.create(underlyingRequest.uri()).getPath();
+        try {
+            return URI.create(underlyingRequest.uri()).getPath();
+        } catch (final IllegalArgumentException e) {
+            return "";
+        }
     }
 
     @Override
