@@ -88,6 +88,7 @@ configurations.all {
         force "com.fasterxml.woodstox:woodstox-core:6.4.0"
         force "org.scala-lang:scala-library:2.13.9"
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
+        force "org.xerial.snappy:snappy-java:1.1.10.5"
     }
 }
 
@@ -127,6 +128,7 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
 
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
