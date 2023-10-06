@@ -15,6 +15,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,10 +34,10 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
@@ -120,7 +121,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+        throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -137,7 +139,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final RestRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
         if (!oboEnabled) {
             log.error("On-behalf-of authentication is disabled");
             return null;
@@ -201,7 +203,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-    private String extractJwtFromHeader(RestRequest request) {
+    private String extractJwtFromHeader(SecurityRequest request) {
         String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
 
         if (jwtToken == null || jwtToken.isEmpty()) {
@@ -229,7 +231,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
     }
 
-    public Boolean isRequestAllowed(final RestRequest request) {
+    public Boolean isRequestAllowed(final SecurityRequest request) {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (isAccessToRestrictedEndpoints(request, suffix)) {
@@ -241,8 +243,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
-        return null;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest response, AuthCredentials creds) {
+        return Optional.empty();
     }
 
     @Override
