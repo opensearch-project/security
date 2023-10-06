@@ -20,6 +20,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
+import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.rest.RestUtils;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
@@ -82,16 +83,12 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
         ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.FALSE);
 
-        // TODO: GET PROPER MAVEN BUILD
-        // final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
-        final Netty4HttpChannel httpChannel = ctx.channel().attr(AttributeKey.<Netty4HttpChannel>valueOf("opensearch-http-channel")).get();
+        final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         String rawPath = SecurityRestUtils.path(msg.uri());
         String path = RestUtils.decodeComponent(rawPath);
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(path);
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
-            // TODO: I think this is going to create problems - we should have a sensible size limit, not prevention of
-            // TODO_CONTINUED: decompression - it will prevent valid response bodies that are gzip'ed from being usable no?
             ctx.fireChannelRead(msg);
             return;
         }
@@ -126,7 +123,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             final SecurityResponse earlyResponse = new SecurityResponse(ExceptionsHelper.status(e).getStatus(), null, e.getMessage());
             ctx.channel().attr(EARLY_RESPONSE).set(earlyResponse);
         } catch (final SecurityRequestChannelUnsupported srcu) {
-            // TODO: Move handling for ACS Endpoint here?
+            // Use defaults for unsupported channels
         } finally {
             ctx.fireChannelRead(msg);
         }
