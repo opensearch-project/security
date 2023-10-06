@@ -51,6 +51,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
@@ -145,11 +146,14 @@ public class BackendRegistry {
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.restAuthDomains = Collections.emptySortedSet();
+        this.ipAuthFailureListeners = Collections.emptyList();
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60);
 
         // This is going to be defined in the opensearch.yml, so it's best suited to be initialized once.
         this.injectedUserEnabled = opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        initialized = this.injectedUserEnabled;
 
         createCaches();
     }
@@ -186,7 +190,6 @@ public class BackendRegistry {
     /**
      *
      * @param request
-     * @param channel
      * @return The authenticated user, null means another roundtrip
      * @throws OpenSearchSecurityException
      */
@@ -205,11 +208,13 @@ public class BackendRegistry {
             return false;
         }
 
-        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+        ThreadContext threadContext = this.threadPool.getThreadContext();
+
+        final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
