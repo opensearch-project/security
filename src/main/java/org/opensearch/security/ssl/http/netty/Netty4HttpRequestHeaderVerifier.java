@@ -17,6 +17,7 @@ import io.netty.util.ReferenceCountUtil;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.util.concurrent.ThreadContext;
 
+import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -42,6 +43,7 @@ import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RES
 import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
 import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
 
+@Sharable
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
     private final SecurityRestFilter restFilter;
     private final ThreadPool threadPool;

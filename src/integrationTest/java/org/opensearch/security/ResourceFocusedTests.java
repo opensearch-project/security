@@ -25,7 +25,6 @@ import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
-import org.apache.http.HttpHeaders;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -113,19 +112,28 @@ public class ResourceFocusedTests {
         runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests, statsPrinter);
     }
 
-    private Long runResourceTest(final RequestBodySize size, final String requestPath, final int parrallelism, final int totalNumberOfRequests, final boolean statsPrinter) {
+    private Long runResourceTest(
+        final RequestBodySize size,
+        final String requestPath,
+        final int parrallelism,
+        final int totalNumberOfRequests,
+        final boolean statsPrinter
+    ) {
         final byte[] compressedRequestBody = createCompressedRequestBody(size);
         try (final TestRestClient client = cluster.getRestClient(new BasicHeader("Content-Encoding", "gzip"))) {
 
-            if (statsPrinter) { printStats(); }
+            if (statsPrinter) {
+                printStats();
+            }
             final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
             post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
 
             final ForkJoinPool forkJoinPool = new ForkJoinPool(parrallelism);
 
-            final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests).boxed().map( i ->
-                CompletableFuture.runAsync(() -> client.executeRequest(post), forkJoinPool)
-            ).collect(Collectors.toList());
+            final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
+                .boxed()
+                .map(i -> CompletableFuture.runAsync(() -> client.executeRequest(post), forkJoinPool))
+                .collect(Collectors.toList());
             Supplier<Long> getCount = () -> waitingOn.stream().filter(cf -> cf.isDone() && !cf.isCompletedExceptionally()).count();
 
             CompletableFuture<Void> statPrinter = statsPrinter ? CompletableFuture.runAsync(() -> {
@@ -139,7 +147,6 @@ public class ResourceFocusedTests {
                     }
                 }
             }, forkJoinPool) : CompletableFuture.completedFuture(null);
-
 
             final CompletableFuture<Void> allOfThem = CompletableFuture.allOf(waitingOn.toArray(new CompletableFuture[0]));
 
@@ -162,7 +169,9 @@ public class ResourceFocusedTests {
         Small(1),
         Medium(1_000),
         XLarge(1_000_000);
+
         public final int elementCount;
+
         private RequestBodySize(final int elementCount) {
             this.elementCount = elementCount;
         }
@@ -172,14 +181,16 @@ public class ResourceFocusedTests {
         final int repeatCount = size.elementCount;
         final String prefix = "{ \"items\": [";
         final String repeatedElement = IntStream.range(0, 20)
-            .mapToObj(n -> ('a' + n)+"")
+            .mapToObj(n -> ('a' + n) + "")
             .map(n -> '"' + n + '"' + ": 123")
             .collect(Collectors.joining(",", "{", "}"));
         final String postfix = "]}";
         long uncompressedBytesSize = 0;
 
-        try (final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-             final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
+        try (
+            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)
+        ) {
 
             final byte[] prefixBytes = prefix.getBytes(StandardCharsets.UTF_8);
             final byte[] repeatedElementBytes = repeatedElement.getBytes(StandardCharsets.UTF_8);
@@ -196,7 +207,15 @@ public class ResourceFocusedTests {
             gzipOutputStream.finish();
 
             final byte[] compressedRequestBody = byteArrayOutputStream.toByteArray();
-            System.out.println("^^^" + String.format("Original size was %,d bytes, compressed to %,d bytes, ratio %,.2f", uncompressedBytesSize, compressedRequestBody.length, ((double)uncompressedBytesSize / compressedRequestBody.length)));
+            System.out.println(
+                "^^^"
+                    + String.format(
+                        "Original size was %,d bytes, compressed to %,d bytes, ratio %,.2f",
+                        uncompressedBytesSize,
+                        compressedRequestBody.length,
+                        ((double) uncompressedBytesSize / compressedRequestBody.length)
+                    )
+            );
             return compressedRequestBody;
         } catch (final IOException ioe) {
             throw new RuntimeException(ioe);
@@ -227,6 +246,7 @@ public class ResourceFocusedTests {
             System.out.println("   " + memoryPool.getName() + " USED: " + usage.getUsed() + " MAX: " + usage.getMax());
         }
     }
+
     private void printGCPools() {
         List<GarbageCollectorMXBean> garbageCollectors = ManagementFactory.getGarbageCollectorMXBeans();
         for (GarbageCollectorMXBean garbageCollector : garbageCollectors) {

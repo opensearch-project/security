@@ -8,6 +8,7 @@
 
 package org.opensearch.security.ssl.http.netty;
 
+import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.HttpContentDecompressor;
 
@@ -16,6 +17,7 @@ import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DE
 
 import org.opensearch.security.filter.NettyAttribute;
 
+@Sharable
 public class Netty4ConditionalDecompressor extends HttpContentDecompressor {
 
     @Override

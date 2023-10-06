@@ -48,7 +48,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
-    private final SecurityRestFilter restFilter;
+    private final ChannelInboundHandlerAdapter headerVerifier;
+    private final ChannelInboundHandlerAdapter conditionalDecompressor;
 
     public SecuritySSLNettyHttpServerTransport(
         final Settings settings,
@@ -77,7 +78,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         );
         this.sks = sks;
         this.errorHandler = errorHandler;
-        this.restFilter = restFilter;
+        headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+        conditionalDecompressor = new Netty4ConditionalDecompressor();
     }
 
     @Override
@@ -157,11 +159,11 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
 
     @Override
     protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-        return new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+        return headerVerifier;
     }
 
     @Override
     protected ChannelInboundHandlerAdapter createDecompressor() {
-        return new Netty4ConditionalDecompressor();
+        return conditionalDecompressor;
     }
 }
