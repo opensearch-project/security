@@ -37,6 +37,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.filter.NettyRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.OpenSearchRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -62,7 +63,9 @@ public class XFFResolver {
         }
 
         boolean requestFromNetty = false;
-        if (request instanceof OpenSearchRequest) {
+        if (request instanceof NettyRequest) {
+            requestFromNetty = true;
+        } else if (request instanceof OpenSearchRequest) {
             final OpenSearchRequest securityRequestChannel = (OpenSearchRequest) request;
             final RestRequest restRequest = securityRequestChannel.breakEncapsulationForRequest();
 
