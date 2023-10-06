@@ -12,8 +12,7 @@
 package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -64,11 +63,7 @@ public class NettyRequest implements SecurityRequest {
 
     @Override
     public String path() {
-        try {
-            return new URL(underlyingRequest.uri()).getPath();
-        } catch (final MalformedURLException e) {
-            return "";
-        }
+        return URI.create(underlyingRequest.uri()).getPath();
     }
 
     @Override

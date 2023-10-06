@@ -31,6 +31,7 @@ import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.OpenSearchSecurityException;
 
+import java.net.URI;
 import java.util.regex.Matcher;
 
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
@@ -81,7 +82,8 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         // TODO: GET PROPER MAVEN BUILD
         // final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         final Netty4HttpChannel httpChannel = ctx.channel().attr(AttributeKey.<Netty4HttpChannel>valueOf("opensearch-http-channel")).get();
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(msg.uri());
+        URI uri = URI.create(msg.uri());
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(uri.getPath());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             // TODO: I think this is going to create problems - we should have a sensible size limit, not prevention of
@@ -94,20 +96,26 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             injectUser(msg, threadContext);
-            // If request channel is completed and a response is sent, then there was a failure during authentication
-            restFilter.checkAndAuthenticateRequest(requestChannel);
+
+            boolean shouldSkipAuthentication = HttpMethod.OPTIONS.equals(msg.method())
+                || HEALTH_SUFFIX.equals(suffix)
+                || WHO_AM_I_SUFFIX.equals(suffix);
+
+            if (!shouldSkipAuthentication) {
+                // If request channel is completed and a response is sent, then there was a failure during authentication
+                restFilter.checkAndAuthenticateRequest(requestChannel);
+            }
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
             requestChannel.getQueuedResponse().ifPresent(response -> ctx.channel().attr(EARLY_RESPONSE).set(response));
 
-            if (requestChannel.getQueuedResponse().isEmpty()
-                && !HttpMethod.OPTIONS.equals(msg.method())
-                && !HEALTH_SUFFIX.equals(suffix)
-                && !WHO_AM_I_SUFFIX.equals(suffix)) {
+            boolean shouldDecompress = !shouldSkipAuthentication && requestChannel.getQueuedResponse().isEmpty();
+
+            if (requestChannel.getQueuedResponse().isEmpty() || shouldSkipAuthentication) {
                 // Only allow decompression on authenticated requests that also aren't one of those ^
-                ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);
+                ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.valueOf(shouldDecompress));
                 ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.TRUE);
             }
         } catch (final OpenSearchSecurityException e) {
