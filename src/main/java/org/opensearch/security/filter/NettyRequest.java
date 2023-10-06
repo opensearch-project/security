@@ -34,8 +34,8 @@ import org.opensearch.rest.RestUtils;
  * Wraps the functionality of HttpRequest for use in the security plugin
  */
 public class NettyRequest implements SecurityRequest {
-    protected final HttpRequest underlyingRequest;
 
+    protected final HttpRequest underlyingRequest;
     protected final Netty4HttpChannel underlyingChannel;
 
     NettyRequest(final HttpRequest request, final Netty4HttpChannel channel) {

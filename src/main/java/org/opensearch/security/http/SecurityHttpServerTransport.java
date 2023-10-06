@@ -33,7 +33,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.rest.RestResponse;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.SecurityKeyStore;

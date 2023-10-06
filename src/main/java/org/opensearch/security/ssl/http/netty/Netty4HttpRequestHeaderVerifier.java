@@ -21,6 +21,7 @@ import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.filter.NettyAttribute;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
@@ -47,9 +48,6 @@ import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DE
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
     private final SecurityRestFilter restFilter;
     private final ThreadPool threadPool;
-    private final NamedXContentRegistry xContentRegistry;
-    private final HttpHandlingSettings handlingSettings;
-    private final Settings settings;
     private final SSLConfig sslConfig;
     private final boolean injectUserEnabled;
     private final boolean passthrough;
@@ -62,10 +60,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         Settings settings
     ) {
         this.restFilter = restFilter;
-        this.xContentRegistry = xContentRegistry;
         this.threadPool = threadPool;
-        this.handlingSettings = handlingSettings;
-        this.settings = settings;
 
         this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
         boolean disabled = settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false);
@@ -88,11 +83,16 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             return;
         }
 
+        // Start by setting this value to false, only requests that meet all the criteria will be decompressed
+        ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
+
+
         final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(msg.uri());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
-            ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
+            // TODO:           I think this is going to create problems - we should have a sensible size limit, not prevention of
+            // TODO_CONTINUED: decompression - it will prevent valid response bodies that are gzip'ed from being usable no?
             ctx.fireChannelRead(msg);
             return;
         }
@@ -105,26 +105,21 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             restFilter.checkAndAuthenticateRequest(requestChannel);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
-
-            if (requestChannel.getQueuedResponse().isPresent()) {
-                ctx.channel().attr(EARLY_RESPONSE).set(requestChannel.getQueuedResponse().get());
-            }
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
-            if (requestChannel.getQueuedResponse().isPresent()
-                || HttpMethod.OPTIONS.equals(msg.method())
-                || HEALTH_SUFFIX.equals(suffix)
-                || WHO_AM_I_SUFFIX.equals(suffix)) {
-                // skip header verifier for pre-flight request. CORS Handler later in the pipeline will send early response
-                ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
-            } else {
+            requestChannel.getQueuedResponse()
+                .ifPresent(response -> ctx.channel().attr(EARLY_RESPONSE).set(response));
+                
+            if (requestChannel.getQueuedResponse().isEmpty()
+                && !HttpMethod.OPTIONS.equals(msg.method())
+                && !HEALTH_SUFFIX.equals(suffix)
+                && !WHO_AM_I_SUFFIX.equals(suffix)) {
+                // Only allow decompression on authenticated requests that also aren't one of those ^
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.TRUE);
             }
-        } catch (OpenSearchSecurityException e) {
-            e.printStackTrace();
+        } catch (final OpenSearchSecurityException e) {
             final SecurityResponse earlyResponse = new SecurityResponse(ExceptionsHelper.status(e).getStatus(), null, e.getMessage());
             ctx.channel().attr(EARLY_RESPONSE).set(earlyResponse);
-            ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
         } finally {
             ctx.fireChannelRead(msg);
         }
