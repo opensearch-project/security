@@ -36,11 +36,11 @@ import org.opensearch.rest.RestUtils;
 public class NettyRequest implements SecurityRequest {
     protected final HttpRequest underlyingRequest;
 
-    protected final Netty4HttpChannel channel;
+    protected final Netty4HttpChannel underlyingChannel;
 
     NettyRequest(final HttpRequest request, final Netty4HttpChannel channel) {
         this.underlyingRequest = request;
-        this.channel = channel;
+        this.underlyingChannel = channel;
     }
 
     @Override
@@ -54,9 +54,9 @@ public class NettyRequest implements SecurityRequest {
     public SSLEngine getSSLEngine() {
         // We look for Ssl_handler called `ssl_http` in the outbound pipeline of Netty channel first, and if its not
         // present we look for it in inbound channel. If its present in neither we return null, else we return the sslHandler.
-        SslHandler sslhandler = (SslHandler) channel.getNettyChannel().pipeline().get("ssl_http");
-        if (sslhandler == null && channel.inboundPipeline() != null) {
-            sslhandler = (SslHandler) channel.inboundPipeline().get("ssl_http");
+        SslHandler sslhandler = (SslHandler) underlyingChannel.getNettyChannel().pipeline().get("ssl_http");
+        if (sslhandler == null && underlyingChannel.inboundPipeline() != null) {
+            sslhandler = (SslHandler) underlyingChannel.inboundPipeline().get("ssl_http");
         }
 
         return sslhandler != null ? sslhandler.engine() : null;
@@ -78,7 +78,7 @@ public class NettyRequest implements SecurityRequest {
 
     @Override
     public Optional<InetSocketAddress> getRemoteAddress() {
-        return Optional.ofNullable(this.channel.getRemoteAddress());
+        return Optional.ofNullable(this.underlyingChannel.getRemoteAddress());
     }
 
     @Override
@@ -92,19 +92,17 @@ public class NettyRequest implements SecurityRequest {
     }
 
     private static Map<String, String> params(String uri) {
-        Map<String, String> params = new HashMap();
-        int index = uri.indexOf(63);
+        // Sourced from https://github.com/opensearch-project/OpenSearch/blob/main/server/src/main/java/org/opensearch/http/AbstractHttpServerTransport.java#L419-L422
+        final Map<String, String> params = new HashMap<>();
+        final int index = uri.indexOf(63);
         if (index >= 0) {
             try {
                 RestUtils.decodeQueryString(uri, index + 1, params);
             } catch (IllegalArgumentException var4) {
-                // Create empty params if error parsing
-                // https://github.com/opensearch-project/OpenSearch/blob/main/server/src/main/java/org/opensearch/http/AbstractHttpServerTransport.java#L419-L422
                 return Collections.emptyMap();
             }
         }
 
         return params;
     }
-
 }

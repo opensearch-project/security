@@ -23,6 +23,7 @@ import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.threadpool.ThreadPool;
@@ -105,12 +106,12 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
 
-            if (requestChannel.hasResponse()) {
-                ctx.channel().attr(EARLY_RESPONSE).set(requestChannel.getCapturedResponse());
+            if (requestChannel.getQueuedResponse().isPresent()) {
+                ctx.channel().attr(EARLY_RESPONSE).set(requestChannel.getQueuedResponse().get());
             }
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);
 
-            if (requestChannel.hasResponse()
+            if (requestChannel.getQueuedResponse().isPresent()
                 || HttpMethod.OPTIONS.equals(msg.method())
                 || HEALTH_SUFFIX.equals(suffix)
                 || WHO_AM_I_SUFFIX.equals(suffix)) {
@@ -121,7 +122,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             }
         } catch (OpenSearchSecurityException e) {
             e.printStackTrace();
-            RestResponse earlyResponse = new BytesRestResponse(ExceptionsHelper.status(e), e.getMessage());
+            final SecurityResponse earlyResponse = new SecurityResponse(ExceptionsHelper.status(e).getStatus(), null, e.getMessage());
             ctx.channel().attr(EARLY_RESPONSE).set(earlyResponse);
             ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
         } finally {

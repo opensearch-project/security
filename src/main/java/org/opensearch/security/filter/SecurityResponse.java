@@ -13,7 +13,15 @@ package org.opensearch.security.filter;
 
 import java.util.Map;
 
+import org.apache.http.HttpHeaders;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestResponse;
+
 public class SecurityResponse {
+
+    public static final Map<String, String> CONTENT_TYPE_APP_JSON = Map.of(HttpHeaders.CONTENT_TYPE, "application/json");
+
     private final int status;
     private final Map<String, String> headers;
     private final String body;
@@ -34,6 +42,12 @@ public class SecurityResponse {
 
     public String getBody() {
         return body;
+    }
+
+    public RestResponse asRestResponse() {
+        final RestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(getStatus()), getBody());
+        getHeaders().forEach(restResponse::addHeader);
+        return restResponse;
     }
 
 }

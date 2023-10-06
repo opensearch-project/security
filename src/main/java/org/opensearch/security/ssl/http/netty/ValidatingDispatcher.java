@@ -66,13 +66,13 @@ public class ValidatingDispatcher implements Dispatcher {
 
     @Override
     public void dispatchRequest(RestRequest request, RestChannel channel, ThreadContext threadContext) {
-        checkRequest(SecurityRequestFactory.from(request));
+        checkRequest(SecurityRequestFactory.from(request, channel));
         originalDispatcher.dispatchRequest(request, channel, threadContext);
     }
 
     @Override
     public void dispatchBadRequest(RestChannel channel, ThreadContext threadContext, Throwable cause) {
-        checkRequest(SecurityRequestFactory.from(channel.request()));
+        checkRequest(SecurityRequestFactory.from(channel.request(), channel));
         originalDispatcher.dispatchBadRequest(channel, threadContext, cause);
     }
 

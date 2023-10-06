@@ -11,81 +11,50 @@
 
 package org.opensearch.security.filter;
 
-import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.lang3.tuple.Triple;
 import io.netty.handler.codec.http.HttpRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.http.netty4.Netty4HttpChannel;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestResponse;
 
 public class NettyRequestChannel extends NettyRequest implements SecurityRequestChannel {
     private final Logger log = LogManager.getLogger(NettyRequestChannel.class);
 
     private AtomicBoolean hasCompleted = new AtomicBoolean(false);
-    private RestResponse capturedResponse;
-
-    private final AtomicReference<Triple<Integer, Map<String, String>, String>> completedResult = new AtomicReference<>();
+    private final AtomicReference<SecurityResponse> responseRef = new AtomicReference<SecurityResponse>(null);
 
     NettyRequestChannel(final HttpRequest request, Netty4HttpChannel channel) {
         super(request, channel);
     }
 
     @Override
-    public boolean hasResponse() {
-        return hasCompleted.get();
-    }
-
-    @Override
-    public RestResponse getCapturedResponse() {
-        return capturedResponse;
-    }
-
-    @Override
-    public boolean captureResponse(final SecurityResponse response) {
-
-        if (hasResponse()) {
-            throw new UnsupportedOperationException("A response has already been captured on this channel");
-        }
-
-        try {
-            final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(response.getStatus()), response.getBody());
-            if (response.getHeaders() != null) {
-                response.getHeaders().forEach(restResponse::addHeader);
-            }
-            this.capturedResponse = restResponse;
-
-            return true;
-        } catch (final Exception e) {
-            log.error("Error when attempting to capture response", e);
-            throw new RuntimeException(e);
-        } finally {
-            hasCompleted.set(true);
-        }
-    }
-
-    @Override
-    public void sendResponseToChannel(RestChannel channel) {
-
-        if (channel == null) {
+    public void queueForSending(SecurityResponse response) {
+        if (underlyingChannel == null) {
             throw new UnsupportedOperationException("Channel was not defined");
         }
 
-        if (!hasResponse()) {
-            throw new UnsupportedOperationException("A response has not previously been captured");
+        if (hasCompleted.get()) {
+            throw new UnsupportedOperationException("This channel has already completed");
         }
 
-        try {
-            channel.sendResponse(this.capturedResponse);
-        } catch (final Exception e) {
-            log.error("Error when attempting to send response", e);
-            throw new RuntimeException(e);
+        if (getQueuedResponse().isPresent()) {
+            throw new UnsupportedOperationException("Another response was already queued");
         }
+
+        responseRef.set(response);
+    }
+
+    @Override
+    public Optional<SecurityResponse> getQueuedResponse() {
+        return Optional.ofNullable(responseRef.get());
+    }
+
+    @Override
+    public boolean sendResponse() {
+        // Do not allow a response to be sent directly to the netty channel
+        return false;
     }
 }

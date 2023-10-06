@@ -204,7 +204,7 @@ public class BackendRegistry {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getRemoteAddress().orElse(null));
             }
 
-            request.captureResponse(new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"));
+            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"));
             return false;
         }
 
@@ -226,7 +226,7 @@ public class BackendRegistry {
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            request.captureResponse(new SecurityResponse(SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized."));
+            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized."));
             return false;
         }
 
@@ -300,7 +300,7 @@ public class BackendRegistry {
                             log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
-                        request.captureResponse(restResponse.get());
+                        request.queueForSending(restResponse.get());
                         return false;
                     }
                 } else {
@@ -317,7 +317,7 @@ public class BackendRegistry {
                     final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, ac);
                     if (restResponse.isPresent()) {
                         notifyIpAuthFailureListeners(request, ac);
-                        request.captureResponse(restResponse.get());
+                        request.queueForSending(restResponse.get());
                         return false;
                     } else {
                         // no reRequest possible
@@ -357,7 +357,7 @@ public class BackendRegistry {
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
-                request.captureResponse(
+                request.queueForSending(
                     new SecurityResponse(
                         SC_FORBIDDEN,
                         null,
@@ -432,7 +432,7 @@ public class BackendRegistry {
 
             notifyIpAuthFailureListeners(request, authCredentials);
 
-            request.captureResponse(
+            request.queueForSending(
                 challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"))
             );
             return false;

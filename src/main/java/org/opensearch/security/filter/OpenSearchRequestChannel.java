@@ -12,6 +12,9 @@
 package org.opensearch.security.filter;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,62 +28,71 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
 
     private final Logger log = LogManager.getLogger(OpenSearchRequest.class);
 
-    private AtomicBoolean hasCompleted = new AtomicBoolean(false);
-    private RestResponse capturedResponse;
+    private final AtomicReference<SecurityResponse> responseRef = new AtomicReference<SecurityResponse>(null);
+    private final AtomicBoolean hasCompleted = new AtomicBoolean(false);
+    private final RestChannel underlyingChannel;
 
-    OpenSearchRequestChannel(final RestRequest request) {
+    OpenSearchRequestChannel(final RestRequest request, final RestChannel channel) {
         super(request);
+        underlyingChannel = channel;
+    }
+
+    /** Gets access to the underlying channel object */
+    public RestChannel breakEncapsulationForChannel() {
+        return underlyingChannel;
     }
 
     @Override
-    public boolean hasResponse() {
-        return hasCompleted.get();
-    }
-
-    @Override
-    public RestResponse getCapturedResponse() {
-        return capturedResponse;
-    }
-
-    @Override
-    public boolean captureResponse(final SecurityResponse response) {
-
-        if (hasResponse()) {
-            throw new UnsupportedOperationException("A response has already been captured on this channel");
+    public void queueForSending(final SecurityResponse response) {
+        if (underlyingChannel == null) {
+            throw new UnsupportedOperationException("Channel was not defined");
         }
+
+        if (hasCompleted.get()) {
+            throw new UnsupportedOperationException("This channel has already completed");
+        }
+
+        if (getQueuedResponse().isPresent()) {
+            throw new UnsupportedOperationException("Another response was already queued");
+        }
+
+        responseRef.set(response);
+    }
+
+    @Override
+    public Optional<SecurityResponse> getQueuedResponse() {
+        return Optional.ofNullable(responseRef.get());
+    }
+
+    @Override
+    public boolean sendResponse() {
+        if (underlyingChannel == null) {
+            throw new UnsupportedOperationException("Channel was not defined");
+        }
+
+        if (hasCompleted.get()) {
+            throw new UnsupportedOperationException("This channel has already completed");
+        }
+
+        if (getQueuedResponse().isEmpty()) {
+            throw new UnsupportedOperationException("No response has been associated with this channel");
+        }
+
+        final SecurityResponse response = responseRef.get();
 
         try {
             final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(response.getStatus()), response.getBody());
             if (response.getHeaders() != null) {
                 response.getHeaders().forEach(restResponse::addHeader);
             }
-            this.capturedResponse = restResponse;
+            underlyingChannel.sendResponse(restResponse);
 
             return true;
         } catch (final Exception e) {
-            log.error("Error when attempting to capture response", e);
+            log.error("Error when attempting to send response", e);
             throw new RuntimeException(e);
         } finally {
             hasCompleted.set(true);
-        }
-    }
-
-    @Override
-    public void sendResponseToChannel(RestChannel channel) {
-
-        if (channel == null) {
-            throw new UnsupportedOperationException("Channel was not defined");
-        }
-
-        if (!hasResponse()) {
-            throw new UnsupportedOperationException("A response has not previously been captured");
-        }
-
-        try {
-            channel.sendResponse(this.capturedResponse);
-        } catch (final Exception e) {
-            log.error("Error when attempting to send response", e);
-            throw new RuntimeException(e);
         }
     }
 }

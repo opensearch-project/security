@@ -11,15 +11,14 @@
 
 package org.opensearch.security.securityconf.impl;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.core.rest.RestStatus;
+import org.apache.http.HttpStatus;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 
 public class WhitelistingSettings extends AllowlistingSettings {
     private boolean enabled;
@@ -74,7 +73,7 @@ public class WhitelistingSettings extends AllowlistingSettings {
      *      GET /_cluster/settings  - OK
      *      GET /_cluster/settings/ - OK
      */
-    private boolean requestIsWhitelisted(RestRequest request) {
+    private boolean requestIsWhitelisted(final SecurityRequest request) {
 
         // ALSO ALLOWS REQUEST TO HAVE TRAILING '/'
         // pathWithoutTrailingSlash stores the endpoint path without extra '/'. eg: /_cat/nodes
@@ -107,21 +106,17 @@ public class WhitelistingSettings extends AllowlistingSettings {
      * Currently, each resource_name has to be whitelisted separately
      */
     @Override
-    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel) throws IOException {
+    public Optional<SecurityResponse> checkRequestIsAllowed(final SecurityRequest request) {
         // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
         if (this.enabled && !requestIsWhitelisted(request)) {
-            channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.FORBIDDEN,
-                    channel.newErrorBuilder()
-                        .startObject()
-                        .field("error", request.method() + " " + request.path() + " API not whitelisted")
-                        .field("status", RestStatus.FORBIDDEN)
-                        .endObject()
-                )
+            return Optional.of(
+                new SecurityResponse(HttpStatus.SC_FORBIDDEN, SecurityResponse.CONTENT_TYPE_APP_JSON, generateFailureMessage(request))
             );
-            return false;
         }
-        return true;
+        return Optional.empty();
+    }
+
+    protected String getVerb() {
+        return "whitelisted";
     }
 }

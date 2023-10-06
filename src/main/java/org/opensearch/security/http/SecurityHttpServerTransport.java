@@ -34,6 +34,7 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestResponse;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -45,7 +46,7 @@ import org.opensearch.transport.SharedGroupFactory;
 
 public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTransport {
 
-    public static final AttributeKey<RestResponse> EARLY_RESPONSE = AttributeKey.newInstance("opensearch-http-early-response");
+    public static final AttributeKey<SecurityResponse> EARLY_RESPONSE = AttributeKey.newInstance("opensearch-http-early-response");
     public static final AttributeKey<ThreadContext.StoredContext> CONTEXT_TO_RESTORE = AttributeKey.newInstance(
         "opensearch-http-request-thread-context"
     );

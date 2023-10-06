@@ -157,12 +157,12 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         }
     }
 
-    @Override
+    // @Override
     protected ChannelInboundHandlerAdapter createHeaderVerifier() {
         return new Netty4HttpRequestHeaderVerifier(restFilter, namedXContentRegistry, threadPool, handlingSettings, settings);
     }
 
-    @Override
+    // @Override
     protected ChannelInboundHandlerAdapter createDecompressor() {
         return new Netty4ConditionalDecompressor();
     }

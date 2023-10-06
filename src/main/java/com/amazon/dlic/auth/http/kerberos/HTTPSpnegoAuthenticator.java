@@ -289,7 +289,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         final String negotiateResponseBody = getNegotiateResponseBody();
         if (negotiateResponseBody != null) {
             responseBody = negotiateResponseBody;
-            headers.put("Content-Type", "application/json");
+            headers.putAll(SecurityResponse.CONTENT_TYPE_APP_JSON);
         }
 
         if (creds == null || creds.getNativeCredentials() == null) {

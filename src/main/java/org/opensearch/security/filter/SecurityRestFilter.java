@@ -35,7 +35,6 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
-import io.netty.channel.Channel;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,11 +43,9 @@ import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.rest.RestResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -69,7 +66,6 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
-import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
@@ -134,37 +130,31 @@ public class SecurityRestFilter {
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
-            if (request.getHttpChannel() instanceof Netty4HttpChannel) {
-                Channel nettyChannel = ((Netty4HttpChannel) request.getHttpChannel()).getNettyChannel();
-                final RestResponse earlyResponse = nettyChannel.attr(EARLY_RESPONSE).get();
-                final ThreadContext.StoredContext storedContext = nettyChannel.attr(CONTEXT_TO_RESTORE).get();
-                nettyChannel.attr(CONTEXT_TO_RESTORE).set(null);
-                nettyChannel.attr(EARLY_RESPONSE).set(null);
 
-                if (earlyResponse != null) {
-                    channel.sendResponse(earlyResponse);
-                    return;
-                }
-
-                if (storedContext != null) {
-                    // TODO find a more generic way of restoring headers added in the RestController
-                    // Relates to TaskTests.testXOpaqueIdHeader
-                    // https://github.com/opensearch-project/OpenSearch/blob/main/server/src/main/java/org/opensearch/rest/RestController.java#L360-L378
-                    String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
-                    storedContext.restore();
-                    threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
-                }
+            final Optional<SecurityResponse> maybeSavedResponse = NettyAttribute.popFrom(request, EARLY_RESPONSE);
+            if (maybeSavedResponse.isPresent()) {
+                log.info("Found saved response for this request");
+                channel.sendResponse(maybeSavedResponse.get().asRestResponse());
+                return;
             }
 
-            org.apache.logging.log4j.ThreadContext.clearAll();
-            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request);
-            if (request.uri().endsWith(API_AUTHTOKEN_SUFFIX)) {
-                checkAndAuthenticateRequest(requestChannel);
-                if (requestChannel.hasResponse()) {
-                    // Unable to authenticate the caller
-                    requestChannel.sendResponseToChannel(channel);
-                    return;
-                }
+            NettyAttribute.popFrom(request, CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
+                // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
+                final String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
+                storedContext.restore();
+                threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+            });
+
+            final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
+
+            // TODO: Not sure what this was doing here
+            //org.apache.logging.log4j.ThreadContext.clearAll();
+
+            // Authenticate request
+            checkAndAuthenticateRequest(requestChannel);
+            if (requestChannel.getQueuedResponse().isPresent()) {
+                requestChannel.sendResponse();
+                return;
             }
 
             // Authorize Request
@@ -175,15 +165,18 @@ public class SecurityRestFilter {
                 return;
             }
 
-            if (!(whitelistingSettings.checkRequestIsAllowed(request, channel)
-                && allowlistingSettings.checkRequestIsAllowed(request, channel))) {
-                // Request is not allowed
+            final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel)
+                .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
+
+            if (deniedResponse.isPresent()) {
+                requestChannel.queueForSending(deniedResponse.orElseThrow());
+                requestChannel.sendResponse();
                 return;
             }
 
             authorizeRequest(original, requestChannel, user);
-            if (requestChannel.hasResponse()) {
-                requestChannel.sendResponseToChannel(channel);
+            if (requestChannel.getQueuedResponse().isPresent()) {
+                requestChannel.sendResponse();
                 return;
             }
 
@@ -199,7 +192,7 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
+    private void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
             .filter(rh -> rh.getMethod().equals(request.method()))
@@ -237,7 +230,7 @@ public class SecurityRestFilter {
                 }
                 log.debug(err);
 
-                request.captureResponse(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
+                request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
                 return;
             }
         }
@@ -251,7 +244,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.captureResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -260,7 +253,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.captureResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -280,7 +273,7 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
-            requestChannel.captureResponse(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
             return;
         }
 
