@@ -403,7 +403,7 @@ public class TestRestClient implements AutoCloseable {
             try {
                 return toJsonNode().at(jsonPointer);
             } catch (IOException e) {
-                throw new IllegalArgumentException("Cound not convert response body to JSON node ", e);
+                throw new IllegalArgumentException("Cound not convert response body to JSON node '" + getBody() + "'", e);
             }
         }
 
