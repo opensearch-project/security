@@ -1,0 +1,32 @@
+name: automatic-merges
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - Plugin Install
+      - Code Hygiene
+    types: completed
+
+jobs:
+  automatic-merge-version-bumps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: find-triggering-pr
+        uses: peternied/find-triggering-pr@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: peternied/discerning-merger@v1
+        if: steps.find-triggering-pr.outputs.pr-number != null
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.find-triggering-pr.outputs.pr-number }}
+          allowed-authors: |
+            dependabot[bot]
+            opensearch-trigger-bot[bot]
+          allowed-files: |
+            build.gradle
+            .github/workflows/*.yml
