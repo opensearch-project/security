@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -41,9 +42,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -57,7 +58,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request, final ThreadContext threadContext) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext) {
 
         final String principal = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
@@ -98,8 +99,8 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
-        return null;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest response, AuthCredentials creds) {
+        return Optional.empty();
     }
 
     @Override
