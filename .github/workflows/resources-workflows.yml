@@ -33,4 +33,4 @@ jobs:
       with:
         cache-disabled: true
         arguments: |
-            integrationTest -Dbuild.snapshot=false
+            integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
