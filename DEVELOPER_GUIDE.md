@@ -155,7 +155,7 @@ extension_hw_greet:
 
 ### Initializing admin user with custom password
 
-From 2.11, users can set a custom admin password while running the demo setup. You can do this with one of the following 2 options: 
+A password is required for the admin account to run the demo setup. You can do this with one of the following 2 options:
 1. By setting an environment variable. `export initialAdminPassword=<custom-admin-password>`
 2. By adding a single line as password in a file `initialAdminPassword.txt` under `$OPENSEARCH_HOME/config` directory.
 
@@ -176,13 +176,13 @@ To install the demo certificates and default configuration, answer `y` to the fi
 **************************************************************************
 OpenSearch Security Demo Installer
  ** Warning: Do not use on production or public reachable systems **
-Basedir: /Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT
+Basedir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT
 OpenSearch install type: .tar.gz on
-OpenSearch config dir: /Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/config
-OpenSearch config file: /Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/config/opensearch.yml
-OpenSearch bin dir: /Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/bin
-OpenSearch plugins dir: /Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/plugins
-OpenSearch lib dir: /Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/lib
+OpenSearch config dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config
+OpenSearch config file: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/opensearch.yml
+OpenSearch bin dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/bin
+OpenSearch plugins dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/plugins
+OpenSearch lib dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/lib
 Detected OpenSearch Version: x-content-3.0.0-SNAPSHOT
 Detected OpenSearch Security Version: 3.0.0.0-SNAPSHOT
 
@@ -198,7 +198,7 @@ Detected OpenSearch Security Version: 3.0.0.0-SNAPSHOT
 ### OpenSearch Security will be automatically initialized.
 ### If you like to change the runtime configuration
 ### change the files in ../../../config/opensearch-security and execute:
-"/Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/config/opensearch-security" -icl -key "/Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/config/kirk-key.pem" -cert "/Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/config/kirk.pem" -cacert "/Users/dchanp/Documents/amazon/testing-playground/test/binaries/opensearch-3.0.0-SNAPSHOT/config/root-ca.pem" -nhnv
+"/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/opensearch-security" -icl -key "/Users/XXXXX/config/kirk-key.pem" -cert "/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/kirk.pem" -cacert "/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/root-ca.pem" -nhnv
 ### or run ./securityadmin_demo.sh
 ### To use the Security Plugin ConfigurationGUI
 ### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.
