@@ -191,7 +191,7 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    private void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
+    void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
             .filter(rh -> rh.getMethod().equals(request.method()))
