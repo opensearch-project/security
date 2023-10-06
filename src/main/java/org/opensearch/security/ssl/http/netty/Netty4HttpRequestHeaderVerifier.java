@@ -16,10 +16,8 @@ import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 
 import io.netty.channel.ChannelHandlerContext;
-import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
@@ -51,13 +49,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
     private final boolean injectUserEnabled;
     private final boolean passthrough;
 
-    public Netty4HttpRequestHeaderVerifier(
-        SecurityRestFilter restFilter,
-        NamedXContentRegistry xContentRegistry,
-        ThreadPool threadPool,
-        HttpHandlingSettings handlingSettings,
-        Settings settings
-    ) {
+    public Netty4HttpRequestHeaderVerifier(SecurityRestFilter restFilter, ThreadPool threadPool, Settings settings) {
         this.restFilter = restFilter;
         this.threadPool = threadPool;
 

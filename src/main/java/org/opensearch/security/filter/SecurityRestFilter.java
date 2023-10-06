@@ -134,7 +134,8 @@ public class SecurityRestFilter {
 
             final Optional<SecurityResponse> maybeSavedResponse = NettyAttribute.popFrom(request, EARLY_RESPONSE);
             if (maybeSavedResponse.isPresent()) {
-                log.info("Found saved response for this request");
+                NettyAttribute.clearAttribute(request, CONTEXT_TO_RESTORE);
+                NettyAttribute.clearAttribute(request, IS_AUTHENTICATED);
                 channel.sendResponse(maybeSavedResponse.get().asRestResponse());
                 return;
             }

@@ -36,4 +36,14 @@ public class NettyAttribute {
         return Optional.ofNullable(ctx.channel().attr(attribute).get());
     }
 
+    /**
+     * Clears an attribute value from the channel handler context
+     */
+    public static <T> void clearAttribute(final RestRequest request, final AttributeKey<T> attribute) {
+        if (request.getHttpChannel() instanceof Netty4HttpChannel) {
+            Channel nettyChannel = ((Netty4HttpChannel) request.getHttpChannel()).getNettyChannel();
+            nettyChannel.attr(attribute).set(null);
+        }
+    }
+
 }
