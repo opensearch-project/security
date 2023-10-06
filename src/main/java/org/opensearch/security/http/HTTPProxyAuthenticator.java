@@ -27,6 +27,7 @@
 package org.opensearch.security.http;
 
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Predicates;
@@ -37,9 +38,9 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
@@ -56,7 +57,7 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) {
 
         if (context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) != Boolean.TRUE) {
             throw new OpenSearchSecurityException("xff not done");
@@ -89,8 +90,8 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
-        return null;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest response, AuthCredentials creds) {
+        return Optional.empty();
     }
 
     @Override

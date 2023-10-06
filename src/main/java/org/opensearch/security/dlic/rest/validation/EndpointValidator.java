@@ -113,6 +113,7 @@ public interface EndpointValidator {
         final var configuration = securityConfiguration.configuration();
         final var entityName = securityConfiguration.entityName();
         if (configuration.isStatic(entityName)) {
+
             return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Resource '" + entityName + "' is static."));
         }
         return ValidationResult.success(securityConfiguration);
@@ -131,6 +132,7 @@ public interface EndpointValidator {
         final var configuration = securityConfiguration.configuration();
         final var entityName = securityConfiguration.entityName();
         if (configuration.isHidden(entityName)) {
+
             return ValidationResult.error(RestStatus.NOT_FOUND, notFoundMessage("Resource '" + entityName + "' is not available."));
         }
         return ValidationResult.success(securityConfiguration);
@@ -158,6 +160,7 @@ public interface EndpointValidator {
             final var configuration = securityConfiguration.configuration();
             final var existingEntity = configuration.getCEntry(securityConfiguration.entityName());
             if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(existingEntity)) {
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         } else {
@@ -167,6 +170,7 @@ public interface EndpointValidator {
                 configuration.getImplementingClass()
             );
             if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(configEntityContent)) {
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         }
