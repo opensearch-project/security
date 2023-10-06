@@ -397,8 +397,11 @@ if [[ -n "$initialAdminPassword" ]]; then
 elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
   ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
 else
-  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
-  exit 1
+#  Commenting in favor of: https://github.com/opensearch-project/security/issues/3489
+#  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
+#  exit 1
+  ADMIN_PASSWORD="admin"
+  echo "Unable to find custom admin password. Continuing with the default password for admin."
 fi
 
 echo "   ***************************************************"
