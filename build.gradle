@@ -460,7 +460,7 @@ sourceSets {
 //add new task that runs integration tests
 task integrationTest(type: Test) {
     doFirst {
-        // Only run resources tests on resource-test CI environments or locally 
+        // Only run resources tests on resource-test CI environments or locally
         if (System.getenv('CI_ENVIRONMENT') == 'resource-test' || System.getenv('CI_ENVIRONMENT') == null) {
             include '**/ResourceFocusedTests.class'
         } else {

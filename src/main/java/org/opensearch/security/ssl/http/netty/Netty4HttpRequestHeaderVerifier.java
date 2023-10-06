@@ -12,7 +12,6 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.util.concurrent.ThreadContext;
