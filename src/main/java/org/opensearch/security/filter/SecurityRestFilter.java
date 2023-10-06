@@ -63,10 +63,14 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
+import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
+import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
+import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
 
 public class SecurityRestFilter {
 
@@ -83,11 +87,11 @@ public class SecurityRestFilter {
     private WhitelistingSettings whitelistingSettings;
     private AllowlistingSettings allowlistingSettings;
 
-    private static final String HEALTH_SUFFIX = "health";
-    private static final String WHO_AM_I_SUFFIX = "whoami";
+    public static final String HEALTH_SUFFIX = "health";
+    public static final String WHO_AM_I_SUFFIX = "whoami";
 
-    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
-    private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
+    public static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
+    public static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
     public SecurityRestFilter(
         final BackendRegistry registry,
@@ -127,13 +131,33 @@ public class SecurityRestFilter {
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
-            org.apache.logging.log4j.ThreadContext.clearAll();
+
+            final Optional<SecurityResponse> maybeSavedResponse = NettyAttribute.popFrom(request, EARLY_RESPONSE);
+            if (maybeSavedResponse.isPresent()) {
+                NettyAttribute.clearAttribute(request, CONTEXT_TO_RESTORE);
+                NettyAttribute.clearAttribute(request, IS_AUTHENTICATED);
+                channel.sendResponse(maybeSavedResponse.get().asRestResponse());
+                return;
+            }
+
+            NettyAttribute.popFrom(request, CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
+                // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
+                final String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
+                storedContext.restore();
+                if (xOpaqueId != null) {
+                    threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+                }
+            });
+
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
 
             // Authenticate request
-            checkAndAuthenticateRequest(requestChannel);
+            if (!NettyAttribute.popFrom(request, IS_AUTHENTICATED).orElse(false)) {
+                // we aren't authenticated so we should skip this step
+                checkAndAuthenticateRequest(requestChannel);
+            }
             if (requestChannel.getQueuedResponse().isPresent()) {
-                requestChannel.sendResponse();
+                channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
                 return;
             }
 
@@ -149,14 +173,13 @@ public class SecurityRestFilter {
                 .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
 
             if (deniedResponse.isPresent()) {
-                requestChannel.queueForSending(deniedResponse.orElseThrow());
-                requestChannel.sendResponse();
+                channel.sendResponse(deniedResponse.get().asRestResponse());
                 return;
             }
 
             authorizeRequest(original, requestChannel, user);
             if (requestChannel.getQueuedResponse().isPresent()) {
-                requestChannel.sendResponse();
+                channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
                 return;
             }
 
@@ -168,11 +191,11 @@ public class SecurityRestFilter {
     /**
      * Checks if a given user is a SuperAdmin
      */
-    private boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
+    boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    private void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
+    void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
             .filter(rh -> rh.getMethod().equals(request.method()))

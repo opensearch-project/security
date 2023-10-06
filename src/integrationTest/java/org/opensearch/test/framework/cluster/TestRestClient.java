@@ -275,7 +275,7 @@ public class TestRestClient implements AutoCloseable {
         response.assertStatusCode(201);
     }
 
-    protected final String getHttpServerUri() {
+    public final String getHttpServerUri() {
         return "http" + (enableHTTPClientSSL ? "s" : "") + "://" + nodeHttpAddress.getHostString() + ":" + nodeHttpAddress.getPort();
     }
 
