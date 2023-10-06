@@ -46,7 +46,9 @@ public class SecurityResponse {
 
     public RestResponse asRestResponse() {
         final RestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(getStatus()), getBody());
-        getHeaders().forEach(restResponse::addHeader);
+        if (getHeaders() != null) {
+            getHeaders().forEach(restResponse::addHeader);
+        }
         return restResponse;
     }
 

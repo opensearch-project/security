@@ -26,10 +26,7 @@ import org.opensearch.rest.RestResponse;
 
 public class OpenSearchRequestChannel extends OpenSearchRequest implements SecurityRequestChannel {
 
-    private final Logger log = LogManager.getLogger(OpenSearchRequest.class);
-
     private final AtomicReference<SecurityResponse> responseRef = new AtomicReference<SecurityResponse>(null);
-    private final AtomicBoolean hasCompleted = new AtomicBoolean(false);
     private final RestChannel underlyingChannel;
 
     OpenSearchRequestChannel(final RestRequest request, final RestChannel channel) {
@@ -48,10 +45,6 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
             throw new UnsupportedOperationException("Channel was not defined");
         }
 
-        if (hasCompleted.get()) {
-            throw new UnsupportedOperationException("This channel has already completed");
-        }
-
         if (getQueuedResponse().isPresent()) {
             throw new UnsupportedOperationException("Another response was already queued");
         }
@@ -62,37 +55,5 @@ public class OpenSearchRequestChannel extends OpenSearchRequest implements Secur
     @Override
     public Optional<SecurityResponse> getQueuedResponse() {
         return Optional.ofNullable(responseRef.get());
-    }
-
-    @Override
-    public boolean sendResponse() {
-        if (underlyingChannel == null) {
-            throw new UnsupportedOperationException("Channel was not defined");
-        }
-
-        if (hasCompleted.get()) {
-            throw new UnsupportedOperationException("This channel has already completed");
-        }
-
-        if (getQueuedResponse().isEmpty()) {
-            throw new UnsupportedOperationException("No response has been associated with this channel");
-        }
-
-        final SecurityResponse response = responseRef.get();
-
-        try {
-            final BytesRestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(response.getStatus()), response.getBody());
-            if (response.getHeaders() != null) {
-                response.getHeaders().forEach(restResponse::addHeader);
-            }
-            underlyingChannel.sendResponse(restResponse);
-
-            return true;
-        } catch (final Exception e) {
-            log.error("Error when attempting to send response", e);
-            throw new RuntimeException(e);
-        } finally {
-            hasCompleted.set(true);
-        }
     }
 }

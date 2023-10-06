@@ -93,12 +93,14 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         }
     }
 
-    @Override
+    // TODO: GET PROPER MAVEN BUILD
+    // @Override
     protected ChannelInboundHandlerAdapter createHeaderVerifier() {
         return new Netty4HttpRequestHeaderVerifier(restFilter, namedXContentRegistry, threadPool, handlingSettings, settings);
     }
 
-    @Override
+    // TODO: GET PROPER MAVEN BUILD
+    // @Override
     protected ChannelInboundHandlerAdapter createDecompressor() {
         return new Netty4ConditionalDecompressor();
     }

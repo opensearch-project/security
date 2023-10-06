@@ -12,6 +12,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -23,6 +24,7 @@ import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.filter.NettyAttribute;
 import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
@@ -87,7 +89,9 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.FALSE);
 
 
-        final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
+        // TODO: GET PROPER MAVEN BUILD
+//        final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
+        final Netty4HttpChannel httpChannel = ctx.channel().attr(AttributeKey.<Netty4HttpChannel>newInstance("opensearch-http-channel")).get();
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(msg.uri());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
@@ -120,6 +124,8 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         } catch (final OpenSearchSecurityException e) {
             final SecurityResponse earlyResponse = new SecurityResponse(ExceptionsHelper.status(e).getStatus(), null, e.getMessage());
             ctx.channel().attr(EARLY_RESPONSE).set(earlyResponse);
+        } catch (final SecurityRequestChannelUnsupported srcu) {
+            // TODO: Move handling for ACS Endpoint here?
         } finally {
             ctx.fireChannelRead(msg);
         }

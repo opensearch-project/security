@@ -153,7 +153,7 @@ public class SecurityRestFilter {
             // Authenticate request
             checkAndAuthenticateRequest(requestChannel);
             if (requestChannel.getQueuedResponse().isPresent()) {
-                requestChannel.sendResponse();
+                channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
                 return;
             }
 
@@ -169,14 +169,13 @@ public class SecurityRestFilter {
                 .or(() -> allowlistingSettings.checkRequestIsAllowed(requestChannel));
 
             if (deniedResponse.isPresent()) {
-                requestChannel.queueForSending(deniedResponse.orElseThrow());
-                requestChannel.sendResponse();
+                channel.sendResponse(deniedResponse.get().asRestResponse());
                 return;
             }
 
             authorizeRequest(original, requestChannel, user);
             if (requestChannel.getQueuedResponse().isPresent()) {
-                requestChannel.sendResponse();
+                channel.sendResponse(requestChannel.getQueuedResponse().get().asRestResponse());
                 return;
             }
 

@@ -51,10 +51,4 @@ public class NettyRequestChannel extends NettyRequest implements SecurityRequest
     public Optional<SecurityResponse> getQueuedResponse() {
         return Optional.ofNullable(responseRef.get());
     }
-
-    @Override
-    public boolean sendResponse() {
-        // Do not allow a response to be sent directly to the netty channel
-        return false;
-    }
 }

@@ -11,8 +11,6 @@
 
 package org.opensearch.security.filter;
 
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestResponse;
 import java.util.Optional;
 
 /**
@@ -25,7 +23,4 @@ public interface SecurityRequestChannel extends SecurityRequest {
 
     /** Acess the queued response */
     public Optional<SecurityResponse> getQueuedResponse();
-
-    /** Send the response through the channel */
-    public boolean sendResponse();
 }
