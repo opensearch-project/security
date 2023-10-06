@@ -1,29 +1,7 @@
 package org.opensearch.security;
 
-import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
-import org.apache.hc.core5.http.message.BasicHeader;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.client.Client;
-import org.opensearch.test.framework.TestSecurityConfig;
-import org.opensearch.test.framework.TestSecurityConfig.User;
-import org.opensearch.test.framework.cluster.ClusterManager;
-import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.TestRestClient;
-import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
-
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-
-import java.util.zip.GZIPOutputStream;
-
+import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 import java.io.ByteArrayOutputStream;
@@ -37,12 +15,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.zip.GZIPOutputStream;
 
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
-import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.HttpHeaders;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.client.Client;
+import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.TestSecurityConfig.User;
+import org.opensearch.test.framework.cluster.ClusterManager;
+import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
+
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -82,22 +78,57 @@ public class ResourceFocusedTests {
     }
 
     @Test
-    public void testUnauthenticated() {
-        final byte[] compressedRequestBody = createCompressedRequestBody();
+    public void testUnauthenticatedFewBig() {
+        // Tweaks:
+        final RequestBodySize size = RequestBodySize.XLarge;
+        final String requestPath = "/*/_search";
+        final int parrallelism = 5;
+        final int totalNumberOfRequests = 100;
+        final boolean statsPrinter = false;
+
+        runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests, statsPrinter);
+    }
+
+    @Test
+    public void testUnauthenticatedManyMedium() {
+        // Tweaks:
+        final RequestBodySize size = RequestBodySize.Medium;
+        final String requestPath = "/*/_search";
+        final int parrallelism = 20;
+        final int totalNumberOfRequests = 10_000;
+        final boolean statsPrinter = false;
+
+        runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests, statsPrinter);
+    }
+
+    @Test
+    public void testUnauthenticatedTonsSmall() {
+        // Tweaks:
+        final RequestBodySize size = RequestBodySize.Small;
+        final String requestPath = "/*/_search";
+        final int parrallelism = 100;
+        final int totalNumberOfRequests = 1_000_000;
+        final boolean statsPrinter = false;
+
+        runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests, statsPrinter);
+    }
+
+    private Long runResourceTest(final RequestBodySize size, final String requestPath, final int parrallelism, final int totalNumberOfRequests, final boolean statsPrinter) {
+        final byte[] compressedRequestBody = createCompressedRequestBody(size);
         try (final TestRestClient client = cluster.getRestClient(new BasicHeader("Content-Encoding", "gzip"))) {
 
-            printStats();
-            final HttpPost post = new HttpPost(client.getHttpServerUri() + "/*/_search");
+            if (statsPrinter) { printStats(); }
+            final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
             post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
 
-            final ForkJoinPool forkJoinPool = new ForkJoinPool(5);
+            final ForkJoinPool forkJoinPool = new ForkJoinPool(parrallelism);
 
-            final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(0, 100).boxed().map( i ->
+            final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests).boxed().map( i ->
                 CompletableFuture.runAsync(() -> client.executeRequest(post), forkJoinPool)
             ).collect(Collectors.toList());
             Supplier<Long> getCount = () -> waitingOn.stream().filter(cf -> cf.isDone() && !cf.isCompletedExceptionally()).count();
 
-            CompletableFuture<Void> statPrinter = CompletableFuture.runAsync(() -> {
+            CompletableFuture<Void> statPrinter = statsPrinter ? CompletableFuture.runAsync(() -> {
                 while (true) {
                     printStats();
                     System.out.println(" & Succesful completions: " + getCount.get());
@@ -107,25 +138,38 @@ public class ResourceFocusedTests {
                         break;
                     }
                 }
-            }, forkJoinPool);
+            }, forkJoinPool) : CompletableFuture.completedFuture(null);
 
 
             final CompletableFuture<Void> allOfThem = CompletableFuture.allOf(waitingOn.toArray(new CompletableFuture[0]));
 
             try {
-                allOfThem.join();
+                allOfThem.get(30, TimeUnit.SECONDS);
                 statPrinter.cancel(true);
             } catch (final Exception e) {
                 // Ignored
             }
 
-            printStats();
-            System.out.println(" & Succesful completions: " + getCount.get());
+            if (statsPrinter) {
+                printStats();
+                System.out.println(" & Succesful completions: " + getCount.get());
+            }
+            return getCount.get();
         }
     }
 
-    private byte[] createCompressedRequestBody() {
-        final int repeatCount = 5000000;
+    static enum RequestBodySize {
+        Small(1),
+        Medium(1_000),
+        XLarge(1_000_000);
+        public final int elementCount;
+        private RequestBodySize(final int elementCount) {
+            this.elementCount = elementCount;
+        }
+    }
+
+    private byte[] createCompressedRequestBody(final RequestBodySize size) {
+        final int repeatCount = size.elementCount;
         final String prefix = "{ \"items\": [";
         final String repeatedElement = IntStream.range(0, 20)
             .mapToObj(n -> ('a' + n)+"")

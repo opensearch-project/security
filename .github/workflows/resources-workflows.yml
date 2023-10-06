@@ -1,0 +1,36 @@
+name: Resource-Tests
+
+on:
+  push:
+  pull_request:
+
+env:
+  GRADLE_OPTS: -Dhttp.keepAlive=false
+
+jobs:
+  integration-tests:
+    name: integration-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [17]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v4
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
+      with:
+        cache-disabled: true
+        arguments: |
+            integrationTest -Dbuild.snapshot=false
