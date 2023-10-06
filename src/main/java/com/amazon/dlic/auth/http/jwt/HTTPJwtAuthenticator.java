@@ -15,6 +15,8 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
+
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.Key;
@@ -25,22 +27,22 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
-import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.Logger;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
 
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 import io.jsonwebtoken.Claims;
@@ -106,8 +108,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
 
         jwtUrlParameter = settings.get("jwt_url_parameter");
-        jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
-        isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
+        jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
+        isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         jwtParser = _jwtParser;
@@ -115,7 +117,9 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
 
     @Override
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    @SuppressWarnings("removal")
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+        throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -132,7 +136,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final RestRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
@@ -143,11 +147,11 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             jwtToken = null;
         }
 
-        if((jwtToken == null || jwtToken.isEmpty()) && jwtUrlParameter != null) {
-            jwtToken = request.param(jwtUrlParameter);
+        if ((jwtToken == null || jwtToken.isEmpty()) && jwtUrlParameter != null) {
+            jwtToken = request.params().get(jwtUrlParameter);
         } else {
-            //just consume to avoid "contains unrecognized parameter"
-            request.param(jwtUrlParameter);
+            // just consume to avoid "contains unrecognized parameter"
+            request.params().get(jwtUrlParameter);
         }
 
         if (jwtToken == null || jwtToken.length() == 0) {
@@ -198,11 +202,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED,"");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest channel, AuthCredentials creds) {
+        return Optional.of(
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+        );
     }
 
     @Override
@@ -210,7 +213,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return "jwt";
     }
 
-    protected String extractSubject(final Claims claims, final RestRequest request) {
+    protected String extractSubject(final Claims claims, final SecurityRequest request) {
         String subject = claims.getSubject();
         if(subjectKey != null) {
     		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
@@ -229,17 +232,20 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(final Claims claims, final RestRequest request) {
-    	// no roles key specified
-    	if(rolesKey == null) {
-    		return new String[0];
-    	}
-		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
-    	final Object rolesObject = claims.get(rolesKey, Object.class);
-    	if(rolesObject == null) {
-    		log.warn("Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.", rolesKey);
-    		return new String[0];
-    	}
+    protected String[] extractRoles(final Claims claims, final SecurityRequest request) {
+        // no roles key specified
+        if (rolesKey == null) {
+            return new String[0];
+        }
+        // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
+        final Object rolesObject = claims.get(rolesKey, Object.class);
+        if (rolesObject == null) {
+            log.warn(
+                "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
+                rolesKey
+            );
+            return new String[0];
+        }
 
     	String[] roles = String.valueOf(rolesObject).split(",");
 

@@ -15,12 +15,19 @@
 
 package com.amazon.dlic.auth.http.saml;
 
+import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivateKey;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import com.google.common.annotations.VisibleForTesting;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
@@ -32,10 +39,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
@@ -58,15 +62,17 @@ import com.onelogin.saml2.util.Util;
 
 import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import net.shibboleth.utilities.java.support.component.DestructableComponent;
+import org.apache.http.HttpStatus;
 import org.opensaml.saml.metadata.resolver.impl.AbstractMetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.DOMMetadataResolver;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
+import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.filter.OpenSearchRequest;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
@@ -152,18 +158,18 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public AuthCredentials extractCredentials(RestRequest restRequest, ThreadContext threadContext)
-            throws OpenSearchSecurityException {
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext threadContext)
+        throws OpenSearchSecurityException {
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             return null;
         }
 
-        AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(restRequest, threadContext);
+        AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(request, threadContext);
 
         if (AUTHINFO_SUFFIX.equals(suffix)) {
-            this.initLogoutUrl(restRequest, threadContext, authCredentials);
+            this.initLogoutUrl(threadContext, authCredentials);
         }
 
         return authCredentials;
@@ -175,27 +181,32 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     }
 
     @Override
-    public boolean reRequestAuthentication(RestChannel restChannel, AuthCredentials authCredentials) {
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, final AuthCredentials authCredentials) {
         try {
-            RestRequest restRequest = restChannel.request();
-            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
             final String suffix = matcher.matches() ? matcher.group(2) : null;
-            if (API_AUTHTOKEN_SUFFIX.equals(suffix)
-                    && this.authTokenProcessorHandler.handle(restRequest, restChannel)){
-                return true;
+
+            if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+                // Verficiation of SAML ASC endpoint only works with RestRequests
+                if (!(request instanceof OpenSearchRequest)) {
+                    throw new SecurityRequestChannelUnsupported();
+                } else {
+                    final OpenSearchRequest openSearchRequest = (OpenSearchRequest) request;
+                    final RestRequest restRequest = openSearchRequest.breakEncapsulationForRequest();
+                    Optional<SecurityResponse> restResponse = this.authTokenProcessorHandler.handle(restRequest);
+                    if (restResponse.isPresent()) {
+                        return restResponse;
+                    }
+                }
             }
 
-            Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
-            BytesRestResponse authenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-
-            authenticateResponse.addHeader("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings));
-
-            restChannel.sendResponse(authenticateResponse);
-
-            return true;
+            final Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
+            return Optional.of(
+                new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "")
+            );
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
-            return false;
+            return Optional.empty();
         }
     }
 
@@ -395,7 +406,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     }
 
-    private void initLogoutUrl(RestRequest restRequest, ThreadContext threadContext, AuthCredentials authCredentials) {
+    private void initLogoutUrl(ThreadContext threadContext, AuthCredentials authCredentials) {
         threadContext.putTransient(ConfigConstants.SSO_LOGOUT_URL, buildLogoutUrl(authCredentials));
     }
 

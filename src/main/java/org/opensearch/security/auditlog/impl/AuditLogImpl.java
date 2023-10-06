@@ -34,8 +34,8 @@ import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.shard.ShardId;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
@@ -128,47 +128,33 @@ public final class AuditLogImpl extends AbstractAuditLog {
 		}
 	}
 
-	@Override
-	public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, TransportRequest request, Task task) {
-		if (enabled) {
-			super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request, task);
-		}
-	}
+    @Override
+    public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, SecurityRequest request) {
+        if (enabled) {
+            super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request);
+        }
+    }
 
-	@Override
-	public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, RestRequest request) {
-		if (enabled) {
-			super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request);
-		}
-	}
+    @Override
+    public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, SecurityRequest request) {
+        if (enabled) {
+            super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request);
+        }
+    }
 
-	@Override
-	public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, TransportRequest request, String action, Task task) {
-		if (enabled) {
-			super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request, action, task);
-		}
-	}
+    @Override
+    public void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request) {
+        if (enabled) {
+            super.logMissingPrivileges(privilege, effectiveUser, request);
+        }
+    }
 
-	@Override
-	public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, RestRequest request) {
-		if (enabled) {
-			super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request);
-		}
-	}
-
-	@Override
-	public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
-		if (enabled) {
-			super.logMissingPrivileges(privilege, effectiveUser, request);
-		}
-	}
-
-	@Override
-	public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
-		if (enabled) {
-			super.logGrantedPrivileges(effectiveUser, request);
-		}
-	}
+    @Override
+    public void logGrantedPrivileges(String effectiveUser, SecurityRequest request) {
+        if (enabled) {
+            super.logGrantedPrivileges(effectiveUser, request);
+        }
+    }
 
 	@Override
 	public void logMissingPrivileges(String privilege, TransportRequest request, Task task) {
@@ -184,12 +170,12 @@ public final class AuditLogImpl extends AbstractAuditLog {
 		}
 	}
 
-	@Override
-	public void logIndexEvent(String privilege, TransportRequest request, Task task) {
-		if (enabled) {
-			super.logIndexEvent(privilege, request, task);
-		}
-	}
+    @Override
+    public void logBadHeaders(SecurityRequest request) {
+        if (enabled) {
+            super.logBadHeaders(request);
+        }
+    }
 
 	@Override
 	public void logBadHeaders(TransportRequest request, String action, Task task) {
@@ -198,31 +184,17 @@ public final class AuditLogImpl extends AbstractAuditLog {
 		}
 	}
 
-	@Override
-	public void logBadHeaders(RestRequest request) {
-		if (enabled) {
-			super.logBadHeaders(request);
-		}
-	}
-
-	@Override
-	public void logSecurityIndexAttempt (TransportRequest request, String action, Task task) {
-		if (enabled) {
-			super.logSecurityIndexAttempt(request, action, task);
-		}
-	}
+    @Override
+    public void logSSLException(SecurityRequest request, Throwable t) {
+        if (enabled) {
+            super.logSSLException(request, t);
+        }
+    }
 
 	@Override
 	public void logSSLException(TransportRequest request, Throwable t, String action, Task task) {
 		if (enabled) {
 			super.logSSLException(request, t, action, task);
-		}
-	}
-
-	@Override
-	public void logSSLException(RestRequest request, Throwable t) {
-		if (enabled) {
-			super.logSSLException(request, t);
 		}
 	}
 

@@ -221,12 +221,11 @@ public class DisabledCategoriesTest {
 	     auditLog.logSucceededLogin("testuser.transport.succeededlogin", false, "testuser.transport.succeededlogin", new TransportRequest.Empty(), "test/action", new Task(0, "x", "ac", "", null, null));
 	 }
 
-
     protected void logRestFailedLogin(AuditLog auditLog) {
-    	auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest());
-    }
+        auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest().asSecurityRequest());
+	}
 
-    protected void logTransportFailedLogin(AuditLog auditLog) {
+	protected void logTransportFailedLogin(AuditLog auditLog) {
     	auditLog.logFailedLogin("testuser.transport.failedlogin", false, "testuser.transport.failedlogin", new TransportRequest.Empty(), null);
     }
 
@@ -239,7 +238,7 @@ public class DisabledCategoriesTest {
     }
 
     protected void logRestBadHeaders(AuditLog auditLog) {
-    	auditLog.logBadHeaders(new MockRestRequest());
+        auditLog.logBadHeaders(new MockRestRequest().asSecurityRequest());
     }
 
     protected void logSecurityIndexAttempt(AuditLog auditLog) {
@@ -247,7 +246,7 @@ public class DisabledCategoriesTest {
     }
 
     protected void logRestSSLException(AuditLog auditLog) {
-    	auditLog.logSSLException(new MockRestRequest(), new Exception());
+        auditLog.logSSLException(new MockRestRequest().asSecurityRequest(), new Exception());
     }
 
     protected void logTransportSSLException(AuditLog auditLog) {

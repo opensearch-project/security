@@ -47,6 +47,7 @@
 
 package org.opensearch.security.http;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,8 +56,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestRequest;
-
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.support.ConfigConstants;
 
 final class RemoteIpDetector {
@@ -117,8 +117,12 @@ final class RemoteIpDetector {
         return remoteIpHeader;
     }
 
-    String detect(RestRequest request, ThreadContext threadContext){
-        final String originalRemoteAddr = ((InetSocketAddress)request.getHttpChannel().getRemoteAddress()).getAddress().getHostAddress();
+    String detect(SecurityRequest request, ThreadContext threadContext) {
+
+        final String originalRemoteAddr = request.getRemoteAddress()
+            .map(InetSocketAddress::getAddress)
+            .map(InetAddress::getHostAddress)
+            .orElseThrow();
 
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
@@ -176,8 +180,17 @@ final class RemoteIpDetector {
             
             if (remoteIp != null) {
                 if (isTraceEnabled) {
-                    final String originalRemoteHost = ((InetSocketAddress)request.getHttpChannel().getRemoteAddress()).getAddress().getHostName();
-                    log.trace("Incoming request {} with originalRemoteAddr '{}', originalRemoteHost='{}', will be seen as newRemoteAddr='{}'", request.uri(), originalRemoteAddr, originalRemoteHost, remoteIp);
+                    final String originalRemoteHost = request.getRemoteAddress()
+                        .map(InetSocketAddress::getAddress)
+                        .map(InetAddress::getHostName)
+                        .orElseThrow();
+                    log.trace(
+                        "Incoming request {} with originalRemoteAddr '{}', originalRemoteHost='{}', will be seen as newRemoteAddr='{}'",
+                        request.uri(),
+                        originalRemoteAddr,
+                        originalRemoteHost,
+                        remoteIp
+                    );
                 }
 
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
@@ -189,7 +202,11 @@ final class RemoteIpDetector {
             
         } else {
             if (isTraceEnabled) {
-                log.trace("Skip RemoteIpDetector for request {} with originalRemoteAddr '{}' cause no internal proxy matches", request.uri(), request.getHttpChannel().getRemoteAddress());
+                log.trace(
+                    "Skip RemoteIpDetector for request {} with originalRemoteAddr '{}' cause no internal proxy matches",
+                    request.uri(),
+                    request.getRemoteAddress().orElse(null)
+                );
             }
         }
         

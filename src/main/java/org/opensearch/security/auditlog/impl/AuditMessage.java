@@ -49,6 +49,8 @@ import org.joda.time.format.DateTimeFormatter;
 import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.OpenSearchRequest;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
@@ -368,16 +370,31 @@ public final class AuditMessage {
         }
     }
 
-    void addRestRequestInfo(final RestRequest request, final AuditConfig.Filter filter) {
+    void addRestRequestInfo(final SecurityRequest request, final AuditConfig.Filter filter) {
         if (request != null) {
-            final String path = request.path();
+            final String path = request.path().toString();
             addPath(path);
             addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
             addRestParams(request.params());
             addRestMethod(request.method());
-            if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
+
+            if (filter.shouldLogRequestBody()) {
+
+                if (!(request instanceof OpenSearchRequest)) {
+                    // The request body is only avaliable on some request sources
+                    return;
+                }
+
+                final OpenSearchRequest securityRestRequest = (OpenSearchRequest) request;
+                final RestRequest restRequest = securityRestRequest.breakEncapsulationForRequest();
+
+                if (!(restRequest.hasContentOrSourceParam())) {
+                    // If there is no content, don't attempt to save any body information
+                    return;
+                }
+
                 try {
-                    final Tuple<XContentType, BytesReference> xContentTuple = request.contentOrSourceParam();
+                    final Tuple<XContentType, BytesReference> xContentTuple = restRequest.contentOrSourceParam();
                     final String requestBody =  XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
                     if (path != null && requestBody != null
                             && SENSITIVE_PATHS.matcher(path).matches()

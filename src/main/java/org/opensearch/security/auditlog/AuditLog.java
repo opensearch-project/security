@@ -40,22 +40,25 @@ import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.shard.ShardId;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.compliance.ComplianceConfig;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
 public interface AuditLog extends Closeable {
 
-    //login
+    // login
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, Task task);
-    void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
-    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, String action, Task task);
-    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
+    void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
 
-    //privs
-    void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request);
-    void logGrantedPrivileges(String effectiveUser, RestRequest request);
+    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, String action, Task task);
+    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
+
+    // privs
+    void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request);
+
+    void logGrantedPrivileges(String effectiveUser, SecurityRequest request);
+
     void logMissingPrivileges(String privilege, TransportRequest request, Task task);
     void logGrantedPrivileges(String privilege, TransportRequest request, Task task);
 
@@ -64,12 +67,14 @@ public interface AuditLog extends Closeable {
 
     //spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
-    void logBadHeaders(RestRequest request);
+
+    void logBadHeaders(SecurityRequest request);
 
     void logSecurityIndexAttempt(TransportRequest request, String action, Task task);
 
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
-    void logSSLException(RestRequest request, Throwable t);
+
+    void logSSLException(SecurityRequest request, Throwable t);
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
     void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
