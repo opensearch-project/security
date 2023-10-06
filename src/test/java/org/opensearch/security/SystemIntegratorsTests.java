@@ -126,7 +126,6 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin||127.0.0:80|")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        System.out.println("resc.getBody(): " + resc.getBody());
         Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[], requestedTenant=null]"));
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"127.0.0.0:80\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[]"));

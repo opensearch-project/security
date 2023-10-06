@@ -327,8 +327,6 @@ public class BackendRegistry {
                 }
             }
 
-            System.out.println("authDomain: " + authDomain);
-
             // http completed
             authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
 
