@@ -346,7 +346,7 @@ REM  exit /b 1
     echo "Unable to find custom admin password. Continuing with the default password for admin."
     echo "You can set the custom admin password in one of the following two ways:"
     echo "1. Run 'export initialAdminPassword=<your_password>' before script execution."
-    echo "2. Create a file $ADMIN_PASSWORD_FILE with a single line that contains the password.
+    echo "2. Create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
 )
 
 echo "   ***************************************************"
