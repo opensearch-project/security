@@ -12,7 +12,6 @@
 package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -63,11 +62,8 @@ public class NettyRequest implements SecurityRequest {
 
     @Override
     public String path() {
-        try {
-            return URI.create(underlyingRequest.uri()).getPath();
-        } catch (final IllegalArgumentException e) {
-            return "";
-        }
+        String rawPath = SecurityRestUtils.path(underlyingRequest.uri());
+        return RestUtils.decodeComponent(rawPath);
     }
 
     @Override

@@ -19,11 +19,13 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
+import org.opensearch.rest.RestUtils;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.filter.SecurityRestUtils;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.support.ConfigConstants;
@@ -31,7 +33,6 @@ import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.OpenSearchSecurityException;
 
-import java.net.URI;
 import java.util.regex.Matcher;
 
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
@@ -82,8 +83,9 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         // TODO: GET PROPER MAVEN BUILD
         // final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         final Netty4HttpChannel httpChannel = ctx.channel().attr(AttributeKey.<Netty4HttpChannel>valueOf("opensearch-http-channel")).get();
-        URI uri = URI.create(msg.uri());
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(uri.getPath());
+        String rawPath = SecurityRestUtils.path(msg.uri());
+        String path = RestUtils.decodeComponent(rawPath);
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(path);
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             // TODO: I think this is going to create problems - we should have a sensible size limit, not prevention of
