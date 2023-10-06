@@ -190,6 +190,16 @@ task listTasksAsJSON {
 
 test {
     include '**/*.class'
+    doFirst {
+        // Only run with retries while in CI systems
+        if (System.getenv('CI_ENVIRONMENT') == 'normal') {
+            retry {
+                failOnPassedAfterRetry = false
+                maxRetries = 5
+            }
+        }
+    }
+
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
     }
@@ -197,10 +207,6 @@ test {
     jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
-    }
-    retry {
-        failOnPassedAfterRetry = false
-        maxRetries = 5
     }
     jacoco {
         excludes = [
@@ -244,10 +250,6 @@ def setCommonTestConfig(Test task) {
     task.jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
-    }
-    task.retry {
-        failOnPassedAfterRetry = false
-        maxRetries = 5
     }
     task.jacoco {
         excludes = [
@@ -459,16 +461,27 @@ sourceSets {
 
 //add new task that runs integration tests
 task integrationTest(type: Test) {
+    doFirst {
+        // Only run resources tests on resource-test CI environments or locally 
+        if (System.getenv('CI_ENVIRONMENT') == 'resource-test' || System.getenv('CI_ENVIRONMENT') == null) {
+            include '**/ResourceFocusedTests.class'
+        } else {
+            exclude '**/ResourceFocusedTests.class'
+        }
+        // Only run with retries while in CI systems
+        if (System.getenv('CI_ENVIRONMENT') == 'normal') {
+            retry {
+                failOnPassedAfterRetry = false
+                maxRetries = 2
+                maxFailures = 10
+            }
+        }
+    }
     description = 'Run integration tests.'
     group = 'verification'
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
-    // retry {
-    //     failOnPassedAfterRetry = false
-    //     maxRetries = 2
-    //     maxFailures = 10
-    // }
     //run the integrationTest task after the test task
     shouldRunAfter test
 }
