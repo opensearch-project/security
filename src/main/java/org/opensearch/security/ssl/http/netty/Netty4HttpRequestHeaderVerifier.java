@@ -88,9 +88,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
 
         // TODO: GET PROPER MAVEN BUILD
         // final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
-        final Netty4HttpChannel httpChannel = ctx.channel()
-            .attr(AttributeKey.<Netty4HttpChannel>valueOf("opensearch-http-channel"))
-            .get();
+        final Netty4HttpChannel httpChannel = ctx.channel().attr(AttributeKey.<Netty4HttpChannel>valueOf("opensearch-http-channel")).get();
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(msg.uri());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {

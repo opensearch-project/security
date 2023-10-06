@@ -143,13 +143,15 @@ public class SecurityRestFilter {
                 // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
                 final String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
                 storedContext.restore();
-                threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+                if (xOpaqueId != null) {
+                    threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+                }
             });
 
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
 
             // Authenticate request
-            if(!NettyAttribute.popFrom(request, IS_AUTHENTICATED).orElse(false)) {
+            if (!NettyAttribute.popFrom(request, IS_AUTHENTICATED).orElse(false)) {
                 // we aren't authenticated so we should skip this step
                 checkAndAuthenticateRequest(requestChannel);
             }
