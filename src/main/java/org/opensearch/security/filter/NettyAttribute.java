@@ -33,7 +33,7 @@ public class NettyAttribute {
      * Gets an attribute value from the channel handler context
      */
     public static <T> Optional<T> peekFrom(final ChannelHandlerContext ctx, final AttributeKey<T> attribute) {
-        return Optional.ofNullable(ctx.channel().attr(attribute).getAndSet(null));
+        return Optional.ofNullable(ctx.channel().attr(attribute).get());
     }
 
 }
