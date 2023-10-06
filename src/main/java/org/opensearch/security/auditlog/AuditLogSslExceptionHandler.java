@@ -27,7 +27,7 @@
 package org.opensearch.security.auditlog;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
@@ -42,7 +42,7 @@ public class AuditLogSslExceptionHandler implements SslExceptionHandler {
     }
 
     @Override
-    public void logError(Throwable t, RestRequest request, int type) {
+    public void logError(Throwable t, SecurityRequestChannel request, int type) {
         switch (type) {
             case 0:
                 auditLog.logSSLException(request, t);
