@@ -21,10 +21,10 @@ import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.helper.RetrySink;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.transport.TransportRequest;
@@ -132,7 +132,7 @@ public class AuditlogTest {
         final Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false).build();
         final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         for (AuditCategory category : AuditCategory.values()) {
-            Assert.assertFalse(al.checkRestFilter(category, "user", mock(RestRequest.class)));
+            Assert.assertFalse(al.checkRestFilter(category, "user", mock(SecurityRequestChannel.class)));
         }
     }
 

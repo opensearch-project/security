@@ -95,7 +95,10 @@ public class OnBehalfOfAuthenticatorTest {
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
         Map<String, String> headers = new HashMap<String, String>();
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
 
         Assert.assertNull(credentials);
     }
@@ -109,7 +112,10 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
         Assert.assertNull(credentials);
     }
 
@@ -126,7 +132,10 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
         Assert.assertNull(credentials);
     }
 
@@ -143,7 +152,10 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
         Assert.assertNotNull(credentials);
     }
 
@@ -165,7 +177,10 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
@@ -188,7 +203,10 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", jwsToken + "Bearer " + " 123");
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
 
         Assert.assertNull(credentials);
     }
@@ -205,7 +223,10 @@ public class OnBehalfOfAuthenticatorTest {
 
         Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Basic " + jwsToken);
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, Collections.emptyMap()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
+            null
+        );
         Assert.assertNull(credentials);
     }
 
@@ -349,7 +370,10 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
 
         Assert.assertNull(credentials);
     }
@@ -375,7 +399,7 @@ public class OnBehalfOfAuthenticatorTest {
             SignatureAlgorithm.HS512
         ).compact();
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
-        return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()), null);
+        return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
     }
 
     private Settings defaultSettings() {
