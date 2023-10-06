@@ -60,7 +60,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        String authorizationHeader = request.header("Authorization");
+        final String authorizationHeader = request.header("Authorization");
 
         return HTTPHelper.extractCredentials(authorizationHeader, log);
     }

@@ -33,8 +33,7 @@ jobs:
 
   test:
     name: test
-    needs:
-      - generate-test-list
+    needs: generate-test-list
     strategy:
       fail-fast: false
       matrix:
@@ -49,19 +48,6 @@ jobs:
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
-
-    - name: Checkout core
-      uses: actions/checkout@v4
-      with:
-        repository: 'cwperks/OpenSearch'
-        ref: 'improve-compressed-requests'
-        path: 'OpenSearch'
-
-    - name: Publish to Maven Local
-      run: |
-        cd OpenSearch
-        ./gradlew publishToMavenLocal
-        cd ..
 
     - name: Checkout security
       uses: actions/checkout@v4

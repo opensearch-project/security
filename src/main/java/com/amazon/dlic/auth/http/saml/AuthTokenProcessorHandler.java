@@ -11,8 +11,6 @@
 
 package com.amazon.dlic.auth.http.saml;
 
-import static org.apache.http.HttpHeaders.CONTENT_TYPE;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
