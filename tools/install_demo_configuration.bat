@@ -339,8 +339,14 @@ if "%initialAdminPassword%" NEQ "" (
 )
 
 if not defined ADMIN_PASSWORD (
-  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
-  exit /b 1
+REM Commenting this out in favor of: https://github.com/opensearch-project/security/issues/3489
+REM  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
+REM  exit /b 1
+    set "ADMIN_PASSWORD=admin"
+    echo "Unable to find custom admin password. Continuing with the default password for admin."
+    echo "You can set the custom admin password in one of the following two ways:"
+    echo "1. Run 'export initialAdminPassword=<your_password>' before script execution."
+    echo "2. Create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
 )
 
 echo "   ***************************************************"
