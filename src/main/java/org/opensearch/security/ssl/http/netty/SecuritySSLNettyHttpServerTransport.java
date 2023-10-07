@@ -19,6 +19,7 @@ package org.opensearch.security.ssl.http.netty;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
@@ -32,6 +33,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpChannel;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -43,6 +45,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
+    private final ChannelInboundHandlerAdapter headerVerifier;
+    private final ChannelInboundHandlerAdapter conditionalDecompressor;
 
     public SecuritySSLNettyHttpServerTransport(
         final Settings settings,
@@ -55,7 +59,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         final SslExceptionHandler errorHandler,
         ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
-        Tracer tracer
+        Tracer tracer,
+        SecurityRestFilter restFilter
     ) {
         super(
             settings,
@@ -70,6 +75,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         );
         this.sks = sks;
         this.errorHandler = errorHandler;
+        headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+        conditionalDecompressor = new Netty4ConditionalDecompressor();
     }
 
     @Override
@@ -107,5 +114,15 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
             final SslHandler sslHandler = new SslHandler(SecuritySSLNettyHttpServerTransport.this.sks.createHTTPSSLEngine());
             ch.pipeline().addFirst("ssl_http", sslHandler);
         }
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return headerVerifier;
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createDecompressor() {
+        return conditionalDecompressor;
     }
 }

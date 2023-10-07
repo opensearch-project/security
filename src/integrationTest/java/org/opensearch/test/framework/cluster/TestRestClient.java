@@ -275,7 +275,7 @@ public class TestRestClient implements AutoCloseable {
         response.assertStatusCode(201);
     }
 
-    protected final String getHttpServerUri() {
+    public final String getHttpServerUri() {
         return "http" + (enableHTTPClientSSL ? "s" : "") + "://" + nodeHttpAddress.getHostString() + ":" + nodeHttpAddress.getPort();
     }
 
@@ -403,7 +403,7 @@ public class TestRestClient implements AutoCloseable {
             try {
                 return toJsonNode().at(jsonPointer);
             } catch (IOException e) {
-                throw new IllegalArgumentException("Cound not convert response body to JSON node ", e);
+                throw new IllegalArgumentException("Cound not convert response body to JSON node '" + getBody() + "'", e);
             }
         }
 

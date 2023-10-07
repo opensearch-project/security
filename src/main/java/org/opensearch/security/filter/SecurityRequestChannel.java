@@ -19,11 +19,8 @@ import java.util.Optional;
 public interface SecurityRequestChannel extends SecurityRequest {
 
     /** Associate a response with this channel */
-    public void queueForSending(final SecurityResponse response);
+    void queueForSending(final SecurityResponse response);
 
     /** Acess the queued response */
-    public Optional<SecurityResponse> getQueuedResponse();
-
-    /** Send the response through the channel */
-    public boolean sendResponse();
+    Optional<SecurityResponse> getQueuedResponse();
 }
