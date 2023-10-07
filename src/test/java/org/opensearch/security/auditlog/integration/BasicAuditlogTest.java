@@ -510,12 +510,15 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
             + "}"
             + "}";
 
+        String expectedRequestBodyLog =
+            "{\\\"persistent_settings\\\":{\\\"indices\\\":{\\\"recovery\\\":{\\\"*\\\":null}}},\\\"transient_settings\\\":{\\\"indices\\\":{\\\"recovery\\\":{\\\"*\\\":null}}}}";
+
         HttpResponse response = rh.executePutRequest("_cluster/settings", json, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         String auditLogImpl = TestAuditlogImpl.sb.toString();
         Assert.assertTrue(auditLogImpl.contains("AUTHENTICATED"));
         Assert.assertTrue(auditLogImpl.contains("cluster:admin/settings/update"));
-        Assert.assertTrue(auditLogImpl.contains("indices.recovery.*"));
+        Assert.assertTrue(auditLogImpl.contains(expectedRequestBodyLog));
         // may vary because we log may hit cluster manager directly or not
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 1);
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));

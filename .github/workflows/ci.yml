@@ -10,6 +10,7 @@ on:
 
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
+  CI_ENVIRONMENT: normal
 
 jobs:
   generate-test-list:
@@ -106,6 +107,51 @@ jobs:
         cache-disabled: true
         arguments: |
           integrationTest -Dbuild.snapshot=false
+
+  resource-tests:
+    env:
+      CI_ENVIRONMENT: resource-test
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [17]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v4
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      with:
+        cache-disabled: true
+        arguments: |
+            integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
+
+  backward-compatibility-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 17
+
+      - name: Checkout Security Repo
+        uses: actions/checkout@v4
+
+      - name: Build BWC tests
+        uses: gradle/gradle-build-action@v2
+        with:
+          cache-disabled: true
+          arguments: |
+            -p bwc-test build -x test -x integTest
 
   backward-compatibility:
     strategy:
