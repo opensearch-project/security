@@ -11,10 +11,14 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
+
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -22,7 +26,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.security.WeakKeyException;
-import org.apache.hc.core5.http.HttpHeaders;
+
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,10 +35,9 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
@@ -58,8 +62,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
         String signingKey = settings.get("signing_key");
         jwtUrlParameter = settings.get("jwt_url_parameter");
-        jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
-        isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
+        jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
+        isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         requireAudience = settings.get("required_audience");
@@ -83,7 +87,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+        throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -100,7 +105,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final RestRequest request) {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) {
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
@@ -112,10 +117,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
 
         if ((jwtToken == null || jwtToken.isEmpty()) && jwtUrlParameter != null) {
-            jwtToken = request.param(jwtUrlParameter);
+            jwtToken = request.params().get(jwtUrlParameter);
         } else {
             // just consume to avoid "contains unrecognized parameter"
-            request.param(jwtUrlParameter);
+            request.params().get(jwtUrlParameter);
         }
 
         if (jwtToken == null || jwtToken.length() == 0) {
@@ -170,10 +175,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
-        return wwwAuthenticateResponse;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest channel, AuthCredentials creds) {
+        return Optional.of(
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+        );
     }
 
     @Override
@@ -181,7 +186,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return "jwt";
     }
 
-    protected String extractSubject(final Claims claims, final RestRequest request) {
+    protected String extractSubject(final Claims claims, final SecurityRequest request) {
         String subject = claims.getSubject();
         if (subjectKey != null) {
             // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
@@ -205,7 +210,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(final Claims claims, final RestRequest request) {
+    protected String[] extractRoles(final Claims claims, final SecurityRequest request) {
         // no roles key specified
         if (rolesKey == null) {
             return new String[0];

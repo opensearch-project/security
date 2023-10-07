@@ -459,16 +459,27 @@ sourceSets {
 
 //add new task that runs integration tests
 task integrationTest(type: Test) {
+    doFirst {
+        // Only run resources tests on resource-test CI environments or locally
+        if (System.getenv('CI_ENVIRONMENT') == 'resource-test' || System.getenv('CI_ENVIRONMENT') == null) {
+            include '**/ResourceFocusedTests.class'
+        } else {
+            exclude '**/ResourceFocusedTests.class'
+        }
+        // Only run with retries while in CI systems
+        if (System.getenv('CI_ENVIRONMENT') == 'normal') {
+            retry {
+                failOnPassedAfterRetry = false
+                maxRetries = 2
+                maxFailures = 10
+            }
+        }
+    }
     description = 'Run integration tests.'
     group = 'verification'
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
-    retry {
-        failOnPassedAfterRetry = false
-        maxRetries = 2
-        maxFailures = 10
-    }
     //run the integrationTest task after the test task
     shouldRunAfter test
 }
@@ -637,9 +648,6 @@ dependencies {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-
-    //Checkstyle
-    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.17.0') {

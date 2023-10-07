@@ -12,13 +12,14 @@
 package org.opensearch.security.cache;
 
 import java.nio.file.Path;
+import java.util.Optional;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 public class DummyHTTPAuthenticator implements HTTPAuthenticator {
@@ -33,14 +34,15 @@ public class DummyHTTPAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+        throws OpenSearchSecurityException {
         count++;
         return new AuthCredentials("dummy").markComplete();
     }
 
     @Override
-    public BytesRestResponse reRequestAuthentication(RestRequest request, AuthCredentials credentials) {
-        return null;
+    public Optional<SecurityResponse> reRequestAuthentication(SecurityRequest channel, AuthCredentials credentials) {
+        return Optional.empty();
     }
 
     public static long getCount() {

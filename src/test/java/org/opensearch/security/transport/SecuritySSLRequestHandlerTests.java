@@ -1,3 +1,12 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ */
 package org.opensearch.security.transport;
 
 import org.junit.Assert;
@@ -66,11 +75,16 @@ public class SecuritySSLRequestHandlerTests {
         TransportChannel transportChannel = mock(TransportChannel.class);
         Task task = mock(Task.class);
         doNothing().when(transportChannel).sendResponse(ArgumentMatchers.any(Exception.class));
-        when(transportChannel.getVersion()).thenReturn(Version.V_2_11_0);
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_10_0);
         when(transportChannel.getChannelType()).thenReturn("transport");
 
         Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
         Assert.assertTrue(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        threadPool.getThreadContext().stashContext();
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_11_0);
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
+        Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
 
         threadPool.getThreadContext().stashContext();
         when(transportChannel.getVersion()).thenReturn(Version.V_3_0_0);
