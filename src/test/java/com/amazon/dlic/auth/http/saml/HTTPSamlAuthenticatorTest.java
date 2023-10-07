@@ -906,6 +906,52 @@ public class HTTPSamlAuthenticatorTest {
             .withHeaders(ImmutableMap.of("Content-Type", "application/json"))
             .build();
     }
+    @Test
+    public void testJwtWithBackslashHInUsername() throws Exception {
+        String[] testUsernames = {
+                "username\\hexample",
+                "username\\\\hexample",
+                "username\\\\\\hexample",
+                "username\\\\\\\\\\hexample"
+        };
+
+        for (String testUsername : testUsernames) {
+            mockSamlIdpServer.setSignResponses(true);
+            mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+            mockSamlIdpServer.setAuthenticateUser(testUsername);
+            mockSamlIdpServer.setEndpointQueryString(null);
+
+            Settings settings = Settings.builder()
+                    .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                    .put("kibana_url", "http://wherever")
+                    .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                    .put("exchange_key", "abc")
+                    .put("roles_key", "roles")
+                    .put("path.home", ".")
+                    .build();
+
+            HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+            AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+            String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+            RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+
+            String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
+            HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
+                    responseJson,
+                    new TypeReference<HashMap<String, Object>>() {
+                    }
+            );
+
+            String authorization = (String) response.get("authorization");
+            Assert.assertNotNull("Expected authorization attribute in JSON for input: " + testUsername, authorization);
+
+            JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
+            JwtToken jwt = jwtConsumer.getJwtToken();
+
+            Assert.assertEquals("username\\hexample", jwt.getClaim("sub"));
+        }
+    }
 
     @BeforeClass
     public static void initSpSigningKeys() {

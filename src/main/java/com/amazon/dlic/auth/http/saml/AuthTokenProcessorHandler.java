@@ -284,7 +284,9 @@ class AuthTokenProcessorHandler {
         jwtClaims.setNotBefore(System.currentTimeMillis() / 1000);
         jwtClaims.setExpiryTime(getJwtExpiration(samlResponse));
 
-        jwtClaims.setProperty(this.jwtSubjectKey, this.extractSubject(samlResponse));
+        String subject = this.extractSubject(samlResponse);
+        String processedSubject = subject.replaceAll("(\\\\*)\\\\h", "\\\\\\\\h");
+        jwtClaims.setProperty(this.jwtSubjectKey, processedSubject);
 
         if (this.samlSubjectKey != null) {
             jwtClaims.setProperty("saml_ni", samlResponse.getNameId());
@@ -310,12 +312,12 @@ class AuthTokenProcessorHandler {
 
         if (token_log.isDebugEnabled()) {
             token_log.debug(
-                "Created JWT: "
-                    + encodedJwt
-                    + "\n"
-                    + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
-                    + "\n"
-                    + JwtUtils.claimsToJson(jwt.getClaims())
+                    "Created JWT: "
+                            + encodedJwt
+                            + "\n"
+                            + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
+                            + "\n"
+                            + JwtUtils.claimsToJson(jwt.getClaims())
             );
         }
 
