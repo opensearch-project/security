@@ -17,8 +17,13 @@
 
 package org.opensearch.security.ssl.http.netty;
 
-import org.apache.logging.log4j.Logger;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.DecoderException;
+import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -27,28 +32,47 @@ import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpChannel;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
-
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.handler.codec.DecoderException;
-import io.netty.handler.ssl.SslHandler;
 
 public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
-    
-    public SecuritySSLNettyHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-                                               final ThreadPool threadPool, final SecurityKeyStore sks, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher,
-                                               final SslExceptionHandler errorHandler, ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
+    private final ChannelInboundHandlerAdapter headerVerifier;
+    private final ChannelInboundHandlerAdapter conditionalDecompressor;
+
+    public SecuritySSLNettyHttpServerTransport(
+        final Settings settings,
+        final NetworkService networkService,
+        final BigArrays bigArrays,
+        final ThreadPool threadPool,
+        final SecurityKeyStore sks,
+        final NamedXContentRegistry namedXContentRegistry,
+        final ValidatingDispatcher dispatcher,
+        final SslExceptionHandler errorHandler,
+        ClusterSettings clusterSettings,
+        SharedGroupFactory sharedGroupFactory,
+        SecurityRestFilter restFilter
+    ) {
+        super(
+            settings,
+            networkService,
+            bigArrays,
+            threadPool,
+            namedXContentRegistry,
+            dispatcher,
+            clusterSettings,
+            sharedGroupFactory
+        );
         this.sks = sks;
         this.errorHandler = errorHandler;
+        headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+        conditionalDecompressor = new Netty4ConditionalDecompressor();
     }
 
     @Override
@@ -83,5 +107,15 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
             final SslHandler sslHandler = new SslHandler(SecuritySSLNettyHttpServerTransport.this.sks.createHTTPSSLEngine());
             ch.pipeline().addFirst("ssl_http", sslHandler);
         }
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return headerVerifier;
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createDecompressor() {
+        return conditionalDecompressor;
     }
 }

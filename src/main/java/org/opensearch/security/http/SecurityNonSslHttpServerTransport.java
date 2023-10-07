@@ -30,6 +30,10 @@
 
 package org.opensearch.security.http;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -37,19 +41,40 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
+import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-
 public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
+    private final ChannelInboundHandlerAdapter headerVerifier;
+    private final ChannelInboundHandlerAdapter conditionalDecompressor;
 
-    public SecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-                                             final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher,
-                                             ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
+    public SecurityNonSslHttpServerTransport(
+        final Settings settings,
+        final NetworkService networkService,
+        final BigArrays bigArrays,
+        final ThreadPool threadPool,
+        final NamedXContentRegistry namedXContentRegistry,
+        final Dispatcher dispatcher,
+        final ClusterSettings clusterSettings,
+        final SharedGroupFactory sharedGroupFactory,
+        final SecurityRestFilter restFilter
+    ) {
+        super(
+            settings,
+            networkService,
+            bigArrays,
+            threadPool,
+            namedXContentRegistry,
+            dispatcher,
+            clusterSettings,
+            sharedGroupFactory
+        );
+        headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+        conditionalDecompressor = new Netty4ConditionalDecompressor();
     }
 
     @Override
@@ -67,5 +92,15 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
         }
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return headerVerifier;
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createDecompressor() {
+        return conditionalDecompressor;
     }
 }
