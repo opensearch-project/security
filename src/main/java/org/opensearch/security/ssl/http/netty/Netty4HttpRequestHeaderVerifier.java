@@ -10,7 +10,6 @@ package org.opensearch.security.ssl.http.netty;
 
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpRequest;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
 import org.opensearch.ExceptionsHelper;
@@ -20,7 +19,6 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
-import org.opensearch.rest.RestUtils;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityRequestFactory;
@@ -34,12 +32,6 @@ import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.OpenSearchSecurityException;
 
-import java.util.regex.Matcher;
-
-import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.API_AUTHTOKEN_SUFFIX;
-import static org.opensearch.security.filter.SecurityRestFilter.HEALTH_SUFFIX;
-import static org.opensearch.security.filter.SecurityRestFilter.PATTERN_PATH_PREFIX;
-import static org.opensearch.security.filter.SecurityRestFilter.WHO_AM_I_SUFFIX;
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
@@ -83,28 +75,16 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.FALSE);
 
         final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
-        String rawPath = SecurityRestUtils.path(msg.uri());
-        String path = RestUtils.decodeComponent(rawPath);
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(path);
-        final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
-            ctx.fireChannelRead(msg);
-            return;
-        }
 
         final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(msg, httpChannel);
         ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             injectUser(msg, threadContext);
 
-            boolean shouldSkipAuthentication = HttpMethod.OPTIONS.equals(msg.method())
-                || HEALTH_SUFFIX.equals(suffix)
-                || WHO_AM_I_SUFFIX.equals(suffix);
+            boolean shouldSkipAuthentication = SecurityRestUtils.shouldSkipAuthentication(msg);
 
-            if (!shouldSkipAuthentication) {
-                // If request channel is completed and a response is sent, then there was a failure during authentication
-                restFilter.checkAndAuthenticateRequest(requestChannel);
-            }
+            // If request channel is completed and a response is sent, then there was a failure during authentication
+            restFilter.checkAndAuthenticateRequest(requestChannel);
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);

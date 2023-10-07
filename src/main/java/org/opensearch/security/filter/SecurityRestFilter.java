@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -45,7 +44,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -285,9 +283,7 @@ public class SecurityRestFilter {
             return;
         }
 
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(requestChannel.path());
-        final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (requestChannel.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
+        if (!SecurityRestUtils.shouldSkipAuthentication(requestChannel)) {
             if (!registry.authenticate(requestChannel)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
