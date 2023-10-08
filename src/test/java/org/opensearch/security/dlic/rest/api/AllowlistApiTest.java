@@ -97,7 +97,8 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         Assert.assertFalse(response.getHeaders().contains("_meta"));
     }
 
@@ -111,7 +112,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
             ENDPOINT,
             "{ \"unknownkey\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}"
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
         assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
     }
@@ -125,7 +126,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
             ENDPOINT,
             "{ \"invalid\"::{{ [\"*\"], \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}"
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
         assertHealthy();
     }
 
@@ -140,9 +141,9 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(ENDPOINT, "", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
         JsonNode settings = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message(), settings.get("reason").asText());
+        assertThat(settings.get("reason").asText(), equalTo(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message()));
     }
 
     /**
