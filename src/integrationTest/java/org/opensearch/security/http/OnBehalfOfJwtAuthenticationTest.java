@@ -114,7 +114,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldAuthenticateWithOBOTokenEndPoint() {
         String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
         Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
-        authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, 200);
+        authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, HttpStatus.SC_OK);
     }
 
     @Test
@@ -122,7 +122,7 @@ public class OnBehalfOfJwtAuthenticationTest {
         String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
         oboToken = oboToken.substring(0, oboToken.length() - 1); // tampering the token
         Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
-        authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, 401);
+        authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
             TestRestClient.HttpResponse response = client.getOnBehalfOfToken(OBO_DESCRIPTION, adminOboAuthHeader);
-            response.assertStatusCode(401);
+            response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
         }
     }
 
@@ -143,7 +143,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
             TestRestClient.HttpResponse response = client.changeInternalUserPassword(CURRENT_AND_NEW_PASSWORDS, adminOboAuthHeader);
-            response.assertStatusCode(401);
+            response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
         }
     }
 
@@ -151,7 +151,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldAuthenticateForNonAdminUserWithOBOPermission() {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_PERM, DEFAULT_PASSWORD);
         Header oboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
-        authenticateWithOboToken(oboAuthHeader, OBO_USER_NAME_WITH_PERM, 200);
+        authenticateWithOboToken(oboAuthHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
     }
 
     @Test
@@ -183,7 +183,7 @@ public class OnBehalfOfJwtAuthenticationTest {
             client.assertCorrectCredentials(username);
             TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
             response.assertStatusCode(200);
-            Map<String, Object> oboEndPointResponse = response.getBodyAs(Map.class);
+            Map<String, Object> oboEndPointResponse = (Map<String, Object>)response.getBodyAs(Map.class);
             assertThat(
                 oboEndPointResponse,
                 allOf(aMapWithSize(3), hasKey("user"), hasKey("authenticationToken"), hasKey("durationSeconds"))
@@ -196,11 +196,10 @@ public class OnBehalfOfJwtAuthenticationTest {
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.getAuthInfo();
             response.assertStatusCode(expectedStatusCode);
-            if (expectedStatusCode == 200) {
+            assertThat(response.getStatusCode(), equalTo(expectedStatusCode));
+            if (expectedStatusCode == HttpStatus.SC_OK) {
                 String username = response.getTextFromJsonBody(POINTER_USERNAME);
                 assertThat(username, equalTo(expectedUsername));
-            } else {
-                Assert.assertTrue(response.getBody().contains("Unauthorized"));
             }
         }
     }
