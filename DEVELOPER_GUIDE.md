@@ -153,52 +153,35 @@ extension_hw_greet:
     - "hw-user"
 ```
 
-### Initializing admin user with custom password
-
-A password is required for the admin account to run the demo setup. You can do this with one of the following 2 options:
-1. By setting an environment variable. `export initialAdminPassword=<custom-admin-password>`
-2. By adding a single line as password in a file `initialAdminPassword.txt` under `$OPENSEARCH_HOME/config` directory.
-
-If neither of these are provided, the password defaults to `admin`. However, this will be removed in future releases, and a custom password will be required in order to use demo config.
-
-
-### Installing demo configuration
-
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
 
 ```bash
-➜  export initialAdminPassword=blebleble
-➜  ./tools/install_demo_configuration.sh -y -i -s
-**************************************************************************
-** This tool will be deprecated in the next major release of OpenSearch **
-** https://github.com/opensearch-project/security/issues/1755           **
-**************************************************************************
+./tools/install_demo_configuration.sh
 OpenSearch Security Demo Installer
  ** Warning: Do not use on production or public reachable systems **
-Basedir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT
-OpenSearch install type: .tar.gz on
-OpenSearch config dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config
-OpenSearch config file: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/opensearch.yml
-OpenSearch bin dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/bin
-OpenSearch plugins dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/plugins
-OpenSearch lib dir: /Users/XXXXX/opensearch-3.0.0-SNAPSHOT/lib
-Detected OpenSearch Version: x-content-3.0.0-SNAPSHOT
-Detected OpenSearch Security Version: 3.0.0.0-SNAPSHOT
+Install demo certificates? [y/N] y
+Initialize Security Modules? [y/N] y
+Cluster mode requires maybe additional setup of:
+  - Virtual memory (vm.max_map_count)
 
-   ***************************************************
-   ***   ADMIN PASSWORD SET TO: blebleble    ***
-   ***************************************************
-**************************************************************************
-** This tool will be deprecated in the next major release of OpenSearch **
-** https://github.com/opensearch-project/security/issues/1755           **
-**************************************************************************
+Enable cluster mode? [y/N] n
+Basedir: /Users/XXXXX/Test/opensearch-*
+OpenSearch install type: .tar.gz on
+OpenSearch config dir: /Users/XXXXX/Test/opensearch-*/config
+OpenSearch config file: /Users/XXXXX/Test/opensearch-*/config/opensearch.yml
+OpenSearch bin dir: /Users/XXXXX/Test/opensearch-*/bin
+OpenSearch plugins dir: /Users/XXXXX/Test/opensearch-*/plugins
+OpenSearch lib dir: /Users/XXXXX/Test/opensearch-*/lib
+Detected OpenSearch Version: x-content-*
+Detected OpenSearch Security Version: *
+
 ### Success
 ### Execute this script now on all your nodes and then start all nodes
 ### OpenSearch Security will be automatically initialized.
 ### If you like to change the runtime configuration
-### change the files in ../../../config/opensearch-security and execute:
-"/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/opensearch-security" -icl -key "/Users/XXXXX/config/kirk-key.pem" -cert "/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/kirk.pem" -cacert "/Users/XXXXX/opensearch-3.0.0-SNAPSHOT/config/root-ca.pem" -nhnv
+### change the files in ../config and execute:
+"/Users/XXXXX/Test/opensearch-*/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/Test/opensearch-*/config/opensearch-security/" -icl -key "/Users/XXXXX/Test/opensearch-*/config/kirk-key.pem" -cert "/Users/XXXXX/Test/opensearch-*/config/kirk.pem" -cacert "/Users/XXXXX/Test/opensearch-*/config/root-ca.pem" -nhnv
 ### or run ./securityadmin_demo.sh
 ### To use the Security Plugin ConfigurationGUI
 ### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.

@@ -75,7 +75,6 @@ cd %CUR%
 echo Basedir: %BASE_DIR%
 
 set "OPENSEARCH_CONF_FILE=%BASE_DIR%config\opensearch.yml"
-set "INTERNAL_USERS_FILE"=%BASE_DIR%config\opensearch-security\internal_users.yml"
 set "OPENSEARCH_CONF_DIR=%BASE_DIR%config\"
 set "OPENSEARCH_BIN_DIR=%BASE_DIR%bin\"
 set "OPENSEARCH_PLUGINS_DIR=%BASE_DIR%plugins\"
@@ -319,63 +318,6 @@ echo plugins.security.check_snapshot_restore_write_privileges: true >> "%OPENSEA
 echo plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"] >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*"] >> "%OPENSEARCH_CONF_FILE%"
-
-setlocal enabledelayedexpansion
-
-set "ADMIN_PASSWORD_FILE=%OPENSEARCH_CONF_DIR%initialAdminPassword.txt"
-set "INTERNAL_USERS_FILE=%OPENSEARCH_CONF_DIR%opensearch-security\internal_users.yml"
-
-echo "what is in the config directory"  
-dir %OPENSEARCH_CONF_DIR%
-
-echo "what is in the password file"
-type "%ADMIN_PASSWORD_FILE%"
-
-
-if "%initialAdminPassword%" NEQ "" (
-  set "ADMIN_PASSWORD=!initialAdminPassword!"
-) else (
-  for /f %%a in ('type "%ADMIN_PASSWORD_FILE%"') do set "ADMIN_PASSWORD=%%a"
-)
-
-if not defined ADMIN_PASSWORD (
-REM Commenting this out in favor of: https://github.com/opensearch-project/security/issues/3489
-REM  echo Unable to find the admin password for the cluster. Please set initialAdminPassword or create a file %ADMIN_PASSWORD_FILE% with a single line that contains the password.
-REM  exit /b 1
-    set "ADMIN_PASSWORD=admin"
-    echo "Unable to find custom admin password. Continuing with the default password for admin."
-    echo "You can set the custom admin password in one of the following two ways:"
-    echo "1. Run 'export initialAdminPassword=<your_password>' before script execution."
-    echo "2. Create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
-)
-
-echo "   ***************************************************"
-echo "   ***   ADMIN PASSWORD SET TO: %ADMIN_PASSWORD%   ***"
-echo "   ***************************************************"
-
-set "HASH_SCRIPT=%OPENSEARCH_PLUGINS_DIR%\opensearch-security\tools\hash.bat"
-
-REM Run the command and capture its output
-for /f %%a in ('%HASH_SCRIPT% -p !ADMIN_PASSWORD!') do (
-  set "HASHED_ADMIN_PASSWORD=%%a"
-)
-
-if errorlevel 1 (
-  echo Failed to hash the admin password
-  exit /b 1
-)
-
-set "default_line=  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG""
-set "search=%default_line%"
-set "replace=  hash: "%HASHED_ADMIN_PASSWORD%""
-
-setlocal enableextensions
-for /f "delims=" %%i in ('type "%INTERNAL_USERS_FILE%" ^& break ^> "%INTERNAL_USERS_FILE%" ') do (
-    set "line=%%i"
-    setlocal enabledelayedexpansion
-    >>"%INTERNAL_USERS_FILE%" echo(!line:%search%=%replace%!
-    endlocal
-)
 
 :: network.host
 >nul findstr /b /c:"network.host" "%OPENSEARCH_CONF_FILE%" && (
