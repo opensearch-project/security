@@ -11,65 +11,97 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-import com.nimbusds.jose.jwk.JWK;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
-import org.junit.Assert;
-import org.junit.Test;
 
 public class SelfRefreshingKeySetTest {
 
+    private SelfRefreshingKeySet selfRefreshingKeySet;
+
+    @Before
+    public void setUp() {
+        selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
+    }
+
     @Test
-    public void basicTest() throws AuthenticatorUnavailableException, BadCredentialsException {
-        SelfRefreshingKeySet selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
+    public void getKey_withKidShouldReturnValidKey() throws AuthenticatorUnavailableException, BadCredentialsException {
 
-        OctetSequenceKey key1 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
-        Assert.assertEquals(TestJwk.OCT_1_K, key1.getKeyValue().decodeToString());
-        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
+        OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
+        Assert.assertEquals(TestJwk.OCT_1_K, key.getKeyValue().decodeToString());
+    }
 
-        OctetSequenceKey key2 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/b");
-        Assert.assertEquals(TestJwk.OCT_2_K, key2.getKeyValue().decodeToString());
-        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
+    @Test
+    public void getKey_withNullKidShouldThrowAuthenticatorUnavailableException()
+            throws AuthenticatorUnavailableException, BadCredentialsException {
 
-        try {
-            selfRefreshingKeySet.getKey("kid/X");
-            Assert.fail("Expected a BadCredentialsException");
-        } catch (BadCredentialsException e) {
-            Assert.assertEquals(2, selfRefreshingKeySet.getRefreshCount());
-        }
+        Assert.assertThrows(AuthenticatorUnavailableException.class, () -> selfRefreshingKeySet.getKey(null));
 
     }
 
-    @Test(timeout = 10000)
-    public void twoThreadedTest() throws Exception {
-        BlockingMockKeySetProvider provider = new BlockingMockKeySetProvider();
+    @Test
+    public void getKeyAfterRefresh_withKidShouldReturnKey()
+            throws AuthenticatorUnavailableException, BadCredentialsException {
 
-        final SelfRefreshingKeySet selfRefreshingKeySet = new SelfRefreshingKeySet(provider);
+        OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKeyAfterRefresh("kid/b");
+        Assert.assertEquals(TestJwk.OCT_2_K, key.getKeyValue().decodeToString());
+    }
 
-        ExecutorService executorService = Executors.newCachedThreadPool();
+    @Test
+    public void getKey_withInvalidDataShouldReturnBadCredentialException()
+            throws AuthenticatorUnavailableException, BadCredentialsException {
 
-        Future<JWK> f1 = executorService.submit(() -> selfRefreshingKeySet.getKey("kid/a"));
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
+    }
 
-        provider.waitForCalled();
+    @Test
+    public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes()
+            throws InterruptedException, ExecutionException {
 
-        Future<JWK> f2 = executorService.submit(() -> selfRefreshingKeySet.getKey("kid/b"));
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        int numThreads = 10;
+        Object lock = new Object();
 
-        while (selfRefreshingKeySet.getQueuedGetCount() == 0) {
-            Thread.sleep(10);
+        for (int i = 0; i < numThreads; i++) {
+            executor.submit(() -> {
+                synchronized (lock) {
+                    try {
+                        selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
+                    } catch (AuthenticatorUnavailableException e) {
+                    } catch (BadCredentialsException e) {
+                    }
+                }
+            });
         }
 
-        provider.unblock();
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.MINUTES);
 
-        Assert.assertEquals(TestJwk.OCT_1_K, ((OctetSequenceKey) f1.get()).getKeyValue().decodeToString());
-        Assert.assertEquals(TestJwk.OCT_2_K, ((OctetSequenceKey) f2.get()).getKeyValue().decodeToString());
+        Assert.assertEquals(10, selfRefreshingKeySet.getRefreshCount());
+        Assert.assertEquals(0, selfRefreshingKeySet.getQueuedGetCount());
 
-        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
-        Assert.assertEquals(1, selfRefreshingKeySet.getQueuedGetCount());
+    }
 
+    @Test
+    public void getKeyAfterRefresh_withNullKidShouldThrowBadCredentialsException()
+            throws AuthenticatorUnavailableException, BadCredentialsException {
+
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh(null));
+    }
+
+    @Test
+    public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredential()
+            throws AuthenticatorUnavailableException, BadCredentialsException {
+
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh("kid/X"));
     }
 
     static class MockKeySetProvider implements KeySetProvider {
@@ -77,43 +109,6 @@ public class SelfRefreshingKeySetTest {
         @Override
         public JWKSet get() throws AuthenticatorUnavailableException {
             return TestJwk.OCT_1_2_3;
-        }
-
-    }
-
-    static class BlockingMockKeySetProvider extends MockKeySetProvider {
-        private boolean blocked = true;
-        private boolean called = false;
-
-        @Override
-        public synchronized JWKSet get() throws AuthenticatorUnavailableException {
-
-            called = true;
-            notifyAll();
-
-            waitForUnblock();
-
-            return super.get();
-        }
-
-        public synchronized void unblock() {
-            blocked = false;
-            notifyAll();
-        }
-
-        public synchronized void waitForCalled() throws InterruptedException {
-            while (!called) {
-                wait();
-            }
-        }
-
-        private synchronized void waitForUnblock() {
-            while (blocked) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {}
-
-            }
         }
     }
 }
