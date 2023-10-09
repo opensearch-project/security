@@ -653,6 +653,9 @@ dependencies {
     implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
         exclude group: 'com.google.guava'
     }
+
+    //test
+    testImplementation 'org.assertj:assertj-core:3.21.0'
 }
 
 jar {

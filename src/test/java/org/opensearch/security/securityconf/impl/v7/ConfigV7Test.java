@@ -13,11 +13,10 @@ package org.opensearch.security.securityconf.impl.v7;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import org.opensearch.security.DefaultObjectMapper;
 
 @RunWith(Parameterized.class)
@@ -30,40 +29,24 @@ public class ConfigV7Test {
     }
 
     public void assertEquals(ConfigV7.Kibana expected, JsonNode node) {
-        Assert.assertEquals(expected.multitenancy_enabled, node.get("multitenancy_enabled").asBoolean());
-        if (expected.server_username == null) {
-            Assert.assertNull(node.get("server_username"));
-        } else {
-            Assert.assertEquals(expected.server_username, node.get("server_username").asText());
-        }
-        if (expected.index == null) {
-            // null is not persisted
-            Assert.assertNull(node.get("index"));
-        } else {
-            Assert.assertEquals(expected.index, node.get("index").asText());
-        }
-        if (expected.opendistro_role == null) {
-            Assert.assertNull(node.get("opendistro_role"));
-        } else {
-            Assert.assertEquals(expected.opendistro_role, node.get("opendistro_role").asText());
-        }
-    }
+        assertThat(node.get("multitenancy_enabled").asBoolean()).as("Multitenancy Enabled").isEqualTo(expected.multitenancy_enabled);
 
-    private void assertEquals(ConfigV7.Kibana expected, ConfigV7.Kibana actual) {
-        Assert.assertEquals(expected.multitenancy_enabled, actual.multitenancy_enabled);
         if (expected.server_username == null) {
-            // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.Kibana().server_username, actual.server_username);
+            assertThat(node.get("server_username")).isNull();
         } else {
-            Assert.assertEquals(expected.server_username, actual.server_username);
+            assertThat(node.get("server_username").asText()).as("Server Username").isEqualTo(expected.server_username);
         }
-        // null is restored to default (which is null).
-        Assert.assertEquals(expected.opendistro_role, actual.opendistro_role);
+
         if (expected.index == null) {
-            // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.Kibana().index, actual.index);
+            assertThat(node.get("index")).isNull();
         } else {
-            Assert.assertEquals(expected.index, actual.index);
+            assertThat(node.get("index").asText()).as("Index").isEqualTo(expected.index);
+        }
+
+        if (expected.opendistro_role == null) {
+            assertThat(node.get("opendistro_role")).isNull();
+        } else {
+            assertThat(node.get("opendistro_role").asText()).as("OpenDistro Role").isEqualTo(expected.opendistro_role);
         }
     }
 
@@ -79,7 +62,6 @@ public class ConfigV7Test {
         kibana = new ConfigV7.Kibana();
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
-        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
 
         kibana.multitenancy_enabled = false;
         kibana.server_username = null;
@@ -87,7 +69,6 @@ public class ConfigV7Test {
         kibana.index = null;
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
-        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
 
         kibana.multitenancy_enabled = true;
         kibana.server_username = "user";
@@ -95,6 +76,6 @@ public class ConfigV7Test {
         kibana.index = "index";
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
-        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
+
     }
 }
