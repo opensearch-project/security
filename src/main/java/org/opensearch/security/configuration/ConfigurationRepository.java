@@ -488,4 +488,8 @@ public class ConfigurationRepository {
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
     }
+
+    public AtomicBoolean getInstallDefaultConfig() {
+        return installDefaultConfig;
+    }
 }
