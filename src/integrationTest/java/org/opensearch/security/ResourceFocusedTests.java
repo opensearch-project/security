@@ -139,7 +139,7 @@ public class ResourceFocusedTests {
             CompletableFuture<Void> statPrinter = statsPrinter ? CompletableFuture.runAsync(() -> {
                 while (true) {
                     printStats();
-                    System.out.println(" & Succesful completions: " + getCount.get());
+                    System.err.println(" & Succesful completions: " + getCount.get());
                     try {
                         Thread.sleep(500);
                     } catch (Exception e) {
@@ -159,7 +159,7 @@ public class ResourceFocusedTests {
 
             if (statsPrinter) {
                 printStats();
-                System.out.println(" & Succesful completions: " + getCount.get());
+                System.err.println(" & Succesful completions: " + getCount.get());
             }
             return getCount.get();
         }
@@ -207,7 +207,7 @@ public class ResourceFocusedTests {
             gzipOutputStream.finish();
 
             final byte[] compressedRequestBody = byteArrayOutputStream.toByteArray();
-            System.out.println(
+            System.err.println(
                 "^^^"
                     + String.format(
                         "Original size was %,d bytes, compressed to %,d bytes, ratio %,.2f",
@@ -223,7 +223,7 @@ public class ResourceFocusedTests {
     }
 
     private void printStats() {
-        System.out.println("** Stats ");
+        System.err.println("** Stats ");
         printMemory();
         printMemoryPools();
         printGCPools();
@@ -236,21 +236,21 @@ public class ResourceFocusedTests {
         final long freeMemory = runtime.freeMemory(); // Amount of free memory
         final long usedMemory = totalMemory - freeMemory; // Amount of used memory
 
-        System.out.println("   Memory Total: " + totalMemory + " Free:" + freeMemory + " Used:" + usedMemory);
+        System.err.println("   Memory Total: " + totalMemory + " Free:" + freeMemory + " Used:" + usedMemory);
     }
 
     private void printMemoryPools() {
         List<MemoryPoolMXBean> memoryPools = ManagementFactory.getMemoryPoolMXBeans();
         for (MemoryPoolMXBean memoryPool : memoryPools) {
             MemoryUsage usage = memoryPool.getUsage();
-            System.out.println("   " + memoryPool.getName() + " USED: " + usage.getUsed() + " MAX: " + usage.getMax());
+            System.err.println("   " + memoryPool.getName() + " USED: " + usage.getUsed() + " MAX: " + usage.getMax());
         }
     }
 
     private void printGCPools() {
         List<GarbageCollectorMXBean> garbageCollectors = ManagementFactory.getGarbageCollectorMXBeans();
         for (GarbageCollectorMXBean garbageCollector : garbageCollectors) {
-            System.out.println("   " + garbageCollector.getName() + " COLLECTION TIME: " + garbageCollector.getCollectionTime());
+            System.err.println("   " + garbageCollector.getName() + " COLLECTION TIME: " + garbageCollector.getCollectionTime());
         }
     }
 
