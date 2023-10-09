@@ -11,7 +11,12 @@
 
 package org.opensearch.security.filter;
 
-/** Thrown when a security rest channel is not supported */
-public class SecurityRequestChannelUnsupported extends RuntimeException {
+import org.opensearch.OpenSearchException;
 
+/** Thrown when a security rest channel is not supported */
+public class SecurityRequestChannelUnsupported extends OpenSearchException {
+
+    public SecurityRequestChannelUnsupported(String msg, Object... args) {
+        super(msg, args);
+    }
 }
