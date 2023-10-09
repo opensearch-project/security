@@ -37,8 +37,8 @@ import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IpBruteForceAttacksPreventionTests {
-    private static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
-    private static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
+    protected static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
+    protected static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
 
     public static final int ALLOWED_TRIES = 3;
     public static final int TIME_WINDOW_SECONDS = 3;
@@ -52,7 +52,7 @@ public class IpBruteForceAttacksPreventionTests {
     public static final String CLIENT_IP_8 = "127.0.0.8";
     public static final String CLIENT_IP_9 = "127.0.0.9";
 
-    private static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
+    protected static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
         new RateLimiting("internal_authentication_backend_limiting").type("ip")
             .allowedTries(ALLOWED_TRIES)
             .timeWindowSeconds(TIME_WINDOW_SECONDS)
@@ -156,7 +156,7 @@ public class IpBruteForceAttacksPreventionTests {
         }
     }
 
-    private static void authenticateUserWithIncorrectPassword(String sourceIpAddress, User user, int numberOfRequests) {
+    private void authenticateUserWithIncorrectPassword(String sourceIpAddress, User user, int numberOfRequests) {
         var clientConfiguration = new TestRestClientConfiguration().username(user.getName())
             .password("incorrect password")
             .sourceInetAddress(sourceIpAddress);

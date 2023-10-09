@@ -67,24 +67,6 @@ import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpOptions;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.conn.routing.HttpRoutePlanner;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -149,7 +131,7 @@ public class TestRestClient implements AutoCloseable {
             HttpPost httpPost = new HttpPost(
                 new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/generateonbehalfoftoken?pretty").build()
             );
-            httpPost.setEntity(toStringEntity(jsonData));
+            httpPost.setEntity(new StringEntity(jsonData));
             return executeRequest(httpPost, mergeHeaders(CONTENT_TYPE_JSON, headers));
         } catch (URISyntaxException ex) {
             throw new RuntimeException("Incorrect URI syntax", ex);
@@ -159,7 +141,7 @@ public class TestRestClient implements AutoCloseable {
     public HttpResponse changeInternalUserPassword(String jsonData, Header... headers) {
         try {
             HttpPut httpPut = new HttpPut(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/account?pretty").build());
-            httpPut.setEntity(toStringEntity(jsonData));
+            httpPut.setEntity(new StringEntity(jsonData));
             return executeRequest(httpPut, mergeHeaders(CONTENT_TYPE_JSON, headers));
         } catch (URISyntaxException ex) {
             throw new RuntimeException("Incorrect URI syntax", ex);
@@ -185,7 +167,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse putJson(String path, String body, Header... headers) {
         HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + path);
-        uriRequest.setEntity(toStringEntity(body));
+        uriRequest.setEntity(new StringEntity(body));
         return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
@@ -197,16 +179,8 @@ public class TestRestClient implements AutoCloseable {
                 return "GET";
             }
         };
-        uriRequest.setEntity(toStringEntity(body));
+        uriRequest.setEntity(new StringEntity(body));
         return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
-    }
-
-    private StringEntity toStringEntity(String body) {
-        try {
-            return new StringEntity(body);
-        } catch (UnsupportedEncodingException uee) {
-            throw new RuntimeException(uee);
-        }
     }
 
     public HttpResponse putJson(String path, ToXContentObject body) {
@@ -224,7 +198,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse postJson(String path, String body, Header... headers) {
         HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path);
-        uriRequest.setEntity(toStringEntity(body));
+        uriRequest.setEntity(new StringEntity(body));
         return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
@@ -239,7 +213,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse patch(String path, String body) {
         HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + path);
-        uriRequest.setEntity(toStringEntity(body));
+        uriRequest.setEntity(new StringEntity(body));
         return executeRequest(uriRequest, CONTENT_TYPE_JSON);
     }
 

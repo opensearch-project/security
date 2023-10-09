@@ -470,9 +470,7 @@ sourceSets {
 task integrationTest(type: Test) {
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
-        if (System.getenv('CI_ENVIRONMENT') == 'resource-test' || System.getenv('CI_ENVIRONMENT') == null) {
-            include '**/ResourceFocusedTests.class'
-        } else {
+        if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
             exclude '**/ResourceFocusedTests.class'
         }
         // Only run with retries while in CI systems
