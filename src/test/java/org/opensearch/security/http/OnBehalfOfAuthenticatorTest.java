@@ -12,11 +12,7 @@
 package org.opensearch.security.http;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import javax.crypto.SecretKey;
 
@@ -31,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
@@ -46,6 +43,20 @@ public class OnBehalfOfAuthenticatorTest {
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
     final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
+
+    @Test
+    public void testReRequestAuthenticationReturnsEmptyOptional() {
+        OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        Optional<SecurityResponse> result = authenticator.reRequestAuthentication(null, null);
+        Assert.assertFalse(result.isPresent());
+    }
+
+    @Test
+    public void testGetTypeReturnsExpectedType() {
+        OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        String type = authenticator.getType();
+        Assert.assertEquals("onbehalfof_jwt", type);
+    }
 
     @Test
     public void testNoKey() {
