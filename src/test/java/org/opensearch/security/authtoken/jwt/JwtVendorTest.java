@@ -39,6 +39,16 @@ public class JwtVendorTest {
     private ArgumentCaptor<LogEvent> logEventCaptor;
 
     @Test
+    public void testJsonWebKeyPropertiesSetFromJwkSettings() throws Exception {
+        Settings settings = Settings.builder().put("jwt.key.key1", "value1").put("jwt.key.key2", "value2").build();
+
+        JsonWebKey jwk = JwtVendor.createJwkFromSettings(settings);
+
+        Assert.assertEquals("value1", jwk.getProperty("key1"));
+        Assert.assertEquals("value2", jwk.getProperty("key2"));
+    }
+
+    @Test
     public void testJsonWebKeyPropertiesSetFromSettings() {
         Settings jwkSettings = Settings.builder().put("key1", "value1").put("key2", "value2").build();
 
@@ -258,21 +268,17 @@ public class JwtVendorTest {
         List<String> backendRoles = List.of("Sales", "Support");
         int expirySeconds = 300;
 
-        // Create instance of JwtVendor
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
 
-        // Call the method under test
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
 
-        // Verify the log was captured
         verify(mockAppender, times(1)).append(logEventCaptor.capture());
 
-        // Check the log message
         LogEvent logEvent = logEventCaptor.getValue();
         String logMessage = logEvent.getMessage().getFormattedMessage();
         Assert.assertTrue(logMessage.startsWith("Created JWT:"));
 
         String[] parts = logMessage.split("\\.");
-        Assert.assertTrue(parts.length >= 3); // JWTs typically have 3 parts: Header.Payload.Signature
+        Assert.assertTrue(parts.length >= 3);
     }
 }
