@@ -39,6 +39,19 @@ public class JwtVendorTest {
     private ArgumentCaptor<LogEvent> logEventCaptor;
 
     @Test
+    public void testJsonWebKeyPropertiesSetFromSettings() {
+        Settings jwkSettings = Settings.builder().put("key1", "value1").put("key2", "value2").build();
+
+        JsonWebKey jwk = new JsonWebKey();
+        for (String key : jwkSettings.keySet()) {
+            jwk.setProperty(key, jwkSettings.get(key));
+        }
+
+        Assert.assertEquals("value1", jwk.getProperty("key1"));
+        Assert.assertEquals("value2", jwk.getProperty("key2"));
+    }
+
+    @Test
     public void testCreateJwkFromSettings() throws Exception {
         Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
