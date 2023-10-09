@@ -27,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
@@ -242,7 +243,7 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testRoles() throws Exception {
+    public void testPlainTextedRolesFromDrClaim() {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
@@ -255,6 +256,23 @@ public class OnBehalfOfAuthenticatorTest {
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
         Assert.assertEquals(2, credentials.getSecurityRoles().size());
         Assert.assertEquals(0, credentials.getBackendRoles().size());
+    }
+
+    @Test
+    public void testRolesDecryptionFromErClaim() {
+        EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKey);
+        String encryptedRole = util.encrypt("admin,developer");
+
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            signingKeyB64Encoded,
+            claimsEncryptionKey,
+            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("er", encryptedRole),
+            true
+        );
+
+        Assert.assertNotNull(credentials);
+        List<String> expectedRoles = Arrays.asList("admin", "developer");
+        Assert.assertTrue(credentials.getSecurityRoles().containsAll(expectedRoles));
     }
 
     @Test
