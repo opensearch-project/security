@@ -37,7 +37,6 @@ import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.BaseTcpTransportChannel;
 import org.opensearch.transport.TaskTransportChannel;
 import org.opensearch.transport.TcpChannel;
 import org.opensearch.transport.TcpTransportChannel;

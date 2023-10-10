@@ -12,23 +12,17 @@
 package org.opensearch.security;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opensearch.common.util.FeatureFlags;
-import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -102,7 +96,14 @@ public class TelemetryIntgerationTests {
         .anonymousAuth(false)
         .users(ADMIN_USER, OBO_USER, OBO_USER_NO_PERM, HOST_MAPPING_OBO_USER)
         .nodeSettings(
-            Map.of(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true, SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access"), FeatureFlags.TELEMETRY_SETTING.getKey(), true)
+            Map.of(
+                SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX,
+                true,
+                SECURITY_RESTAPI_ROLES_ENABLED,
+                List.of("user_admin__all_access"),
+                FeatureFlags.TELEMETRY_SETTING.getKey(),
+                true
+            )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .rolesMapping(new RolesMapping(HOST_MAPPING_ROLE).hostIPs(HOST_MAPPING_IP))
