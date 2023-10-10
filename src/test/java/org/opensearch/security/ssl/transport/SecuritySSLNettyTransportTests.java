@@ -89,7 +89,7 @@ public class SecuritySSLNettyTransportTests {
   }
 
   @Test
-  public void getClientChannelInitializer_shouldReturnValidClienteChannel() {
+  public void getClientChannelInitializer_shouldReturnValidClientChannel() {
 
     ChannelHandler channelHandler = securitySSLNettyTransport.getClientChannelInitializer(discoveryNode);
 
