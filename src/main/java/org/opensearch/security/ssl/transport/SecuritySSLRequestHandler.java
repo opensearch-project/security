@@ -37,9 +37,9 @@ import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.BaseTcpTransportChannel;
 import org.opensearch.transport.TaskTransportChannel;
 import org.opensearch.transport.TcpChannel;
-import org.opensearch.transport.TcpTransportChannel;
 import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
@@ -113,9 +113,9 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
 
             if (channel instanceof TaskTransportChannel) {
                 final TransportChannel inner = ((TaskTransportChannel) channel).getChannel();
-                nettyChannel = (Netty4TcpChannel) ((TcpTransportChannel) inner).getChannel();
-            } else if (channel instanceof TcpTransportChannel) {
-                final TcpChannel inner = ((TcpTransportChannel) channel).getChannel();
+                nettyChannel = (Netty4TcpChannel) ((BaseTcpTransportChannel) inner).getChannel();
+            } else if (channel instanceof BaseTcpTransportChannel) {
+                final TcpChannel inner = ((BaseTcpTransportChannel) channel).getChannel();
                 nettyChannel = (Netty4TcpChannel) inner;
             } else {
                 throw new Exception("Invalid channel of type " + channel.getClass() + " (" + channel.getChannelType() + ")");
