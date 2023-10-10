@@ -4,7 +4,6 @@ Compatible with OpenSearch 2.11.0
 
 ### Enhancements
 * Authorization in Rest Layer ([#2753](https://github.com/opensearch-project/security/pull/2753))
-* Demo configuration accepts requires admin password ([#3329](https://github.com/opensearch-project/security/pull/3329)) ([#3490](https://github.com/opensearch-project/security/pull/3490))
 * Improve serialization speeds ([#2802](https://github.com/opensearch-project/security/pull/2802))
 * Integration tests framework ([#3388](https://github.com/opensearch-project/security/pull/3388))
 * Allow for automatic merging of dependabot changes after checks pass ([#3409](https://github.com/opensearch-project/security/pull/3409))
@@ -21,6 +20,7 @@ Compatible with OpenSearch 2.11.0
 * Disable codecov from failing CI if there is an upload issue ([#3379](https://github.com/opensearch-project/security/pull/3379))
 * [Refactor] Change HTTP routes for Audit and Config PUT methods   ([#3407](https://github.com/opensearch-project/security/pull/3407))
 * Add tracer to Transport ([#3463](https://github.com/opensearch-project/security/pull/3463))
+* Adds opensearch trigger bot to discerning merger list to allow automatic merges ([#3481](https://github.com/opensearch-project/security/pull/3481))
 * Bump org.apache.camel:camel-xmlsecurity from 3.21.0 to 3.21.1 ([#3436](https://github.com/opensearch-project/security/pull/3436))
 * Bump com.github.wnameless.json:json-base from 2.4.2 to 2.4.3 ([#3437](https://github.com/opensearch-project/security/pull/3437))
 * Bump org.xerial.snappy:snappy-java from 1.1.10.4 to 1.1.10.5 ([#3438](https://github.com/opensearch-project/security/pull/3438))
