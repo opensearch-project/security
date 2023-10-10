@@ -12,7 +12,16 @@
 package org.opensearch.security.http;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Arrays;
+import java.util.Optional;
 
 import javax.crypto.SecretKey;
 
@@ -38,7 +47,9 @@ import org.opensearch.security.util.FakeRestRequest;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -480,7 +491,7 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     private AuthCredentials testEndpoint(OnBehalfOfAuthenticator jwtAuth, String endpoint, String httpMethod) {
-        SecurityRequest mockedRequest = Mockito.mock(SecurityRequest.class);
+        SecurityRequest mockedRequest = mock(SecurityRequest.class);
         Mockito.when(mockedRequest.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
         Mockito.when(mockedRequest.method()).thenReturn(RestRequest.Method.valueOf(httpMethod));
         Mockito.when(mockedRequest.path()).thenReturn("/some_prefix/" + endpoint);
