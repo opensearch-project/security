@@ -26,9 +26,12 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.mockito.Mockito;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
@@ -36,6 +39,8 @@ import org.opensearch.security.util.FakeRestRequest;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.PUT;
 
 public class OnBehalfOfAuthenticatorTest {
     final static String clusterName = "cluster_0";
@@ -47,6 +52,9 @@ public class OnBehalfOfAuthenticatorTest {
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
     final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
+
+    private static final String ON_BEHALF_OF_SUFFIX = "api/generateonbehalfoftoken";
+    private static final String ACCOUNT_SUFFIX = "api/account";
 
     @Test
     public void testReRequestAuthenticationReturnsEmptyOptional() {
@@ -458,6 +466,26 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testExtractCredentialsForDisallowedRequest() {
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+
+        AuthCredentials credentials = testEndpoint(jwtAuth, ON_BEHALF_OF_SUFFIX, String.valueOf(POST));
+        Assert.assertNull(credentials);
+
+        credentials = testEndpoint(jwtAuth, ACCOUNT_SUFFIX, String.valueOf(PUT));
+        Assert.assertNull(credentials);
+    }
+
+    private AuthCredentials testEndpoint(OnBehalfOfAuthenticator jwtAuth, String endpoint, String httpMethod) {
+        SecurityRequest mockedRequest = Mockito.mock(SecurityRequest.class);
+        Mockito.when(mockedRequest.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
+        Mockito.when(mockedRequest.method()).thenReturn(RestRequest.Method.valueOf(httpMethod));
+        Mockito.when(mockedRequest.path()).thenReturn("/some_prefix/" + endpoint);
+
+        return jwtAuth.extractCredentials(mockedRequest, null);
     }
 
     /** extracts a default user credential from a request header */
