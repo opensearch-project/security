@@ -259,6 +259,29 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
+    public void testBackendRolesExtraction() {
+        String rolesString = "role1, role2 ,role3,role4 , role5";
+
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+                signingKeyB64Encoded,
+                claimsEncryptionKey,
+                Jwts.builder()
+                        .setIssuer(clusterName)
+                        .setSubject("Test User")
+                        .setAudience("audience_0")
+                        .claim("br", rolesString),
+                true
+        );
+
+        Assert.assertNotNull(credentials);
+
+        Set<String> expectedBackendRoles = new HashSet<>(Arrays.asList("role1", "role2", "role3", "role4", "role5"));
+        Set<String> actualBackendRoles = credentials.getBackendRoles();
+
+        Assert.assertTrue(actualBackendRoles.containsAll(expectedBackendRoles));
+    }
+
+    @Test
     public void testRolesDecryptionFromErClaim() {
         EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKey);
         String encryptedRole = util.encrypt("admin,developer");
