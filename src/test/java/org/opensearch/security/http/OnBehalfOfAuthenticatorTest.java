@@ -238,7 +238,7 @@ public class OnBehalfOfAuthenticatorTest {
         try {
             jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
         } finally {
-            System.setSecurityManager(null);  // Reset to the default security manager
+            System.setSecurityManager(null);
         }
 
         verify(mockSecurityManager, times(2)).checkPermission(any(SpecialPermission.class));
