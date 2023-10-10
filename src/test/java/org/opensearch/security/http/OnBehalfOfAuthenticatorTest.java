@@ -376,6 +376,19 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
+    public void testMissingAudienceClaim() throws Exception {
+
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            signingKeyB64Encoded,
+            claimsEncryptionKey,
+            Jwts.builder().setIssuer(clusterName).setSubject("Test User").claim("roles", "role1,role2"),
+            false
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
     public void testExp() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
