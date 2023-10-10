@@ -26,6 +26,7 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityResponse;
@@ -33,6 +34,8 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class OnBehalfOfAuthenticatorTest {
     final static String clusterName = "cluster_0";
@@ -221,6 +224,24 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testSecurityManagerCheck() {
+        SecurityManager mockSecurityManager = mock(SecurityManager.class);
+        System.setSecurityManager(mockSecurityManager);
+
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer someToken");
+
+        try {
+            jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
+        } finally {
+            System.setSecurityManager(null);  // Reset to the default security manager
+        }
+
+        verify(mockSecurityManager, times(2)).checkPermission(any(SpecialPermission.class));
     }
 
     @Test
