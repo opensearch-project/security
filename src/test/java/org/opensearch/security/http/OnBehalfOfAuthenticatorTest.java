@@ -263,14 +263,10 @@ public class OnBehalfOfAuthenticatorTest {
         String rolesString = "role1, role2 ,role3,role4 , role5";
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                signingKeyB64Encoded,
-                claimsEncryptionKey,
-                Jwts.builder()
-                        .setIssuer(clusterName)
-                        .setSubject("Test User")
-                        .setAudience("audience_0")
-                        .claim("br", rolesString),
-                true
+            signingKeyB64Encoded,
+            claimsEncryptionKey,
+            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("br", rolesString),
+            true
         );
 
         Assert.assertNotNull(credentials);
