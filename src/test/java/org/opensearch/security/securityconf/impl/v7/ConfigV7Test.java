@@ -16,8 +16,12 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import static org.assertj.core.api.Assertions.assertThat;
+
 import org.opensearch.security.DefaultObjectMapper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(Parameterized.class)
 public class ConfigV7Test {
@@ -28,25 +32,25 @@ public class ConfigV7Test {
         return ImmutableList.of(Boolean.FALSE, Boolean.TRUE);
     }
 
-    public void assertEquals(ConfigV7.Kibana expected, JsonNode node) {
-        assertThat(node.get("multitenancy_enabled").asBoolean()).as("Multitenancy Enabled").isEqualTo(expected.multitenancy_enabled);
+    public void assertKibanaProperties(ConfigV7.Kibana expected, JsonNode node) {
+        assertThat(node.get("multitenancy_enabled").asBoolean(), is(expected.multitenancy_enabled));
 
         if (expected.server_username == null) {
-            assertThat(node.get("server_username")).isNull();
+            assertThat(node.has("server_username"), is(false));
         } else {
-            assertThat(node.get("server_username").asText()).as("Server Username").isEqualTo(expected.server_username);
+            assertThat(node.get("server_username").asText(), is(expected.server_username));
         }
 
         if (expected.index == null) {
-            assertThat(node.get("index")).isNull();
+            assertThat(node.has("index"), is(false));
         } else {
-            assertThat(node.get("index").asText()).as("Index").isEqualTo(expected.index);
+            assertThat(node.get("index").asText(), is(expected.index));
         }
 
         if (expected.opendistro_role == null) {
-            assertThat(node.get("opendistro_role")).isNull();
+            assertThat(node.has("opendistro_role"), is(false));
         } else {
-            assertThat(node.get("opendistro_role").asText()).as("OpenDistro Role").isEqualTo(expected.opendistro_role);
+            assertThat(node.get("opendistro_role").asText(), is(expected.opendistro_role));
         }
     }
 
@@ -61,21 +65,21 @@ public class ConfigV7Test {
 
         kibana = new ConfigV7.Kibana();
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
-        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertKibanaProperties(kibana, DefaultObjectMapper.readTree(json));
 
         kibana.multitenancy_enabled = false;
         kibana.server_username = null;
         kibana.opendistro_role = null;
         kibana.index = null;
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
-        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertKibanaProperties(kibana, DefaultObjectMapper.readTree(json));
 
         kibana.multitenancy_enabled = true;
         kibana.server_username = "user";
         kibana.opendistro_role = "role";
         kibana.index = "index";
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
-        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertKibanaProperties(kibana, DefaultObjectMapper.readTree(json));
 
     }
 }
