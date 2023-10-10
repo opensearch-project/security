@@ -1,14 +1,23 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
 package org.opensearch.security.filter;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
@@ -19,17 +28,15 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
-import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -65,7 +72,19 @@ public class SecurityRestFilterUnitTests {
         );
     }
 
-    @Ignore
+    /**
+     * Tests to ensure that the output of {@link SecurityRestFilter#wrap} is an instance of AuthczRestHandler
+     */
+    @Test
+    public void testSecurityRestFilterWrap() throws Exception {
+        AdminDNs adminDNs = mock(AdminDNs.class);
+
+        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, adminDNs);
+
+        assertTrue(wrappedRestHandler instanceof SecurityRestFilter.AuthczRestHandler);
+        assertFalse(wrappedRestHandler instanceof TestRestHandler);
+    }
+
     @Test
     public void testDoesCallDelegateOnSuccessfulAuthorization() throws Exception {
         SecurityRestFilter filterSpy = spy(sf);
@@ -75,37 +94,9 @@ public class SecurityRestFilterUnitTests {
         RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs);
 
         doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
-        // doReturn(true).when(filterSpy).authorizeRequest(any(), any(), any());
 
-        FakeRestRequest fakeRequest = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).withPath("/test")
-            .withMethod(RestRequest.Method.POST)
-            .withHeaders(Map.of("Content-Type", List.of("application/json")))
-            .build();
-
-        wrappedRestHandler.handleRequest(fakeRequest, mock(RestChannel.class), mock(NodeClient.class));
+        wrappedRestHandler.handleRequest(mock(RestRequest.class), mock(RestChannel.class), mock(NodeClient.class));
 
         verify(testRestHandlerSpy).handleRequest(any(), any(), any());
-    }
-
-    @Ignore
-    @Test
-    public void testDoesNotCallDelegateOnUnauthorized() throws Exception {
-        SecurityRestFilter filterSpy = spy(sf);
-        AdminDNs adminDNs = mock(AdminDNs.class);
-
-        RestHandler testRestHandlerSpy = spy(testRestHandler);
-        RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs);
-
-        doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
-        // doReturn(false).when(filterSpy).authorizeRequest(any(), any(), any());
-
-        FakeRestRequest fakeRequest = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).withPath("/test")
-            .withMethod(RestRequest.Method.POST)
-            .withHeaders(Map.of("Content-Type", List.of("application/json")))
-            .build();
-
-        wrappedRestHandler.handleRequest(fakeRequest, mock(RestChannel.class), mock(NodeClient.class));
-
-        verify(testRestHandlerSpy, never()).handleRequest(any(), any(), any());
     }
 }
