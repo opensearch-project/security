@@ -12,7 +12,6 @@ package org.opensearch.security;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,7 +25,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.cluster.TestRestClientConfiguration;
 import org.opensearch.test.framework.log.LogsRule;
-
 
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;

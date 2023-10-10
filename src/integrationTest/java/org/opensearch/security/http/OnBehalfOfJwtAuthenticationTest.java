@@ -183,7 +183,7 @@ public class OnBehalfOfJwtAuthenticationTest {
             client.assertCorrectCredentials(username);
             TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
             response.assertStatusCode(200);
-            Map<String, Object> oboEndPointResponse = (Map<String, Object>)response.getBodyAs(Map.class);
+            Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
             assertThat(
                 oboEndPointResponse,
                 allOf(aMapWithSize(3), hasKey("user"), hasKey("authenticationToken"), hasKey("durationSeconds"))
