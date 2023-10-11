@@ -13,6 +13,7 @@ Compatible with OpenSearch 2.11.0
 
 ### Bug Fixes
 * Refactors reRequestAuthentication to call notifyIpAuthFailureListener before sending the response to the channel ([#3411](https://github.com/opensearch-project/security/pull/3411))
+* For read-only tenants filter with allow list ([c3e53e2](https://github.com/opensearch-project/security/commit/c3e53e20a69dc8eb401653594a130c2a4fd4b6bd))
 
 ### Maintenance
 * Change log message from warning to trace on WWW-Authenticate challenge ([#3446](https://github.com/opensearch-project/security/pull/3446))
