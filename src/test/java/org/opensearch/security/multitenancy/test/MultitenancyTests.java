@@ -18,6 +18,7 @@ package org.opensearch.security.multitenancy.test;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
 import org.opensearch.action.admin.indices.alias.Alias;
@@ -39,6 +40,9 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class MultitenancyTests extends SingleClusterTest {
 
@@ -391,4 +395,94 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains(".kibana_-900636979_kibanaro"));
     }
 
+    @Test
+    public void testMultitenancyUserReadOnlyActions() throws Exception {
+        setup(Settings.EMPTY);
+
+        /* Create the tenant for the anonymous user to run the tests */
+        final String tenant = "test_tenant_ro";
+
+        final TenantExpectation tenantExpectation = new TenantExpectation();
+        tenantExpectation.isTenantWritable = "false";
+        tenantExpectation.createDocStatusCode = HttpStatus.SC_FORBIDDEN;
+        tenantExpectation.updateDocStatusCode = HttpStatus.SC_FORBIDDEN;
+        tenantExpectation.updateIndexStatusCode = HttpStatus.SC_FORBIDDEN;
+        tenantExpectation.deleteIndexStatuCode = HttpStatus.SC_FORBIDDEN;
+
+        verifyTenantActions(nonSslRestHelper(), tenant, tenantExpectation, encodeBasicHeader("user_a", "user_a"));
+    }
+
+    @Test
+    public void testMultitenancyUserReadWriteActions() throws Exception {
+        setup(Settings.EMPTY);
+
+        /* Create the tenant for the anonymous user to run the tests */
+        final String tenant = "opendistro_security_anonymous";
+
+        final TenantExpectation tenantExpectation = new TenantExpectation();
+        tenantExpectation.isTenantWritable = "true";
+        tenantExpectation.createDocStatusCode = HttpStatus.SC_CREATED;
+        tenantExpectation.updateDocStatusCode = HttpStatus.SC_OK;
+        tenantExpectation.updateIndexStatusCode = HttpStatus.SC_OK;
+        tenantExpectation.deleteIndexStatuCode = HttpStatus.SC_BAD_REQUEST; // tenant index cannot be deleted because its an alias
+
+        verifyTenantActions(nonSslRestHelper(), tenant, tenantExpectation, encodeBasicHeader("admin", "admin"));
+    }
+
+    private static void verifyTenantActions(
+        final RestHelper rh,
+        final String tenant,
+        final TenantExpectation tenantExpectation,
+        final Header asUser
+    ) {
+        final BasicHeader inTenant = new BasicHeader("securitytenant", tenant);
+        final HttpResponse adminIndexDocToCreateTenant = rh.executePutRequest(
+            ".kibana/_doc/5.6.0",
+            "{\"buildNum\": 15460, \"defaultIndex\": \"anon\", \"tenant\": \"" + tenant + "\"}",
+            encodeBasicHeader("admin", "admin"),
+            inTenant
+        );
+        assertThat(adminIndexDocToCreateTenant.getBody(), adminIndexDocToCreateTenant.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
+
+        final HttpResponse authInfo = rh.executeGetRequest("/_opendistro/_security/authinfo?pretty", inTenant, asUser);
+        assertThat(authInfo.getBody(), authInfo.findValueInJson("tenants." + tenant), equalTo(tenantExpectation.isTenantWritable));
+
+        final HttpResponse search = rh.executeGetRequest(".kibana/_search", inTenant, asUser);
+        assertThat(search.getBody(), search.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        final HttpResponse msearch = rh.executePostRequest(".kibana/_msearch", "{}\n{\"query\":{\"match_all\":{}}}\n", inTenant, asUser);
+        assertThat(msearch.getBody(), msearch.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        final HttpResponse mget = rh.executePostRequest(".kibana/_mget", "{\"docs\":[{\"_id\":\"5.6.0\"}]}", inTenant, asUser);
+        assertThat(mget.getBody(), mget.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        final HttpResponse getDoc = rh.executeGetRequest(".kibana/_doc/5.6.0", inTenant, asUser);
+        assertThat(getDoc.getBody(), getDoc.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        final HttpResponse createDoc = rh.executePostRequest(".kibana/_doc", "{}", inTenant, asUser);
+        assertThat(createDoc.getBody(), createDoc.getStatusCode(), equalTo(tenantExpectation.createDocStatusCode));
+
+        final HttpResponse updateDoc = rh.executePutRequest(".kibana/_doc/5.6.0", "{}", inTenant, asUser);
+        assertThat(updateDoc.getBody(), updateDoc.getStatusCode(), equalTo(tenantExpectation.updateDocStatusCode));
+
+        final HttpResponse deleteDoc = rh.executeDeleteRequest(".kibana/_doc/5.6.0", inTenant, asUser);
+        assertThat(deleteDoc.getBody(), deleteDoc.getStatusCode(), equalTo(tenantExpectation.updateDocStatusCode));
+
+        final HttpResponse getKibana = rh.executeGetRequest(".kibana", inTenant, asUser);
+        assertThat(getKibana.getBody(), getKibana.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        final HttpResponse closeKibana = rh.executePostRequest(".kibana/_close", "{}", inTenant, asUser);
+        assertThat(closeKibana.getBody(), closeKibana.getStatusCode(), equalTo(tenantExpectation.updateIndexStatusCode));
+
+        final HttpResponse deleteKibana = rh.executeDeleteRequest(".kibana", inTenant, asUser);
+        assertThat(deleteKibana.getBody(), deleteKibana.getStatusCode(), equalTo(tenantExpectation.deleteIndexStatuCode));
+    }
+
+    private static class TenantExpectation {
+        private String isTenantWritable;
+        private int createDocStatusCode;
+        private int updateDocStatusCode;
+        private int updateIndexStatusCode;
+        private int deleteIndexStatuCode;
+    }
 }

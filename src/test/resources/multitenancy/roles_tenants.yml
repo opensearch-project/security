@@ -54,3 +54,7 @@ human_resources:
   reserved: false
   hidden: false
   description: "Migrated from v6"
+opendistro_security_anonymous:
+  reserved: false
+  hidden: false
+  description: ""

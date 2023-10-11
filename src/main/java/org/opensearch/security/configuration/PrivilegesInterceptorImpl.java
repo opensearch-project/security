@@ -55,6 +55,7 @@ import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
@@ -63,6 +64,15 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     private static final Map<String, Object> KIBANA_INDEX_SETTINGS = ImmutableMap.of(
             IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1,
             IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1"
+    );
+
+    private static final ImmutableSet<String> READ_ONLY_ALLOWED_ACTIONS = ImmutableSet.of(
+        "indices:admin/get",
+        "indices:data/read/get",
+        "indices:data/read/search",
+        "indices:data/read/msearch",
+        "indices:data/read/mget",
+        "indices:data/read/mget[shard]"
     );
 
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -83,7 +93,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 log.debug("request " + request.getClass());
             }
 
-            if (tenants.get(requestedTenant) == Boolean.FALSE && action.startsWith("indices:data/write")) {
+            if (tenants.get(requestedTenant) == Boolean.FALSE && !READ_ONLY_ALLOWED_ACTIONS.contains(action)) {
                 log.warn("Tenant {} is not allowed to write (user: {})", requestedTenant, user.getName());
                 return false;
             }
