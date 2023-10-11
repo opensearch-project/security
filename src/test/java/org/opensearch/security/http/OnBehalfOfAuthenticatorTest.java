@@ -561,6 +561,10 @@ public class OnBehalfOfAuthenticatorTest {
             .build();
     }
 
+    private Settings noSigningKeyOBOSettings() {
+        return Settings.builder().put("enabled", disableOBO).put("encryption_key", claimsEncryptionKey).build();
+    }
+
     private Settings nonSpecifyOBOSetting() {
         return Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
     }

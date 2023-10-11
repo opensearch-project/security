@@ -145,11 +145,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        if (jwtParser == null) {
-            log.error("Missing Signing Key. JWT authentication will not work");
-            return null;
-        }
-
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
             return null;
