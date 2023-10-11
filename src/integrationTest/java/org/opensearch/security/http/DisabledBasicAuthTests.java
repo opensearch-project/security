@@ -19,7 +19,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
-import static org.apache.hc.core5.http.HttpStatus.SC_UNAUTHORIZED;
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.security.http.BasicAuthTests.TEST_USER;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.DISABLED_AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.JWT_AUTH_DOMAIN;

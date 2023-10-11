@@ -28,6 +28,12 @@
 
 package org.opensearch.test.framework.cluster;
 
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -45,8 +51,6 @@ import java.util.stream.StreamSupport;
 
 import javax.net.ssl.SSLContext;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -68,17 +72,13 @@ import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 
-import static java.lang.String.format;
-import static java.util.Objects.requireNonNull;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
 * A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
@@ -121,16 +121,6 @@ public class TestRestClient implements AutoCloseable {
         return get(path, Collections.emptyList(), headers);
     }
 
-    public HttpResponse getWithJsonBody(String path, String body, Header... headers) {
-        try {
-            HttpGet httpGet = new HttpGet(new URIBuilder(getHttpServerUri()).setPath(path).build());
-            httpGet.setEntity(toStringEntity(body));
-            return executeRequest(httpGet, mergeHeaders(CONTENT_TYPE_JSON, headers));
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException("Incorrect URI syntax", ex);
-        }
-    }
-
     public HttpResponse getAuthInfo(Header... headers) {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
@@ -140,7 +130,7 @@ public class TestRestClient implements AutoCloseable {
             HttpPost httpPost = new HttpPost(
                 new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/generateonbehalfoftoken?pretty").build()
             );
-            httpPost.setEntity(toStringEntity(jsonData));
+            httpPost.setEntity(new StringEntity(jsonData));
             return executeRequest(httpPost, mergeHeaders(CONTENT_TYPE_JSON, headers));
         } catch (URISyntaxException ex) {
             throw new RuntimeException("Incorrect URI syntax", ex);
@@ -150,7 +140,7 @@ public class TestRestClient implements AutoCloseable {
     public HttpResponse changeInternalUserPassword(String jsonData, Header... headers) {
         try {
             HttpPut httpPut = new HttpPut(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/account?pretty").build());
-            httpPut.setEntity(toStringEntity(jsonData));
+            httpPut.setEntity(new StringEntity(jsonData));
             return executeRequest(httpPut, mergeHeaders(CONTENT_TYPE_JSON, headers));
         } catch (URISyntaxException ex) {
             throw new RuntimeException("Incorrect URI syntax", ex);
@@ -176,12 +166,20 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse putJson(String path, String body, Header... headers) {
         HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + path);
-        uriRequest.setEntity(toStringEntity(body));
+        uriRequest.setEntity(new StringEntity(body));
         return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
-    private StringEntity toStringEntity(String body) {
-        return new StringEntity(body);
+    public HttpResponse getWithJsonBody(String path, String body, Header... headers) {
+        // Clever workaround to get support for GET with body https://stackoverflow.com/a/25019452/533057
+        HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path) {
+            @Override
+            public String getMethod() {
+                return "GET";
+            }
+        };
+        uriRequest.setEntity(new StringEntity(body));
+        return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
     public HttpResponse putJson(String path, ToXContentObject body) {
@@ -199,7 +197,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse postJson(String path, String body, Header... headers) {
         HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path);
-        uriRequest.setEntity(toStringEntity(body));
+        uriRequest.setEntity(new StringEntity(body));
         return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
@@ -214,7 +212,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse patch(String path, String body) {
         HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + path);
-        uriRequest.setEntity(toStringEntity(body));
+        uriRequest.setEntity(new StringEntity(body));
         return executeRequest(uriRequest, CONTENT_TYPE_JSON);
     }
 
@@ -396,7 +394,7 @@ public class TestRestClient implements AutoCloseable {
             try {
                 return toJsonNode().at(jsonPointer);
             } catch (IOException e) {
-                throw new IllegalArgumentException("Cound not convert response body to JSON node ", e);
+                throw new IllegalArgumentException("Cound not convert response body to JSON node '" + getBody() + "'", e);
             }
         }
 

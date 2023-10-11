@@ -204,7 +204,7 @@ public class BackendRegistry {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getRemoteAddress().orElse(null));
             }
 
-            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"));
+            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, new Exception("Authentication finally failed")));
             return false;
         }
 
@@ -226,7 +226,7 @@ public class BackendRegistry {
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, null, "OpenSearch Security not initialized."));
+            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, new Exception("OpenSearch Security not initialized.")));
             return false;
         }
 

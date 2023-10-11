@@ -87,8 +87,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [17]
-        platform: [ubuntu-latest, windows-latest]
+        jdk: [11, 17]
+        platform: [ubuntu-latest] # Removed windows https://github.com/opensearch-project/security/issues/3423
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -103,7 +103,6 @@ jobs:
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
-      continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
       with:
         cache-disabled: true
         arguments: |
@@ -135,6 +134,7 @@ jobs:
         cache-disabled: true
         arguments: |
             integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
+
   backward-compatibility-build:
     runs-on: ubuntu-latest
     steps:

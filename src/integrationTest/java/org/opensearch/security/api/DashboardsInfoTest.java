@@ -12,7 +12,7 @@
 package org.opensearch.security.api;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,7 +24,6 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_MESSAGE;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
@@ -50,10 +49,8 @@ public class DashboardsInfoTest {
         try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
             TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-            assertThat(response.getBody(), containsString("password_validation_error_message"));
-            assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_MESSAGE));
-            assertThat(response.getBody(), containsString("password_validation_regex"));
-            assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_REGEX));
+            assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
+            assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
         }
     }
 }

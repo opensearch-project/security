@@ -10,7 +10,7 @@
 package org.opensearch.security.http;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.http.HttpHeaders;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
