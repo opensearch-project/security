@@ -11,6 +11,7 @@
 
 package org.opensearch.security.http;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
@@ -27,14 +28,17 @@ import javax.crypto.SecretKey;
 
 import com.google.common.io.BaseEncoding;
 import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.ErrorHandler;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
@@ -127,6 +131,44 @@ public class OnBehalfOfAuthenticatorTest {
             )
         );
         Assert.assertTrue(exception.getMessage().contains("The specified key byte array is 80 bits"));
+    }
+
+    @Test
+    public void testWeakKeyExceptionHandling() throws Exception {
+        Appender mockAppender = Mockito.mock(Appender.class);
+        ErrorHandler mockErrorHandler = Mockito.mock(ErrorHandler.class);
+        Mockito.when(mockAppender.getHandler()).thenReturn(mockErrorHandler);
+        Mockito.when(mockAppender.isStarted()).thenReturn(true);
+
+        ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        Mockito.when(mockAppender.getName()).thenReturn("MockAppender");
+        Mockito.doNothing().when(mockAppender).append(logEventCaptor.capture());
+
+        Logger logger = (Logger) LogManager.getLogger(OnBehalfOfAuthenticator.class);
+        logger.addAppender(mockAppender);
+
+        JwtParser mockJwtParser = Mockito.mock(JwtParser.class);
+        Mockito.when(mockJwtParser.parseClaimsJws(Mockito.anyString())).thenThrow(new WeakKeyException("Test Exception"));
+
+        Settings settings = Settings.builder().put("signing_key", "testKey").put("encryption_key", claimsEncryptionKey).build();
+        OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, "testCluster");
+
+        Field jwtParserField = OnBehalfOfAuthenticator.class.getDeclaredField("jwtParser");
+        jwtParserField.setAccessible(true);
+        jwtParserField.set(auth, mockJwtParser);
+
+        SecurityRequest mockedRequest = Mockito.mock(SecurityRequest.class);
+        Mockito.when(mockedRequest.header(Mockito.anyString())).thenReturn("Bearer testToken");
+        Mockito.when(mockedRequest.path()).thenReturn("/some/sample/path");
+
+        auth.extractCredentials(mockedRequest, null);
+
+        boolean foundLog = logEventCaptor.getAllValues()
+            .stream()
+            .anyMatch(event -> event.getMessage().getFormattedMessage().contains("Cannot authenticate user with JWT because of "));
+        Assert.assertTrue(foundLog);
+
+        logger.removeAppender(mockAppender);
     }
 
     @Test
