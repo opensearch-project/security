@@ -32,9 +32,15 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -171,6 +177,39 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
         Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testInvalidTokenException() {
+        Appender mockAppender = Mockito.mock(Appender.class);
+        ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        Mockito.when(mockAppender.getName()).thenReturn("MockAppender");
+        Mockito.when(mockAppender.isStarted()).thenReturn(true);
+        Logger logger = (Logger) LogManager.getLogger(OnBehalfOfAuthenticator.class);
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.DEBUG);
+        Mockito.doNothing().when(mockAppender).append(logEventCaptor.capture());
+
+        String invalidToken = "invalidToken";
+        Settings settings = defaultSettings();
+
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(settings, clusterName);
+
+        Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(credentials);
+
+        boolean foundLog = logEventCaptor.getAllValues()
+            .stream()
+            .anyMatch(event -> event.getMessage().getFormattedMessage().contains("Invalid or expired JWT token."));
+        Assert.assertTrue(foundLog);
+
+        logger.removeAppender(mockAppender);
     }
 
     @Test
