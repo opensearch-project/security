@@ -29,7 +29,7 @@ buildscript {
         apache_cxf_version = '4.0.3'
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
-        jjwt_version = '0.11.5'
+        jjwt_version = '0.12.2'
         guava_version = '32.1.2-jre'
         jaxb_version = '2.3.8'
 
