@@ -206,16 +206,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        if (!BEARER.matcher(jwtToken).matches()) {
-            return null;
-        }
-
-        if (jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
-            jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
-        } else {
+        if (!BEARER.matcher(jwtToken).matches() || !jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
             logDebug("No Bearer scheme found in header");
             return null;
         }
+
+        jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
 
         return jwtToken;
     }

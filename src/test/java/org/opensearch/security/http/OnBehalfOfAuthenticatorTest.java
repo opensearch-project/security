@@ -322,6 +322,37 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
+    public void testMissingBearerScheme() throws Exception {
+        Appender mockAppender = Mockito.mock(Appender.class);
+        ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        Mockito.when(mockAppender.getName()).thenReturn("MockAppender");
+        Mockito.when(mockAppender.isStarted()).thenReturn(true);
+        Logger logger = (Logger) LogManager.getLogger(OnBehalfOfAuthenticator.class);
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.DEBUG);
+        Mockito.doNothing().when(mockAppender).append(logEventCaptor.capture());
+
+        String craftedToken = "beaRerSomeActualToken"; // This token matches the BEARER pattern but doesn't contain the BEARER_PREFIX
+
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, craftedToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(credentials);
+
+        boolean foundLog = logEventCaptor.getAllValues()
+            .stream()
+            .anyMatch(event -> event.getMessage().getFormattedMessage().contains("No Bearer scheme found in header"));
+        Assert.assertTrue(foundLog);
+
+        logger.removeAppender(mockAppender);
+    }
+
+    @Test
     public void testMissingBearerPrefixInAuthHeader() {
         String jwsToken = Jwts.builder()
             .setIssuer(clusterName)
