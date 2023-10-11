@@ -64,6 +64,7 @@ public class OnBehalfOfAuthenticatorTest {
     final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
 
+    private static final String SECURITY_PREFIX = "/_plugins/_security/";
     private static final String ON_BEHALF_OF_SUFFIX = "api/generateonbehalfoftoken";
     private static final String ACCOUNT_SUFFIX = "api/account";
 
@@ -480,23 +481,22 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testExtractCredentialsForDisallowedRequest() {
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+    public void testRequestNotAllowed() {
+        OnBehalfOfAuthenticator oboAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
 
-        AuthCredentials credentials = testEndpoint(jwtAuth, ON_BEHALF_OF_SUFFIX, String.valueOf(POST));
-        Assert.assertNull(credentials);
+        //Test POST on generate on-behalf-of token endpoint
+        SecurityRequest mockedRequest1 = mock(SecurityRequest.class);
+        Mockito.when(mockedRequest1.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
+        Mockito.when(mockedRequest1.path()).thenReturn(SECURITY_PREFIX + ON_BEHALF_OF_SUFFIX);
+        Mockito.when(mockedRequest1.method()).thenReturn(POST);
+        Assert.assertFalse(oboAuth.isRequestAllowed(mockedRequest1));
 
-        credentials = testEndpoint(jwtAuth, ACCOUNT_SUFFIX, String.valueOf(PUT));
-        Assert.assertNull(credentials);
-    }
-
-    private AuthCredentials testEndpoint(OnBehalfOfAuthenticator jwtAuth, String endpoint, String httpMethod) {
-        SecurityRequest mockedRequest = mock(SecurityRequest.class);
-        Mockito.when(mockedRequest.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
-        Mockito.when(mockedRequest.method()).thenReturn(RestRequest.Method.valueOf(httpMethod));
-        Mockito.when(mockedRequest.path()).thenReturn("/some_prefix/" + endpoint);
-
-        return jwtAuth.extractCredentials(mockedRequest, null);
+        //Test PUT on password changing endpoint
+        SecurityRequest mockedRequest2 = mock(SecurityRequest.class);
+        Mockito.when(mockedRequest2.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
+        Mockito.when(mockedRequest2.path()).thenReturn(SECURITY_PREFIX + ACCOUNT_SUFFIX);
+        Mockito.when(mockedRequest2.method()).thenReturn(PUT);
+        Assert.assertFalse(oboAuth.isRequestAllowed(mockedRequest2));
     }
 
     /** extracts a default user credential from a request header */
