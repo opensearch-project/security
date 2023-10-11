@@ -12,7 +12,6 @@ Compatible with OpenSearch 2.11.0
 * Add early rejection from RestHandler for unauthorized requests ([#3418](https://github.com/opensearch-project/security/pull/3418))
 
 ### Bug Fixes
-* Removing opendistro-job-scheduler-lock from list of protected indices ([#3383](https://github.com/opensearch-project/security/pull/3383))
 * Refactors reRequestAuthentication to call notifyIpAuthFailureListener before sending the response to the channel ([#3411](https://github.com/opensearch-project/security/pull/3411))
 
 ### Maintenance
