@@ -436,6 +436,8 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.13"
             force "org.apache.httpcomponents:httpcore:4.4.16"
+            force "com.google.errorprone:error_prone_annotations:2.22.0"
+            force "org.checkerframework:checker-qual:3.38.0"
         }
     }
 
@@ -451,7 +453,6 @@ sourceSets {
             srcDir file ('src/integrationTest/java')
             compileClasspath += sourceSets.main.output
             runtimeClasspath += sourceSets.main.output
-
         }
         resources {
             srcDir file('src/integrationTest/resources')
