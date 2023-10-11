@@ -489,6 +489,7 @@ public class OnBehalfOfAuthenticatorTest {
         Mockito.when(mockedRequest1.path()).thenReturn(SECURITY_PREFIX + ON_BEHALF_OF_SUFFIX);
         Mockito.when(mockedRequest1.method()).thenReturn(POST);
         Assert.assertFalse(oboAuth.isRequestAllowed(mockedRequest1));
+        Assert.assertNull(oboAuth.extractCredentials(mockedRequest1, null));
 
         // Test PUT on password changing endpoint
         SecurityRequest mockedRequest2 = mock(SecurityRequest.class);
@@ -496,6 +497,7 @@ public class OnBehalfOfAuthenticatorTest {
         Mockito.when(mockedRequest2.path()).thenReturn(SECURITY_PREFIX + ACCOUNT_SUFFIX);
         Mockito.when(mockedRequest2.method()).thenReturn(PUT);
         Assert.assertFalse(oboAuth.isRequestAllowed(mockedRequest2));
+        Assert.assertNull(oboAuth.extractCredentials(mockedRequest2, null));
     }
 
     /** extracts a default user credential from a request header */
