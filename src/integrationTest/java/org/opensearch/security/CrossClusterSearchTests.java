@@ -12,6 +12,7 @@ package org.opensearch.security;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -243,18 +244,17 @@ public class CrossClusterSearchTests {
             SearchRequest searchRequest = SearchRequestFactory.searchAll(REMOTE_SONG_INDEX, SONG_INDEX_NAME);
             searchRequest.setCcsMinimizeRoundtrips(ccsMinimizeRoundtrips);
 
+            List<Pair<String, String>> documentIdsList = Arrays.asList(
+                Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
+                Pair.of(SONG_INDEX_NAME, SONG_ID_2L),
+                Pair.of(SONG_INDEX_NAME, SONG_ID_6R)
+            );
+
             SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(3));
-            assertThat(
-                response,
-                searchHitsContainDocumentsInAnyOrder(
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_2L),
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_6R)
-                )
-            );
+            assertThat(response, searchHitsContainDocumentsInAnyOrder(documentIdsList));
         }
     }
 
@@ -284,19 +284,18 @@ public class CrossClusterSearchTests {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":_all");
 
+            List<Pair<String, String>> documentIdsList = Arrays.asList(
+                Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
+                Pair.of(SONG_INDEX_NAME, SONG_ID_6R),
+                Pair.of(PROHIBITED_SONG_INDEX_NAME, SONG_ID_3R),
+                Pair.of(LIMITED_USER_INDEX_NAME, SONG_ID_5R)
+            );
+
             SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(4));
-            assertThat(
-                response,
-                searchHitsContainDocumentsInAnyOrder(
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_6R),
-                    Pair.of(PROHIBITED_SONG_INDEX_NAME, SONG_ID_3R),
-                    Pair.of(LIMITED_USER_INDEX_NAME, SONG_ID_5R)
-                )
-            );
+            assertThat(response, searchHitsContainDocumentsInAnyOrder(documentIdsList));
         }
     }
 
@@ -314,19 +313,18 @@ public class CrossClusterSearchTests {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":*");
 
+            List<Pair<String, String>> documentIdsList = Arrays.asList(
+                Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
+                Pair.of(SONG_INDEX_NAME, SONG_ID_6R),
+                Pair.of(PROHIBITED_SONG_INDEX_NAME, SONG_ID_3R),
+                Pair.of(LIMITED_USER_INDEX_NAME, SONG_ID_5R)
+            );
+
             SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(4));
-            assertThat(
-                response,
-                searchHitsContainDocumentsInAnyOrder(
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_6R),
-                    Pair.of(PROHIBITED_SONG_INDEX_NAME, SONG_ID_3R),
-                    Pair.of(LIMITED_USER_INDEX_NAME, SONG_ID_5R)
-                )
-            );
+            assertThat(response, searchHitsContainDocumentsInAnyOrder(documentIdsList));
         }
     }
 
