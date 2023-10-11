@@ -38,7 +38,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
@@ -484,14 +483,14 @@ public class OnBehalfOfAuthenticatorTest {
     public void testRequestNotAllowed() {
         OnBehalfOfAuthenticator oboAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
 
-        //Test POST on generate on-behalf-of token endpoint
+        // Test POST on generate on-behalf-of token endpoint
         SecurityRequest mockedRequest1 = mock(SecurityRequest.class);
         Mockito.when(mockedRequest1.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
         Mockito.when(mockedRequest1.path()).thenReturn(SECURITY_PREFIX + ON_BEHALF_OF_SUFFIX);
         Mockito.when(mockedRequest1.method()).thenReturn(POST);
         Assert.assertFalse(oboAuth.isRequestAllowed(mockedRequest1));
 
-        //Test PUT on password changing endpoint
+        // Test PUT on password changing endpoint
         SecurityRequest mockedRequest2 = mock(SecurityRequest.class);
         Mockito.when(mockedRequest2.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
         Mockito.when(mockedRequest2.path()).thenReturn(SECURITY_PREFIX + ACCOUNT_SUFFIX);
