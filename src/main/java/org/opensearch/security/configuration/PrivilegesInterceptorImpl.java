@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,6 +63,15 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         "0-1"
     );
 
+    private static final ImmutableSet<String> READ_ONLY_ALLOWED_ACTIONS = ImmutableSet.of(
+        "indices:admin/get",
+        "indices:data/read/get",
+        "indices:data/read/search",
+        "indices:data/read/msearch",
+        "indices:data/read/mget",
+        "indices:data/read/mget[shard]"
+    );
+
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     public PrivilegesInterceptorImpl(
@@ -90,7 +100,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 log.debug("request " + request.getClass());
             }
 
-            if (tenants.get(requestedTenant) == Boolean.FALSE && action.startsWith("indices:data/write")) {
+            if (tenants.get(requestedTenant) == Boolean.FALSE && !READ_ONLY_ALLOWED_ACTIONS.contains(action)) {
                 log.warn("Tenant {} is not allowed to write (user: {})", requestedTenant, user.getName());
                 return false;
             }
