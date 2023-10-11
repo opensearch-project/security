@@ -283,6 +283,27 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
+    public void testMissingBearerPrefixInAuthHeader() {
+        String jwsToken = Jwts.builder()
+            .setIssuer(clusterName)
+            .setSubject("Leonard McCoy")
+            .setAudience("ext_0")
+            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .compact();
+
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+
+        Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
     public void testPlainTextedRolesFromDrClaim() {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
