@@ -39,6 +39,16 @@ public class JwtVendorTest {
     private ArgumentCaptor<LogEvent> logEventCaptor;
 
     @Test
+    public void testCreateJwkFromSettingsThrowsException() {
+        Settings faultySettings = Settings.builder().put("key.someProperty", "badValue").build();
+
+        Exception thrownException = Assert.assertThrows(Exception.class, () -> new JwtVendor(faultySettings, null));
+
+        String expectedMessagePart = "An error occurred during the creation of Jwk: ";
+        Assert.assertTrue(thrownException.getMessage().contains(expectedMessagePart));
+    }
+
+    @Test
     public void testJsonWebKeyPropertiesSetFromJwkSettings() throws Exception {
         Settings settings = Settings.builder().put("jwt.key.key1", "value1").put("jwt.key.key2", "value2").build();
 
