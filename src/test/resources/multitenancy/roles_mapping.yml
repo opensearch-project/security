@@ -160,3 +160,31 @@ opendistro_security_kibana4_testindex:
   - "test"
   and_backend_roles: []
   description: "Migrated from v6"
+opendistro_security_anonymous_multitenancy:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - opendistro_security_anonymous_backendrole
+  hosts: []
+  users:
+  - "opendistro_security_anonymous"
+  and_backend_roles: []
+  description: "PR#2459"
+opendistro_security_kibana_testindex:
+  reserved: false
+  hidden: false
+  backend_roles:
+  hosts: []
+  users:
+  - "user_a"
+  and_backend_roles: []
+  description: ""
+all_access:
+  reserved: false
+  hidden: false
+  backend_roles:
+  hosts: []
+  users:
+  - "admin"
+  and_backend_roles: []
+  description: "admin user can do everything"
