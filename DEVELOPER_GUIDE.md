@@ -26,14 +26,15 @@ On MacOS / PC the OpenSearch distribution can be run with docker.  This distribu
 
 To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. Reach to the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
 
-Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
-```bash
-export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-*
-export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-*
-cp -Rf $OPENSEARCH_BUILD $OPENSEARCH_HOME
-```
+To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. You should follow the steps until you reach the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
 
-Choose `$OPENSEARCH_HOME` as the base folder where your server will live, and adjust `$OPENSEARCH_BUILD` based on your version and OS (this is an example running on MacOS, hence `darwin`.)
+Next, inside `OpenSearch` folder run the following commands to copy the built code (snapshot) to a new folder in a different location (this where you'll be running the OpenSearch service). Here **`darwin-tar`** is an example running on MacOS, adjust `$OPENSEARCH_BUILD` path based on your version and Operating System.
+
+```bash
+export OPENSEARCH_HOME=`pwd`/opensearch-$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}' | sed 's/-SNAPSHOT//g')
+export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}')
+cp -Rf $OPENSEARCH_BUILD/* $OPENSEARCH_HOME
+```
 
 Let's test and see if we can run the server!
 
@@ -59,12 +60,12 @@ Install the built plugin into the OpenSearch server:
 
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
-mkdir $OPENSEARCH_SECURITY_HOME
+mkdir -p $OPENSEARCH_SECURITY_HOME
 cp build/distributions/opensearch-security-*.zip $OPENSEARCH_SECURITY_HOME
 cd $OPENSEARCH_SECURITY_HOME
 unzip opensearch-security-*.zip
 rm opensearch-security-*.zip
-mkdir $OPENSEARCH_HOME/config/opensearch-security
+mkdir -p $OPENSEARCH_HOME/config/opensearch-security
 mv config/* $OPENSEARCH_HOME/config/opensearch-security/
 rm -rf config/
 ```
