@@ -165,7 +165,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotIncludeRolesFromHostMappingInOBOToken() {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
 
-        Claims claims = Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(oboToken).getBody();
+        Claims claims = Jwts.parser().setSigningKey(signingKey).build().parseClaimsJws(oboToken).getBody();
 
         Object er = claims.get("er");
         EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
