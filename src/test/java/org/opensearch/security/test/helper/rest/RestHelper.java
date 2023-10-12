@@ -30,7 +30,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Collections;
@@ -323,7 +322,7 @@ public class RestHelper {
             if (entity == null) { // head request does not have a entity
                 this.body = "";
             } else {
-                this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
+                this.body = CharStreams.toString(new InputStreamReader(entity.getContent(), Charsets.UTF_8));
             }
             this.header = inner.getAllHeaders();
             this.statusCode = inner.getStatusLine().getStatusCode();
