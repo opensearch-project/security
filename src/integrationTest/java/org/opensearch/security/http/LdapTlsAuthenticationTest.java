@@ -372,7 +372,6 @@ public class LdapTlsAuthenticationTest {
 
             response.assertStatusCode(403);
             String expectedMessage = String.format("'%s' is not allowed to impersonate as '%s'", USER_KIRK, USER_JEAN);
-            System.out.println("&&&& " + response.getBody());
             assertThat(response.getTextFromJsonBody(POINTER_ERROR_REASON), equalTo(expectedMessage));
         }
     }
