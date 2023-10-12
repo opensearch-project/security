@@ -41,11 +41,9 @@ import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.ErrorHandler;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
@@ -55,10 +53,20 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -81,19 +89,19 @@ public class OnBehalfOfAuthenticatorTest {
     public void testReRequestAuthenticationReturnsEmptyOptional() {
         OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
         Optional<SecurityResponse> result = authenticator.reRequestAuthentication(null, null);
-        Assert.assertFalse(result.isPresent());
+        assertFalse(result.isPresent());
     }
 
     @Test
     public void testGetTypeReturnsExpectedType() {
         OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
         String type = authenticator.getType();
-        Assert.assertEquals("onbehalfof_jwt", type);
+        assertEquals("onbehalfof_jwt", type);
     }
 
     @Test
     public void testNoKey() {
-        Exception exception = Assert.assertThrows(
+        Exception exception = assertThrows(
             RuntimeException.class,
             () -> extractCredentialsFromJwtHeader(
                 null,
@@ -102,12 +110,12 @@ public class OnBehalfOfAuthenticatorTest {
                 false
             )
         );
-        Assert.assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
+        assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
     }
 
     @Test
     public void testEmptyKey() {
-        Exception exception = Assert.assertThrows(
+        Exception exception = assertThrows(
             RuntimeException.class,
             () -> extractCredentialsFromJwtHeader(
                 null,
@@ -116,12 +124,12 @@ public class OnBehalfOfAuthenticatorTest {
                 false
             )
         );
-        Assert.assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
+        assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
     }
 
     @Test
     public void testBadKey() {
-        Exception exception = Assert.assertThrows(
+        Exception exception = assertThrows(
             RuntimeException.class,
             () -> extractCredentialsFromJwtHeader(
                 BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 }),
@@ -130,25 +138,25 @@ public class OnBehalfOfAuthenticatorTest {
                 false
             )
         );
-        Assert.assertTrue(exception.getMessage().contains("The specified key byte array is 80 bits"));
+        assertTrue(exception.getMessage().contains("The specified key byte array is 80 bits"));
     }
 
     @Test
     public void testWeakKeyExceptionHandling() throws Exception {
-        Appender mockAppender = Mockito.mock(Appender.class);
-        ErrorHandler mockErrorHandler = Mockito.mock(ErrorHandler.class);
-        Mockito.when(mockAppender.getHandler()).thenReturn(mockErrorHandler);
-        Mockito.when(mockAppender.isStarted()).thenReturn(true);
+        Appender mockAppender = mock(Appender.class);
+        ErrorHandler mockErrorHandler = mock(ErrorHandler.class);
+        when(mockAppender.getHandler()).thenReturn(mockErrorHandler);
+        when(mockAppender.isStarted()).thenReturn(true);
 
         ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
-        Mockito.when(mockAppender.getName()).thenReturn("MockAppender");
-        Mockito.doNothing().when(mockAppender).append(logEventCaptor.capture());
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        doNothing().when(mockAppender).append(logEventCaptor.capture());
 
         Logger logger = (Logger) LogManager.getLogger(OnBehalfOfAuthenticator.class);
         logger.addAppender(mockAppender);
 
-        JwtParser mockJwtParser = Mockito.mock(JwtParser.class);
-        Mockito.when(mockJwtParser.parseClaimsJws(Mockito.anyString())).thenThrow(new WeakKeyException("Test Exception"));
+        JwtParser mockJwtParser = mock(JwtParser.class);
+        when(mockJwtParser.parseClaimsJws(anyString())).thenThrow(new WeakKeyException("Test Exception"));
 
         Settings settings = Settings.builder().put("signing_key", "testKey").put("encryption_key", claimsEncryptionKey).build();
         OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, "testCluster");
@@ -157,16 +165,16 @@ public class OnBehalfOfAuthenticatorTest {
         jwtParserField.setAccessible(true);
         jwtParserField.set(auth, mockJwtParser);
 
-        SecurityRequest mockedRequest = Mockito.mock(SecurityRequest.class);
-        Mockito.when(mockedRequest.header(Mockito.anyString())).thenReturn("Bearer testToken");
-        Mockito.when(mockedRequest.path()).thenReturn("/some/sample/path");
+        SecurityRequest mockedRequest = mock(SecurityRequest.class);
+        when(mockedRequest.header(anyString())).thenReturn("Bearer testToken");
+        when(mockedRequest.path()).thenReturn("/some/sample/path");
 
         auth.extractCredentials(mockedRequest, null);
 
         boolean foundLog = logEventCaptor.getAllValues()
             .stream()
             .anyMatch(event -> event.getMessage().getFormattedMessage().contains("Cannot authenticate user with JWT because of "));
-        Assert.assertTrue(foundLog);
+        assertTrue(foundLog);
 
         logger.removeAppender(mockAppender);
     }
@@ -182,7 +190,7 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -198,7 +206,7 @@ public class OnBehalfOfAuthenticatorTest {
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
             null
         );
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -218,19 +226,19 @@ public class OnBehalfOfAuthenticatorTest {
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
             null
         );
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
     public void testInvalidTokenException() {
-        Appender mockAppender = Mockito.mock(Appender.class);
+        Appender mockAppender = mock(Appender.class);
         ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
-        Mockito.when(mockAppender.getName()).thenReturn("MockAppender");
-        Mockito.when(mockAppender.isStarted()).thenReturn(true);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
         Logger logger = (Logger) LogManager.getLogger(OnBehalfOfAuthenticator.class);
         logger.addAppender(mockAppender);
         logger.setLevel(Level.DEBUG);
-        Mockito.doNothing().when(mockAppender).append(logEventCaptor.capture());
+        doNothing().when(mockAppender).append(logEventCaptor.capture());
 
         String invalidToken = "invalidToken";
         Settings settings = defaultSettings();
@@ -244,12 +252,12 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
 
         boolean foundLog = logEventCaptor.getAllValues()
             .stream()
             .anyMatch(event -> event.getMessage().getFormattedMessage().contains("Invalid or expired JWT token."));
-        Assert.assertTrue(foundLog);
+        assertTrue(foundLog);
 
         logger.removeAppender(mockAppender);
     }
@@ -271,7 +279,7 @@ public class OnBehalfOfAuthenticatorTest {
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
             null
         );
-        Assert.assertNotNull(credentials);
+        assertNotNull(credentials);
     }
 
     @Test
@@ -297,11 +305,11 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
 
-        Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getSecurityRoles().size());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
-        Assert.assertThat(credentials.getAttributes(), equalTo(expectedAttributes));
+        assertNotNull(credentials);
+        assertEquals("Leonard McCoy", credentials.getUsername());
+        assertEquals(0, credentials.getSecurityRoles().size());
+        assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getAttributes(), equalTo(expectedAttributes));
     }
 
     @Test
@@ -323,7 +331,7 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -360,19 +368,19 @@ public class OnBehalfOfAuthenticatorTest {
             new FakeRestRequest(headers, Collections.emptyMap()).asSecurityRequest(),
             null
         );
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
     public void testMissingBearerScheme() throws Exception {
-        Appender mockAppender = Mockito.mock(Appender.class);
+        Appender mockAppender = mock(Appender.class);
         ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
-        Mockito.when(mockAppender.getName()).thenReturn("MockAppender");
-        Mockito.when(mockAppender.isStarted()).thenReturn(true);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
         Logger logger = (Logger) LogManager.getLogger(OnBehalfOfAuthenticator.class);
         logger.addAppender(mockAppender);
         logger.setLevel(Level.DEBUG);
-        Mockito.doNothing().when(mockAppender).append(logEventCaptor.capture());
+        doNothing().when(mockAppender).append(logEventCaptor.capture());
 
         String craftedToken = "beaRerSomeActualToken"; // This token matches the BEARER pattern but doesn't contain the BEARER_PREFIX
 
@@ -384,12 +392,12 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
 
         boolean foundLog = logEventCaptor.getAllValues()
             .stream()
             .anyMatch(event -> event.getMessage().getFormattedMessage().contains("No Bearer scheme found in header"));
-        Assert.assertTrue(foundLog);
+        assertTrue(foundLog);
 
         logger.removeAppender(mockAppender);
     }
@@ -412,7 +420,7 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -425,10 +433,10 @@ public class OnBehalfOfAuthenticatorTest {
             true
         );
 
-        Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(2, credentials.getSecurityRoles().size());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertNotNull(credentials);
+        assertEquals("Leonard McCoy", credentials.getUsername());
+        assertEquals(2, credentials.getSecurityRoles().size());
+        assertEquals(0, credentials.getBackendRoles().size());
     }
 
     @Test
@@ -442,12 +450,12 @@ public class OnBehalfOfAuthenticatorTest {
             true
         );
 
-        Assert.assertNotNull(credentials);
+        assertNotNull(credentials);
 
         Set<String> expectedBackendRoles = new HashSet<>(Arrays.asList("role1", "role2", "role3", "role4", "role5"));
         Set<String> actualBackendRoles = credentials.getBackendRoles();
 
-        Assert.assertTrue(actualBackendRoles.containsAll(expectedBackendRoles));
+        assertTrue(actualBackendRoles.containsAll(expectedBackendRoles));
     }
 
     @Test
@@ -462,9 +470,9 @@ public class OnBehalfOfAuthenticatorTest {
             true
         );
 
-        Assert.assertNotNull(credentials);
+        assertNotNull(credentials);
         List<String> expectedRoles = Arrays.asList("admin", "developer");
-        Assert.assertTrue(credentials.getSecurityRoles().containsAll(expectedRoles));
+        assertTrue(credentials.getSecurityRoles().containsAll(expectedRoles));
     }
 
     @Test
@@ -477,9 +485,9 @@ public class OnBehalfOfAuthenticatorTest {
             false
         );
 
-        Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertNotNull(credentials);
+        assertEquals("Leonard McCoy", credentials.getUsername());
+        assertEquals(0, credentials.getBackendRoles().size());
     }
 
     @Test
@@ -492,10 +500,10 @@ public class OnBehalfOfAuthenticatorTest {
             true
         );
 
-        Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(1, credentials.getSecurityRoles().size());
-        Assert.assertTrue(credentials.getSecurityRoles().contains("123"));
+        assertNotNull(credentials);
+        assertEquals("Leonard McCoy", credentials.getUsername());
+        assertEquals(1, credentials.getSecurityRoles().size());
+        assertTrue(credentials.getSecurityRoles().contains("123"));
     }
 
     @Test
@@ -508,10 +516,10 @@ public class OnBehalfOfAuthenticatorTest {
             false
         );
 
-        Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getSecurityRoles().size());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertNotNull(credentials);
+        assertEquals("Leonard McCoy", credentials.getUsername());
+        assertEquals(0, credentials.getSecurityRoles().size());
+        assertEquals(0, credentials.getBackendRoles().size());
     }
 
     @Test
@@ -524,7 +532,7 @@ public class OnBehalfOfAuthenticatorTest {
             false
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -537,7 +545,7 @@ public class OnBehalfOfAuthenticatorTest {
             false
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -550,7 +558,7 @@ public class OnBehalfOfAuthenticatorTest {
             false
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -563,7 +571,7 @@ public class OnBehalfOfAuthenticatorTest {
             false
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -582,12 +590,12 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(signingKeyB64Encoded, claimsEncryptionKey, builder, true);
 
-        Assert.assertNotNull(credentials);
-        Assert.assertEquals("Cluster_0", credentials.getUsername());
-        Assert.assertEquals(3, credentials.getSecurityRoles().size());
-        Assert.assertTrue(credentials.getSecurityRoles().contains("a"));
-        Assert.assertTrue(credentials.getSecurityRoles().contains("b"));
-        Assert.assertTrue(credentials.getSecurityRoles().contains("3rd"));
+        assertNotNull(credentials);
+        assertEquals("Cluster_0", credentials.getUsername());
+        assertEquals(3, credentials.getSecurityRoles().size());
+        assertTrue(credentials.getSecurityRoles().contains("a"));
+        assertTrue(credentials.getSecurityRoles().contains("b"));
+        assertTrue(credentials.getSecurityRoles().contains("3rd"));
     }
 
     @Test
@@ -609,7 +617,7 @@ public class OnBehalfOfAuthenticatorTest {
             null
         );
 
-        Assert.assertNull(credentials);
+        assertNull(credentials);
     }
 
     @Test
@@ -618,19 +626,19 @@ public class OnBehalfOfAuthenticatorTest {
 
         // Test POST on generate on-behalf-of token endpoint
         SecurityRequest mockedRequest1 = mock(SecurityRequest.class);
-        Mockito.when(mockedRequest1.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
-        Mockito.when(mockedRequest1.path()).thenReturn(SECURITY_PREFIX + ON_BEHALF_OF_SUFFIX);
-        Mockito.when(mockedRequest1.method()).thenReturn(POST);
-        Assert.assertFalse(oboAuth.isRequestAllowed(mockedRequest1));
-        Assert.assertNull(oboAuth.extractCredentials(mockedRequest1, null));
+        when(mockedRequest1.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
+        when(mockedRequest1.path()).thenReturn(SECURITY_PREFIX + ON_BEHALF_OF_SUFFIX);
+        when(mockedRequest1.method()).thenReturn(POST);
+        assertFalse(oboAuth.isRequestAllowed(mockedRequest1));
+        assertNull(oboAuth.extractCredentials(mockedRequest1, null));
 
         // Test PUT on password changing endpoint
         SecurityRequest mockedRequest2 = mock(SecurityRequest.class);
-        Mockito.when(mockedRequest2.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
-        Mockito.when(mockedRequest2.path()).thenReturn(SECURITY_PREFIX + ACCOUNT_SUFFIX);
-        Mockito.when(mockedRequest2.method()).thenReturn(PUT);
-        Assert.assertFalse(oboAuth.isRequestAllowed(mockedRequest2));
-        Assert.assertNull(oboAuth.extractCredentials(mockedRequest2, null));
+        when(mockedRequest2.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
+        when(mockedRequest2.path()).thenReturn(SECURITY_PREFIX + ACCOUNT_SUFFIX);
+        when(mockedRequest2.method()).thenReturn(PUT);
+        assertFalse(oboAuth.isRequestAllowed(mockedRequest2));
+        assertNull(oboAuth.extractCredentials(mockedRequest2, null));
     }
 
     /** extracts a default user credential from a request header */
