@@ -13,6 +13,7 @@ package org.opensearch.security.util;
 
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -68,10 +69,10 @@ public class KeyUtils {
                         }
 
                         if (Objects.nonNull(key)) {
-                            return Jwts.parser().setSigningKey(key);
+                            return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(key.getEncoded()));
                         }
 
-                        return Jwts.parser().setSigningKey(decoded);
+                        return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(decoded));
                     } catch (Throwable e) {
                         log.error("Error while creating JWT authenticator", e);
                         throw new OpenSearchSecurityException(e.toString(), e);
