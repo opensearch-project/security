@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -163,8 +164,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            final String audience = claims.getAudience();
-            if (audience == null) {
+            final Set<String> audience = claims.getAudience();
+            if (audience == null || audience.isEmpty()) {
                 log.error("Valid jwt on behalf of token with no audience");
                 return null;
             }

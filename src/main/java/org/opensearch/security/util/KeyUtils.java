@@ -68,10 +68,10 @@ public class KeyUtils {
                         }
 
                         if (Objects.nonNull(key)) {
-                            return Jwts.parserBuilder().setSigningKey(key);
+                            return Jwts.parser().setSigningKey(key);
                         }
 
-                        return Jwts.parserBuilder().setSigningKey(decoded);
+                        return Jwts.parser().setSigningKey(decoded);
                     } catch (Throwable e) {
                         log.error("Error while creating JWT authenticator", e);
                         throw new OpenSearchSecurityException(e.toString(), e);
