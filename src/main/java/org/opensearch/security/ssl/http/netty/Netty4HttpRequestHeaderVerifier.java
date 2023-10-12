@@ -99,7 +99,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
                 ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.TRUE);
             }
         } catch (final OpenSearchSecurityException e) {
-            final SecurityResponse earlyResponse = new SecurityResponse(ExceptionsHelper.status(e).getStatus(), null, e.getMessage());
+            final SecurityResponse earlyResponse = new SecurityResponse(ExceptionsHelper.status(e).getStatus(), e);
             ctx.channel().attr(EARLY_RESPONSE).set(earlyResponse);
         } catch (final SecurityRequestChannelUnsupported srcu) {
             // Use defaults for unsupported channels

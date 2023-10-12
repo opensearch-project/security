@@ -61,10 +61,10 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.21.0'
+    id 'com.diffplug.spotless' version '6.22.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.4.0"
-    id "org.gradle.test-retry" version "1.5.5"
+    id 'com.netflix.nebula.ospackage' version "11.5.0"
+    id "org.gradle.test-retry" version "1.5.6"
     id 'eclipse'
     id "com.github.spotbugs" version "5.1.3"
     id "com.google.osdetector" version "1.7.3"
@@ -432,6 +432,12 @@ configurations {
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.5"
             force "com.google.guava:guava:${guava_version}"
+
+            // For integrationTest
+            force "org.apache.httpcomponents:httpclient:4.5.13"
+            force "org.apache.httpcomponents:httpcore:4.4.16"
+            force "com.google.errorprone:error_prone_annotations:2.22.0"
+            force "org.checkerframework:checker-qual:3.38.0"
         }
     }
 
@@ -461,9 +467,7 @@ sourceSets {
 task integrationTest(type: Test) {
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
-        if (System.getenv('CI_ENVIRONMENT') == 'resource-test' || System.getenv('CI_ENVIRONMENT') == null) {
-            include '**/ResourceFocusedTests.class'
-        } else {
+        if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
             exclude '**/ResourceFocusedTests.class'
         }
         // Only run with retries while in CI systems
@@ -648,6 +652,11 @@ dependencies {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
+    integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.13"
+    integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.13"
+    integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.13"
+    integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.13"
+    integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
