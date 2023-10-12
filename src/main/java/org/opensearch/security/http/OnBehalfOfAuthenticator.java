@@ -145,11 +145,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        if (jwtParser == null) {
-            log.error("Missing Signing Key. JWT authentication will not work");
-            return null;
-        }
-
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
             return null;
@@ -193,6 +188,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
         } catch (WeakKeyException e) {
             log.error("Cannot authenticate user with JWT because of ", e);
+            return null;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
@@ -211,16 +207,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        if (!BEARER.matcher(jwtToken).matches()) {
-            return null;
-        }
-
-        if (jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
-            jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
-        } else {
+        if (!BEARER.matcher(jwtToken).matches() || !jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
             logDebug("No Bearer scheme found in header");
             return null;
         }
+
+        jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
 
         return jwtToken;
     }
