@@ -60,17 +60,6 @@ jobs:
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-    - name: Coverage
-      uses: Wandalen/wretry.action@v1.3.0
-      with:
-        attempt_limit: 3
-        attempt_delay: 2000
-        action: codecov/codecov-action@v3
-        with: |
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          files: ./build/reports/jacoco/test/jacocoTestReport.xml
-
     - uses: actions/upload-artifact@v3
       if: always()
       with:
@@ -78,9 +67,30 @@ jobs:
         path: |
           ./build/reports/
 
-    - name: check archive for debugging
-      if: always()
-      run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
+  report-coverage:
+    needs:
+      - "test"
+      - "integration-tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Upload Coverage with retry
+        uses: Wandalen/wretry.action@v1.3.0
+        with:
+          attempt_limit: 3
+          attempt_delay: 2000
+          action: codecov/codecov-action@v3
+          with: |
+            token: ${{ secrets.CODECOV_TOKEN }}
+            fail_ci_if_error: false
+            files: ./build/reports/jacoco/test/jacocoTestReport.xml
+
 
   integration-tests:
     name: integration-tests
@@ -107,6 +117,14 @@ jobs:
         cache-disabled: true
         arguments: |
           integrationTest -Dbuild.snapshot=false
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+        path: |
+          ./build/reports/
+
 
   resource-tests:
     env:
