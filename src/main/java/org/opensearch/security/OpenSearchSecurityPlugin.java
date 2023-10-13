@@ -1956,18 +1956,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return tokenManager;
     }
 
-    /**
-     * Handles tracking the active subject when requests are made using an auth token
-     * ~NOT right~
-     * @param subject
-     * @param authToken
-     */
-    @Override
-    public void authenticate(Subject subject, AuthToken authToken) {
-        this.subject = (SecuritySubject) subject;
-        this.subject.setThreadContext(threadPool.getThreadContext());
-    }
-
     public static class GuiceHolder implements LifecycleComponent {
 
         private static RepositoriesService repositoriesService;

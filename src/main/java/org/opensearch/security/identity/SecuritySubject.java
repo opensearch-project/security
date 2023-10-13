@@ -15,6 +15,7 @@ import java.security.Principal;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.Subject;
+import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 
@@ -38,5 +39,10 @@ public class SecuritySubject implements Subject {
 			return NamedPrincipal.UNAUTHENTICATED;
 		}
 		return new NamedPrincipal(user.getName());
+	}
+
+	@Override
+	public void authenticate(AuthToken authToken) {
+		// TODO: How is this supposed to work?
 	}
 }
