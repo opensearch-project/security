@@ -60,12 +60,12 @@ import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.core.index.shard.ShardId;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -139,7 +139,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
+    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
 
         if (!checkRestFilter(AuditCategory.FAILED_LOGIN, effectiveUser, request)) {
             return;
@@ -157,7 +157,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
+    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
 
         if (!checkRestFilter(AuditCategory.AUTHENTICATED, effectiveUser, request)) {
             return;
@@ -174,7 +174,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
+    public void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request) {
         if (!checkRestFilter(AuditCategory.MISSING_PRIVILEGES, effectiveUser, request)) {
             return;
         }
@@ -189,7 +189,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
+    public void logGrantedPrivileges(String effectiveUser, SecurityRequest request) {
         if (!checkRestFilter(AuditCategory.GRANTED_PRIVILEGES, effectiveUser, request)) {
             return;
         }
@@ -348,7 +348,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logBadHeaders(RestRequest request) {
+    public void logBadHeaders(SecurityRequest request) {
 
         if (!checkRestFilter(AuditCategory.BAD_HEADERS, getUser(), request)) {
             return;
@@ -437,7 +437,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSSLException(RestRequest request, Throwable t) {
+    public void logSSLException(SecurityRequest request, Throwable t) {
 
         if (!checkRestFilter(AuditCategory.SSL_EXCEPTION, getUser(), request)) {
             return;
@@ -760,7 +760,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (address == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER) != null) {
             address = new TransportAddress(
                 (InetSocketAddress) Base64Helper.deserializeObject(
-                    threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
+                    threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER),
+                    threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
                 )
             );
         }
@@ -771,7 +772,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
             user = (User) Base64Helper.deserializeObject(
-                threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
+                threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER),
+                threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
             );
         }
         return user == null ? null : user.getName();
@@ -883,7 +885,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @VisibleForTesting
-    boolean checkRestFilter(final AuditCategory category, final String effectiveUser, RestRequest request) {
+    boolean checkRestFilter(final AuditCategory category, final String effectiveUser, SecurityRequest request) {
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
             log.trace(

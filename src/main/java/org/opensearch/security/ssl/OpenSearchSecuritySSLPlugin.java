@@ -71,6 +71,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
+import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
@@ -96,12 +97,13 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     );
     public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected static final String CLIENT_TYPE = "client.type";
+    public static final String CLIENT_TYPE = "client.type";
     protected final boolean client;
     protected final boolean httpSSLEnabled;
     protected final boolean transportSSLEnabled;
     protected final boolean extendedKeyUsageEnabled;
     protected final Settings settings;
+    protected volatile SecurityRestFilter securityRestHandler;
     protected final SharedGroupFactory sharedGroupFactory;
     protected final SecurityKeyStore sks;
     protected PrincipalExtractor principalExtractor;
@@ -267,7 +269,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 NOOP_SSL_EXCEPTION_HANDLER,
                 clusterSettings,
                 sharedGroupFactory,
-                tracer
+                tracer,
+                securityRestHandler
             );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
@@ -315,7 +318,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         PageCacheRecycler pageCacheRecycler,
         CircuitBreakerService circuitBreakerService,
         NamedWriteableRegistry namedWriteableRegistry,
-        NetworkService networkService
+        NetworkService networkService,
+        Tracer tracer
     ) {
 
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
@@ -333,7 +337,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                     sks,
                     NOOP_SSL_EXCEPTION_HANDLER,
                     sharedGroupFactory,
-                    SSLConfig
+                    SSLConfig,
+                    tracer
                 )
             );
 

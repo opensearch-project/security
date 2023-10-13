@@ -108,6 +108,7 @@ if [ -d "$BASE_DIR" ]; then
 else
     echo "DEBUG: basedir does not exist"
 fi
+
 OPENSEARCH_CONF_FILE="$BASE_DIR/config/opensearch.yml"
 OPENSEARCH_BIN_DIR="$BASE_DIR/bin"
 OPENSEARCH_PLUGINS_DIR="$BASE_DIR/plugins"
@@ -385,7 +386,44 @@ echo "plugins.security.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee 
 echo "plugins.security.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*", ".opendistro-job-scheduler-lock"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-ml-connector", ".plugins-ml-model-group", ".plugins-ml-model", ".plugins-ml-task", ".plugins-ml-conversation-meta", ".plugins-ml-conversation-interactions", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".ql-datasources", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models", ".geospatial-ip2geo-data*"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+
+## Read the admin password from the file or use the initialAdminPassword if set
+ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
+INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
+
+if [[ -n "$initialAdminPassword" ]]; then
+  ADMIN_PASSWORD="$initialAdminPassword"
+elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
+  ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
+else
+  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
+  exit 1
+fi
+
+echo "   ***************************************************"
+echo "   ***   ADMIN PASSWORD SET TO: $ADMIN_PASSWORD    ***"
+echo "   ***************************************************"
+
+$SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh"
+
+# Use the Hasher script to hash the admin password
+HASHED_ADMIN_PASSWORD=$($OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/hash.sh -p "$ADMIN_PASSWORD" | tail -n 1)
+
+if [ $? -ne 0 ]; then
+  echo "Hash the admin password failure, see console for details"
+  exit 1
+fi
+
+# Find the line number containing 'admin:' in the internal_users.yml file
+ADMIN_HASH_LINE=$(grep -n 'admin:' "$INTERNAL_USERS_FILE" | cut -f1 -d:)
+
+awk -v hashed_admin_password="$HASHED_ADMIN_PASSWORD" '
+  /^ *hash: *"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/ {
+    sub(/"\$2a\$12\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR\/YFJcgHp0UGns5JDymv..TOG"/, "\"" hashed_admin_password "\"");
+  }
+  { print }
+' "$INTERNAL_USERS_FILE" > temp_file && mv temp_file "$INTERNAL_USERS_FILE"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then

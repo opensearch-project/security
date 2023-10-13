@@ -26,13 +26,18 @@
 
 package org.opensearch.security.support;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.common.io.stream.Writeable;
 
-public class SourceFieldsContext implements Serializable {
+public class SourceFieldsContext implements Serializable, Writeable {
 
     private String[] includes;
     private String[] excludes;
@@ -77,6 +82,18 @@ public class SourceFieldsContext implements Serializable {
         // }
     }
 
+    public SourceFieldsContext(StreamInput in) throws IOException {
+        includes = in.readStringArray();
+        if (includes.length == 0) {
+            includes = null;
+        }
+        excludes = in.readStringArray();
+        if (excludes.length == 0) {
+            excludes = null;
+        }
+        fetchSource = in.readBoolean();
+    }
+
     public SourceFieldsContext(GetRequest request) {
         if (request.fetchSourceContext() != null) {
             includes = request.fetchSourceContext().includes();
@@ -116,5 +133,12 @@ public class SourceFieldsContext implements Serializable {
             + ", fetchSource="
             + fetchSource
             + "]";
+    }
+
+    @Override
+    public void writeTo(StreamOutput streamOutput) throws IOException {
+        streamOutput.writeStringArray(Objects.requireNonNullElseGet(includes, () -> new String[] {}));
+        streamOutput.writeStringArray(Objects.requireNonNullElseGet(excludes, () -> new String[] {}));
+        streamOutput.writeBoolean(fetchSource);
     }
 }

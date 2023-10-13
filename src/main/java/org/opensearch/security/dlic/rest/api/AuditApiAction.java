@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -124,7 +123,7 @@ public class AuditApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(RestRequest.Method.GET, "/audit/"),
-            new Route(RestRequest.Method.PUT, "/audit/{name}"),
+            new Route(RestRequest.Method.PUT, "/audit/config"),
             new Route(RestRequest.Method.PATCH, "/audit/")
         )
     );
@@ -237,6 +236,9 @@ public class AuditApiAction extends AbstractApiAction {
         return CType.AUDIT;
     }
 
+    @Override
+    protected void consumeParameters(RestRequest request) {}
+
     private void auditApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onGetRequest(
             request -> withEnabledAuditApi(request).map(this::processGetRequest).map(securityConfiguration -> {
@@ -248,7 +250,7 @@ public class AuditApiAction extends AbstractApiAction {
             .onChangeRequest(RestRequest.Method.PATCH, request -> withEnabledAuditApi(request).map(this::processPatchRequest))
             .onChangeRequest(
                 RestRequest.Method.PUT,
-                request -> withEnabledAuditApi(request).map(this::withConfigEntityNameOnly).map(ignore -> processPutRequest(request))
+                request -> withEnabledAuditApi(request).map(ignore -> processPutRequest("config", request))
             )
             .override(RestRequest.Method.POST, methodNotImplementedHandler)
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
@@ -259,14 +261,6 @@ public class AuditApiAction extends AbstractApiAction {
             return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
         }
         return ValidationResult.success(request);
-    }
-
-    ValidationResult<String> withConfigEntityNameOnly(final RestRequest request) {
-        final var name = nameParam(request);
-        if (!"config".equals(name)) {
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
-        }
-        return ValidationResult.success(name);
     }
 
     @Override

@@ -20,7 +20,6 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.util.FakeRestRequest;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -49,17 +48,6 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
             final var result = auditApiAction.withEnabledAuditApi(FakeRestRequest.builder().withMethod(m).build());
             assertTrue(result.isValid());
         }
-    }
-
-    @Test
-    public void configEntityNameOnly() {
-        final var auditApiAction = new AuditApiAction(clusterService, threadPool, securityApiDependencies);
-        var result = auditApiAction.withConfigEntityNameOnly(FakeRestRequest.builder().withParams(Map.of("name", "aaaaa")).build());
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
-
-        result = auditApiAction.withConfigEntityNameOnly(FakeRestRequest.builder().withParams(Map.of("name", "config")).build());
-        assertTrue(result.isValid());
     }
 
     @Test

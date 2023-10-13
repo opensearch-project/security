@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,6 +35,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableMap;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,7 +44,6 @@ import org.junit.Test;
 import org.opensaml.saml.saml2.core.NameIDType;
 
 import org.opensearch.core.common.bytes.BytesArray;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.MediaType;
@@ -53,12 +54,16 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.filter.SecurityRequestFactory;
+import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class HTTPSamlAuthenticatorTest {
     protected MockSamlIdpServer mockSamlIdpServer;
@@ -139,11 +144,8 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
 
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -157,6 +159,17 @@ public class HTTPSamlAuthenticatorTest {
         JwtToken jwt = jwtConsumer.getJwtToken();
 
         Assert.assertEquals("horst", jwt.getClaim("sub"));
+    }
+
+    private Optional<SecurityResponse> sendToAuthenticator(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) {
+        final SecurityRequest tokenRestChannel = SecurityRequestFactory.from(request);
+
+        return samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+    }
+
+    private String getResponse(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) throws Exception {
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, request).orElseThrow();
+        return response.getBody();
     }
 
     @Test
@@ -186,11 +199,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -234,11 +243,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -285,11 +290,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -336,11 +337,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -387,11 +384,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -434,11 +427,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -499,11 +488,7 @@ public class HTTPSamlAuthenticatorTest {
             null,
             "/opendistrosecurity/saml/acs/idpinitiated"
         );
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -550,11 +535,9 @@ public class HTTPSamlAuthenticatorTest {
             authenticateHeaders,
             "/opendistrosecurity/saml/acs/idpinitiated"
         );
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
 
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        Assert.assertEquals(RestStatus.UNAUTHORIZED, tokenRestChannel.response.status());
+        Assert.assertEquals(RestStatus.UNAUTHORIZED.getStatus(), response.getStatus());
     }
 
     @Test
@@ -582,11 +565,9 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
 
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        Assert.assertEquals(401, tokenRestChannel.response.status().getStatus());
+        Assert.assertEquals(401, response.getStatus());
     }
 
     @Test
@@ -611,11 +592,9 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
 
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        Assert.assertEquals(401, tokenRestChannel.response.status().getStatus());
+        Assert.assertEquals(401, response.getStatus());
     }
 
     @SuppressWarnings("unchecked")
@@ -644,11 +623,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -691,11 +666,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -745,11 +716,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
         HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
             responseJson,
             new TypeReference<HashMap<String, Object>>() {
@@ -849,10 +816,9 @@ public class HTTPSamlAuthenticatorTest {
             HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
 
             RestRequest restRequest = new FakeRestRequest(ImmutableMap.of(), new HashMap<String, String>());
-            TestRestChannel restChannel = new TestRestChannel(restRequest);
-            samlAuthenticator.reRequestAuthentication(restChannel, null);
+            Optional<SecurityResponse> maybeResponse = sendToAuthenticator(samlAuthenticator, restRequest);
 
-            Assert.assertNull(restChannel.response);
+            assertThat(maybeResponse.isPresent(), Matchers.equalTo(false));
 
             mockSamlIdpServer.start();
 
@@ -868,11 +834,7 @@ public class HTTPSamlAuthenticatorTest {
             String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
             RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-            TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
-
-            samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
-
-            String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+            String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
             HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
                 responseJson,
                 new TypeReference<HashMap<String, Object>>() {
@@ -891,16 +853,11 @@ public class HTTPSamlAuthenticatorTest {
 
     private AuthenticateHeaders getAutenticateHeaders(HTTPSamlAuthenticator samlAuthenticator) {
         RestRequest restRequest = new FakeRestRequest(ImmutableMap.of(), new HashMap<String, String>());
-        TestRestChannel restChannel = new TestRestChannel(restRequest);
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, restRequest).orElseThrow();
 
-        samlAuthenticator.reRequestAuthentication(restChannel, null);
+        String wwwAuthenticateHeader = response.getHeaders().get("WWW-Authenticate");
 
-        List<String> wwwAuthenticateHeaders = restChannel.response.getHeaders().get("WWW-Authenticate");
-
-        Assert.assertNotNull(wwwAuthenticateHeaders);
-        Assert.assertEquals("More than one WWW-Authenticate header: " + wwwAuthenticateHeaders, 1, wwwAuthenticateHeaders.size());
-
-        String wwwAuthenticateHeader = wwwAuthenticateHeaders.get(0);
+        Assert.assertNotNull(wwwAuthenticateHeader);
 
         Matcher wwwAuthenticateHeaderMatcher = WWW_AUTHENTICATE_PATTERN.matcher(wwwAuthenticateHeader);
 

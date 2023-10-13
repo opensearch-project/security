@@ -398,6 +398,7 @@ rest_api_admin_full_access:
   cluster_permissions:
     - 'restapi:admin/actiongroups'
     - 'restapi:admin/allowlist'
+    - 'restapi:admin/config/update'
     - 'restapi:admin/internalusers'
     - 'restapi:admin/nodesdn'
     - 'restapi:admin/roles'
@@ -441,3 +442,7 @@ rest_api_admin_tenants_only:
   reserved: true
   cluster_permissions:
     - 'restapi:admin/tenants'
+rest_api_admin_config_update_only:
+  reserved: true
+  cluster_permissions:
+    - 'restapi:admin/config/update'

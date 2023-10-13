@@ -17,30 +17,31 @@
 
 package org.opensearch.security.auth.limiting;
 
-import java.net.InetAddress;
-
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.user.AuthCredentials;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class UserNameBasedRateLimiterTest {
 
+    private final static byte[] PASSWORD = new byte[] { '1', '2', '3' };
+
     @Test
     public void simpleTest() throws Exception {
         Settings settings = Settings.builder().put("allowed_tries", 3).build();
 
-        AddressBasedRateLimiter rateLimiter = new AddressBasedRateLimiter(settings, null);
+        UserNameBasedRateLimiter rateLimiter = new UserNameBasedRateLimiter(settings, null);
 
-        assertFalse(rateLimiter.isBlocked(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 })));
-        rateLimiter.onAuthFailure(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 }), null, null);
-        assertFalse(rateLimiter.isBlocked(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 })));
-        rateLimiter.onAuthFailure(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 }), null, null);
-        assertFalse(rateLimiter.isBlocked(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 })));
-        rateLimiter.onAuthFailure(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 }), null, null);
-        assertTrue(rateLimiter.isBlocked(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 })));
+        assertFalse(rateLimiter.isBlocked("a"));
+        rateLimiter.onAuthFailure(null, new AuthCredentials("a", PASSWORD), null);
+        assertFalse(rateLimiter.isBlocked("a"));
+        rateLimiter.onAuthFailure(null, new AuthCredentials("a", PASSWORD), null);
+        assertFalse(rateLimiter.isBlocked("a"));
+        rateLimiter.onAuthFailure(null, new AuthCredentials("a", PASSWORD), null);
+        assertTrue(rateLimiter.isBlocked("a"));
 
     }
 }

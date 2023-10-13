@@ -59,6 +59,7 @@ import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.ssl.util.SSLConnectionTestResult;
 import org.opensearch.security.ssl.util.SSLConnectionTestUtil;
+import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 import org.opensearch.transport.TcpChannel;
@@ -82,7 +83,8 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         final SecurityKeyStore ossks,
         final SslExceptionHandler errorHandler,
         SharedGroupFactory sharedGroupFactory,
-        final SSLConfig SSLConfig
+        final SSLConfig SSLConfig,
+        final Tracer tracer
     ) {
         super(
             settings,
@@ -92,7 +94,8 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
             pageCacheRecycler,
             namedWriteableRegistry,
             circuitBreakerService,
-            sharedGroupFactory
+            sharedGroupFactory,
+            tracer
         );
 
         this.ossks = ossks;

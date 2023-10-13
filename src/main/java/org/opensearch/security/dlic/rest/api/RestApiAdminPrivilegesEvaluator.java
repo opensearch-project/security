@@ -35,9 +35,11 @@ public class RestApiAdminPrivilegesEvaluator {
 
     protected final Logger logger = LogManager.getLogger(RestApiAdminPrivilegesEvaluator.class);
 
-    public final static String CERTS_INFO_ACTION = "certs";
+    public final static String CERTS_INFO_ACTION = "certs/info";
 
-    public final static String RELOAD_CERTS_ACTION = "reloadcerts";
+    public final static String RELOAD_CERTS_ACTION = "certs/reload";
+
+    public final static String SECURITY_CONFIG_UPDATE = "update";
 
     private final static String REST_API_PERMISSION_PREFIX = "restapi:admin";
 
@@ -61,21 +63,13 @@ public class RestApiAdminPrivilegesEvaluator {
     public final static Map<Endpoint, PermissionBuilder> ENDPOINTS_WITH_PERMISSIONS = ImmutableMap.<Endpoint, PermissionBuilder>builder()
         .put(Endpoint.ACTIONGROUPS, action -> buildEndpointPermission(Endpoint.ACTIONGROUPS))
         .put(Endpoint.ALLOWLIST, action -> buildEndpointPermission(Endpoint.ALLOWLIST))
+        .put(Endpoint.CONFIG, action -> buildEndpointActionPermission(Endpoint.CONFIG, action))
         .put(Endpoint.INTERNALUSERS, action -> buildEndpointPermission(Endpoint.INTERNALUSERS))
         .put(Endpoint.NODESDN, action -> buildEndpointPermission(Endpoint.NODESDN))
         .put(Endpoint.ROLES, action -> buildEndpointPermission(Endpoint.ROLES))
         .put(Endpoint.ROLESMAPPING, action -> buildEndpointPermission(Endpoint.ROLESMAPPING))
         .put(Endpoint.TENANTS, action -> buildEndpointPermission(Endpoint.TENANTS))
-        .put(Endpoint.SSL, action -> {
-            switch (action) {
-                case CERTS_INFO_ACTION:
-                    return buildEndpointActionPermission(Endpoint.SSL, "certs/info");
-                case RELOAD_CERTS_ACTION:
-                    return buildEndpointActionPermission(Endpoint.SSL, "certs/reload");
-                default:
-                    return null;
-            }
-        })
+        .put(Endpoint.SSL, action -> buildEndpointActionPermission(Endpoint.SSL, action))
         .build();
 
     private final ThreadContext threadContext;

@@ -59,6 +59,7 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
@@ -147,6 +148,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
+        final boolean useJDKSerialization = connection.getVersion().before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION);
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -224,9 +226,26 @@ public class SecurityInterceptor {
                 );
             }
 
+            if (useJDKSerialization) {
+                Map<String, String> jdkSerializedHeaders = new HashMap<>();
+                HeaderHelper.getAllSerializedHeaderNames()
+                    .stream()
+                    .filter(k -> headerMap.get(k) != null)
+                    .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
+                headerMap.putAll(jdkSerializedHeaders);
+            }
+
             getThreadContext().putHeader(headerMap);
 
-            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString, isSameNodeRequest);
+            ensureCorrectHeaders(
+                remoteAddress0,
+                user0,
+                origin0,
+                injectedUserString,
+                injectedRolesString,
+                isSameNodeRequest,
+                useJDKSerialization
+            );
 
             if (isActionTraceEnabled()) {
                 getThreadContext().putHeader(
@@ -253,7 +272,8 @@ public class SecurityInterceptor {
         final String origin,
         final String injectedUserString,
         final String injectedRolesString,
-        boolean isSameNodeRequest
+        final boolean isSameNodeRequest,
+        final boolean useJDKSerialization
     ) {
         // keep original address
 
@@ -294,7 +314,7 @@ public class SecurityInterceptor {
             if (transportAddress != null) {
                 getThreadContext().putHeader(
                     ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER,
-                    Base64Helper.serializeObject(transportAddress.address())
+                    Base64Helper.serializeObject(transportAddress.address(), useJDKSerialization)
                 );
             }
 
@@ -302,7 +322,10 @@ public class SecurityInterceptor {
             if (userHeader == null) {
                 // put as headers for other requests
                 if (origUser != null) {
-                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                    getThreadContext().putHeader(
+                        ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER,
+                        Base64Helper.serializeObject(origUser, useJDKSerialization)
+                    );
                 } else if (StringUtils.isNotEmpty(injectedRolesString)) {
                     getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
                 } else if (StringUtils.isNotEmpty(injectedUserString)) {

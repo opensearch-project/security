@@ -49,6 +49,7 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -309,8 +310,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
-        return endpointValidator.withRequiredEntityName(nameParam(request))
-            .map(entityName -> loadConfigurationWithRequestContent(entityName, request))
+        return processPutRequest(nameParam(request), request);
+    }
+
+    protected final ValidationResult<SecurityConfiguration> processPutRequest(final String entityName, final RestRequest request)
+        throws IOException {
+        return endpointValidator.withRequiredEntityName(entityName)
+            .map(ignore -> loadConfigurationWithRequestContent(entityName, request))
             .map(endpointValidator::onConfigChange)
             .map(this::addEntityToConfig);
     }
@@ -366,6 +372,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     ) {
         final var configuration = load(cType, logComplianceEvent);
         if (configuration.getSeqNo() < 0) {
+
             return ValidationResult.error(
                 RestStatus.FORBIDDEN,
                 forbiddenMessage(
@@ -406,16 +413,19 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigDelete(SecurityConfiguration securityConfiguration) throws IOException {
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigLoad(SecurityConfiguration securityConfiguration) throws IOException {
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
+
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
 
@@ -546,12 +556,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final String userName = user == null ? null : user.getName();
         if (authError != null) {
             LOGGER.error("No permission to access REST API: " + authError);
-            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, request);
+            securityApiDependencies.auditLog().logMissingPrivileges(authError, userName, SecurityRequestFactory.from(request));
             // for rest request
             request.params().clear();
             return channel -> forbidden(channel, "No permission to access REST API: " + authError);
         } else {
-            securityApiDependencies.auditLog().logGrantedPrivileges(userName, request);
+            securityApiDependencies.auditLog().logGrantedPrivileges(userName, SecurityRequestFactory.from(request));
         }
 
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());

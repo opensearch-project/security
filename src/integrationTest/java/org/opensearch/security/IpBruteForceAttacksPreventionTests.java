@@ -12,7 +12,6 @@ package org.opensearch.security;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,8 +26,8 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.cluster.TestRestClientConfiguration;
 import org.opensearch.test.framework.log.LogsRule;
 
-import static org.apache.hc.core5.http.HttpStatus.SC_OK;
-import static org.apache.hc.core5.http.HttpStatus.SC_UNAUTHORIZED;
+import static org.apache.http.HttpStatus.SC_OK;
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.userWithSourceIp;
@@ -36,8 +35,8 @@ import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IpBruteForceAttacksPreventionTests {
-    private static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
-    private static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
+    protected static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
+    protected static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
 
     public static final int ALLOWED_TRIES = 3;
     public static final int TIME_WINDOW_SECONDS = 3;
@@ -51,7 +50,7 @@ public class IpBruteForceAttacksPreventionTests {
     public static final String CLIENT_IP_8 = "127.0.0.8";
     public static final String CLIENT_IP_9 = "127.0.0.9";
 
-    private static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
+    protected static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
         new RateLimiting("internal_authentication_backend_limiting").type("ip")
             .allowedTries(ALLOWED_TRIES)
             .timeWindowSeconds(TIME_WINDOW_SECONDS)
@@ -60,13 +59,17 @@ public class IpBruteForceAttacksPreventionTests {
             .maxTrackedClients(500)
     );
 
-    @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .authFailureListeners(listener)
-        .authc(AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE)
-        .users(USER_1, USER_2)
-        .build();
+    @Rule
+    public LocalCluster cluster = createCluster();
+
+    public LocalCluster createCluster() {
+        return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+            .anonymousAuth(false)
+            .authFailureListeners(listener)
+            .authc(AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE)
+            .users(USER_1, USER_2)
+            .build();
+    }
 
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.BackendRegistry");
@@ -151,7 +154,7 @@ public class IpBruteForceAttacksPreventionTests {
         }
     }
 
-    private static void authenticateUserWithIncorrectPassword(String sourceIpAddress, User user, int numberOfRequests) {
+    private void authenticateUserWithIncorrectPassword(String sourceIpAddress, User user, int numberOfRequests) {
         var clientConfiguration = new TestRestClientConfiguration().username(user.getName())
             .password("incorrect password")
             .sourceInetAddress(sourceIpAddress);

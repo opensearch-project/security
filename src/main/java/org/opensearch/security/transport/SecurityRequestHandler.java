@@ -107,6 +107,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             resolvedActionClass = ((ConcreteShardRequest<?>) request).getRequest().getClass().getSimpleName();
         }
 
+        final boolean useJDKSerialization = getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION);
+
         String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
 
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
@@ -181,7 +183,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 } else {
                     getThreadContext().putTransient(
                         ConfigConstants.OPENDISTRO_SECURITY_USER,
-                        Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader))
+                        Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader, useJDKSerialization))
                     );
                 }
 
@@ -190,7 +192,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 if (!Strings.isNullOrEmpty(originalRemoteAddress)) {
                     getThreadContext().putTransient(
                         ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
-                        new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress))
+                        new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress, useJDKSerialization))
                     );
                 } else {
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());

@@ -35,9 +35,9 @@ import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.core.index.shard.ShardId;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
+import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
@@ -49,12 +49,12 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
+    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 
     @Override
-    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
+    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 
@@ -79,7 +79,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logBadHeaders(RestRequest request) {
+    public void logBadHeaders(SecurityRequest request) {
         // noop, intentionally left empty
     }
 
@@ -94,17 +94,17 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logSSLException(RestRequest request, Throwable t) {
+    public void logSSLException(SecurityRequest request, Throwable t) {
         // noop, intentionally left empty
     }
 
     @Override
-    public void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request) {
+    public void logMissingPrivileges(String privilege, String effectiveUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 
     @Override
-    public void logGrantedPrivileges(String effectiveUser, RestRequest request) {
+    public void logGrantedPrivileges(String effectiveUser, SecurityRequest request) {
         // noop, intentionally left empty
     }
 

@@ -344,7 +344,7 @@ public class LocalOpenSearchCluster {
         String clusterManagerNodes = nodeByTypeToString(CLUSTER_MANAGER);
         String dataNodes = nodeByTypeToString(DATA);
         String clientNodes = nodeByTypeToString(CLIENT);
-        return "\nES Cluster "
+        return "\nOS Cluster "
             + clusterName
             + "\ncluster manager nodes: "
             + clusterManagerNodes

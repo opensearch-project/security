@@ -83,7 +83,13 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
 
     @Override
     public final void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
+
         ThreadContext threadContext = getThreadContext();
+
+        threadContext.putTransient(
+            ConfigConstants.USE_JDK_SERIALIZATION,
+            channel.getVersion().before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION)
+        );
 
         if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final Exception exception = ExceptionUtils.createBadHeaderException();
