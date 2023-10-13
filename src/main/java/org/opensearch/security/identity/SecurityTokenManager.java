@@ -1,7 +1,10 @@
 package org.opensearch.security.identity;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Optional;
+import java.util.Set;
 import joptsimple.internal.Strings;
-import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -13,16 +16,12 @@ import org.opensearch.identity.tokens.BearerAuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.user.UserService;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Optional;
-import java.util.Set;
+import org.opensearch.threadpool.ThreadPool;
 
 public class SecurityTokenManager implements TokenManager {
 
@@ -92,17 +91,7 @@ public class SecurityTokenManager implements TokenManager {
 		}
 	}
 
-	@Override
-	public Subject authenticateToken(AuthToken authToken) {
-		return null;
-	}
-
 	public Set<String> mapRoles(final User user, final TransportAddress caller) {
 		return this.configModel.mapSecurityRoles(user, caller);
-	}
-
-	@Subscribe
-	public void onConfigModelChanged(ConfigModel configModel) {
-		this.configModel = configModel;
 	}
 }

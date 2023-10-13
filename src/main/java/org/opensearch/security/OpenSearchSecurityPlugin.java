@@ -77,6 +77,7 @@ import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.identity.Subject;
+import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
@@ -1044,7 +1045,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
-
         subject.setThreadContext(threadPool.getThreadContext());
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
 
@@ -1954,6 +1954,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public TokenManager getTokenManager() {
         return tokenManager;
+    }
+
+    /**
+     * Handles tracking the active subject when requests are made using an auth token
+     * ~NOT right~
+     * @param subject
+     * @param authToken
+     */
+    @Override
+    public void authenticate(Subject subject, AuthToken authToken) {
+        this.subject = (SecuritySubject) subject;
+        this.subject.setThreadContext(threadPool.getThreadContext());
     }
 
     public static class GuiceHolder implements LifecycleComponent {
