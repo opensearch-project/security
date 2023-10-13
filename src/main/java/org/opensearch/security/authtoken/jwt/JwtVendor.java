@@ -12,10 +12,9 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.LongSupplier;
-
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.KeyType;
@@ -27,10 +26,8 @@ import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.ExceptionUtils;
-
 import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 public class JwtVendor {
@@ -109,8 +106,8 @@ public class JwtVendor {
         String subject,
         String audience,
         Integer expirySeconds,
-        List<String> roles,
-        List<String> backendRoles,
+        Set<String> roles,
+        Set<String> backendRoles,
         boolean roleSecurityMode
     ) throws Exception {
         final long nowAsMillis = timeProvider.getAsLong();

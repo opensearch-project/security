@@ -162,8 +162,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         user.getName(),
                         service,
                         tokenDuration,
-                        mappedRoles.stream().collect(Collectors.toList()),
-                        user.getRoles().stream().collect(Collectors.toList()),
+                        mappedRoles.stream().collect(Collectors.toSet()),
+                        user.getRoles().stream().collect(Collectors.toSet()),
                         roleSecurityMode
                     );
                     builder.field("authenticationToken", token);

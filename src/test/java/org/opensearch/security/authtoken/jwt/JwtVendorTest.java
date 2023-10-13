@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.util.Set;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
@@ -107,8 +108,8 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = List.of("IT", "HR");
-        List<String> backendRoles = List.of("Sales", "Support");
+        Set<String> roles = Set.of("IT", "HR");
+        Set<String> backendRoles = Set.of("Sales", "Support");
         String expectedRoles = "IT,HR";
         int expirySeconds = 300;
         LongSupplier currentTime = () -> (long) 100;
@@ -138,8 +139,8 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = List.of("IT", "HR");
-        List<String> backendRoles = List.of("Sales", "Support");
+        Set<String> roles = Set.of("IT", "HR");
+        Set<String> backendRoles = Set.of("Sales", "Support");
         String expectedRoles = "IT,HR";
         String expectedBackendRoles = "Sales,Support";
 
@@ -178,7 +179,7 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = List.of("admin");
+        Set<String> roles = Set.of("admin");
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
@@ -186,7 +187,7 @@ public class JwtVendorTest {
 
         Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
-                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
+                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, Set.of(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -199,8 +200,8 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = List.of("IT", "HR");
-        List<String> backendRoles = List.of("Sales", "Support");
+        Set<String> roles = Set.of("IT", "HR");
+        Set<String> backendRoles = Set.of("Sales", "Support");
         int expirySeconds = 900;
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
@@ -225,14 +226,14 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = List.of("admin");
+        Set<String> roles = Set.of("admin");
         Integer expirySeconds = 300;
 
         Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
         Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
-                new JwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
+                new JwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, Set.of(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -245,7 +246,7 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = null;
+        Set<String> roles = null;
         Integer expirySeconds = 300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
@@ -253,7 +254,7 @@ public class JwtVendorTest {
 
         Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
-                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
+                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, Set.of(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -279,8 +280,8 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List<String> roles = List.of("IT", "HR");
-        List<String> backendRoles = List.of("Sales", "Support");
+        Set<String> roles = Set.of("IT", "HR");
+        Set<String> backendRoles = Set.of("Sales", "Support");
         int expirySeconds = 300;
 
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
