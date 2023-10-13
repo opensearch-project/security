@@ -398,8 +398,6 @@ tasks.withType(JavaCompile) {
 }
 
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
-tasks.jacocoTestReport.dependsOn(test) // tests are required to run before generating the report
-
 
 allprojects {
     tasks.withType(Javadoc).all { enabled = false }
@@ -435,9 +433,9 @@ configurations {
             force "org.xerial.snappy:snappy-java:1.1.10.5"
             force "com.google.guava:guava:${guava_version}"
 
-            // TODO: Seems like this should be removable
-            force "org.apache.httpcomponents:httpclient-cache:4.5.13"
+            // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.13"
+            force "org.apache.httpcomponents:httpclient-cache:4.5.13"
             force "org.apache.httpcomponents:fluent-hc:4.5.13"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
@@ -457,7 +455,6 @@ sourceSets {
             srcDir file ('src/integrationTest/java')
             compileClasspath += sourceSets.main.output
             runtimeClasspath += sourceSets.main.output
-
         }
         resources {
             srcDir file('src/integrationTest/resources')
@@ -472,9 +469,7 @@ sourceSets {
 task integrationTest(type: Test) {
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
-        if (System.getenv('CI_ENVIRONMENT') == 'resource-test' || System.getenv('CI_ENVIRONMENT') == null) {
-            include '**/ResourceFocusedTests.class'
-        } else {
+        if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
             exclude '**/ResourceFocusedTests.class'
         }
         // Only run with retries while in CI systems
