@@ -770,7 +770,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
     }
 
     private String createPatchRestAdminPermissionsPayload(final String op) throws JsonProcessingException {
-        final ArrayNode rootNode = (ArrayNode) DefaultObjectMapper.objectMapper.createArrayNode();
+        final ArrayNode rootNode = DefaultObjectMapper.objectMapper.createArrayNode();
         final ObjectNode opAddObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
         final ObjectNode clusterPermissionsNode = DefaultObjectMapper.objectMapper.createObjectNode();
         clusterPermissionsNode.set("cluster_permissions", clusterPermissionsForRestAdmin("cluster/*"));

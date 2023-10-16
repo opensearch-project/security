@@ -17,48 +17,19 @@
 
 package org.opensearch.security.ssl;
 
-import com.google.common.collect.ImmutableList;
-import io.netty.handler.codec.http2.Http2SecurityUtil;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
-import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
-import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
-import io.netty.handler.ssl.ApplicationProtocolNames;
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-import io.netty.handler.ssl.SupportedCipherSuiteFilter;
-import io.netty.util.internal.PlatformDependent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Object;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.ASN1String;
-import org.bouncycastle.asn1.ASN1TaggedObject;
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.env.Environment;
-import org.opensearch.security.ssl.util.CertFileProps;
-import org.opensearch.security.ssl.util.CertFromFile;
-import org.opensearch.security.ssl.util.CertFromKeystore;
-import org.opensearch.security.ssl.util.CertFromTruststore;
-import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.KeystoreProps;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.transport.NettyAllocator;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
-import javax.crypto.Cipher;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -86,18 +57,51 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import javax.crypto.Cipher;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Object;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1String;
+import org.bouncycastle.asn1.ASN1TaggedObject;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
+import org.opensearch.security.ssl.util.CertFileProps;
+import org.opensearch.security.ssl.util.CertFromFile;
+import org.opensearch.security.ssl.util.CertFromKeystore;
+import org.opensearch.security.ssl.util.CertFromTruststore;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.KeystoreProps;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.transport.NettyAllocator;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
+import io.netty.handler.codec.http2.Http2SecurityUtil;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.ssl.SupportedCipherSuiteFilter;
+import io.netty.util.internal.PlatformDependent;
 
 public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
@@ -129,15 +133,15 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     private final boolean httpSSLEnabled;
     private final boolean transportSSLEnabled;
 
-    private List<String> enabledHttpCiphersJDKProvider;
-    private List<String> enabledHttpCiphersOpenSSLProvider;
-    private List<String> enabledTransportCiphersJDKProvider;
-    private List<String> enabledTransportCiphersOpenSSLProvider;
+    private ArrayList<String> enabledHttpCiphersJDKProvider;
+    private ArrayList<String> enabledHttpCiphersOpenSSLProvider;
+    private ArrayList<String> enabledTransportCiphersJDKProvider;
+    private ArrayList<String> enabledTransportCiphersOpenSSLProvider;
 
-    private List<String> enabledHttpProtocolsJDKProvider;
-    private List<String> enabledHttpProtocolsOpenSSLProvider;
-    private List<String> enabledTransportProtocolsJDKProvider;
-    private List<String> enabledTransportProtocolsOpenSSLProvider;
+    private ArrayList<String> enabledHttpProtocolsJDKProvider;
+    private ArrayList<String> enabledHttpProtocolsOpenSSLProvider;
+    private ArrayList<String> enabledTransportProtocolsJDKProvider;
+    private ArrayList<String> enabledTransportProtocolsOpenSSLProvider;
 
     private SslContext httpSslContext;
     private SslContext transportServerSslContext;
@@ -823,9 +827,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         }
 
         if (http) {
-            return provider == SslProvider.JDK ? enabledHttpCiphersJDKProvider : enabledHttpCiphersOpenSSLProvider;
+            return ImmutableList.copyOf(provider == SslProvider.JDK ? enabledHttpCiphersJDKProvider : enabledHttpCiphersOpenSSLProvider);
         } else {
-            return provider == SslProvider.JDK ? enabledTransportCiphersJDKProvider : enabledTransportCiphersOpenSSLProvider;
+            return ImmutableList.copyOf(
+                provider == SslProvider.JDK ? enabledTransportCiphersJDKProvider : enabledTransportCiphersOpenSSLProvider
+            );
         }
 
     }
@@ -850,14 +856,22 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     @SuppressWarnings("removal")
     private void initEnabledSSLCiphers() {
 
-        final List<String> secureHttpSSLCiphers = SSLConfigConstants.getSecureSSLCiphers(settings, true);
-        final List<String> secureTransportSSLCiphers = SSLConfigConstants.getSecureSSLCiphers(settings, false);
-        final List<String> secureHttpSSLProtocols = Arrays.asList(SSLConfigConstants.getSecureSSLProtocols(settings, true));
-        final List<String> secureTransportSSLProtocols = Arrays.asList(SSLConfigConstants.getSecureSSLProtocols(settings, false));
+        final ImmutableSet<String> allowedSecureHttpSSLCiphers = ImmutableSet.copyOf(
+            SSLConfigConstants.getSecureSSLCiphers(settings, true)
+        );
+        final ImmutableSet<String> allowedSecureTransportSSLCiphers = ImmutableSet.copyOf(
+            SSLConfigConstants.getSecureSSLCiphers(settings, false)
+        );
+        final ImmutableSet<String> allowedSecureHttpSSLProtocols = ImmutableSet.copyOf(
+            (SSLConfigConstants.getSecureSSLProtocols(settings, true))
+        );
+        final ImmutableSet<String> allowedSecureTransportSSLProtocols = ImmutableSet.copyOf(
+            SSLConfigConstants.getSecureSSLProtocols(settings, false)
+        );
 
         if (OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
             final Set<String> openSSLSecureHttpCiphers = new HashSet<>();
-            for (final String secure : secureHttpSSLCiphers) {
+            for (final String secure : allowedSecureHttpSSLCiphers) {
                 if (OpenSsl.isCipherSuiteAvailable(secure)) {
                     openSSLSecureHttpCiphers.add(secure);
                 }
@@ -874,40 +888,40 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 OpenSsl.availableOpenSslCipherSuites()
             );
 
-            enabledHttpCiphersOpenSSLProvider = Collections.unmodifiableList(new ArrayList<String>(openSSLSecureHttpCiphers));
+            enabledHttpCiphersOpenSSLProvider = new ArrayList<String>(openSSLSecureHttpCiphers);
         } else {
-            enabledHttpCiphersOpenSSLProvider = Collections.emptyList();
+            enabledHttpCiphersOpenSSLProvider = new ArrayList<String>();
         }
 
         if (OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
             final Set<String> openSSLSecureTransportCiphers = new HashSet<>();
-            for (final String secure : secureTransportSSLCiphers) {
+            for (final String secure : allowedSecureTransportSSLCiphers) {
                 if (OpenSsl.isCipherSuiteAvailable(secure)) {
                     openSSLSecureTransportCiphers.add(secure);
                 }
             }
 
-            enabledTransportCiphersOpenSSLProvider = Collections.unmodifiableList(new ArrayList<String>(openSSLSecureTransportCiphers));
+            enabledTransportCiphersOpenSSLProvider = new ArrayList<String>(openSSLSecureTransportCiphers);
         } else {
-            enabledTransportCiphersOpenSSLProvider = Collections.emptyList();
+            enabledTransportCiphersOpenSSLProvider = new ArrayList<String>();
         }
 
         if (OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L) {
-            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"));
-            enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
-            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1"));
-            enabledTransportProtocolsOpenSSLProvider.retainAll(secureTransportSSLProtocols);
+            enabledHttpProtocolsOpenSSLProvider = new ArrayList<>(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"));
+            enabledHttpProtocolsOpenSSLProvider.retainAll(allowedSecureHttpSSLProtocols);
+            enabledTransportProtocolsOpenSSLProvider = new ArrayList<>(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1"));
+            enabledTransportProtocolsOpenSSLProvider.retainAll(allowedSecureTransportSSLProtocols);
 
             log.info("OpenSSL supports TLSv1.3");
 
         } else if (OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable()) {
-            enabledHttpProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2", "TLSv1.1", "TLSv1"));
-            enabledHttpProtocolsOpenSSLProvider.retainAll(secureHttpSSLProtocols);
-            enabledTransportProtocolsOpenSSLProvider = new ArrayList(Arrays.asList("TLSv1.2", "TLSv1.1"));
-            enabledTransportProtocolsOpenSSLProvider.retainAll(secureTransportSSLProtocols);
+            enabledHttpProtocolsOpenSSLProvider = new ArrayList<>(Arrays.asList("TLSv1.2", "TLSv1.1", "TLSv1"));
+            enabledHttpProtocolsOpenSSLProvider.retainAll(allowedSecureHttpSSLProtocols);
+            enabledTransportProtocolsOpenSSLProvider = new ArrayList<>(Arrays.asList("TLSv1.2", "TLSv1.1"));
+            enabledTransportProtocolsOpenSSLProvider.retainAll(allowedSecureTransportSSLProtocols);
         } else {
-            enabledHttpProtocolsOpenSSLProvider = Collections.emptyList();
-            enabledTransportProtocolsOpenSSLProvider = Collections.emptyList();
+            enabledHttpProtocolsOpenSSLProvider = new ArrayList<>();
+            enabledTransportProtocolsOpenSSLProvider = new ArrayList<>();
         }
 
         SSLEngine engine = null;
@@ -947,16 +961,16 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         }
 
         enabledHttpCiphersJDKProvider = new ArrayList<String>(jdkSupportedCiphers);
-        enabledHttpCiphersJDKProvider.retainAll(secureHttpSSLCiphers);
+        enabledHttpCiphersJDKProvider.retainAll(allowedSecureHttpSSLCiphers);
 
         enabledTransportCiphersJDKProvider = new ArrayList<String>(jdkSupportedCiphers);
-        enabledTransportCiphersJDKProvider.retainAll(secureTransportSSLCiphers);
+        enabledTransportCiphersJDKProvider.retainAll(allowedSecureTransportSSLCiphers);
 
         enabledHttpProtocolsJDKProvider = new ArrayList<String>(jdkSupportedProtocols);
-        enabledHttpProtocolsJDKProvider.retainAll(secureHttpSSLProtocols);
+        enabledHttpProtocolsJDKProvider.retainAll(allowedSecureHttpSSLProtocols);
 
         enabledTransportProtocolsJDKProvider = new ArrayList<String>(jdkSupportedProtocols);
-        enabledTransportProtocolsJDKProvider.retainAll(secureTransportSSLProtocols);
+        enabledTransportProtocolsJDKProvider.retainAll(allowedSecureTransportSSLProtocols);
     }
 
     private SslContext buildSSLServerContext(
