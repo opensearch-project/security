@@ -196,6 +196,15 @@ if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
   exit $skip_updates
 fi
 
+if [[ -n "$initialAdminPassword" ]]; then
+  ADMIN_PASSWORD="$initialAdminPassword"
+elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
+  ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
+else
+  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
+  exit 1
+fi
+
 set +e
 
 read -r -d '' ADMIN_CERT << EOM
@@ -391,15 +400,6 @@ echo 'plugins.security.system_indices.indices: [".plugins-ml-config", ".plugins-
 ## Read the admin password from the file or use the initialAdminPassword if set
 ADMIN_PASSWORD_FILE="$OPENSEARCH_CONF_DIR/initialAdminPassword.txt"
 INTERNAL_USERS_FILE="$OPENSEARCH_CONF_DIR/opensearch-security/internal_users.yml"
-
-if [[ -n "$initialAdminPassword" ]]; then
-  ADMIN_PASSWORD="$initialAdminPassword"
-elif [[ -f "$ADMIN_PASSWORD_FILE" && -s "$ADMIN_PASSWORD_FILE" ]]; then
-  ADMIN_PASSWORD=$(head -n 1 "$ADMIN_PASSWORD_FILE")
-else
-  echo "Unable to find the admin password for the cluster. Please run 'export initialAdminPassword=<your_password>' or create a file $ADMIN_PASSWORD_FILE with a single line that contains the password."
-  exit 1
-fi
 
 echo "   ***************************************************"
 echo "   ***   ADMIN PASSWORD SET TO: $ADMIN_PASSWORD    ***"
