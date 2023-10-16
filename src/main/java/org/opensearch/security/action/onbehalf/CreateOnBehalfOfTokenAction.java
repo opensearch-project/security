@@ -12,6 +12,8 @@
 package org.opensearch.security.action.onbehalf;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,6 +66,10 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
     public static final String DEFAULT_SERVICE = "self-issued";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
+
+    private static final Set<String> RECOGNIZED_PARAMS = new HashSet<>(
+        Arrays.asList("durationSeconds", "description", "roleSecurityMode", "service")
+    );
 
     @Subscribe
     public void onConfigModelChanged(ConfigModel configModel) {
@@ -133,6 +139,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
                     final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
 
+                    validateRequestParameters(requestBody);
+
                     Integer tokenDuration = parseAndValidateDurationSeconds(requestBody.get("durationSeconds"));
                     tokenDuration = Math.min(tokenDuration, OBO_MAX_EXPIRY_SECONDS);
 
@@ -181,6 +189,14 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private Set<String> mapRoles(final User user) {
         return this.configModel.mapSecurityRoles(user, null);
+    }
+
+    private void validateRequestParameters(Map<String, Object> requestBody) throws IllegalArgumentException {
+        for (String key : requestBody.keySet()) {
+            if (!RECOGNIZED_PARAMS.contains(key)) {
+                throw new IllegalArgumentException("Unrecognized parameter: " + key);
+            }
+        }
     }
 
     private Integer parseAndValidateDurationSeconds(Object durationObj) throws IllegalArgumentException {

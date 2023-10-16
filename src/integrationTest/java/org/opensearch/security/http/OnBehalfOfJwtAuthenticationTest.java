@@ -69,12 +69,15 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String OBO_USER_NAME_NO_PERM = "obo_user_no_perm";
     public static final String DEFAULT_PASSWORD = "secret";
     public static final String NEW_PASSWORD = "testPassword123!!";
-    public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
+    public static final String OBO_TOKEN_REASON = "{\"description\":\"Test generation\"}";
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/generateonbehalfoftoken";
     public static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
 
-    public static final String INVALID_OBO_DESCRIPTION =
+    public static final String OBO_DESCRIPTION_WITH_INVALID_DURIATIONSECONDS =
         "{\"description\":\"Testing\", \"service\":\"self-issued\", \"durationSeconds\":\"invalid-seconds\"}";
+
+    public static final String OBO_DESCRIPTION_WITH_INVALID_PARAMETERS =
+        "{\"description\":\"Testing\", \"service\":\"self-issued\", \"invalidParameter\":\"invalid-parameter\"}";
 
     public static final String HOST_MAPPING_IP = "127.0.0.1";
     public static final String OBO_USER_NAME_WITH_HOST_MAPPING = "obo_user_with_ip_role_mapping";
@@ -187,11 +190,21 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotAuthenticateWithInvalidDurationSeconds() {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
             client.assertCorrectCredentials(ADMIN_USER_NAME);
-            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, INVALID_OBO_DESCRIPTION);
+            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_DURIATIONSECONDS);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
             Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
-            ;
             assertTrue(oboEndPointResponse.containsValue("durationSeconds must be an integer."));
+        }
+    }
+
+    @Test
+    public void shouldNotAuthenticateWithInvalidAPIParameter() {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
+            client.assertCorrectCredentials(ADMIN_USER_NAME);
+            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_PARAMETERS);
+            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
+            assertTrue(oboEndPointResponse.containsValue("Unrecognized parameter: invalidParameter"));
         }
     }
 
