@@ -81,8 +81,6 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
             injectUser(msg, threadContext);
 
-            boolean shouldSkipAuthentication = SecurityRestUtils.shouldSkipAuthentication(requestChannel);
-
             // If request channel is completed and a response is sent, then there was a failure during authentication
             restFilter.checkAndAuthenticateRequest(requestChannel);
 
@@ -91,6 +89,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
 
             requestChannel.getQueuedResponse().ifPresent(response -> ctx.channel().attr(EARLY_RESPONSE).set(response));
 
+            boolean shouldSkipAuthentication = SecurityRestUtils.shouldSkipAuthentication(requestChannel);
             boolean shouldDecompress = !shouldSkipAuthentication && requestChannel.getQueuedResponse().isEmpty();
 
             if (requestChannel.getQueuedResponse().isEmpty() || shouldSkipAuthentication) {
