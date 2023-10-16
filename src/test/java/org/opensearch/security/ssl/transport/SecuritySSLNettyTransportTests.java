@@ -1,5 +1,10 @@
 package org.opensearch.security.ssl.transport;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +18,8 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.indices.breaker.CircuitBreakerService;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
+import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport.SSLClientChannelInitializer;
+import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport.SSLServerChannelInitializer;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
@@ -80,22 +87,20 @@ public class SecuritySSLNettyTransportTests {
 
   @Test
   public void getServerChannelInitializer_shouldReturnValidServerChannel() {
-
+    
     ChannelHandler channelHandler = securitySSLNettyTransport.getServerChannelInitializer("test-server-channel");
-
-    Assert.assertNotNull(channelHandler);
-    Assert.assertTrue(channelHandler instanceof SecuritySSLNettyTransport.SSLServerChannelInitializer);
-
+    
+    assertThat(channelHandler, is(notNullValue()));
+    assertThat(channelHandler, instanceOf(SSLServerChannelInitializer.class));
   }
 
   @Test
   public void getClientChannelInitializer_shouldReturnValidClientChannel() {
 
     ChannelHandler channelHandler = securitySSLNettyTransport.getClientChannelInitializer(discoveryNode);
-
-    Assert.assertNotNull(channelHandler);
-    Assert.assertTrue(channelHandler instanceof SecuritySSLNettyTransport.SSLClientChannelInitializer);
-
+    
+    assertThat(channelHandler, is(notNullValue()));
+    assertThat(channelHandler, instanceOf(SSLClientChannelInitializer.class));
   }
 
 }

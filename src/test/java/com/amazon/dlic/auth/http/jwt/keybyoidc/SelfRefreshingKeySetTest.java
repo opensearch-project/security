@@ -45,7 +45,14 @@ public class SelfRefreshingKeySetTest {
 
         Assert.assertThrows(AuthenticatorUnavailableException.class, () -> selfRefreshingKeySet.getKey(null));
 
-    }
+	}
+
+	@Test
+	public void getKey_withInvalidDataShouldReturnBadCredentialException()
+			throws AuthenticatorUnavailableException, BadCredentialsException {
+
+		Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
+	}
 
     @Test
     public void getKeyAfterRefresh_withKidShouldReturnKey()
@@ -66,9 +73,9 @@ public class SelfRefreshingKeySetTest {
     public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes()
             throws InterruptedException, ExecutionException {
 
-        ExecutorService executor = Executors.newFixedThreadPool(3);
-        int numThreads = 10;
-        Object lock = new Object();
+		int numThreads = 10;
+		ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+		Object lock = new Object();
 
         for (int i = 0; i < numThreads; i++) {
             executor.submit(() -> {
@@ -97,9 +104,9 @@ public class SelfRefreshingKeySetTest {
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh(null));
     }
 
-    @Test
-    public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredential()
-            throws AuthenticatorUnavailableException, BadCredentialsException {
+	@Test
+	public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredentialException()
+			throws AuthenticatorUnavailableException, BadCredentialsException {
 
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh("kid/X"));
     }
