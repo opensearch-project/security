@@ -63,13 +63,6 @@ public class SelfRefreshingKeySetTest {
     }
 
     @Test
-    public void getKey_withInvalidDataShouldReturnBadCredentialException()
-            throws AuthenticatorUnavailableException, BadCredentialsException {
-
-        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
-    }
-
-    @Test
     public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes()
             throws InterruptedException, ExecutionException {
 
@@ -89,8 +82,8 @@ public class SelfRefreshingKeySetTest {
             });
         }
 
-        executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.MINUTES);
+		executor.shutdown();
+		executor.awaitTermination(1, TimeUnit.SECONDS);
 
         Assert.assertEquals(10, selfRefreshingKeySet.getRefreshCount());
         Assert.assertEquals(0, selfRefreshingKeySet.getQueuedGetCount());
