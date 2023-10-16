@@ -54,9 +54,8 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: burrunan/gradle-cache-action@v1
       with:
-        cache-disabled: true
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
@@ -102,11 +101,10 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: burrunan/gradle-cache-action@v1
+      continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
       with:
-        cache-disabled: true
-        arguments: |
-          integrationTest -Dbuild.snapshot=false
+        arguments: integrationTest -Dbuild.snapshot=false
 
   resource-tests:
     env:
@@ -129,9 +127,8 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: burrunan/gradle-cache-action@v1
       with:
-        cache-disabled: true
         arguments: |
             integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
 
@@ -147,9 +144,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build BWC tests
-        uses: gradle/gradle-build-action@v2
+        uses: burrunan/gradle-cache-action@v1
         with:
-          cache-disabled: true
           arguments: |
             -p bwc-test build -x test -x integTest
 
