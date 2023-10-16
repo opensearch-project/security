@@ -11,7 +11,6 @@
 
 package org.opensearch.security.multitenancy.test;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hc.core5.http.Header;
@@ -336,12 +335,12 @@ public class MultitenancyTests extends SingleClusterTest {
                 + "\"index-pattern\" : {"
                 + "\"title\" : \"humanresources\""
                 + "}}";
-            Map indexSettings = new HashMap();
-            indexSettings.put("number_of_shards", 1);
-            indexSettings.put("number_of_replicas", 0);
             tc.admin()
                 .indices()
-                .create(new CreateIndexRequest(dashboardsIndex).settings(indexSettings).alias(new Alias(".kibana_92668751_admin")))
+                .create(
+                    new CreateIndexRequest(dashboardsIndex).settings(Map.of("number_of_shards", 1, "number_of_replicas", 0))
+                        .alias(new Alias(".kibana_92668751_admin"))
+                )
                 .actionGet();
 
             tc.index(
@@ -479,12 +478,12 @@ public class MultitenancyTests extends SingleClusterTest {
 
         try (Client tc = getClient()) {
             String body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
-            Map indexSettings = new HashMap();
-            indexSettings.put("number_of_shards", 1);
-            indexSettings.put("number_of_replicas", 0);
             tc.admin()
                 .indices()
-                .create(new CreateIndexRequest(".kibana-6").alias(new Alias(".kibana")).settings(indexSettings))
+                .create(
+                    new CreateIndexRequest(".kibana-6").alias(new Alias(".kibana"))
+                        .settings(Map.of("number_of_shards", 1, "number_of_replicas", 0))
+                )
                 .actionGet();
 
             tc.index(new IndexRequest(".kibana-6").id("6.2.2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(body, XContentType.JSON))
@@ -512,12 +511,12 @@ public class MultitenancyTests extends SingleClusterTest {
 
         try (Client tc = getClient()) {
             String body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
-            Map indexSettings = new HashMap();
-            indexSettings.put("number_of_shards", 1);
-            indexSettings.put("number_of_replicas", 0);
             tc.admin()
                 .indices()
-                .create(new CreateIndexRequest(".kibana_1").alias(new Alias(".kibana")).settings(indexSettings))
+                .create(
+                    new CreateIndexRequest(".kibana_1").alias(new Alias(".kibana"))
+                        .settings(Map.of("number_of_shards", 1, "number_of_replicas", 0))
+                )
                 .actionGet();
 
             tc.index(new IndexRequest(".kibana_1").id("6.2.2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(body, XContentType.JSON))

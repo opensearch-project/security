@@ -55,6 +55,7 @@ public class ConfigTests {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testMigrate() throws Exception {
 
         Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesResult = Migration.migrateRoles(
