@@ -569,7 +569,6 @@ dependencies {
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
-    implementation 'commons-io:commons-io:2.13.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -615,8 +614,8 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
-        testImplementation "io.netty:netty-tcnative-classes:2.0.54.Final"
-        testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.54.Final:${osdetector.classifier}"
+        testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"
+        testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.61.Final:${osdetector.classifier}"
     }
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
@@ -628,7 +627,9 @@ dependencies {
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.11'
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
-    testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.7.1'
+    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.1') {
+        exclude(group:'ch.qos.logback', module: 'logback-classic' )
+    }
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
@@ -644,7 +645,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.13.0'
+    integrationTestImplementation 'commons-io:commons-io:2.14.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
