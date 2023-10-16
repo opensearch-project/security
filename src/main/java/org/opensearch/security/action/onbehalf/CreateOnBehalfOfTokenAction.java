@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -162,8 +161,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         user.getName(),
                         service,
                         tokenDuration,
-                        mappedRoles.stream().collect(Collectors.toSet()),
-                        user.getRoles().stream().collect(Collectors.toSet()),
+                        Set.copyOf(mappedRoles),
+                        Set.copyOf(user.getRoles()),
                         roleSecurityMode
                     );
                     builder.field("authenticationToken", token);

@@ -26,7 +26,6 @@ import org.mockito.ArgumentCaptor;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
