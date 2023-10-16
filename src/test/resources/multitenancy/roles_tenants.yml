@@ -66,3 +66,7 @@ anonymous_tenant:
   reserved: false
   hidden: false
   description: "PR#2459"
+opendistro_security_anonymous:
+  reserved: false
+  hidden: false
+  description: "tenant that is writable for anonymous users"
