@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -71,6 +72,10 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/generateonbehalfoftoken";
     public static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
+
+    public static final String INVALID_OBO_DESCRIPTION =
+        "{\"description\":\"Testing\", \"service\":\"self-issued\", \"durationSeconds\":\"invalid-seconds\"}";
+
     public static final String HOST_MAPPING_IP = "127.0.0.1";
     public static final String OBO_USER_NAME_WITH_HOST_MAPPING = "obo_user_with_ip_role_mapping";
     public static final String CURRENT_AND_NEW_PASSWORDS = "{ \"current_password\": \""
@@ -178,11 +183,23 @@ public class OnBehalfOfJwtAuthenticationTest {
         Assert.assertFalse(roles.contains("host_mapping_role"));
     }
 
+    @Test
+    public void shouldNotAuthenticateWithInvalidDurationSeconds() {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
+            client.assertCorrectCredentials(ADMIN_USER_NAME);
+            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, INVALID_OBO_DESCRIPTION);
+            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
+            ;
+            assertTrue(oboEndPointResponse.containsValue("durationSeconds must be an integer."));
+        }
+    }
+
     private String generateOboToken(String username, String password) {
         try (TestRestClient client = cluster.getRestClient(username, password)) {
             client.assertCorrectCredentials(username);
             TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
-            response.assertStatusCode(200);
+            response.assertStatusCode(HttpStatus.SC_OK);
             Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
             assertThat(
                 oboEndPointResponse,
