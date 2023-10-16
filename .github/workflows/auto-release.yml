@@ -22,7 +22,12 @@ jobs:
         id: tag
         uses: dawidd6/action-get-tag@v1
       - uses: actions/checkout@v4
+      - name: Download release notes
+        run: |
+          curl -s -o release-notes.md https://raw.githubusercontent.com/opensearch-project/security/main/release-notes/opensearch-security.release-notes-${{ steps.tag.outputs.tag }}.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: ncipollo/release-action@v1
         with:
           github_token: ${{ steps.github_app_token.outputs.token }}
-          bodyFile: release-notes/opensearch-security.release-notes-${{steps.tag.outputs.tag}}.md
+          bodyFile: release-notes.md

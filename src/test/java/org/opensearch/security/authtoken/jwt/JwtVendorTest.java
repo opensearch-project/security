@@ -18,8 +18,14 @@ import java.util.function.LongSupplier;
 
 import com.nimbusds.jwt.SignedJWT;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
@@ -30,9 +36,20 @@ import com.nimbusds.jose.jwk.JWK;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 public class JwtVendorTest {
+    private Appender mockAppender;
+    private ArgumentCaptor<LogEvent> logEventCaptor;
 
     @Test
     public void testCreateJwkFromSettings() {
@@ -82,6 +99,7 @@ public class JwtVendorTest {
         assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
         assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), nullValue());
     }
 
     @Test
@@ -122,7 +140,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithBadExpiry() {
+    public void testCreateJwtWithNegativeExpiry() {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
@@ -132,14 +150,40 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
+        Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
                 jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.IllegalArgumentException: The expiration time should be a positive integer", exception.getMessage());
+        assertEquals("java.lang.IllegalArgumentException: The expiration time should be a positive integer", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateJwtWithExceededExpiry() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "audience_0";
+        List<String> roles = List.of("IT", "HR");
+        List<String> backendRoles = List.of("Sales", "Support");
+        int expirySeconds = 900;
+        LongSupplier currentTime = () -> (long) 100;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+
+        Throwable exception = assertThrows(RuntimeException.class, () -> {
+            try {
+                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        assertEquals(
+            "java.lang.IllegalArgumentException: The provided expiration time exceeds the maximum allowed duration of 600 seconds",
+            exception.getMessage()
+        );
     }
 
     @Test
@@ -152,14 +196,14 @@ public class JwtVendorTest {
 
         Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
+        Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
                 new JwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.IllegalArgumentException: encryption_key cannot be null", exception.getMessage());
+        assertEquals("java.lang.IllegalArgumentException: encryption_key cannot be null", exception.getMessage());
     }
 
     @Test
@@ -173,13 +217,49 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
+        Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
                 jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.IllegalArgumentException: Roles cannot be null", exception.getMessage());
+        assertEquals("java.lang.IllegalArgumentException: Roles cannot be null", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateJwtLogsCorrectly() throws Exception {
+        mockAppender = mock(Appender.class);
+        logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+        Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.DEBUG);
+
+        // Mock settings and other required dependencies
+        LongSupplier currentTime = () -> (long) 100;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "audience_0";
+        List<String> roles = List.of("IT", "HR");
+        List<String> backendRoles = List.of("Sales", "Support");
+        int expirySeconds = 300;
+
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+
+        verify(mockAppender, times(1)).append(logEventCaptor.capture());
+
+        LogEvent logEvent = logEventCaptor.getValue();
+        String logMessage = logEvent.getMessage().getFormattedMessage();
+        assertTrue(logMessage.startsWith("Created JWT:"));
+
+        String[] parts = logMessage.split("\\.");
+        assertTrue(parts.length >= 3);
     }
 }

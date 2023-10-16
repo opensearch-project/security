@@ -220,7 +220,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public static final String PLUGINS_PREFIX = "_plugins/_security";
 
     private boolean sslCertReloadEnabled;
-    private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
@@ -914,7 +913,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     validatingDispatcher,
                     clusterSettings,
                     sharedGroupFactory,
-                    tracer
+                    tracer,
+                    securityRestHandler
                 );
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
@@ -930,7 +930,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         dispatcher,
                         clusterSettings,
                         sharedGroupFactory,
-                        tracer
+                        tracer,
+                        securityRestHandler
                     )
                 );
             }

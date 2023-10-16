@@ -149,7 +149,7 @@ public class RestHelper {
 
             final SimpleHttpResponse response = future.join();
             if (response.getCode() >= 300) {
-                throw new Exception("Statuscode " + response.getCode());
+                throw new Exception("Statuscode " + response.getCode() + ", body " + response.getBodyText());
             }
 
             if (enableHTTPClientSSL && !response.getVersion().equals(HttpVersion.HTTP_2)) {

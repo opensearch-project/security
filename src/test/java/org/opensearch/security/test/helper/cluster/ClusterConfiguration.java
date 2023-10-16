@@ -41,7 +41,6 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.search.aggregations.matrix.MatrixAggregationModulePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.test.plugin.UserInjectorPlugin;
 import org.opensearch.transport.Netty4ModulePlugin;
 
 public enum ClusterConfiguration {
@@ -79,11 +78,7 @@ public enum ClusterConfiguration {
     CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
 
     // 3 nodes (1m, 2d) plus additional UserInjectorPlugin
-    USERINJECTOR(
-        new NodeSettings(true, false, Lists.newArrayList(UserInjectorPlugin.class)),
-        new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class)),
-        new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class))
-    );
+    USERINJECTOR(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true));
 
     private List<NodeSettings> nodeSettings = new LinkedList<>();
 

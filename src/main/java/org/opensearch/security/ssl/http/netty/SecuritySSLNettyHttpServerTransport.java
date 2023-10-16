@@ -20,6 +20,7 @@ package org.opensearch.security.ssl.http.netty;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
@@ -36,6 +37,7 @@ import org.opensearch.http.HttpChannel;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.telemetry.tracing.Tracer;
@@ -46,6 +48,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
+    private final ChannelInboundHandlerAdapter headerVerifier;
+    private final ChannelInboundHandlerAdapter conditionalDecompressor;
 
     public SecuritySSLNettyHttpServerTransport(
         final Settings settings,
@@ -58,7 +62,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         final SslExceptionHandler errorHandler,
         ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
-        Tracer tracer
+        Tracer tracer,
+        SecurityRestFilter restFilter
     ) {
         super(
             settings,
@@ -73,6 +78,8 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         );
         this.sks = sks;
         this.errorHandler = errorHandler;
+        headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+        conditionalDecompressor = new Netty4ConditionalDecompressor();
     }
 
     @Override
@@ -148,5 +155,15 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         protected void configurePipeline(Channel ch) {
             ch.pipeline().addLast(new Http2OrHttpHandler());
         }
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return headerVerifier;
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createDecompressor() {
+        return conditionalDecompressor;
     }
 }

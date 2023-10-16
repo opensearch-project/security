@@ -33,7 +33,7 @@ class CloseableHttpClientFactory {
 
     private final HttpRoutePlanner routePlanner;
 
-    private final String[] supportedCipherSuit;
+    private final String[] supportedCipherSuites;
 
     public CloseableHttpClientFactory(
         SSLContext sslContext,
@@ -44,7 +44,7 @@ class CloseableHttpClientFactory {
         this.sslContext = Objects.requireNonNull(sslContext, "SSL context is required.");
         this.requestConfig = requestConfig;
         this.routePlanner = routePlanner;
-        this.supportedCipherSuit = supportedCipherSuit;
+        this.supportedCipherSuites = supportedCipherSuit;
     }
 
     public CloseableHttpClient getHTTPClient() {
@@ -54,7 +54,7 @@ class CloseableHttpClientFactory {
         final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
             this.sslContext,
             null,
-            supportedCipherSuit,
+            supportedCipherSuites,
             NoopHostnameVerifier.INSTANCE
         );
 

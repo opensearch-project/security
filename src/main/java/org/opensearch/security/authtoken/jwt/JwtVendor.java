@@ -168,7 +168,9 @@ public class JwtVendor {
         signedJwt.sign(signer);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Created JWT: " + signedJwt.getHeader() + "\n" + signedJwt.getJWTClaimsSet());
+            logger.debug(
+                "Created JWT: " + signedJwt.serialize() + "\n" + signedJwt.getHeader().toJSONObject() + "\n" + signedJwt.getJWTClaimsSet()
+            );
         }
 
         return signedJwt.serialize();
