@@ -222,7 +222,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                     }
 
                                     br.execute(
-                                        new ConfigUpdatingActionListener(
+                                        new ConfigUpdatingActionListener<>(
                                             cTypes.build().toArray(new String[0]),
                                             client,
                                             new ActionListener<BulkResponse>() {

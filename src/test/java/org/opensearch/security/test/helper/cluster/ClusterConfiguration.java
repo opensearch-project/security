@@ -27,6 +27,7 @@
 package org.opensearch.security.test.helper.cluster;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -117,6 +118,7 @@ public enum ClusterConfiguration {
     public static class NodeSettings {
         public boolean clusterManagerNode;
         public boolean dataNode;
+
         public List<Class<? extends Plugin>> plugins = Lists.newArrayList(
             Netty4Plugin.class,
             OpenSearchSecurityPlugin.class,
@@ -143,8 +145,8 @@ public enum ClusterConfiguration {
             return this;
         }
 
-        public Class<? extends Plugin>[] getPlugins() {
-            return plugins.toArray(new Class[0]);
+        public Collection<Class<? extends Plugin>> getPlugins() {
+            return List.copyOf(plugins);
         }
     }
 }

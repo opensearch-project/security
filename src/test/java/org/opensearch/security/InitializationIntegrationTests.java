@@ -154,7 +154,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         Header spock = encodeBasicHeader("spock", "spock");
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
-            TransportAddress TransportAddress = (TransportAddress) iterator.next();
+            TransportAddress TransportAddress = iterator.next();
             HttpResponse res = rh.executeRequest(
                 new HttpGet(
                     "http://"
@@ -186,7 +186,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         }
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
-            TransportAddress TransportAddress = (TransportAddress) iterator.next();
+            TransportAddress TransportAddress = iterator.next();
             log.debug("http://" + TransportAddress.getAddress() + ":" + TransportAddress.getPort());
             HttpResponse res = rh.executeRequest(
                 new HttpGet(
@@ -218,7 +218,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         }
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
-            TransportAddress TransportAddress = (TransportAddress) iterator.next();
+            TransportAddress TransportAddress = iterator.next();
             HttpResponse res = rh.executeRequest(
                 new HttpGet(
                     "http://"

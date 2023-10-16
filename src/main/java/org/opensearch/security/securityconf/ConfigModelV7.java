@@ -136,6 +136,7 @@ public class ConfigModelV7 extends ConfigModel {
                 return Collections.unmodifiableSet(resolve(actionGroups, groupname));
             }
 
+            @SuppressWarnings("unchecked")
             private Set<String> resolve(final SecurityDynamicConfiguration<?> actionGroups, final String entry) {
 
                 // SG5 format, plain array
@@ -153,7 +154,7 @@ public class ConfigModelV7 extends ConfigModel {
 
                 final Object actionGroupAsObject = actionGroups.getCEntries().get(entry);
 
-                if (actionGroupAsObject != null && actionGroupAsObject instanceof List) {
+                if (actionGroupAsObject instanceof List) {
 
                     for (final String perm : ((List<String>) actionGroupAsObject)) {
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
@@ -163,7 +164,7 @@ public class ConfigModelV7 extends ConfigModel {
                         }
                     }
 
-                } else if (actionGroupAsObject != null && actionGroupAsObject instanceof ActionGroupsV7) {
+                } else if (actionGroupAsObject instanceof ActionGroupsV7) {
                     for (final String perm : ((ActionGroupsV7) actionGroupAsObject).getAllowed_actions()) {
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
                             ret.addAll(resolve(actionGroups, perm));
