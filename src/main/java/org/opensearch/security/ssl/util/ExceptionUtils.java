@@ -64,6 +64,18 @@ public class ExceptionUtils {
         );
     }
 
+    public static OpenSearchException invalidUsageOfOBOTokenException() {
+        return new OpenSearchException("On-Behalf-Of Token is not allowed to be used for accessing this endpoint.");
+    }
+
+    public static OpenSearchException createJwkCreationException() {
+        return new OpenSearchException("An error occurred during the creation of Jwk.");
+    }
+
+    public static OpenSearchException createJwkCreationException(Throwable cause) {
+        return new OpenSearchException("An error occurred during the creation of Jwk: {}", cause, cause.getMessage());
+    }
+
     public static OpenSearchException createTransportClientNoLongerSupportedException() {
         return new OpenSearchException("Transport client authentication no longer supported.");
     }
