@@ -1247,7 +1247,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Setting.listSetting(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)
             );// not filtered here
 
-            settings.add(Setting.boolSetting(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope));// not//
+            settings.add(Setting.boolSetting(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope));// not
                                                                                                                                    // filtered
                                                                                                                                    // here
 
