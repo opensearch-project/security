@@ -18,6 +18,7 @@ import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
+import com.nimbusds.jose.proc.SimpleSecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
@@ -113,7 +114,11 @@ public class JwtVerifier {
         JWTClaimsSet claims = jwt.getJWTClaimsSet();
 
         if (claims != null) {
-            DefaultJWTClaimsVerifier claimsVerifier = new DefaultJWTClaimsVerifier(requiredAudience, null, Collections.emptySet());
+            DefaultJWTClaimsVerifier<SimpleSecurityContext> claimsVerifier = new DefaultJWTClaimsVerifier<>(
+                requiredAudience,
+                null,
+                Collections.emptySet()
+            );
             claimsVerifier.setMaxClockSkew(clockSkewToleranceSeconds);
             claimsVerifier.verify(claims, null);
             validateRequiredAudienceAndIssuer(claims);
