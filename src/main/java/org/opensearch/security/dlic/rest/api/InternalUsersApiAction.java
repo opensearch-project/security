@@ -138,7 +138,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
 
     }
 
-    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration users, UserFilterType userType) {
+    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration<?> users, UserFilterType userType) {
         userService.includeAccountsIfType(users, userType);
         return ValidationResult.success(SecurityConfiguration.of(users.getCType().toString(), users));
 

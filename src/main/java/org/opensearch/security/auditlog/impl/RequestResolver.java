@@ -376,6 +376,7 @@ public final class RequestResolver {
         return msg;
     }
 
+    @SuppressWarnings("unchecked")
     private static void addIndicesSourceSafe(
         final AuditMessage msg,
         final String[] indices,
@@ -425,14 +426,15 @@ public final class RequestResolver {
                     if (source instanceof BytesReference) {
                         msg.addTupleToRequestBody(convertSource(mediaType, (BytesReference) source));
                     } else {
-                        msg.addMapToRequestBody((Map) source);
+                        msg.addMapToRequestBody((Map<String, ?>) source);
                     }
                 }
             } else if (source != null) {
                 if (source instanceof BytesReference) {
                     msg.addTupleToRequestBody(convertSource(mediaType, (BytesReference) source));
                 } else {
-                    msg.addMapToRequestBody((Map) source);
+                    // noinspection unchecked
+                    msg.addMapToRequestBody((Map<String, ?>) source);
                 }
             }
         }

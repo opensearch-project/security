@@ -47,7 +47,5 @@ public class Base64HelperTest {
         String customSerialized = Base64Helper.serializeObject(test, false);
         Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(jdkSerialized));
         Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(customSerialized));
-
     }
-
 }

@@ -11,18 +11,11 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.core5.http.Header;
@@ -30,7 +23,6 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.plugins.Plugin;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
@@ -256,41 +248,14 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         );
     }
 
-    protected Settings defaultNodeSettings(boolean enableRestSSL) {
-        Settings.Builder builder = Settings.builder();
-
-        if (enableRestSSL) {
-            builder.put("plugins.security.ssl.http.enabled", true)
-                .put(
-                    "plugins.security.ssl.http.keystore_filepath",
-                    FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks")
-                )
-                .put(
-                    "plugins.security.ssl.http.truststore_filepath",
-                    FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks")
-                );
-        }
-        return builder.build();
-    }
-
-    protected Map<String, String> jsonStringToMap(String json) throws JsonParseException, JsonMappingException, IOException {
-        TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {
-        };
-        return DefaultObjectMapper.objectMapper.readValue(json, typeRef);
-    }
-
-    protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
-        return Arrays.asList(plugins);
-    }
-
     String createRestAdminPermissionsPayload(String... additionPerms) throws JsonProcessingException {
-        final ObjectNode rootNode = (ObjectNode) DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode rootNode = DefaultObjectMapper.objectMapper.createObjectNode();
         rootNode.set("cluster_permissions", clusterPermissionsForRestAdmin(additionPerms));
         return DefaultObjectMapper.objectMapper.writeValueAsString(rootNode);
     }
 
     ArrayNode clusterPermissionsForRestAdmin(String... additionPerms) {
-        final ArrayNode permissionsArray = (ArrayNode) DefaultObjectMapper.objectMapper.createArrayNode();
+        final ArrayNode permissionsArray = DefaultObjectMapper.objectMapper.createArrayNode();
         for (final Map.Entry<
             Endpoint,
             RestApiAdminPrivilegesEvaluator.PermissionBuilder> entry : RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS
