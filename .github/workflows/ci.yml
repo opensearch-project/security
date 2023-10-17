@@ -89,7 +89,7 @@ jobs:
           with: |
             token: ${{ secrets.CODECOV_TOKEN }}
             fail_ci_if_error: true
-            files: ./*/jacoco/test/jacocoTestReport.xml
+            files: ./**/jacoco/test/jacocoTestReport.xml
 
 
   integration-tests:
