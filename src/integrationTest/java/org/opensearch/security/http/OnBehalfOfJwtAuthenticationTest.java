@@ -73,7 +73,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/generateonbehalfoftoken";
     public static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
 
-    public static final String OBO_DESCRIPTION_WITH_INVALID_DURIATIONSECONDS =
+    public static final String OBO_DESCRIPTION_WITH_INVALID_DURATIONSECONDS =
         "{\"description\":\"Testing\", \"service\":\"self-issued\", \"durationSeconds\":\"invalid-seconds\"}";
 
     public static final String OBO_DESCRIPTION_WITH_INVALID_PARAMETERS =
@@ -190,7 +190,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotAuthenticateWithInvalidDurationSeconds() {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
             client.assertCorrectCredentials(ADMIN_USER_NAME);
-            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_DURIATIONSECONDS);
+            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_DURATIONSECONDS);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
             Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
             assertTrue(oboEndPointResponse.containsValue("durationSeconds must be an integer."));

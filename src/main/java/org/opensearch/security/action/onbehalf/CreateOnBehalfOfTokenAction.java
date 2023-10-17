@@ -209,11 +209,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         } else if (durationObj instanceof String) {
             try {
                 return Integer.parseInt((String) durationObj);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("durationSeconds must be an integer.");
-            }
-        } else {
-            throw new IllegalArgumentException("durationSeconds must be an integer.");
+            } catch (NumberFormatException ignored) {}
         }
+        throw new IllegalArgumentException("durationSeconds must be an integer.");
     }
 }
