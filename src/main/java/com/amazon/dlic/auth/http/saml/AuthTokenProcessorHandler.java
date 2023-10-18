@@ -285,6 +285,11 @@ class AuthTokenProcessorHandler {
         jwtClaims.setExpiryTime(getJwtExpiration(samlResponse));
 
         String subject = this.extractSubject(samlResponse);
+
+        if (!subject.matches("^(?!.*(?<!\\\\)\\\\h).*$")) {
+            throw new IllegalArgumentException("Illegal escape sequence" + (char) 92 +  "h detected in subject.");
+        }
+
         String processedSubject = subject.replaceAll("(\\\\*)\\\\h", "\\\\\\\\h");
         jwtClaims.setProperty(this.jwtSubjectKey, processedSubject);
 

@@ -64,6 +64,8 @@ import org.opensearch.security.util.FakeRestRequest;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
 
 public class HTTPSamlAuthenticatorTest {
     protected MockSamlIdpServer mockSamlIdpServer;
@@ -950,6 +952,66 @@ public class HTTPSamlAuthenticatorTest {
             JwtToken jwt = jwtConsumer.getJwtToken();
 
             Assert.assertEquals("username\\hexample", jwt.getClaim("sub"));
+        }
+    }
+
+    @Test
+    public void testJwtWithBackslashHInUsername() throws Exception {
+        String[] testUsernames = {
+                "username\\hexample",
+                "username\\\\hexample",
+                "username\\\\\\hexample",
+                "username\\\\\\\\\\hexample",
+                "username" + (char) 92 + 'h' + "example"
+        };
+
+        for (String testUsername : testUsernames) {
+            boolean exceptionThrown = false;
+            try {
+                mockSamlIdpServer.setSignResponses(true);
+                mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+                mockSamlIdpServer.setAuthenticateUser(testUsername);
+                mockSamlIdpServer.setEndpointQueryString(null);
+
+                Settings settings = Settings.builder()
+                        .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                        .put("kibana_url", "http://wherever")
+                        .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                        .put("exchange_key", "abc")
+                        .put("roles_key", "roles")
+                        .put("path.home", ".")
+                        .build();
+
+                HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+                AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+                String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+                RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+
+                String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
+                HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
+                        responseJson,
+                        new TypeReference<HashMap<String, Object>>() {
+                        }
+                );
+
+                String authorization = (String) response.get("authorization");
+                Assert.assertNotNull("Expected authorization attribute in JSON for input: " + testUsername, authorization);
+
+                JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
+                JwtToken jwt = jwtConsumer.getJwtToken();
+
+                assertThat(jwt.getClaim("sub"), is(equalTo("username\\hexample")));
+
+            } catch (Exception e) {
+                exceptionThrown = true;
+                if (!("username" + (char) 92 + 'h' + "example").equals(testUsername)) {
+                    assertThat("Unexpected exception for username: " + testUsername, false, is(true));
+                }
+            }
+            if (("username" + (char) 92 + 'h' + "example").equals(testUsername)) {
+                assertThat("Expected an exception for username: " + testUsername, exceptionThrown, is(true));
+            }
         }
     }
 
