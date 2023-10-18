@@ -68,7 +68,13 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         oboEnabled = Boolean.parseBoolean(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
         JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-        jwtParser = builder.build();
+        jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
+            @Override
+            public JwtParser run() {
+                JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
+                return builder.build();
+            }
+        });
 
         this.clusterName = clusterName;
         this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
