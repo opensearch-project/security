@@ -15,7 +15,6 @@ import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
 import java.nio.file.Path;
 import java.security.AccessController;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
@@ -31,8 +30,6 @@ import java.util.regex.Pattern;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.WeakKeyException;
 
 import org.apache.http.HttpStatus;
@@ -47,6 +44,7 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.KeyUtils;
 
 public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
@@ -67,45 +65,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
 
-        final JwtParserBuilder _jwtParserBuilder = Jwts.parserBuilder();
-
-        try {
-            String signingKey = settings.get("signing_key");
-
-            if (signingKey == null || signingKey.length() == 0) {
-                log.error("signingKey must not be null or empty. JWT authentication will not work");
-            } else {
-
-                signingKey = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "");
-                signingKey = signingKey.replace("-----END PUBLIC KEY-----", "");
-
-                byte[] decoded = Decoders.BASE64.decode(signingKey);
-                Key key = null;
-
-                try {
-                    key = getPublicKey(decoded, "RSA");
-                } catch (Exception e) {
-                    log.debug("No public RSA key, try other algos ({})", e.toString());
-                }
-
-                try {
-                    key = getPublicKey(decoded, "EC");
-                } catch (Exception e) {
-                    log.debug("No public ECDSA key, try other algos ({})", e.toString());
-                }
-
-                if (key != null) {
-                    _jwtParserBuilder.setSigningKey(key);
-                } else {
-                    _jwtParserBuilder.setSigningKey(decoded);
-                }
-
-            }
-        } catch (Throwable e) {
-            log.error("Error creating JWT authenticator. JWT authentication will not work", e);
-            throw new RuntimeException(e);
-        }
-
+        String signingKey = settings.get("signing_key");
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
@@ -114,28 +74,20 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         requireAudience = settings.get("required_audience");
         requireIssuer = settings.get("required_issuer");
 
-        if (requireAudience != null) {
-            _jwtParserBuilder.requireAudience(requireAudience);
-        }
-
-        if (requireIssuer != null) {
-            _jwtParserBuilder.requireIssuer(requireIssuer);
-        }
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        JwtParser parser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
-            @Override
-            public JwtParser run() {
-                return _jwtParserBuilder.build();
+        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
+        if (jwtParserBuilder == null) {
+            jwtParser = null;
+        } else {
+            if (requireAudience != null) {
+                jwtParserBuilder = jwtParserBuilder.require("aud", requireAudience);
             }
-        });
 
-        jwtParser = parser;
+            if (requireIssuer != null) {
+                jwtParserBuilder = jwtParserBuilder.require("iss", requireIssuer);
+            }
+
+            jwtParser = jwtParserBuilder.build();
+        }
     }
 
     @Override
