@@ -25,29 +25,29 @@ import org.opensearch.rest.RestRequest.Method;
 public interface SecurityRequest {
 
     /** Collection of headers associated with the request */
-    public Map<String, List<String>> getHeaders();
+    Map<String, List<String>> getHeaders();
 
     /** The SSLEngine associated with the request */
-    public SSLEngine getSSLEngine();
+    SSLEngine getSSLEngine();
 
     /** The path of the request */
-    public String path();
+    String path();
 
     /** The method type of this request */
-    public Method method();
+    Method method();
 
     /** The remote address of the request, possible null */
-    public Optional<InetSocketAddress> getRemoteAddress();
+    Optional<InetSocketAddress> getRemoteAddress();
 
     /** The full uri of the request */
-    public String uri();
+    String uri();
 
     /** Finds the first value of the matching header or null */
-    default public String header(final String headerName) {
+    default String header(final String headerName) {
         final Optional<Map<String, List<String>>> headersMap = Optional.ofNullable(getHeaders());
         return headersMap.map(headers -> headers.get(headerName)).map(List::stream).flatMap(Stream::findFirst).orElse(null);
     }
 
     /** The parameters associated with this request */
-    public Map<String, String> params();
+    Map<String, String> params();
 }
