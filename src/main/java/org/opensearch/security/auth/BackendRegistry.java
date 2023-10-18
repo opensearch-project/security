@@ -61,6 +61,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.ssl.util.Utils;
@@ -614,6 +615,10 @@ public class BackendRegistry {
             // loop over all http/rest auth domains
             for (final AuthDomain authDomain : restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
+                // Skip over the OnBehalfOfAuthenticator since it is not compatible for user impersonation
+                if (authDomain.getHttpAuthenticator() instanceof OnBehalfOfAuthenticator) {
+                    continue;
+                }
                 final User impersonatedUser = checkExistsAndAuthz(
                     restImpersonationCache,
                     new User(impersonatedUserHeader),
