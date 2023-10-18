@@ -202,8 +202,9 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
 
         // Search with this pipeline should succeed and should only return documents where "FlightDelay" is true and the new
         // "FlightDelayNew" will also be true
-        res = rh.executePostRequest("/flights/_search?search_pipeline=test-document-level-security&size=2", emptyQuery, asUserA);
+        res = rh.executePostRequest("/flights/_search?search_pipeline=test-document-level-security&size=3", emptyQuery, asUserA);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(res.findValueInJson("hits.total.value"), equalTo("1"));
         assertThat(res.findValueInJson("hits.hits[0]._source.FlightDelayNew"), equalTo("true"));
     }
 
@@ -236,8 +237,9 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
         // Search with this pipeline should succeed and should only return documents where "FlightDelay" is true in the original document
         // and the new "FlightDelay"
         // will also be true
-        res = rh.executePostRequest("/flights/_search?search_pipeline=test-document-level-security-reverse&size=2", emptyQuery, asUserA);
+        res = rh.executePostRequest("/flights/_search?search_pipeline=test-document-level-security-reverse&size=3", emptyQuery, asUserA);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(res.findValueInJson("hits.total.value"), equalTo("1"));
         assertThat(res.findValueInJson("hits.hits[0]._source.FlightDelay"), equalTo("true"));
     }
 }
