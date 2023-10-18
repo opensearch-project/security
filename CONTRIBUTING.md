@@ -5,16 +5,6 @@
 OpenSearch is a community project that is built and maintained by people just like **you**.
 [This document](https://github.com/opensearch-project/.github/blob/main/CONTRIBUTING.md) explains how you can contribute to this and related projects.
 
-### Design Documents
-
-Sometimes a feature is large enough that a design document is required necessary.
-
-A feature is usually large enough to require a design document if it adds new Java classes or API endpoints.
-
-If you are not sure whether your change should have an accompanying design document, it can be useful to reference the types of issues which have had design docs in the past.
-
-The [Design Document Template](./DESIGN_DOCUMENT_TEMPLATE.md) can help you get started.
-
 Visit the following link(s) for more information on specific practices:
 
 - [Triaging](./TRIAGING.md)

@@ -5,6 +5,13 @@
 	- [Documenting your Feature](#documenting-your-feature)
 	- [Security Reviews](#security-reviews)
 
+## Document Checklist
+- [ ] Architecture diagram created 
+- [ ] API diagram created
+- [ ] Documentation pull request opened
+- [ ] Security review opened if required
+
+<!--
 # Using this Document
 
 This document provides an easy-to-use template to help you get started building your own design document for OpenSearch features.
@@ -16,9 +23,15 @@ To use this document you should:
 
 **Please do not overwrite this document.**
 
+-->
+
 ## Feature Description
 
-_Please provide a **brief** description of what feature you are introducing and what it does. This should be similar to the GitHub description._
+<!--
+_Please provide a **brief** description of what feature you are introducing and what it does. This should include information about the scope of the change and and its technical aspects. It should not reiterate the GitHub description._
+
+For example: This feature creates a token with properties x, y, & z, it will have Rest APIs: POST /_security/foo/token { ... }. It will add functionality in class files AFactory, BSingleton, and CInstance.
+-->
 
 This document outlines a new feature <YOUR_FEATURE>.
 
@@ -26,9 +39,11 @@ This document outlines a new feature <YOUR_FEATURE>.
 
 ## Architecture Diagram
 
-_Some features are best explained using architecture diagrams. In particular, Mermaid diagrams are supported by GitHub and preferred. You can find examples of Mermaid diagrams in the [ARCHITECTURE.md](./ARCHITECTURE.md) file._
 
-Here is a generic graph diagram you can modify:
+
+<!--_Some features are best explained using architecture diagrams. In particular, Mermaid diagrams are supported by GitHub and preferred. You can find examples of Mermaid diagrams in the [ARCHITECTURE.md](./ARCHITECTURE.md) file._-->
+
+<!--Here is a generic graph diagram you can modify:-->
 
 ```mermaid
 graph TD
@@ -52,19 +67,12 @@ graph TD
     end
 ```
 
-
-Similarly, this is a sample sequence diagram:
-
+<!--Similarly, this is a sample sequence diagram:-->
 
 ```mermaid
 sequenceDiagram
 	title Sample Sequence
 	autonumber
-	participant A as A
-	participant B as B
-	participant C as C
-	participant D as D
-	participant E as E
 
     A->>B: Request 1
     B->>C: Request 1 Received
@@ -75,23 +83,20 @@ sequenceDiagram
     D-->>B: Result
     B->>A: Response
 ```
-There are several other types of diagrams also supported by Mermaid.
+
+<!--There are several other types of diagrams also supported by Mermaid.-->
+
 
 ### API Diagram
 
-If your change introduces new API routes, please provide a diagram of the changes.
+<!--If your change introduces new API routes, please provide a diagram of the changes.-->
 
-The sequence diagram is recommended for this purpose:
+<!--The sequence diagram is recommended for this purpose:-->
 
 ```mermaid
 sequenceDiagram
 	title Sample Sequence
 	autonumber
-	participant A as A
-	participant B as B
-	participant C as C
-	participant D as D
-	participant E as E
 
     A->>B: Request 1
     B->>C: Request 1 Received
@@ -105,14 +110,13 @@ sequenceDiagram
 
 ## Documenting your Feature
 
-Whenever you are making a large change, you should make sure you have created the appropriate updates to the documentation website.
+<!--Whenever you are making a large change, you should make sure you have created the appropriate updates to the documentation website.
 
 Please use this section as a reminder to submit a pull request to the documentation repository with the details of your change.
 
-If you do not complete this step, you pull request may not be merged.
+If you do not complete this step, your pull request may not be merged.
 
-Please link your documentation pull request here when it is complete and check this box:
-- [ ] Documentation pull request opened
+Please link your documentation pull request here when it is complete and check the box below.-->
 
 ## Security Reviews
 
@@ -128,12 +132,9 @@ Please denote whether a review is expected to be required.
 graph TD
   A[Is it a new feature or a feature update?] -->|New Feature| B[Does the feature handle sensitive data?]
   A -->|Feature Update| C[Does the update change security-critical components?]
-  B -->|Yes| D[Open an AppSec review]
+  B -->|Yes| D[Create a security review]
   B -->|No| E[Do a basic security assessment]
-  C -->|Yes| F[Open an AppSec review]
-  C -->|No| G[Proceed with regular testing]
-  E -->|Security issues found?| H[Open an AppSec review]
-  E -->|No security issues| I[Proceed with regular testing]
-  H -->|Resolved| I
-  H -->|Not resolved| J[Delay feature release]
+  C -->|Yes| D[Create a security review]
+  C -->|No| E[Do a basic security assessment]
+  E -->|Security issues found?| D[Create a security review]
 ```
