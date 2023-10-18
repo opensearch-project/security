@@ -77,6 +77,7 @@ public class SecurityTokenManagerTest {
             .build();
 
         tokenManager = new SecurityTokenManager(clusterService, threadPool, userService, null, settings);
+        tokenManager.setKeySettings(null, settings);
         tokenManager.configModel = configModel;
         ClusterName clusterName = new ClusterName("mockCluster");
 
@@ -132,7 +133,7 @@ public class SecurityTokenManagerTest {
     public void testCreateJwkFromSettingsThrowsException() {
         Settings faultySettings = Settings.builder().put("key.someProperty", "badValue").build();
 
-        Exception thrownException = assertThrows(Exception.class, () -> new SecurityTokenManager(clusterService, threadPool, userService, null, faultySettings));
+        Exception thrownException = assertThrows(Exception.class, () -> tokenManager.setKeySettings(null, faultySettings));
 
         String expectedMessagePart = "An error occurred during the creation of Jwk: ";
         assertTrue(thrownException.getMessage().contains(expectedMessagePart));

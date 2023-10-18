@@ -69,12 +69,11 @@ public class SecurityTokenManager implements TokenManager {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
-        setKeySettings(timeProvider, settings);
     }
 
     /**
      * This method allows for configuration of the time provider and settings values
-     * This is primarily used for testing the ability of the token manager to properly handle different types of providers and settings
+     * This must be called before you can create on behalf of tokens
      * @param timeProvider An optional time provider. Any provided should be in SECONDS
      * @param settings Any settings to use for creating the JWTs
      */
