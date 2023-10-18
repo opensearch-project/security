@@ -32,15 +32,12 @@ public class SecuritySubject implements Subject {
     @Override
     public Principal getPrincipal() {
         if (threadContext == null) {
-            System.out.println("Thread context is null");
             return NamedPrincipal.UNAUTHENTICATED;
         }
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
-            System.out.println("User is null");
             return NamedPrincipal.UNAUTHENTICATED;
         }
-        System.out.println("Returning user.getName");
         return new NamedPrincipal(user.getName());
     }
 

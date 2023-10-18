@@ -569,7 +569,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         principalExtractor
                     )
                 );
-                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool, Objects.requireNonNull(cs));
+                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool, Objects.requireNonNull(cs), null, userService);
                 dcf.registerDCFListener(cobot);
                 handlers.add(cobot);
                 handlers.addAll(
@@ -1044,7 +1044,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
         subject.setThreadContext(threadPool.getThreadContext());
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService);
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService, null,settings);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 

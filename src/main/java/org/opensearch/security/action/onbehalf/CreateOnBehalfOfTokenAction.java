@@ -22,6 +22,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.function.LongSupplier;
 import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.client.node.NodeClient;
@@ -34,11 +35,12 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -51,9 +53,12 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         "/_plugins/_security/api"
     );
 
-    private JwtVendor vendor;
+    private SecurityTokenManager securityTokenManager;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
+    private final UserService userService;
+    private final Settings settings;
+    private final Optional<LongSupplier> longSupplier;
 
     private ConfigModel configModel;
 
@@ -86,15 +91,18 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         String encryptionKey = settings.get("encryption_key");
 
         if (!Boolean.FALSE.equals(enabled) && signingKey != null && encryptionKey != null) {
-            this.vendor = new JwtVendor(settings, Optional.empty());
+            this.securityTokenManager = new SecurityTokenManager(clusterService, threadPool, userService, longSupplier, settings);
         } else {
-            this.vendor = null;
+            this.securityTokenManager = null;
         }
     }
 
-    public CreateOnBehalfOfTokenAction(final Settings settings, final ThreadPool threadPool, final ClusterService clusterService) {
+    public CreateOnBehalfOfTokenAction(final Settings settings, final ThreadPool threadPool, final ClusterService clusterService, Optional<LongSupplier> longSupplier, UserService userService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
+        this.userService = userService;
+        this.settings = settings;
+        this.longSupplier = longSupplier;
     }
 
     @Override
@@ -124,7 +132,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                 final XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response;
                 try {
-                    if (vendor == null) {
+                    if (securityTokenManager == null) {
                         channel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.SERVICE_UNAVAILABLE,
@@ -140,10 +148,12 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
                     validateRequestParameters(requestBody);
 
-                    Integer tokenDuration = parseAndValidateDurationSeconds(requestBody.get("durationSeconds"));
-                    tokenDuration = Math.min(tokenDuration, OBO_MAX_EXPIRY_SECONDS);
-
                     final String description = (String) requestBody.getOrDefault("description", null);
+                    final Long tokenDuration = Long.valueOf(Optional.ofNullable(requestBody.get("durationSeconds"))
+                        .map(value -> (String) value)
+                        .map(Integer::parseInt)
+                        .map(value -> Math.min(value, OBO_MAX_EXPIRY_SECONDS)) // Max duration seconds are 600
+                        .orElse(OBO_DEFAULT_EXPIRY_SECONDS)); // Fallback to default
 
                     final Boolean roleSecurityMode = Optional.ofNullable(requestBody.get("roleSecurityMode"))
                         .map(value -> (Boolean) value)
@@ -156,7 +166,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                     builder.startObject();
                     builder.field("user", user.getName());
 
-                    final String token = vendor.createJwt(
+                    final String token = securityTokenManager.createJwt(
                         clusterIdentifier,
                         user.getName(),
                         service,
