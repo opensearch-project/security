@@ -200,6 +200,7 @@ public class Migration {
         return i7;
     }
 
+    @SuppressWarnings("unchecked")
     public static SecurityDynamicConfiguration<ActionGroupsV7> migrateActionGroups(SecurityDynamicConfiguration<?> r6as)
         throws MigrationException {
 

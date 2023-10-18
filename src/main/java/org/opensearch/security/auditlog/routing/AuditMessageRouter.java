@@ -101,6 +101,7 @@ public class AuditMessageRouter {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public final void enableRoutes(Settings settings) {
         checkState(isEnabled(), "AuditMessageRouter is disabled");
         if (categorySinks != null) {

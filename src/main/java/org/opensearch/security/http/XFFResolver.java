@@ -78,7 +78,7 @@ public class XFFResolver {
             if (isTraceEnabled) {
                 log.trace("no xff done (enabled or no netty request) {},{},{},{}", enabled, request.getClass());
             }
-            return new TransportAddress((InetSocketAddress) request.getRemoteAddress().get());
+            return new TransportAddress(request.getRemoteAddress().get());
         } else {
             throw new OpenSearchSecurityException(
                 "Cannot handle this request. Remote address is "

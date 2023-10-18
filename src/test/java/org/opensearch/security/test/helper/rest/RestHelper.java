@@ -35,9 +35,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -129,16 +126,6 @@ public class RestHelper {
                 httpClient.close();
             }
         }
-    }
-
-    public HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
-        final ExecutorService executorService = Executors.newFixedThreadPool(numOfRequests);
-        Future<HttpResponse>[] futures = new Future[numOfRequests];
-        for (int i = 0; i < numOfRequests; i++) {
-            futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
-        }
-        executorService.shutdown();
-        return Arrays.stream(futures).map(HttpResponse::from).toArray(s -> new HttpResponse[s]);
     }
 
     public HttpResponse executeGetRequest(final String request, Header... header) {
@@ -483,14 +470,6 @@ public class RestHelper {
                     );
                 }
                 return currentNode.asText();
-            }
-        }
-
-        private static HttpResponse from(Future<HttpResponse> future) {
-            try {
-                return future.get();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
         }
     }

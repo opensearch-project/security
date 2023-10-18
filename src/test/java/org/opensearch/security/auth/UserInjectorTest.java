@@ -13,6 +13,7 @@ package org.opensearch.security.auth;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
@@ -75,4 +77,34 @@ public class UserInjectorTest {
         User injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }
+
+    @Test
+    public void testMapFromArray() {
+        Map<String, String> map = userInjector.mapFromArray((String) null);
+        assertNull(map);
+
+        map = userInjector.mapFromArray("key");
+        assertNull(map);
+
+        map = userInjector.mapFromArray("key", "value", "otherkey");
+        assertNull(map);
+
+        map = userInjector.mapFromArray("key", "value");
+        assertNotNull(map);
+        assertEquals(1, map.size());
+        assertEquals("value", map.get("key"));
+
+        map = userInjector.mapFromArray("key", "value", "key", "value");
+        assertNotNull(map);
+        assertEquals(1, map.size());
+        assertEquals("value", map.get("key"));
+
+        map = userInjector.mapFromArray("key1", "value1", "key2", "value2");
+        assertNotNull(map);
+        assertEquals(2, map.size());
+        assertEquals("value1", map.get("key1"));
+        assertEquals("value2", map.get("key2"));
+
+    }
+
 }
