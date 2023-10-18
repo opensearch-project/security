@@ -21,10 +21,12 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNot.not;
 
 public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
     private final String ROLES_FILE = "roles_flsdls_rename_processor.yml";
@@ -93,12 +95,14 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
 
     @Test
     public void testMaskedField() throws Exception {
-        setup(new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE),
+            ClusterConfiguration.SEARCH_PIPELINE
+        );
 
         HttpResponse res;
         res = rh.executePostRequest("/flights/_search", emptyQuery, asUserA);
-        assertThat(res.getBody(), not(containsString("\"FlightNum\": \"9HY9SWR\",")));
-        System.out.println(res);
+        assertThat(res.findValueInJson("hits.hits[0]._source.FlightNum"), not(equalTo("9HY9SWR")));
         String testRenameMaskedFieldPipeline = "{"
             + "\"description\": \"A pipeline to rename masked field 'FlightNum' to 'FlightNumNew'\","
             + "\"response_processors\": ["
@@ -116,13 +120,15 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
         // Search with this pipeline should succeed and the value of the new field "FlightNumNew" should also be masked
         res = rh.executePostRequest("/flights/_search?search_pipeline=test-rename-masked-field&size=1", emptyQuery, asUserA);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertThat(res.getBody(), containsString("\"FlightNumNew\":"));
-        assertThat(res.getBody(), not(containsString("\"FlightNumNew\": \"9HY9SWR\",")));
+        assertThat(res.findValueInJson("hits.hits[0]._source.FlightNumNew"), not(equalTo("9HY9SWR")));
     }
 
     @Test
     public void testFieldLevelSecurity() throws Exception {
-        setup(new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE),
+            ClusterConfiguration.SEARCH_PIPELINE
+        );
 
         HttpResponse res;
         String testFieldLevelSecurityPipeline = "{"
@@ -146,7 +152,10 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
 
     @Test
     public void testFieldLevelSecurityReverse() throws Exception {
-        setup(new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE),
+            ClusterConfiguration.SEARCH_PIPELINE
+        );
 
         HttpResponse res;
         String testFieldLevelSecurityReversePipeline = "{"
@@ -166,12 +175,15 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
         // Search with this pipeline should succeed and the value of the new "DestCountry" field should be the previous value of "Dest"
         res = rh.executePostRequest("/flights/_search?search_pipeline=test-field-level-security-reverse&size=1", emptyQuery, asUserA);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertThat(res.getBody(), containsString("\"DestCountry\": \"Sydney Kingsford Smith International Airport\","));
+        assertThat(res.findValueInJson("hits.hits[0]._source.DestCountry"), equalTo("Sydney Kingsford Smith International Airport"));
     }
 
     @Test
     public void testDocumentLevelSecurity() throws Exception {
-        setup(new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE),
+            ClusterConfiguration.SEARCH_PIPELINE
+        );
 
         HttpResponse res;
         String testDocumentLevelSecurityPipeline = "{"
@@ -192,12 +204,15 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
         // "FlightDelayNew" will also be true
         res = rh.executePostRequest("/flights/_search?search_pipeline=test-document-level-security&size=2", emptyQuery, asUserA);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertThat(res.getBody(), containsString("\"FlightDelayNew\" : true"));
+        assertThat(res.findValueInJson("hits.hits[0]._source.FlightDelayNew"), equalTo("true"));
     }
 
     @Test
     public void testDocumentLevelSecurityReverse() throws Exception {
-        setup(new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE),
+            ClusterConfiguration.SEARCH_PIPELINE
+        );
 
         HttpResponse res;
         String testDocumentLevelSecurityReversePipeline = "{"
@@ -223,6 +238,6 @@ public class RenameFieldResponseProcessorTest extends AbstractDlsFlsTest {
         // will also be true
         res = rh.executePostRequest("/flights/_search?search_pipeline=test-document-level-security-reverse&size=2", emptyQuery, asUserA);
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertThat(res.getBody(), containsString("\"FlightDelay\" : true"));
+        assertThat(res.findValueInJson("hits.hits[0]._source.FlightDelay"), equalTo("true"));
     }
 }
