@@ -178,6 +178,7 @@ public class HttpClient implements Closeable {
         this.keystoreAlias = keystoreAlias;
 
         HttpHost[] hosts = Arrays.stream(servers)
+            .map(s -> s.replaceAll("https://|http://", ""))
             .map(s -> s.split(":"))
             .map(s -> new HttpHost(ssl ? "https" : "http", s[0], Integer.parseInt(s[1])))
             .collect(Collectors.toList())
