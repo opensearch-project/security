@@ -13,6 +13,9 @@ package org.opensearch.security.httpclient;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -52,7 +55,7 @@ import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.apache.lucene.document.InetAddressPoint;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -178,9 +181,7 @@ public class HttpClient implements Closeable {
         this.keystoreAlias = keystoreAlias;
 
         HttpHost[] hosts = Arrays.stream(servers)
-            .map(s -> s.replaceAll("https://|http://", ""))
-            .map(s -> s.split(":"))
-            .map(s -> new HttpHost(ssl ? "https" : "http", s[0], Integer.parseInt(s[1])))
+            .map(server -> new HttpHost(ssl ? "https" : "http", server))
             .collect(Collectors.toList())
             .toArray(new HttpHost[0]);
 
