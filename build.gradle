@@ -485,6 +485,9 @@ configurations {
             force "org.xerial.snappy:snappy-java:1.1.10.5"
             force "com.google.guava:guava:${guava_version}"
 
+            // for spotbugs dependency conflict
+            force "org.apache.commons:commons-lang3:${versions.commonslang}"
+
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.13"
             force "org.apache.httpcomponents:httpcore:4.4.16"
