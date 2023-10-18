@@ -77,7 +77,6 @@ public class SecurityTokenManagerTest {
             .build();
 
         tokenManager = new SecurityTokenManager(clusterService, threadPool, userService, null, settings);
-        tokenManager.setKeySettings(null, settings);
         tokenManager.configModel = configModel;
         ClusterName clusterName = new ClusterName("mockCluster");
 

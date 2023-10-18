@@ -69,6 +69,7 @@ public class SecurityTokenManager implements TokenManager {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
+        setKeySettings(timeProvider, settings);
     }
 
     /**
