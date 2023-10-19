@@ -244,4 +244,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return "onbehalfof_jwt";
     }
 
+    @Override
+    public boolean supportsImpersonation() {
+        return false;
+    }
 }
