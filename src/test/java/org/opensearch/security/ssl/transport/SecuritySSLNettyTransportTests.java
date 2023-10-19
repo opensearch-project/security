@@ -28,79 +28,78 @@ import io.netty.channel.ChannelHandler;
 
 public class SecuritySSLNettyTransportTests {
 
-  @Mock
-  private Version version;
-  @Mock
-  private ThreadPool threadPool;
-  @Mock
-  private NetworkService networkService;
-  @Mock
-  private PageCacheRecycler pageCacheRecycler;
-  @Mock
-  private NamedWriteableRegistry namedWriteableRegistry;
-  @Mock
-  private CircuitBreakerService circuitBreakerService;
-  @Mock
-  private SharedGroupFactory sharedGroupFactory;
-  @Mock
-  private Tracer trace;
-  @Mock
-  private SecurityKeyStore ossks;
-  @Mock
-  private SslExceptionHandler sslExceptionHandler;
-  @Mock
-  private DiscoveryNode discoveryNode;
+    @Mock
+    private Version version;
+    @Mock
+    private ThreadPool threadPool;
+    @Mock
+    private NetworkService networkService;
+    @Mock
+    private PageCacheRecycler pageCacheRecycler;
+    @Mock
+    private NamedWriteableRegistry namedWriteableRegistry;
+    @Mock
+    private CircuitBreakerService circuitBreakerService;
+    @Mock
+    private SharedGroupFactory sharedGroupFactory;
+    @Mock
+    private Tracer trace;
+    @Mock
+    private SecurityKeyStore ossks;
+    @Mock
+    private SslExceptionHandler sslExceptionHandler;
+    @Mock
+    private DiscoveryNode discoveryNode;
 
-  private SSLConfig sslConfig;
-  private SecuritySSLNettyTransport securitySSLNettyTransport;
+    private SSLConfig sslConfig;
+    private SecuritySSLNettyTransport securitySSLNettyTransport;
 
-  @Before
-  public void setup() {
+    @Before
+    public void setup() {
 
-    sslConfig = new SSLConfig(Settings.EMPTY);
+        sslConfig = new SSLConfig(Settings.EMPTY);
 
-    securitySSLNettyTransport = new SecuritySSLNettyTransport(
-        Settings.EMPTY,
-        version,
-        threadPool,
-        networkService,
-        pageCacheRecycler,
-        namedWriteableRegistry,
-        circuitBreakerService,
-        ossks,
-        sslExceptionHandler,
-        sharedGroupFactory,
-        sslConfig,
-        trace);
-  }
+        securitySSLNettyTransport = new SecuritySSLNettyTransport(
+            Settings.EMPTY,
+            version,
+            threadPool,
+            networkService,
+            pageCacheRecycler,
+            namedWriteableRegistry,
+            circuitBreakerService,
+            ossks,
+            sslExceptionHandler,
+            sharedGroupFactory,
+            sslConfig,
+            trace
+        );
+    }
 
-  @Test
-  public void OnException_withNullChannelShouldThrowException() {
+    @Test
+    public void OnException_withNullChannelShouldThrowException() {
 
-    NullPointerException exception = new NullPointerException("Test Exception");
+        NullPointerException exception = new NullPointerException("Test Exception");
 
-    Assert.assertThrows(
-        NullPointerException.class,
-        () -> securitySSLNettyTransport.onException(null, exception));
+        Assert.assertThrows(NullPointerException.class, () -> securitySSLNettyTransport.onException(null, exception));
 
-  }
+    }
 
-  @Test
-  public void getServerChannelInitializer_shouldReturnValidServerChannel() {
-    
-    ChannelHandler channelHandler = securitySSLNettyTransport.getServerChannelInitializer("test-server-channel");
-    
-    assertThat(channelHandler, is(notNullValue()));
-    assertThat(channelHandler, instanceOf(SSLServerChannelInitializer.class));
-  }
+    @Test
+    public void getServerChannelInitializer_shouldReturnValidServerChannel() {
 
-  @Test
-  public void getClientChannelInitializer_shouldReturnValidClientChannel() {
+        ChannelHandler channelHandler = securitySSLNettyTransport.getServerChannelInitializer("test-server-channel");
 
-    ChannelHandler channelHandler = securitySSLNettyTransport.getClientChannelInitializer(discoveryNode);
-    
-    assertThat(channelHandler, is(notNullValue()));
-    assertThat(channelHandler, instanceOf(SSLClientChannelInitializer.class));
-  }
+        assertThat(channelHandler, is(notNullValue()));
+        assertThat(channelHandler, instanceOf(SSLServerChannelInitializer.class));
+    }
+
+    @Test
+    public void getClientChannelInitializer_shouldReturnValidClientChannel() {
+
+        ChannelHandler channelHandler = securitySSLNettyTransport.getClientChannelInitializer(discoveryNode);
+
+        assertThat(channelHandler, is(notNullValue()));
+        assertThat(channelHandler, instanceOf(SSLClientChannelInitializer.class));
+    }
 
 }

@@ -45,14 +45,14 @@ public class SelfRefreshingKeySetTest {
 
         Assert.assertThrows(AuthenticatorUnavailableException.class, () -> selfRefreshingKeySet.getKey(null));
 
-	}
+    }
 
-	@Test
-	public void getKey_withInvalidDataShouldReturnBadCredentialException()
-			throws AuthenticatorUnavailableException, BadCredentialsException {
+    @Test
+    public void getKey_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
-		Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
-	}
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
+    }
 
     @Test
     public void getKeyAfterRefresh_withKidShouldReturnKey()
@@ -66,9 +66,9 @@ public class SelfRefreshingKeySetTest {
     public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes()
             throws InterruptedException, ExecutionException {
 
-		int numThreads = 10;
-		ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-		Object lock = new Object();
+        int numThreads = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        Object lock = new Object();
 
         for (int i = 0; i < numThreads; i++) {
             executor.submit(() -> {
@@ -82,8 +82,8 @@ public class SelfRefreshingKeySetTest {
             });
         }
 
-		executor.shutdown();
-		executor.awaitTermination(1, TimeUnit.SECONDS);
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.SECONDS);
 
         Assert.assertEquals(10, selfRefreshingKeySet.getRefreshCount());
         Assert.assertEquals(0, selfRefreshingKeySet.getQueuedGetCount());
@@ -97,9 +97,9 @@ public class SelfRefreshingKeySetTest {
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh(null));
     }
 
-	@Test
-	public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredentialException()
-			throws AuthenticatorUnavailableException, BadCredentialsException {
+    @Test
+    public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh("kid/X"));
     }
