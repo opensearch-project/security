@@ -650,6 +650,7 @@ dependencies {
     testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:search-pipeline-common:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'

@@ -41,6 +41,7 @@ import org.opensearch.percolator.PercolatorModulePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.search.aggregations.matrix.MatrixAggregationModulePlugin;
+import org.opensearch.search.pipeline.common.SearchPipelineCommonModulePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.transport.Netty4ModulePlugin;
 
@@ -79,7 +80,14 @@ public enum ClusterConfiguration {
     CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
 
     // 3 nodes (1m, 2d) plus additional UserInjectorPlugin
-    USERINJECTOR(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true));
+    USERINJECTOR(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),
+
+    // 3 nodes with search pipelines module installed
+    SEARCH_PIPELINE(
+        new NodeSettings(true, false, List.of(SearchPipelineCommonModulePlugin.class)),
+        new NodeSettings(false, true, List.of(SearchPipelineCommonModulePlugin.class)),
+        new NodeSettings(false, true, List.of(SearchPipelineCommonModulePlugin.class))
+    );
 
     private List<NodeSettings> nodeSettings = new LinkedList<>();
 
