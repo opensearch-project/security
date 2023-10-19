@@ -374,7 +374,14 @@ public class SearchOperationTest {
             USER_ALLOWED_TO_CREATE_INDEX
         )
         .nodeSettings(
-            Map.of(FeatureFlags.TELEMETRY_SETTING.getKey(), true, TelemetrySettings.TRACER_FEATURE_ENABLED_SETTING.getKey(), true)
+            Map.of(
+                FeatureFlags.TELEMETRY_SETTING.getKey(),
+                true,
+                TelemetrySettings.TRACER_FEATURE_ENABLED_SETTING.getKey(),
+                true,
+                TelemetrySettings.METRICS_FEATURE_ENABLED_SETTING,
+                true
+            )
         )
         .audit(
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
