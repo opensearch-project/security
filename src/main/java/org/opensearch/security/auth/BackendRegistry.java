@@ -617,6 +617,9 @@ public class BackendRegistry {
             // loop over all http/rest auth domains
             for (final AuthDomain authDomain : restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
+                if (!authDomain.getHttpAuthenticator().supportsImpersonation()) {
+                    continue;
+                }
                 final User impersonatedUser = checkExistsAndAuthz(
                     restImpersonationCache,
                     new User(impersonatedUserHeader),

@@ -49,6 +49,11 @@ public class ClusterInfoHolder implements ClusterStateListener {
     private volatile DiscoveryNodes nodes = null;
     private volatile Boolean isLocalNodeElectedClusterManager = null;
     private volatile boolean initialized;
+    private final String clusterName;
+
+    public ClusterInfoHolder(String clusterName) {
+        this.clusterName = clusterName;
+    }
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
@@ -120,5 +125,9 @@ public class ClusterInfoHolder implements ClusterStateListener {
             }
         }
         return false;
+    }
+
+    public String getClusterName() {
+        return this.clusterName;
     }
 }

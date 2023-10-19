@@ -38,6 +38,7 @@ import com.google.common.collect.Multimap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthorizationBackend;
@@ -103,6 +104,8 @@ public abstract class DynamicConfigModel {
     public abstract List<ClientBlockRegistry<InetAddress>> getIpClientBlockRegistries();
 
     public abstract Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries();
+
+    public abstract Settings getDynamicOnBehalfOfSettings();
 
     protected final Map<String, String> authImplMap = new HashMap<>();
 
