@@ -379,7 +379,7 @@ public class SearchOperationTest {
                 true,
                 TelemetrySettings.TRACER_FEATURE_ENABLED_SETTING.getKey(),
                 true,
-                TelemetrySettings.METRICS_FEATURE_ENABLED_SETTING,
+                TelemetrySettings.METRICS_FEATURE_ENABLED_SETTING.getKey(),
                 true
             )
         )
