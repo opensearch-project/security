@@ -86,7 +86,6 @@ import org.opensearch.client.indices.ResizeResponse;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexTemplateMetadata;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -95,7 +94,6 @@ import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.repositories.RepositoryMissingException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.telemetry.TelemetrySettings;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuditFilters;
@@ -372,16 +370,6 @@ public class SearchOperationTest {
             UPDATE_DELETE_USER,
             USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES,
             USER_ALLOWED_TO_CREATE_INDEX
-        )
-        .nodeSettings(
-            Map.of(
-                FeatureFlags.TELEMETRY_SETTING.getKey(),
-                true,
-                TelemetrySettings.TRACER_FEATURE_ENABLED_SETTING.getKey(),
-                true,
-                TelemetrySettings.METRICS_FEATURE_ENABLED_SETTING.getKey(),
-                true
-            )
         )
         .audit(
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
