@@ -37,7 +37,11 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
 import static org.hamcrest.core.IsNull.notNullValue;
 
 import static org.junit.Assert.assertEquals;
