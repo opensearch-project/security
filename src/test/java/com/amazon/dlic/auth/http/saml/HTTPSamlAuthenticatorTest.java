@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.http.saml;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -33,6 +34,7 @@ import javax.net.ssl.KeyManagerFactory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.BaseEncoding;
 import com.nimbusds.jwt.SignedJWT;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -105,6 +107,10 @@ public class HTTPSamlAuthenticatorTest {
     private static X509Certificate spSigningCertificate;
     private static PrivateKey spSigningPrivateKey;
 
+    final static String signingKey =
+        "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
+    final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
+
     @Before
     public void setUp() throws Exception {
         mockSamlIdpServer = new MockSamlIdpServer();
@@ -133,7 +139,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
             .put("roles_key", "roles")
             .put("jwt.key.kty", "oct")
-            .put("jwt.key.k", "abc")
+            .put("jwt.key.k", signingKeyB64Encoded)
             .put("path.home", ".")
             .build();
 
@@ -171,7 +177,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -225,7 +231,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -268,7 +274,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -314,7 +320,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -359,7 +365,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -404,7 +410,7 @@ public class HTTPSamlAuthenticatorTest {
                 "sp.signature_private_key",
                 String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
             )
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -446,7 +452,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_CONTENT, metadataBody)
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -504,7 +510,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -639,7 +645,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .put("roles_seperator", ",")
@@ -682,7 +688,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -732,7 +738,7 @@ public class HTTPSamlAuthenticatorTest {
         Settings settings = settingsBuilder.put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", signingKeyB64Encoded)
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
@@ -837,7 +843,7 @@ public class HTTPSamlAuthenticatorTest {
                 .put("idp.min_refresh_delay", 100)
                 .put("kibana_url", "http://wherever")
                 .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("exchange_key", "abc")
+                .put("exchange_key", signingKeyB64Encoded)
                 .put("roles_key", "roles")
                 .put("path.home", ".")
                 .build();
