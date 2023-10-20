@@ -66,7 +66,7 @@ public class JwtVendor {
         if (timeProvider.isPresent()) {
             this.timeProvider = timeProvider.get();
         } else {
-            this.timeProvider = () -> System.currentTimeMillis() / 1000;
+            this.timeProvider = () -> System.currentTimeMillis();
         }
     }
 
