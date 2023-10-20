@@ -73,9 +73,12 @@ jobs:
       - "integration-tests"
     runs-on: ubuntu-latest
     steps:
-      - uses: alehechka/download-tartifact@v2
+      - uses: actions/download-artifact@v3
         with:
           path: downloaded-artifacts
+
+      - name: Extract downloaded artifacts
+        run: tar -xvf downloaded-artifacts/*
 
       - name: Display structure of downloaded files
         run: ls -R
