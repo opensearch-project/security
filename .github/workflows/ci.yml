@@ -60,7 +60,7 @@ jobs:
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-    - uses: actions/upload-artifact@v3
+    - uses: alehechka/upload-tartifact@v2
       if: always()
       with:
         name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/download-artifact@v3
+      - uses: alehechka/download-tartifact@v2
 
       - name: Display structure of downloaded files
         run: ls -R
@@ -118,7 +118,7 @@ jobs:
         arguments: |
           integrationTest -Dbuild.snapshot=false
 
-    - uses: actions/upload-artifact@v3
+    - uses: alehechka/upload-tartifact@v2
       if: always()
       with:
         name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
