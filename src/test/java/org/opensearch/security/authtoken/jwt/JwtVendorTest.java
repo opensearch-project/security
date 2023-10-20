@@ -11,11 +11,13 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
+import com.google.common.io.BaseEncoding;
 import com.nimbusds.jwt.SignedJWT;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.Level;
@@ -26,6 +28,7 @@ import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
@@ -33,10 +36,8 @@ import org.opensearch.security.support.ConfigConstants;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsNull.notNullValue;
 
 import static org.junit.Assert.assertEquals;
@@ -51,14 +52,25 @@ public class JwtVendorTest {
     private Appender mockAppender;
     private ArgumentCaptor<LogEvent> logEventCaptor;
 
+    final static String signingKey =
+        "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
+    final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
+
     @Test
     public void testCreateJwkFromSettings() {
-        final Settings settings = Settings.builder().put("signing_key", "abc123").build();
+        final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
 
         final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
         Assert.assertEquals("HS512", jwk.v1().getAlgorithm().getName());
         Assert.assertEquals("sig", jwk.v1().getKeyUse().toString());
-        Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith("abc123"));
+        Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
+    }
+
+    @Test
+    public void testCreateJwkFromSettingsWithWeakKey() {
+        Settings settings = Settings.builder().put("signing_key", "abcd1234").build();
+        Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
@@ -83,7 +95,7 @@ public class JwtVendorTest {
         // 2023 oct 4, 10:00:00 AM GMT
         LongSupplier currentTime = () -> 1696413600000L;
         String claimsEncryptionKey = "1234567890123456";
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
         final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
@@ -116,7 +128,7 @@ public class JwtVendorTest {
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder()
-            .put("signing_key", "abc123")
+            .put("signing_key", signingKeyB64Encoded)
             .put("encryption_key", claimsEncryptionKey)
             // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
@@ -147,7 +159,7 @@ public class JwtVendorTest {
         List<String> roles = List.of("admin");
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         Throwable exception = assertThrows(RuntimeException.class, () -> {
@@ -170,7 +182,7 @@ public class JwtVendorTest {
         int expirySeconds = 900;
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
 
         Throwable exception = assertThrows(RuntimeException.class, () -> {
@@ -194,7 +206,7 @@ public class JwtVendorTest {
         List<String> roles = List.of("admin");
         Integer expirySeconds = 300;
 
-        Settings settings = Settings.builder().put("signing_key", "abc123").build();
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
 
         Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
@@ -214,7 +226,7 @@ public class JwtVendorTest {
         List<String> roles = null;
         Integer expirySeconds = 300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         Throwable exception = assertThrows(RuntimeException.class, () -> {
@@ -240,7 +252,7 @@ public class JwtVendorTest {
         // Mock settings and other required dependencies
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
         String issuer = "cluster_0";
         String subject = "admin";

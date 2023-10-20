@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -50,7 +51,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.opensearch.core.common.Strings;
-import org.opensearch.security.authtoken.jwt.JwtVendor;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -247,11 +247,11 @@ class AuthTokenProcessorHandler {
     }
 
     JWK createJwkFromSettings(Settings settings, Settings jwtSettings) throws Exception {
-        String exchangeKey = JwtVendor.padSecret(settings.get("exchange_key"), JWSAlgorithm.HS512);
+        String exchangeKey = settings.get("exchange_key");
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
 
-            return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
+            return new OctetSequenceKey.Builder(Base64.getDecoder().decode(exchangeKey)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
         } else {
@@ -262,9 +262,10 @@ class AuthTokenProcessorHandler {
                     "Settings for key exchange missing. Please specify at least the option exchange_key with a shared secret."
                 );
             }
-            // try to create OCTET, HMAC key
-            String k = JwtVendor.padSecret(jwkSettings.get("k"), JWSAlgorithm.HS512);
-            return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
+
+            String k = jwkSettings.get("k");
+
+            return new OctetSequenceKey.Builder(Base64.getDecoder().decode(k)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
         }
