@@ -26,6 +26,7 @@
 
 package org.opensearch.security.ccstest;
 
+import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
@@ -1458,9 +1459,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                RolesInjectorIntegTest.RolesInjectorPlugin.class
+                Lists.newArrayList(
+                    Netty4ModulePlugin.class,
+                    OpenSearchSecurityPlugin.class,
+                    RolesInjectorIntegTest.RolesInjectorPlugin.class
+                )
             ).start()
         ) {
             waitForInit(node.client());
@@ -1485,9 +1488,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                RolesInjectorIntegTest.RolesInjectorPlugin.class
+                Lists.newArrayList(
+                    Netty4ModulePlugin.class,
+                    OpenSearchSecurityPlugin.class,
+                    RolesInjectorIntegTest.RolesInjectorPlugin.class
+                )
             ).start()
         ) {
             waitForInit(node.client());

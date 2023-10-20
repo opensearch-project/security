@@ -30,6 +30,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
+import com.google.common.collect.Lists;
 import io.netty.util.internal.PlatformDependent;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
@@ -746,7 +747,10 @@ public class SSLTest extends SingleClusterTest {
             .put(settings)// -----
             .build();
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                .start()
+        ) {
             ClusterHealthResponse res = node.client()
                 .admin()
                 .cluster()
@@ -991,7 +995,10 @@ public class SSLTest extends SingleClusterTest {
             .put(settings)// -----
             .build();
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                .start()
+        ) {
             ClusterHealthResponse res = node.client()
                 .admin()
                 .cluster()
