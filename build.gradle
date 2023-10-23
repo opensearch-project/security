@@ -620,7 +620,7 @@ dependencies {
 
     implementation "com.nulab-inc:zxcvbn:1.8.2"
 
-    runtimeOnly 'com.google.guava:failureaccess:1.0.1'
+    runtimeOnly 'com.google.guava:failureaccess:1.0.2'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
