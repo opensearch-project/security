@@ -18,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -61,6 +60,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 import org.opensearch.security.filter.SecurityResponse;
 
@@ -247,11 +247,11 @@ class AuthTokenProcessorHandler {
     }
 
     JWK createJwkFromSettings(Settings settings, Settings jwtSettings) throws Exception {
-        String exchangeKey = settings.get("exchange_key");
+        String exchangeKey = JwtVendor.padSecret(settings.get("exchange_key"), JWSAlgorithm.HS512);
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
 
-            return new OctetSequenceKey.Builder(Base64.getDecoder().decode(exchangeKey)).algorithm(JWSAlgorithm.HS512)
+            return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
         } else {
@@ -263,9 +263,9 @@ class AuthTokenProcessorHandler {
                 );
             }
 
-            String k = jwkSettings.get("k");
+            String k = JwtVendor.padSecret(jwkSettings.get("k"), JWSAlgorithm.HS512);
 
-            return new OctetSequenceKey.Builder(Base64.getDecoder().decode(k)).algorithm(JWSAlgorithm.HS512)
+            return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
         }

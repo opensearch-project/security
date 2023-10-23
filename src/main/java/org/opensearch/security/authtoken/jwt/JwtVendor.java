@@ -19,6 +19,8 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.util.ByteUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,6 +39,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 
+import static com.nimbusds.jose.crypto.MACSigner.getMinRequiredSecretLength;
 import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 public class JwtVendor {
@@ -99,6 +102,18 @@ public class JwtVendor {
         } catch (KeyLengthException kle) {
             throw new OpenSearchException(kle);
         }
+    }
+
+    public static String padSecret(String signingKey, JWSAlgorithm jwsAlgorithm) {
+        int requiredSecretLength;
+        try {
+            requiredSecretLength = getMinRequiredSecretLength(jwsAlgorithm);
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+        int requiredByteLength = ByteUtils.byteLength(requiredSecretLength);
+        // padding the signing key with 0s to meet the minimum required length
+        return StringUtils.rightPad(signingKey, requiredByteLength, "\0");
     }
 
     public String createJwt(
