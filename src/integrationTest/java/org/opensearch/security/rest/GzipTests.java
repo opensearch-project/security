@@ -16,7 +16,6 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,8 +24,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -37,7 +34,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
@@ -47,7 +43,6 @@ import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 
 import static org.junit.Assert.fail;
-import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -55,38 +50,13 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class GzipTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
-    private static final TestSecurityConfig.User LIMITED_USER = new TestSecurityConfig.User("limited_user").roles(
-        new TestSecurityConfig.Role("limited-role").clusterPermissions(
-            "indices:data/read/mget",
-            "indices:data/read/msearch",
-            "indices:data/read/scroll",
-            "cluster:monitor/state",
-            "cluster:monitor/health"
-        )
-            .indexPermissions(
-                "indices:data/read/search",
-                "indices:data/read/mget*",
-                "indices:monitor/settings/get",
-                "indices:monitor/stats"
-            )
-            .on("*")
-    );
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN_USER, LIMITED_USER)
+        .users(ADMIN_USER)
         .anonymousAuth(false)
-        .doNotFailOnForbidden(true)
         .build();
-
-    @BeforeClass
-    public static void createTestData() {
-        try (Client client = cluster.getInternalNodeClient()) {
-            client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index("document").source(Map.of("foo", "bar", "abc", "xyz")))
-                .actionGet();
-        }
-    }
 
     @Test
     public void testAuthenticatedGzippedRequests() {
