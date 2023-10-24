@@ -30,7 +30,7 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
+import com.nimbusds.jose.jwk.JWKSet;
 import org.apache.http.HttpConnectionFactory;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
@@ -62,13 +62,13 @@ class MockIpdServer implements Closeable {
     private final int port;
     private final String uri;
     private final boolean ssl;
-    private final JsonWebKeys jwks;
+    private final JWKSet jwks;
 
-    MockIpdServer(JsonWebKeys jwks) throws IOException {
+    MockIpdServer(JWKSet jwks) throws IOException {
         this(jwks, SocketUtils.findAvailableTcpPort(), false);
     }
 
-    MockIpdServer(JsonWebKeys jwks, int port, boolean ssl) throws IOException {
+    MockIpdServer(JWKSet jwks, int port, boolean ssl) throws IOException {
         this.port = port;
         this.uri = (ssl ? "https" : "http") + "://localhost:" + port;
         this.ssl = ssl;
@@ -166,9 +166,10 @@ class MockIpdServer implements Closeable {
         );
     }
 
-    protected void handleKeysRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
+    protected void handleKeysRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
+        IOException {
         response.setStatusCode(200);
-        response.setEntity(new StringEntity(toJson(jwks)));
+        response.setEntity(new StringEntity(jwks.toString(false)));
     }
 
     private SSLContext createSSLContext() {
