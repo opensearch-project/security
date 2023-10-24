@@ -83,4 +83,13 @@ public interface HTTPAuthenticator {
      * @return Optional response if is not supported/necessary, response object otherwise.
      */
     Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials credentials);
+
+    /**
+     * Indicates whether this authenticator supports user impersonation.
+     *
+     * @return true if impersonation is supported, false otherwise.
+     */
+    default boolean supportsImpersonation() {
+        return true;
+    }
 }
