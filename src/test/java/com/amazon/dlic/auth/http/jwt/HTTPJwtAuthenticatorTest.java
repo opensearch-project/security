@@ -118,7 +118,6 @@ public class HTTPJwtAuthenticatorTest {
      * claims.setNotBefore(854113533);
      * claim.setExpiration(4853843133)
      * claims.setSubject("horst");
-     * claims.setProperty("roles", null);
      * claims.setProperty("saml_nif", "u");
      * claims.setProperty("saml_si", "MOCKSAML_3");
      * JwsSignatureProvider jwsSignatureProvider = new HmacJwsSignatureProvider(base64EncodedSecret, SignatureAlgorithm.HS512);
