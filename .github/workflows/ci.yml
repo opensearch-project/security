@@ -82,7 +82,10 @@ jobs:
         working-directory: downloaded-artifacts
 
       - name: Extract downloaded artifacts
-        run: tar -xvf ./*/artifact.tar
+        run: |
+          for archive in ./*/artifact.tar; do
+            (cd "$(dirname "$archive")" && tar -xvf artifact.tar)
+          done
         working-directory: downloaded-artifacts
 
       - name: Display structure of downloaded files
