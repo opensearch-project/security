@@ -66,7 +66,9 @@ public class GzipTests {
         final int parallelism = 10;
         final int totalNumberOfRequests = 100;
 
-        final byte[] compressedRequestBody = createCompressedRequestBody();
+        final String rawBody = "{ \"query\": { \"match\": { \"foo\": \"bar\" }}}";
+
+        final byte[] compressedRequestBody = createCompressedRequestBody(rawBody);
         try (final TestRestClient client = cluster.getRestClient(ADMIN_USER, new BasicHeader("Content-Encoding", "gzip"))) {
 
             final ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism);
@@ -104,7 +106,9 @@ public class GzipTests {
         final int parallelism = 10;
         final int totalNumberOfRequests = 100;
 
-        final byte[] compressedRequestBody = createCompressedRequestBody();
+        final String rawBody = "{ \"query\": { \"match\": { \"foo\": \"bar\" }}}";
+
+        final byte[] compressedRequestBody = createCompressedRequestBody(rawBody);
         try (TestRestClient client = cluster.getRestClient(new BasicHeader("Content-Encoding", "gzip"))) {
 
             final ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism);
@@ -140,9 +144,7 @@ public class GzipTests {
         }
     }
 
-    private byte[] createCompressedRequestBody() {
-        final String rawBody = "{ \"query\": { \"match\": { \"foo\": \"bar\" }}}";
-
+    static byte[] createCompressedRequestBody(String rawBody) {
         try (
             final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)
