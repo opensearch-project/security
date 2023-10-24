@@ -81,7 +81,17 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 jwtParserBuilder = jwtParserBuilder.require("iss", requireIssuer);
             }
 
-            jwtParser = jwtParserBuilder.build();
+            final SecurityManager sm = System.getSecurityManager();
+            if (sm != null) {
+                sm.checkPermission(new SpecialPermission());
+            }
+            JwtParserBuilder finalJwtParserBuilder = jwtParserBuilder;
+            jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
+                @Override
+                public JwtParser run() {
+                    return finalJwtParserBuilder.build();
+                }
+            });
         }
     }
 
