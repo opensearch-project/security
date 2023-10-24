@@ -113,7 +113,20 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testParsePrevGeneratedJwt() {
-        String jwsToken =
+
+        /* Here is the original encoded jwt token generation with cxf library:
+         *
+         * String base64EncodedSecret = Base64.getEncoder().encodeToString(someSecret.getBytes(StandardCharsets.UTF_8));
+         * JwtClaims claims = new JwtClaims();
+         * claims.setIssuedAt(100L);
+         * claims.setIssuer("cluster_0");
+         * JwsSignatureProvider jwsSignatureProvider = new HmacJwsSignatureProvider(base64EncodedSecret, SignatureAlgorithm.HS512);
+         * JweEncryptionProvider jweEncryptionProvider = null;
+         * JoseJwtProducer producer = new JoseJwtProducer();
+         * String encodedCxfJwt = producer.processJwt(jwtToken, jweEncryptionProvider, jwsSignatureProvider);
+         */
+
+        String encodedCxfJwt =
             "eyJhbGciOiJIUzUxMiJ9.eyJuYmYiOjE2OTgxNTE4ODQsImV4cCI6MTY5ODE1NTQ4NCwic3ViIjoiaG9yc3QiLCJzYW1sX25pZiI6InUiLCJzYW1sX3NpIjoiTU9DS1NBTUxfMyIsInJvbGVzIjpudWxsfQ.E_MP8wVVu1P7_RATtjhnCvPft2gQTFdY5NlmRTCsrjdDXTUfxkswktWCB_k_wXDKCuNukNlSL2FSo3EV2VtUEQ";
         Settings settings = Settings.builder()
             .put(
@@ -128,7 +141,7 @@ public class HTTPJwtAuthenticatorTest {
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Bearer " + jwsToken);
+        headers.put("Authorization", "Bearer " + encodedCxfJwt);
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
