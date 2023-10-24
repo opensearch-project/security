@@ -13,7 +13,6 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.concurrent.TimeUnit;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import joptsimple.internal.Strings;

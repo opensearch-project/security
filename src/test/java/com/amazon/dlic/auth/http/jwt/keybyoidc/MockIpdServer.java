@@ -52,8 +52,6 @@ import org.apache.http.protocol.HttpRequestHandler;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.CxfTestTools.toJson;
-
 class MockIpdServer implements Closeable {
     final static String CTX_DISCOVER = "/discover";
     final static String CTX_KEYS = "/api/oauth/keys";
@@ -166,8 +164,7 @@ class MockIpdServer implements Closeable {
         );
     }
 
-    protected void handleKeysRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
-        IOException {
+    protected void handleKeysRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
         response.setStatusCode(200);
         response.setEntity(new StringEntity(jwks.toString(false)));
     }
