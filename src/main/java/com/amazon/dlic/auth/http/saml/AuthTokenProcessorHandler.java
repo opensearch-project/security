@@ -266,7 +266,7 @@ class AuthTokenProcessorHandler {
         String exchangeKey = settings.get("exchange_key");
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
-            exchangeKey = padSecret(new String(Base64.getDecoder().decode(exchangeKey)), JWSAlgorithm.HS512);
+            exchangeKey = padSecret(new String(Base64.getDecoder().decode(exchangeKey), StandardCharsets.UTF_8), JWSAlgorithm.HS512);
 
             return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
