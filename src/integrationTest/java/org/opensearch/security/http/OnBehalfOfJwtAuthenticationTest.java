@@ -173,15 +173,16 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotIncludeRolesFromHostMappingInOBOToken() {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
 
-        Claims claims = Jwts.parserBuilder().setSigningKey(Base64.getDecoder().decode(signingKey)).build().parseClaimsJws(oboToken).getBody();
+        Claims claims = Jwts.parserBuilder()
+            .setSigningKey(Base64.getDecoder().decode(signingKey))
+            .build()
+            .parseClaimsJws(oboToken)
+            .getBody();
 
         Object er = claims.get("er");
         EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
         String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
-        Set<String> roles = Arrays.stream(rolesClaim.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toSet());
+        Set<String> roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
 
         assertThat(roles, equalTo(HOST_MAPPING_OBO_USER.getRoleNames()));
         assertThat(roles, not(contains("host_mapping_role")));
@@ -204,7 +205,7 @@ public class OnBehalfOfJwtAuthenticationTest {
             TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_PARAMETERS);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
             assertThat(response.getTextFromJsonBody("/error"), equalTo("Unrecognized parameter: invalidParameter"));
-       }
+        }
     }
 
     private String generateOboToken(String username, String password) {

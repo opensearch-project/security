@@ -13,7 +13,6 @@ package org.opensearch.security.action.onbehalf;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -180,7 +179,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         DESCRIPTION("description"),
         SERVICE("service");
 
-        final String paramName; 
+        final String paramName;
+
         private InputParameters(final String paramName) {
             this.paramName = paramName;
         }
