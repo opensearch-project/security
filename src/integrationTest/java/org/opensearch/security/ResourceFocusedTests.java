@@ -175,7 +175,7 @@ public class ResourceFocusedTests {
         }
     }
 
-    public static enum RequestBodySize {
+    static enum RequestBodySize {
         Small(1),
         Medium(1_000),
         XLarge(1_000_000);

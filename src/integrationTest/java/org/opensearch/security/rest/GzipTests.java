@@ -32,12 +32,12 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
@@ -65,34 +65,34 @@ public class GzipTests {
         final int totalNumberOfRequests = 100;
 
         final byte[] compressedRequestBody = createCompressedRequestBody();
-        List<TestRestClient> restClients = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            restClients.add(cluster.getRestClient(ADMIN_USER, new BasicHeader("Content-Encoding", "gzip")));
-        }
-        Random rand = new Random();
-        final HttpPost post = new HttpPost(restClients.get(0).getHttpServerUri() + requestPath);
-        post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
+        try (final TestRestClient client = cluster.getRestClient(ADMIN_USER, new BasicHeader("Content-Encoding", "gzip"))) {
+            final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
+            post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
 
-        final ForkJoinPool forkJoinPool = new ForkJoinPool(parrallelism);
+            final ForkJoinPool forkJoinPool = new ForkJoinPool(parrallelism);
 
-        final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
-            .boxed()
-            .map(i -> CompletableFuture.runAsync(() -> {
-                TestRestClient.HttpResponse response = restClients.get(rand.nextInt(10)).executeRequest(post);
-                assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-                assertThat(response.getBody(), not(containsString("json_parse_exception")));
-            }, forkJoinPool))
-            .collect(Collectors.toList());
+            final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
+                .boxed()
+                .map(i -> CompletableFuture.runAsync(() -> {
+                    TestRestClient.HttpResponse response = client.executeRequest(post);
+                    assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+                    assertThat(response.getBody(), not(containsString("json_parse_exception")));
+                }, forkJoinPool))
+                .collect(Collectors.toList());
 
-        final CompletableFuture<Void> allOfThem = CompletableFuture.allOf(waitingOn.toArray(new CompletableFuture[0]));
+            final CompletableFuture<Void> allOfThem = CompletableFuture.allOf(waitingOn.toArray(new CompletableFuture[0]));
 
-        try {
             allOfThem.get(30, TimeUnit.SECONDS);
-        } catch (final Exception e) {
+        } catch (ExecutionException e) {
             Throwable rootCause = e.getCause();
             if (rootCause instanceof AssertionError) {
                 fail("Received exception: " + e.getMessage());
             }
+            // ignore
+        } catch (InterruptedException e) {
+            // ignore
+        } catch (TimeoutException e) {
+            // ignore
         }
     }
 
