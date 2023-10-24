@@ -115,8 +115,12 @@ public class HTTPJwtAuthenticatorTest {
      *
      * String base64EncodedSecret = Base64.getEncoder().encodeToString(someSecret.getBytes(StandardCharsets.UTF_8));
      * JwtClaims claims = new JwtClaims();
-     * claims.setIssuedAt(100L);
-     * claims.setIssuer("cluster_0");
+     * claims.setNotBefore(854113533);
+     * claim.setExpiration(4853843133)
+     * claims.setSubject("horst");
+     * claims.setProperty("roles", null);
+     * claims.setProperty("saml_nif", "u");
+     * claims.setProperty("saml_si", "MOCKSAML_3");
      * JwsSignatureProvider jwsSignatureProvider = new HmacJwsSignatureProvider(base64EncodedSecret, SignatureAlgorithm.HS512);
      * JweEncryptionProvider jweEncryptionProvider = null;
      * JoseJwtProducer producer = new JoseJwtProducer();
@@ -125,7 +129,7 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testParsePrevGeneratedJwt() {
         String encodedCxfJwt =
-            "eyJhbGciOiJIUzUxMiJ9.eyJuYmYiOjE2OTgxNTE4ODQsImV4cCI6MTY5ODE1NTQ4NCwic3ViIjoiaG9yc3QiLCJzYW1sX25pZiI6InUiLCJzYW1sX3NpIjoiTU9DS1NBTUxfMyIsInJvbGVzIjpudWxsfQ.E_MP8wVVu1P7_RATtjhnCvPft2gQTFdY5NlmRTCsrjdDXTUfxkswktWCB_k_wXDKCuNukNlSL2FSo3EV2VtUEQ";
+            "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJob3JzdCIsIm5iZiI6ODU0MTEzNTMzLCJzYW1sX25pZiI6InUiLCJleHAiOjQ4NTM4NDMxMzMsInNhbWxfc2kiOiJNT0NLU0FNTF8zIn0.MQ9lidZ774EPHjDNB43O4d2Q1SGtG4-lASoLXDPdtE0qJGvZOYDUCN3h2HxBIX5NmwXQQvjJ2PUzN6f6FgY0Iw";
         Settings settings = Settings.builder()
             .put(
                 "signing_key",
@@ -150,8 +154,8 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertEquals("horst", credentials.getUsername());
         Assert.assertEquals(0, credentials.getBackendRoles().size());
         Assert.assertEquals(5, credentials.getAttributes().size());
-        Assert.assertEquals("1698151884", credentials.getAttributes().get("attr.jwt.nbf"));
-        Assert.assertEquals("1698155484", credentials.getAttributes().get("attr.jwt.exp"));
+        Assert.assertEquals("854113533", credentials.getAttributes().get("attr.jwt.nbf"));
+        Assert.assertEquals("4853843133", credentials.getAttributes().get("attr.jwt.exp"));
     }
 
     @Test
