@@ -58,18 +58,12 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private ConfigModel configModel;
 
-    private DynamicConfigModel dcm;
-
     public static final Integer OBO_DEFAULT_EXPIRY_SECONDS = 5 * 60;
     public static final Integer OBO_MAX_EXPIRY_SECONDS = 10 * 60;
 
     public static final String DEFAULT_SERVICE = "self-issued";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-
-    private static final Set<String> RECOGNIZED_PARAMS = new HashSet<>(
-        Arrays.asList("durationSeconds", "description", "roleSecurityMode", "service")
-    );
 
     @Subscribe
     public void onConfigModelChanged(ConfigModel configModel) {
@@ -78,8 +72,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-        this.dcm = dcm;
-
         Settings settings = dcm.getDynamicOnBehalfOfSettings();
 
         Boolean enabled = Boolean.parseBoolean(settings.get("enabled"));
@@ -146,10 +138,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
                     final String description = (String) requestBody.getOrDefault("description", null);
 
-                    final Boolean roleSecurityMode = Optional.ofNullable(requestBody.get("roleSecurityMode"))
-                        .map(value -> (Boolean) value)
-                        .orElse(true); // Default to false if null
-
                     final String service = (String) requestBody.getOrDefault("service", DEFAULT_SERVICE);
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     Set<String> mappedRoles = mapRoles(user);
@@ -164,7 +152,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         tokenDuration,
                         mappedRoles.stream().collect(Collectors.toList()),
                         user.getRoles().stream().collect(Collectors.toList()),
-                        roleSecurityMode
+                        false
                     );
                     builder.field("authenticationToken", token);
                     builder.field("durationSeconds", tokenDuration);
@@ -187,15 +175,27 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         };
     }
 
+    private enum InputParameters {
+        DURATION("durationSeconds"),
+        DESCRIPTION("description"),
+        SERVICE("service");
+
+        final String paramName; 
+        private InputParameters(final String paramName) {
+            this.paramName = paramName;
+        }
+    }
+
     private Set<String> mapRoles(final User user) {
         return this.configModel.mapSecurityRoles(user, null);
     }
 
     private void validateRequestParameters(Map<String, Object> requestBody) throws IllegalArgumentException {
         for (String key : requestBody.keySet()) {
-            if (!RECOGNIZED_PARAMS.contains(key)) {
-                throw new IllegalArgumentException("Unrecognized parameter: " + key);
-            }
+            Arrays.stream(InputParameters.values())
+                .filter(param -> param.paramName.equalsIgnoreCase(key))
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Unrecognized parameter: " + key));
         }
     }
 

@@ -97,10 +97,10 @@ public class SecurityConfigurationTests {
             assertThat(httpResponse.getStatusCode(), equalTo(201));
         }
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            client.assertCorrectCredentials(USER_ADMIN.getName());
+            client.confirmCorrectCredentials(USER_ADMIN.getName());
         }
         try (TestRestClient client = cluster.getRestClient(ADDITIONAL_USER_1, ADDITIONAL_PASSWORD_1)) {
-            client.assertCorrectCredentials(ADDITIONAL_USER_1);
+            client.confirmCorrectCredentials(ADDITIONAL_USER_1);
         }
     }
 
@@ -160,10 +160,10 @@ public class SecurityConfigurationTests {
             httpResponse.assertStatusCode(201);
         }
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            client.assertCorrectCredentials(USER_ADMIN.getName());
+            client.confirmCorrectCredentials(USER_ADMIN.getName());
         }
         try (TestRestClient client = cluster.getRestClient(ADDITIONAL_USER_2, ADDITIONAL_PASSWORD_2)) {
-            client.assertCorrectCredentials(ADDITIONAL_USER_2);
+            client.confirmCorrectCredentials(ADDITIONAL_USER_2);
         }
     }
 
@@ -189,10 +189,10 @@ public class SecurityConfigurationTests {
         cluster.updateUserConfiguration(users);
 
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            client.assertCorrectCredentials(USER_ADMIN.getName());
+            client.confirmCorrectCredentials(USER_ADMIN.getName());
         }
         try (TestRestClient client = cluster.getRestClient(newUser)) {
-            client.assertCorrectCredentials(newUser.getName());
+            client.confirmCorrectCredentials(newUser.getName());
         }
     }
 

@@ -134,7 +134,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithRoleSecurityMode() throws Exception {
+    public void testCreateJwtWithBackendRolesIncluded() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
