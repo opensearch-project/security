@@ -280,7 +280,7 @@ class AuthTokenProcessorHandler {
                 );
             }
 
-            String k = padSecret(new String(Base64.getDecoder().decode(jwkSettings.get("k"))), JWSAlgorithm.HS512);
+            String k = padSecret(new String(Base64.getDecoder().decode(jwkSettings.get("k")), StandardCharsets.UTF_8), JWSAlgorithm.HS512);
 
             return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
