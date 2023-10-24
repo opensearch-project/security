@@ -32,14 +32,12 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
-import com.nimbusds.jose.util.ByteUtils;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.onelogin.saml2.authn.SamlResponse;
@@ -66,7 +64,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 import org.opensearch.security.filter.SecurityResponse;
 
-import static com.nimbusds.jose.crypto.MACSigner.getMinRequiredSecretLength;
+import static org.opensearch.security.authtoken.jwt.KeyPaddingUtil.padSecret;
 
 class AuthTokenProcessorHandler {
     private static final Logger log = LogManager.getLogger(AuthTokenProcessorHandler.class);
@@ -119,18 +117,6 @@ class AuthTokenProcessorHandler {
         this.initJwtExpirySettings(settings);
         this.signingKey = this.createJwkFromSettings(settings, jwtSettings);
         this.jwsHeader = this.createJwsHeaderFromSettings();
-    }
-
-    public static String padSecret(String signingKey, JWSAlgorithm jwsAlgorithm) {
-        int requiredSecretLength;
-        try {
-            requiredSecretLength = getMinRequiredSecretLength(jwsAlgorithm);
-        } catch (JOSEException e) {
-            throw new RuntimeException(e);
-        }
-        int requiredByteLength = ByteUtils.byteLength(requiredSecretLength);
-        // padding the signing key with 0s to meet the minimum required length
-        return StringUtils.rightPad(signingKey, requiredByteLength, "\0");
     }
 
     @SuppressWarnings("removal")
