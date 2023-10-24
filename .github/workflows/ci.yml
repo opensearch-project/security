@@ -82,7 +82,8 @@ jobs:
         working-directory: downloaded-artifacts
 
       - name: Extract downloaded artifacts
-        run: tar -xvf downloaded-artifacts/*/artifact.tar
+        run: tar -xvf ./*/artifact.tar
+        working-directory: downloaded-artifacts
 
       - name: Display structure of downloaded files
         run: ls -R
