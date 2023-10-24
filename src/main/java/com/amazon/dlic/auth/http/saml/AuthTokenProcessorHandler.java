@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -31,12 +32,14 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
+import com.nimbusds.jose.util.ByteUtils;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.onelogin.saml2.authn.SamlResponse;
@@ -60,9 +63,10 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 import org.opensearch.security.filter.SecurityResponse;
+
+import static com.nimbusds.jose.crypto.MACSigner.getMinRequiredSecretLength;
 
 class AuthTokenProcessorHandler {
     private static final Logger log = LogManager.getLogger(AuthTokenProcessorHandler.class);
@@ -115,6 +119,18 @@ class AuthTokenProcessorHandler {
         this.initJwtExpirySettings(settings);
         this.signingKey = this.createJwkFromSettings(settings, jwtSettings);
         this.jwsHeader = this.createJwsHeaderFromSettings();
+    }
+
+    public static String padSecret(String signingKey, JWSAlgorithm jwsAlgorithm) {
+        int requiredSecretLength;
+        try {
+            requiredSecretLength = getMinRequiredSecretLength(jwsAlgorithm);
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+        int requiredByteLength = ByteUtils.byteLength(requiredSecretLength);
+        // padding the signing key with 0s to meet the minimum required length
+        return StringUtils.rightPad(signingKey, requiredByteLength, "\0");
     }
 
     @SuppressWarnings("removal")
@@ -247,9 +263,10 @@ class AuthTokenProcessorHandler {
     }
 
     JWK createJwkFromSettings(Settings settings, Settings jwtSettings) throws Exception {
-        String exchangeKey = JwtVendor.padSecret(settings.get("exchange_key"), JWSAlgorithm.HS512);
+        String exchangeKey = settings.get("exchange_key");
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
+            exchangeKey = padSecret(new String(Base64.getDecoder().decode(exchangeKey)), JWSAlgorithm.HS512);
 
             return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
@@ -263,7 +280,7 @@ class AuthTokenProcessorHandler {
                 );
             }
 
-            String k = JwtVendor.padSecret(jwkSettings.get("k"), JWSAlgorithm.HS512);
+            String k = padSecret(new String(Base64.getDecoder().decode(jwkSettings.get("k"))), JWSAlgorithm.HS512);
 
             return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)

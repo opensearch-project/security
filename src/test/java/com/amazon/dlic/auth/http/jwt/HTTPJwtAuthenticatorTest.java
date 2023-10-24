@@ -112,6 +112,65 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
+    public void testParsePrevGeneratedJwt() {
+        String jwsToken =
+            "eyJhbGciOiJIUzUxMiJ9.eyJuYmYiOjE2OTgxNTE4ODQsImV4cCI6MTY5ODE1NTQ4NCwic3ViIjoiaG9yc3QiLCJzYW1sX25pZiI6InUiLCJzYW1sX3NpIjoiTU9DS1NBTUxfMyIsInJvbGVzIjpudWxsfQ.E_MP8wVVu1P7_RATtjhnCvPft2gQTFdY5NlmRTCsrjdDXTUfxkswktWCB_k_wXDKCuNukNlSL2FSo3EV2VtUEQ";
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                BaseEncoding.base64()
+                    .encode(
+                        "thisIsSecretThatIsVeryHardToCrackItsPracticallyImpossibleToDothisIsSecretThatIsVeryHardToCrackItsPracticallyImpossibleToDo"
+                            .getBytes(StandardCharsets.UTF_8)
+                    )
+            )
+            .build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(credentials);
+        Assert.assertEquals("horst", credentials.getUsername());
+        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        Assert.assertEquals(5, credentials.getAttributes().size());
+        Assert.assertEquals("1698151884", credentials.getAttributes().get("attr.jwt.nbf"));
+        Assert.assertEquals("1698155484", credentials.getAttributes().get("attr.jwt.exp"));
+    }
+
+    @Test
+    public void testFailToParsePrevGeneratedJwt() {
+        String jwsToken =
+            "eyJhbGciOiJIUzUxMiJ9.eyJuYmYiOjE2OTgxNTE4ODQsImV4cCI6MTY5ODE1NTQ4NCwic3ViIjoiaG9yc3QiLCJzYW1sX25pZiI6InUiLCJzYW1sX3NpIjoiTU9DS1NBTUxfMyIsInJvbGVzIjpudWxsfQ.E_MP8wVVu1P7_RATtjhnCvPft2gQTFdY5NlmRTCsrjdDXTUfxkswktWCB_k_wXDKCuNukNlSL2FSo3EV2VtUEQ";
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                BaseEncoding.base64()
+                    .encode(
+                        "additionalDatathisIsSecretThatIsVeryHardToCrackItsPracticallyImpossibleToDothisIsSecretThatIsVeryHardToCrackItsPracticallyImpossibleToDo"
+                            .getBytes(StandardCharsets.UTF_8)
+                    )
+            )
+            .build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
     public void testBearer() throws Exception {
 
         Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
