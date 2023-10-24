@@ -136,5 +136,5 @@ graph TD
   B -->|No| E[Do a basic security assessment]
   C -->|Yes| D[Create a security review]
   C -->|No| E[Do a basic security assessment]
-  E -->|Security issues found?| D[Create a security review]
+  E -->|Security concern found?| D[Create a security review]
 ```
