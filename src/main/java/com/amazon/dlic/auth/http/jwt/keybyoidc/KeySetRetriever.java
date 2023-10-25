@@ -12,10 +12,10 @@
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.io.IOException;
+import java.text.ParseException;
 
+import com.nimbusds.jose.jwk.JWKSet;
 import joptsimple.internal.Strings;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
-import org.apache.cxf.rs.security.jose.jwk.JwkUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.cache.HttpCacheContext;
@@ -68,7 +68,7 @@ public class KeySetRetriever implements KeySetProvider {
         configureCache(useCacheForOidConnectEndpoint);
     }
 
-    public JsonWebKeys get() throws AuthenticatorUnavailableException {
+    public JWKSet get() throws AuthenticatorUnavailableException {
         String uri = getJwksUri();
 
         try (CloseableHttpClient httpClient = createHttpClient(null)) {
@@ -95,10 +95,11 @@ public class KeySetRetriever implements KeySetProvider {
                 if (httpEntity == null) {
                     throw new AuthenticatorUnavailableException("Error while getting " + uri + ": Empty response entity");
                 }
-
-                JsonWebKeys keySet = JwkUtils.readJwkSet(httpEntity.getContent());
+                JWKSet keySet = JWKSet.load(httpEntity.getContent());
 
                 return keySet;
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
             }
         } catch (IOException e) {
             throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + e, e);
