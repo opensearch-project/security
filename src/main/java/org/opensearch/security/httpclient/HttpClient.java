@@ -25,6 +25,8 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.HostnameVerifier;
@@ -177,10 +179,28 @@ public class HttpClient implements Closeable {
         this.supportedCipherSuites = supportedCipherSuites;
         this.keystoreAlias = keystoreAlias;
 
+        /* 
+        * pattern helps to get the port number after last colon.
+        * \d matches a  digit equivalent to [0-9].
+        */
+        Pattern pattern = Pattern.compile(":(\\d+)");
+        
         HttpHost[] hosts = Arrays.stream(servers)
-            .map(server -> new HttpHost(ssl ? "https" : "http", server))
+            .map(server -> {
+                int lastIndexColon = server.lastIndexOf(':');
+                String url = server.substring(0, lastIndexColon);
+                String uri = server.substring(lastIndexColon);
+                Matcher matcher = pattern.matcher(uri);
+                if (matcher.find()) {
+                    int port = Integer.parseInt(matcher.group(1));
+                    return new HttpHost(ssl ? "https" : "http", url, port);
+                } else {
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull) // Filter out null values
             .collect(Collectors.toList())
-            .toArray(new HttpHost[0]);
+            .toArray(HttpHost[]::new);
 
         RestClientBuilder builder = RestClient.builder(hosts);
         // builder.setMaxRetryTimeoutMillis(10000);
