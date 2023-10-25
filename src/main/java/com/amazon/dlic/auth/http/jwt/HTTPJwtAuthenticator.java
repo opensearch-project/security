@@ -74,19 +74,23 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         requireAudience = settings.get("required_audience");
         requireIssuer = settings.get("required_issuer");
 
-        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
+        final JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
         if (jwtParserBuilder == null) {
             jwtParser = null;
         } else {
             if (requireAudience != null) {
-                jwtParserBuilder = jwtParserBuilder.require("aud", requireAudience);
+                jwtParserBuilder.requireAudience(requireAudience);
             }
 
             if (requireIssuer != null) {
-                jwtParserBuilder = jwtParserBuilder.require("iss", requireIssuer);
+                jwtParserBuilder.requireIssuer(requireIssuer);
             }
 
-            jwtParser = jwtParserBuilder.build();
+            final SecurityManager sm = System.getSecurityManager();
+            if (sm != null) {
+                sm.checkPermission(new SpecialPermission());
+            }
+            jwtParser = AccessController.doPrivileged((PrivilegedAction<JwtParser>) jwtParserBuilder::build);
         }
     }
 
