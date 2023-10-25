@@ -47,7 +47,6 @@ import org.opensearch.transport.SharedGroupFactory;
 public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
     private final ChannelInboundHandlerAdapter headerVerifier;
-    private final ChannelInboundHandlerAdapter conditionalDecompressor;
 
     public SecurityNonSslHttpServerTransport(
         final Settings settings,
@@ -73,7 +72,6 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
             tracer
         );
         headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
-        conditionalDecompressor = new Netty4ConditionalDecompressor();
     }
 
     @Override
@@ -100,6 +98,6 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
 
     @Override
     protected ChannelInboundHandlerAdapter createDecompressor() {
-        return conditionalDecompressor;
+        return new Netty4ConditionalDecompressor();
     }
 }
