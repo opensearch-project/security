@@ -83,34 +83,40 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         rh.keystore = keystore;
     }
 
-    protected boolean validateMsgs(final Collection<AuditMessage> msgs) {
-        boolean valid = true;
+    protected void validateMsgs(final Collection<AuditMessage> msgs) throws Exception {
         for (AuditMessage msg : msgs) {
-            valid = validateMsg(msg) && valid;
+            try {
+                validateMsg(msg);
+            } catch (Exception e) {
+                throw new Exception(msg + " errored because of following validateMsg error: " + e.getMessage());
+            }
         }
-        return valid;
+
     }
 
-    protected boolean validateMsg(final AuditMessage msg) {
-        return validateJson(msg.toJson()) && validateJson(msg.toPrettyString());
-    }
-
-    protected boolean validateJson(final String json) {
-
-        if (json == null || json.isEmpty()) {
-            return false;
+    protected void validateMsg(final AuditMessage msg) throws Exception {
+        try {
+            validateJson(msg.toJson());
+        } catch (Exception e) {
+            throw new Exception("msg.toJson() errored with message: " + e.getMessage());
         }
 
         try {
-            JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
-
-            if (node.get("audit_request_body") != null) {
-                DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
-            }
-
-            return true;
+            validateJson(msg.toPrettyString());
         } catch (Exception e) {
-            return false;
+            throw new Exception("msg.toPrettyString() errored with message: " + e.getMessage());
+        }
+    }
+
+    protected void validateJson(final String json) throws Exceshption {
+        if (json == null || json.isEmpty()) {
+            throw new Exception("json is either null or empty");
+        }
+
+        JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
+
+        if (node.get("audit_request_body") != null) {
+            DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
         }
     }
 
