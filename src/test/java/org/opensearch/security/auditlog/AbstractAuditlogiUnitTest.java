@@ -40,13 +40,14 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     protected final void setup(Settings settings) throws Exception {
         final Settings.Builder auditConfigSettings = Settings.builder();
         final Settings.Builder defaultNodeSettings = Settings.builder();
-        // Separate the cluster defaults from audit settings that will be applied after the cluster is up
+        // Separate the cluster defaults from audit settings that will be applied after
+        // the cluster is up
         settings.keySet().forEach(key -> {
             final boolean moveToAuditConfig = Arrays.stream(AuditConfig.Filter.FilterEntries.values())
-                .anyMatch(
-                    entry -> entry.getKeyWithNamespace().equalsIgnoreCase(key) || entry.getLegacyKeyWithNamespace().equalsIgnoreCase(key)
-                )
-                || DEPRECATED_KEYS.stream().anyMatch(key::equalsIgnoreCase);
+                    .anyMatch(
+                            entry -> entry.getKeyWithNamespace().equalsIgnoreCase(key)
+                                    || entry.getLegacyKeyWithNamespace().equalsIgnoreCase(key))
+                    || DEPRECATED_KEYS.stream().anyMatch(key::equalsIgnoreCase);
             if (moveToAuditConfig) {
                 auditConfigSettings.put(key, settings.get(key));
             } else {
@@ -64,8 +65,10 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         Settings.Builder builder = Settings.builder();
 
         builder.put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"));
+                .put("plugins.security.ssl.http.keystore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"));
 
         return builder.put(additionalSettings).build();
     }
@@ -108,7 +111,7 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         }
     }
 
-    protected void validateJson(final String json) throws Exceshption {
+    protected void validateJson(final String json) throws Exception {
         if (json == null || json.isEmpty()) {
             throw new Exception("json is either null or empty");
         }
