@@ -30,6 +30,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.apache.hc.core5.http.HttpHeaders;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -132,9 +134,10 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
-        Assert.assertEquals(2, credentials.getAttributes().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getBackendRoles().size(), is(0));
+        assertThat(credentials.getAttributes().size(), is(2));
+
     }
 
     @Test
@@ -180,8 +183,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(2, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getBackendRoles().size(), is(2));
+
     }
 
     @Test
@@ -193,8 +197,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getBackendRoles().size(), is(0));
+
     }
 
     @Test
@@ -206,8 +211,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(1, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getBackendRoles().size(), is(1));
+
         Assert.assertTrue(credentials.getBackendRoles().contains("123"));
     }
 
@@ -220,8 +226,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getBackendRoles().size(), is(0));
+
     }
 
     @Test
@@ -244,8 +251,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Dr. Who", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Dr. Who"));
+        assertThat(credentials.getBackendRoles().size(), is(0));
+
     }
 
     @Test
@@ -257,8 +265,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("false", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("false"));
+        assertThat(credentials.getBackendRoles().size(), is(0));
+
     }
 
     @Test
@@ -279,8 +288,9 @@ public class HTTPJwtAuthenticatorTest {
         AuthCredentials credentials = jwtAuth.extractCredentials(req.asSecurityRequest(), null);
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
-        Assert.assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getBackendRoles().size(), is(0));
+
     }
 
     @Test
@@ -332,8 +342,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(creds);
-        Assert.assertEquals("Leonard McCoy", creds.getUsername());
-        Assert.assertEquals(0, creds.getBackendRoles().size());
+        assertThat(creds.getUsername(), is("Leonard McCoy"));
+        assertThat(creds.getBackendRoles().size(), is(0));
+
     }
 
     @Test
@@ -358,8 +369,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(creds);
-        Assert.assertEquals("Leonard McCoy", creds.getUsername());
-        Assert.assertEquals(0, creds.getBackendRoles().size());
+        assertThat(creds.getUsername(), is("Leonard McCoy"));
+        assertThat(creds.getBackendRoles().size(), is(0));
+
     }
 
     @Test
@@ -373,8 +385,9 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("John Doe", credentials.getUsername());
-        Assert.assertEquals(3, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("John Doe"));
+        assertThat(credentials.getBackendRoles().size(), is(3));
+
         Assert.assertTrue(credentials.getBackendRoles().contains("a"));
         Assert.assertTrue(credentials.getBackendRoles().contains("b"));
         Assert.assertTrue(credentials.getBackendRoles().contains("3rd"));
@@ -389,7 +402,8 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+
     }
 
     @Test
@@ -412,7 +426,7 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNotNull(credentials);
-        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
     }
 
     @Test
