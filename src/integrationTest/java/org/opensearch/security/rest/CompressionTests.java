@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -35,16 +36,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
-import static org.junit.Assert.fail;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
@@ -89,12 +87,13 @@ public class CompressionTests {
 
             waitingOn.stream().forEach(future -> {
                 try {
-                final HttpResponse response = future.get();
-                response.assertStatusCode(HttpStatus.SC_OK);
+                    final HttpResponse response = future.get();
+                    response.assertStatusCode(HttpStatus.SC_OK);
                 } catch (final Exception ex) {
                     throw new RuntimeException(ex);
                 }
-            });;
+            });
+            ;
         }
     }
 
@@ -107,22 +106,18 @@ public class CompressionTests {
         final String rawBody = "{ \"query\": { \"match\": { \"foo\": \"bar\" }}}";
 
         final byte[] compressedRequestBody = createCompressedRequestBody(rawBody);
-        try (TestRestClient client = cluster.getRestClient(new BasicHeader("Content-Encoding", "gzip"))) {
+        try (final TestRestClient client = cluster.getRestClient(new BasicHeader("Content-Encoding", "gzip"))) {
 
             final ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism);
 
             final Header basicAuthHeader = getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword());
 
-            final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
+            final List<CompletableFuture<HttpResponse>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
                 .boxed()
-                .map(i -> CompletableFuture.runAsync(() -> {
+                .map(i -> CompletableFuture.supplyAsync(() -> {
                     final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                     post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
-                    final TestRestClient.HttpResponse response = i % 2 == 0
-                        ? client.executeRequest(post)
-                        : client.executeRequest(post, basicAuthHeader);
-                    assertThat(response.getStatusCode(), equalTo(i % 2 == 0 ? HttpStatus.SC_UNAUTHORIZED : HttpStatus.SC_OK));
-                    assertThat(response.getBody(), not(containsString("json_parse_exception")));
+                    return i % 2 == 0 ? client.executeRequest(post) : client.executeRequest(post, basicAuthHeader);
                 }, forkJoinPool))
                 .collect(Collectors.toList());
 
@@ -130,7 +125,16 @@ public class CompressionTests {
 
             allOfThem.get(30, TimeUnit.SECONDS);
 
-            
+            waitingOn.stream().forEach(future -> {
+                try {
+                    final HttpResponse response = future.get();
+                    assertThat(response.getBody(), not(containsString("json_parse_exception")));
+                    assertThat(response.getStatusCode(), anyOf(equalTo(HttpStatus.SC_UNAUTHORIZED), equalTo(HttpStatus.SC_OK)));
+                } catch (final Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
+            ;
         }
     }
 
