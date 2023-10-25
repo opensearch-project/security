@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
- package org.opensearch.security.configuration;
+package org.opensearch.security.configuration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;

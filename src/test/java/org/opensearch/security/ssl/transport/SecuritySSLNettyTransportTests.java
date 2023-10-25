@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
- package org.opensearch.security.ssl.transport;
+package org.opensearch.security.ssl.transport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
