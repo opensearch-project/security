@@ -42,6 +42,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.junit.Assert.fail;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -50,7 +51,7 @@ import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class GzipTests {
+public class CompressionTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     @ClassRule
@@ -61,7 +62,7 @@ public class GzipTests {
         .build();
 
     @Test
-    public void testAuthenticatedGzippedRequests() {
+    public void testAuthenticatedGzippedRequests() throws Exception {
         final String requestPath = "/*/_search";
         final int parallelism = 10;
         final int totalNumberOfRequests = 100;
@@ -73,35 +74,32 @@ public class GzipTests {
 
             final ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism);
 
-            final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
+            final List<CompletableFuture<HttpResponse>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
                 .boxed()
-                .map(i -> CompletableFuture.runAsync(() -> {
+                .map(i -> CompletableFuture.supplyAsync(() -> {
                     final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                     post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
-                    TestRestClient.HttpResponse response = client.executeRequest(post);
-                    assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-                    assertThat(response.getBody(), not(containsString("json_parse_exception")));
+                    return client.executeRequest(post);
                 }, forkJoinPool))
                 .collect(Collectors.toList());
 
             final CompletableFuture<Void> allOfThem = CompletableFuture.allOf(waitingOn.toArray(new CompletableFuture[0]));
 
             allOfThem.get(30, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            Throwable rootCause = e.getCause();
-            if (rootCause instanceof AssertionError) {
-                fail("Received exception: " + e.getMessage());
-            }
-            // ignore
-        } catch (InterruptedException e) {
-            // ignore
-        } catch (TimeoutException e) {
-            // ignore
+
+            waitingOn.stream().forEach(future -> {
+                try {
+                final HttpResponse response = future.get();
+                response.assertStatusCode(HttpStatus.SC_OK);
+                } catch (final Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            });;
         }
     }
 
     @Test
-    public void testMixOfAuthenticatedAndUnauthenticatedGzippedRequests() {
+    public void testMixOfAuthenticatedAndUnauthenticatedGzippedRequests() throws Exception {
         final String requestPath = "/*/_search";
         final int parallelism = 10;
         final int totalNumberOfRequests = 100;
@@ -113,14 +111,14 @@ public class GzipTests {
 
             final ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism);
 
-            Header basicAuthHeader = getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword());
+            final Header basicAuthHeader = getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword());
 
             final List<CompletableFuture<Void>> waitingOn = IntStream.rangeClosed(1, totalNumberOfRequests)
                 .boxed()
                 .map(i -> CompletableFuture.runAsync(() -> {
                     final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                     post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
-                    TestRestClient.HttpResponse response = i % 2 == 0
+                    final TestRestClient.HttpResponse response = i % 2 == 0
                         ? client.executeRequest(post)
                         : client.executeRequest(post, basicAuthHeader);
                     assertThat(response.getStatusCode(), equalTo(i % 2 == 0 ? HttpStatus.SC_UNAUTHORIZED : HttpStatus.SC_OK));
@@ -131,20 +129,12 @@ public class GzipTests {
             final CompletableFuture<Void> allOfThem = CompletableFuture.allOf(waitingOn.toArray(new CompletableFuture[0]));
 
             allOfThem.get(30, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            Throwable rootCause = e.getCause();
-            if (rootCause instanceof AssertionError) {
-                fail("Received exception: " + e.getMessage());
-            }
-            // ignore
-        } catch (InterruptedException e) {
-            // ignore
-        } catch (TimeoutException e) {
-            // ignore
+
+            
         }
     }
 
-    static byte[] createCompressedRequestBody(String rawBody) {
+    static byte[] createCompressedRequestBody(final String rawBody) {
         try (
             final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)
