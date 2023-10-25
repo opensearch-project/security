@@ -20,13 +20,15 @@ plugins.security:
             'localhost:9201',
             'localhost:9202',
             'localhost:9202/opensearch',
-            '127.0.0.1',
             '127.0.0.1:9200',
             '127.0.0.1:9200/opensearch',
             'my-opensearch-cluster.company.com:9200',
             'my-opensearch-cluster.company.com:9200/opensearch',
             'https://my-opensearch-cluster.company.com:9200',
-            'https://my-opensearch-cluster.company.com:9200/opensearch']
+            'https://my-opensearch-cluster.company.com:9200/opensearch',
+            '[::1]:9200',
+            '[::1]:9200/opensearch',
+          ]
           index: auditlog
           username: auditloguser
           password: auditlogpassword
