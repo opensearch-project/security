@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -155,16 +154,6 @@ public class SecurityIndexAccessEvaluator {
     }
 
     /**
-     * Checks if user is a service account user
-     * @param user request which contains attribute of service account
-     * @return true if a match is found, false otherwise
-     */
-    public Boolean isServiceAccount(final User user) {
-        Map<String, String> userAttributesMap = user.getCustomAttributesMap();
-        return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
-    }
-
-    /**
      * Checks if request is for any system index
      * @param requestedResolved request which contains indices to be matched against system indices
      * @return true if a match is found, false otherwise
@@ -244,11 +233,14 @@ public class SecurityIndexAccessEvaluator {
     ) {
         // Perform access check is system index permissions are enabled
         boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
+        boolean serviceAccountUser = user.isServiceAccount();
 
         if (isSystemIndexPermissionEnabled) {
-            if (isServiceAccount(user) && !containsSystemIndex) {
+            if (serviceAccountUser && !containsSystemIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
-                log.info("{} not permitted for a service account {} on non system indices.", action, securityRoles);
+                if (log.isInfoEnabled()) {
+                    log.info("{} not permitted for a service account {} on non system indices.", action, securityRoles);
+                }
                 presponse.allowed = false;
                 presponse.markComplete();
                 return;

@@ -353,8 +353,9 @@ public class PrivilegesEvaluator {
             namedXContentRegistry
         );
 
+        final boolean serviceAccountUser = user.isServiceAccount();
         if (isClusterPerm(action0)) {
-            if (isServiceAccount(user)) {
+            if (serviceAccountUser) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
                 log.info("{} is a service account which as no access to cluster level permission of {}.", user, action0);
@@ -574,11 +575,6 @@ public class PrivilegesEvaluator {
         presponse.allowed = permGiven;
         return presponse;
 
-    }
-
-    public Boolean isServiceAccount(final User user) {
-        Map<String, String> userAttributesMap = user.getCustomAttributesMap();
-        return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
     }
 
     public Set<String> mapRoles(final User user, final TransportAddress caller) {
