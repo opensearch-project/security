@@ -23,11 +23,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -83,6 +84,7 @@ import org.opensearch.client.indices.PutIndexTemplateRequest;
 import org.opensearch.client.indices.PutMappingRequest;
 import org.opensearch.client.indices.ResizeRequest;
 import org.opensearch.client.indices.ResizeResponse;
+import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexTemplateMetadata;
 import org.opensearch.common.settings.Settings;
@@ -118,6 +120,7 @@ import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.Al
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.REMOVE_INDEX;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -335,22 +338,24 @@ public class SearchOperationTest {
     * indices with names prefixed by the {@link #INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX}
     */
     static final User USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES = new User("index-operation-tester").roles(
-        new Role("index-manager").indexPermissions(
-            "indices:admin/create",
-            "indices:admin/get",
-            "indices:admin/delete",
-            "indices:admin/close",
-            "indices:admin/close*",
-            "indices:admin/open",
-            "indices:admin/resize",
-            "indices:monitor/stats",
-            "indices:monitor/settings/get",
-            "indices:admin/settings/update",
-            "indices:admin/mapping/put",
-            "indices:admin/mappings/get",
-            "indices:admin/cache/clear",
-            "indices:admin/aliases"
-        ).on(INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("*"))
+        new Role("index-manager").clusterPermissions("cluster:monitor/health")
+            .indexPermissions(
+                "indices:admin/create",
+                "indices:admin/get",
+                "indices:admin/delete",
+                "indices:admin/close",
+                "indices:admin/close*",
+                "indices:admin/open",
+                "indices:admin/resize",
+                "indices:monitor/stats",
+                "indices:monitor/settings/get",
+                "indices:admin/settings/update",
+                "indices:admin/mapping/put",
+                "indices:admin/mappings/get",
+                "indices:admin/cache/clear",
+                "indices:admin/aliases"
+            )
+            .on(INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("*"))
     );
 
     private static User USER_ALLOWED_TO_CREATE_INDEX = new User("user-allowed-to-create-index").roles(
@@ -975,7 +980,6 @@ public class SearchOperationTest {
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));// sometimes 2 or 4
     }
 
-    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldIndexDocumentInBulkRequest_partiallyPositive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1030,7 +1034,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest").withIndex(SONG_INDEX_NAME));
     }
 
-    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldUpdateDocumentsInBulk_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1053,12 +1056,11 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
-        auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+        auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
         auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
 
     }
 
-    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldUpdateDocumentsInBulk_partiallyPositive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1143,7 +1145,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
     }
 
-    @Ignore("Audit log verification is shown to be flaky in this test")
     @Test
     public void shouldDeleteDocumentInBulk_partiallyPositive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1202,9 +1203,9 @@ public class SearchOperationTest {
 
     }
 
-    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_positive() throws IOException {
+        // todo add count of documents in index, occasional memory problems happen
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
             ReindexRequest reindexRequest = new ReindexRequest().setSourceIndices(SONG_INDEX_NAME).setDestIndex(WRITE_SONG_INDEX_NAME);
 
@@ -1228,7 +1229,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "ClearScrollRequest"));
     }
 
-    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_negativeSource() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
@@ -1243,7 +1243,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "SearchRequest"));
     }
 
-    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_negativeDestination() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
@@ -1262,7 +1261,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "ClearScrollRequest"));
     }
 
-    @Ignore("Seems like reindixing isn't completing before the test proceeds")
     @Test
     public void shouldReindexDocuments_negativeSourceAndDestination() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
@@ -1335,7 +1333,6 @@ public class SearchOperationTest {
         }
     }
 
-    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldCreateAlias_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
@@ -1353,7 +1350,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(2, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_READ_USER));
     }
 
-    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldCreateAlias_negative() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
@@ -1371,7 +1367,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
     }
 
-    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldDeleteAlias_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
@@ -1409,7 +1404,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
     }
 
-    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldCreateIndexTemplate_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1491,7 +1485,6 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "DeleteIndexTemplateRequest"));
     }
 
-    @Ignore("Create alias / delete alias isn't resolving in a timely manner for this test")
     @Test
     public void shouldUpdateTemplate_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1501,7 +1494,7 @@ public class SearchOperationTest {
             restHighLevelClient.indices().putTemplate(request, DEFAULT);
             assertThat(internalClient, clusterContainTemplate(MUSICAL_INDEX_TEMPLATE));
             request = new PutIndexTemplateRequest(MUSICAL_INDEX_TEMPLATE).patterns(List.of(TEMPLATE_INDEX_PREFIX))
-                .alias(new Alias(ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0003));
+                .alias(new Alias(ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0003));// TODO add healthcheck for template await
 
             var response = restHighLevelClient.indices().putTemplate(request, DEFAULT);
 
@@ -1510,7 +1503,8 @@ public class SearchOperationTest {
             String documentId = "000one";
             IndexRequest indexRequest = new IndexRequest(INDEX_NAME_SONG_TRANSCRIPTION_JAZZ).id(documentId)
                 .source(SONGS[0].asMap())
-                .setRefreshPolicy(IMMEDIATE);
+                .setRefreshPolicy(IMMEDIATE);// TODO maybe?? add healthcheck for index creation, might not be required because of IMMEDIATE
+                                             // flag
             restHighLevelClient.index(indexRequest, DEFAULT);
             assertThat(internalClient, clusterContainTemplate(MUSICAL_INDEX_TEMPLATE));
             assertThat(internalClient, clusterContainsDocument(ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0003, documentId));
@@ -1522,7 +1516,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutIndexTemplateRequest"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "IndexRequest"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
-        auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+        auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
         auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
         auditLogsRule.assertExactly(10, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
     }
@@ -1682,17 +1676,16 @@ public class SearchOperationTest {
             steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
             assertThat(internalClient, clusterContainSuccessSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName));
         }
-        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+        auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
         auditLogsRule.assertExactlyOne(
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
         );
-        auditLogsRule.assertAtLeast(
-            1,
+        auditLogsRule.assertExactlyOne(
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
         );
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
-        auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
+        auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
     }
 
     @Test
@@ -1778,7 +1771,6 @@ public class SearchOperationTest {
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
     }
 
-    @Ignore("Audit log entries verifcation isn't always consistant")
     @Test
     public void shouldRestoreSnapshot_positive() throws IOException {
         final String snapshotName = "restore-snapshot-positive";
@@ -1917,7 +1909,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
         auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
-        auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+        auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
         auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
@@ -2272,14 +2264,14 @@ public class SearchOperationTest {
     }
 
     @Test
-    @Ignore
-    // required permissions: "indices:admin/resize", "indices:monitor/stats
-    // todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
-    // Issue: https://github.com/opensearch-project/security/issues/2141
     public void shrinkIndex_positive() throws IOException {
         String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("shrink_index_positive_source");
-        Settings sourceIndexSettings = Settings.builder().put("index.blocks.write", true).put("index.number_of_shards", 2).build();
         String targetIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("shrink_index_positive_target");
+        Settings sourceIndexSettings = Settings.builder()
+            .put("index.number_of_replicas", 1)
+            .put("index.blocks.write", true)
+            .put("index.number_of_shards", 4)
+            .build();
         IndexOperationsHelper.createIndex(cluster, sourceIndexName, sourceIndexSettings);
 
         try (
@@ -2287,6 +2279,17 @@ public class SearchOperationTest {
                 USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES
             )
         ) {
+            ClusterHealthResponse healthResponse = restHighLevelClient.cluster()
+                .health(
+                    new ClusterHealthRequest(sourceIndexName).waitForNoRelocatingShards(true)
+                        .waitForActiveShards(4)
+                        .waitForNoInitializingShards(true)
+                        .waitForGreenStatus(),
+                    DEFAULT
+                );
+
+            assertThat(healthResponse.getStatus(), is(ClusterHealthStatus.GREEN));
+
             ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
             ResizeResponse response = restHighLevelClient.indices().shrink(resizeRequest, DEFAULT);
 
@@ -2329,7 +2332,6 @@ public class SearchOperationTest {
     }
 
     @Test
-    @Ignore
     // required permissions: "indices:admin/resize", "indices:monitor/stats
     // todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
     // Issue: https://github.com/opensearch-project/security/issues/2141
@@ -2349,6 +2351,10 @@ public class SearchOperationTest {
 
             assertThat(response, isSuccessfulResizeResponse(targetIndexName));
             assertThat(cluster, indexExists(targetIndexName));
+
+            // can't clone the same index twice, target already exists
+            ResizeRequest repeatResizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+            assertThatThrownBy(() -> restHighLevelClient.indices().clone(repeatResizeRequest, DEFAULT), statusException(BAD_REQUEST));
         }
     }
 
@@ -2386,7 +2392,6 @@ public class SearchOperationTest {
     }
 
     @Test
-    @Ignore
     // required permissions: "indices:admin/resize", "indices:monitor/stats
     // todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
     // Issue: https://github.com/opensearch-project/security/issues/2141
