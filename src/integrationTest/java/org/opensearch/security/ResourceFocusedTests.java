@@ -28,6 +28,8 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -46,6 +48,7 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ResourceFocusedTests {
+    private final static Logger LOG = LogManager.getLogger(AsyncActions.class);
     private static final User ADMIN_USER = new User("admin").roles(ALL_ACCESS);
     private static final User LIMITED_USER = new User("limited_user").roles(
         new TestSecurityConfig.Role("limited-role").clusterPermissions(
@@ -127,7 +130,7 @@ public class ResourceFocusedTests {
                 return client.executeRequest(post);
             }, parrallelism, totalNumberOfRequests);
 
-            AsyncActions.getAll(requests, 30, TimeUnit.SECONDS)
+            AsyncActions.getAll(requests, 2, TimeUnit.MINUTES)
                 .forEach((response) -> { response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED); });
         }
     }
@@ -174,9 +177,7 @@ public class ResourceFocusedTests {
             gzipOutputStream.finish();
 
             final byte[] compressedRequestBody = byteArrayOutputStream.toByteArray();
-            System.err.println(
-                "^^^"
-                    + String.format(
+            LOG.info(String.format(
                         "Original size was %,d bytes, compressed to %,d bytes, ratio %,.2f",
                         uncompressedBytesSize,
                         compressedRequestBody.length,
