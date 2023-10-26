@@ -19,8 +19,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,7 +35,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
         TimeUnit.MILLISECONDS,
         new LinkedBlockingQueue<Runnable>()
     );
-    private volatile JsonWebKeys jsonWebKeys = new JsonWebKeys();
+    private volatile JWKSet jsonWebKeys = new JWKSet();
     private boolean refreshInProgress = false;
     private long refreshCount = 0;
     private long queuedGetCount = 0;
@@ -51,7 +51,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
         this.keySetProvider = refreshFunction;
     }
 
-    public JsonWebKey getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
+    public JWK getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
         if (Strings.isNullOrEmpty(kid)) {
             return getKeyWithoutKeyId();
         } else {
@@ -59,8 +59,8 @@ public class SelfRefreshingKeySet implements KeyProvider {
         }
     }
 
-    public synchronized JsonWebKey getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
-        JsonWebKey result = getKeyAfterRefreshInternal(kid);
+    public synchronized JWK getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
+        JWK result = getKeyAfterRefreshInternal(kid);
 
         if (result != null) {
             return result;
@@ -71,7 +71,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
         }
     }
 
-    private synchronized JsonWebKey getKeyAfterRefreshInternal(String kid) throws AuthenticatorUnavailableException {
+    private synchronized JWK getKeyAfterRefreshInternal(String kid) throws AuthenticatorUnavailableException {
         if (refreshInProgress) {
             return waitForRefreshToFinish(kid);
         } else {
@@ -79,11 +79,11 @@ public class SelfRefreshingKeySet implements KeyProvider {
         }
     }
 
-    private JsonWebKey getKeyWithoutKeyId() throws AuthenticatorUnavailableException, BadCredentialsException {
-        List<JsonWebKey> keys = jsonWebKeys.getKeys();
+    private JWK getKeyWithoutKeyId() throws AuthenticatorUnavailableException, BadCredentialsException {
+        List<JWK> keys = jsonWebKeys.getKeys();
 
         if (keys == null || keys.size() == 0) {
-            JsonWebKey result = getKeyWithRefresh(null);
+            JWK result = getKeyWithRefresh(null);
 
             if (result != null) {
                 return result;
@@ -93,7 +93,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
         } else if (keys.size() == 1) {
             return keys.get(0);
         } else {
-            JsonWebKey result = getKeyWithRefresh(null);
+            JWK result = getKeyWithRefresh(null);
 
             if (result != null) {
                 return result;
@@ -103,8 +103,8 @@ public class SelfRefreshingKeySet implements KeyProvider {
         }
     }
 
-    private JsonWebKey getKeyWithKeyId(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
-        JsonWebKey result = jsonWebKeys.getKey(kid);
+    private JWK getKeyWithKeyId(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
+        JWK result = jsonWebKeys.getKeyByKeyId(kid);
 
         if (result != null) {
             return result;
@@ -119,11 +119,11 @@ public class SelfRefreshingKeySet implements KeyProvider {
         return result;
     }
 
-    private synchronized JsonWebKey getKeyWithRefresh(String kid) throws AuthenticatorUnavailableException {
+    private synchronized JWK getKeyWithRefresh(String kid) throws AuthenticatorUnavailableException {
 
         // Always re-check within synchronized to handle any races
 
-        JsonWebKey result = getKeySimple(kid);
+        JWK result = getKeySimple(kid);
 
         if (result != null) {
             return result;
@@ -132,9 +132,9 @@ public class SelfRefreshingKeySet implements KeyProvider {
         return getKeyAfterRefreshInternal(kid);
     }
 
-    private JsonWebKey getKeySimple(String kid) {
+    private JWK getKeySimple(String kid) {
         if (Strings.isNullOrEmpty(kid)) {
-            List<JsonWebKey> keys = jsonWebKeys.getKeys();
+            List<JWK> keys = jsonWebKeys.getKeys();
 
             if (keys != null && keys.size() == 1) {
                 return keys.get(0);
@@ -143,11 +143,11 @@ public class SelfRefreshingKeySet implements KeyProvider {
             }
 
         } else {
-            return jsonWebKeys.getKey(kid);
+            return jsonWebKeys.getKeyByKeyId(kid);
         }
     }
 
-    private synchronized JsonWebKey waitForRefreshToFinish(String kid) {
+    private synchronized JWK waitForRefreshToFinish(String kid) {
         queuedGetCount++;
         long currentRefreshCount = refreshCount;
 
@@ -160,7 +160,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
 
         // Just be optimistic and re-check the key
 
-        JsonWebKey result = getKeySimple(kid);
+        JWK result = getKeySimple(kid);
 
         if (result != null) {
             return result;
@@ -177,7 +177,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
         }
     }
 
-    private synchronized JsonWebKey performRefresh(String kid) {
+    private synchronized JWK performRefresh(String kid) {
         if (log.isDebugEnabled()) {
             log.debug("performRefresh({})", kid);
         }
@@ -209,7 +209,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
                 @Override
                 public void run() {
                     try {
-                        JsonWebKeys newKeys = keySetProvider.get();
+                        JWKSet newKeys = keySetProvider.get();
 
                         if (newKeys == null) {
                             throw new RuntimeException("Refresh function " + keySetProvider + " yielded null");
@@ -247,7 +247,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
                 log.debug(e.toString());
             }
 
-            JsonWebKey result = getKeySimple(kid);
+            JWK result = getKeySimple(kid);
 
             if (result != null) {
                 return result;
