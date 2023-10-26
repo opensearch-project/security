@@ -15,7 +15,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetResponse;
@@ -67,7 +68,7 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
 
     protected SearchResponse executeSearch(String indexName, String user, String password) throws Exception {
         HttpResponse response = rh.executeGetRequest("/" + indexName + "/_search?from=0&size=50&pretty", encodeBasicHeader(user, password));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         return SearchResponse.fromXContent(xcp);
@@ -89,7 +90,7 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
         }
 
         HttpResponse response = rh.executePostRequest("/_msearch?pretty", body.toString(), encodeBasicHeader(user, password));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         return MultiSearchResponse.fromXContext(xcp);
@@ -104,7 +105,7 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
         String body = "{ \"docs\": [" + String.join(",", indexAndIdJson) + "] }";
 
         HttpResponse response = rh.executePostRequest("/_mget?pretty", body, encodeBasicHeader(user, password));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         return MultiGetResponse.fromXContent(xcp);

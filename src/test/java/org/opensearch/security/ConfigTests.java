@@ -26,6 +26,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.xcontent.XContentType;
@@ -103,7 +105,7 @@ public class ConfigTests {
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
         if (jsonNode.get("_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
 
@@ -122,7 +124,7 @@ public class ConfigTests {
         int configVersion = 1;
 
         if (jsonNode.get("_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
         return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);

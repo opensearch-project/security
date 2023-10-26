@@ -27,7 +27,8 @@ import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class AuditTestUtils {
     public static void updateAuditConfig(final RestHelper rh, final Settings settings) throws Exception {
@@ -40,7 +41,7 @@ public class AuditTestUtils {
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
         RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/audit/config", payload);
-        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
     }

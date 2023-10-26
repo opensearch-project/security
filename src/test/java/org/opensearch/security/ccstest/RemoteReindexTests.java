@@ -30,6 +30,8 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -134,7 +136,7 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
             reindex,
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(ccs.getBody().contains("created\" : 1"));
     }
 }

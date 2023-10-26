@@ -14,6 +14,8 @@ package org.opensearch.security.auditlog.impl;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -55,7 +57,7 @@ public class AuditlogTest {
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", new ClusterHealthRequest(), null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
     }
 
     @Test
@@ -71,7 +73,7 @@ public class AuditlogTest {
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
     }
 
     @Test
@@ -87,7 +89,8 @@ public class AuditlogTest {
         TestAuditlogImpl.clear();
         al.logSSLException(null, new Exception("test rest"));
         al.logSSLException(null, new Exception("test rest"), null, null);
-        Assert.assertEquals(2, TestAuditlogImpl.messages.size());
+
+        assertThat(TestAuditlogImpl.messages.size(), is(2));
     }
 
     @Test

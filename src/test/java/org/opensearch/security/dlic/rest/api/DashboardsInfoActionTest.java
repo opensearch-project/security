@@ -12,8 +12,9 @@
 package org.opensearch.security.dlic.rest.api;
 
 import org.apache.hc.core5.http.HttpStatus;
-import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
@@ -43,7 +44,7 @@ public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
 }

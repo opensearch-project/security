@@ -27,8 +27,9 @@
 package org.opensearch.security;
 
 import org.apache.hc.core5.http.HttpStatus;
-import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
@@ -106,14 +107,15 @@ public class AggregationTests extends SingleClusterTest {
         }
 
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executePostRequest(
                 "_search?pretty",
                 "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
                 encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -125,14 +127,15 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executePostRequest(
                 "*/_search?pretty",
                 "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
                 encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -144,14 +147,15 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executePostRequest(
                 "_search?pretty",
                 "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
                 encodeBasicHeader("worf", "worf")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
         assertNotContains(res, "*mpty*");
@@ -163,13 +167,13 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*\"failed\" : 0*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
+        assertThat(
             rh.executePostRequest(
                 "_search?pretty",
                 "{\"size\":0,\"aggs\":{\"myindices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
                 encodeBasicHeader("worf", "worf")
-            ).getStatusCode()
+            ).getStatusCode(),
+            is(HttpStatus.SC_FORBIDDEN)
         );
 
     }

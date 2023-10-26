@@ -14,6 +14,8 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -38,11 +40,12 @@ public class Fls983Test extends AbstractDlsFlsTest {
 
         String doc = "{\"doc\" : {" + "\"x\" : \"y\"" + "}}";
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executePostRequest("/.kibana/_update/0?pretty", doc, encodeBasicHeader("human_resources_trainee", "password")))
-                .getStatusCode()
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("updated"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
     }

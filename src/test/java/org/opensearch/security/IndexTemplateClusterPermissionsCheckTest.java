@@ -12,9 +12,10 @@
 package org.opensearch.security;
 
 import org.apache.hc.core5.http.HttpStatus;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
@@ -42,8 +43,8 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest 
 
         // should fail, as user `ds3` doesn't have correct permissions
         HttpResponse response = rh.executePutRequest("/_index_template/sem1234", indexTemplateBody, encodeBasicHeader("ds4", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        Assert.assertEquals(expectedFailureResponse, response.findValueInJson("error.root_cause[0].reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
+        assertThat(response.findValueInJson("error.root_cause[0].reason"), is(expectedFailureResponse));
     }
 
     @Test
@@ -54,7 +55,7 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest 
             indexTemplateBody,
             encodeBasicHeader("sem-user", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -67,8 +68,8 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest 
             indexTemplateBody,
             encodeBasicHeader("sem-user2", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        Assert.assertEquals(expectedFailureResponse, response.findValueInJson("error.root_cause[0].reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
+        assertThat(response.findValueInJson("error.root_cause[0].reason"), is(expectedFailureResponse));
     }
 
 }

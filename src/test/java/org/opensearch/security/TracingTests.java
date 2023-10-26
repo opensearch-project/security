@@ -27,9 +27,10 @@
 package org.opensearch.security;
 
 import org.apache.hc.core5.http.HttpStatus;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
@@ -389,7 +390,8 @@ public class TracingTests extends SingleClusterTest {
         // end pause1
 
         // search
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        assertThat(rh.executeGetRequest("_search", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
+
         // search done
 
         // pause2
@@ -438,22 +440,24 @@ public class TracingTests extends SingleClusterTest {
 
         // search
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum")))
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
 
         int start = res.getBody().indexOf("_scroll_id") + 15;
         String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start + 1));
         // search scroll
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executePostRequest(
                 "/_search/scroll?pretty=true",
                 "{\"scroll_id\" : \"" + scrollid + "\"}",
                 encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         // search done
     }
 

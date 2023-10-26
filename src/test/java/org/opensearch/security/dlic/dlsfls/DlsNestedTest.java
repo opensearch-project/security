@@ -14,6 +14,8 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -84,16 +86,17 @@ public class DlsNestedTest extends AbstractDlsFlsTest {
             + "}";
 
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        assertThat(
+            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"my_nested_object\" : {"));
         Assert.assertTrue(res.getBody().contains("\"field\" : \"my_nested_object\","));
         Assert.assertTrue(res.getBody().contains("\"offset\" : 0"));
 
-        // Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin",
+        // assertThat((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", is(HttpStatus.SC_OK))
         // "admin"))).getStatusCode());
         // Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n \"relation"));
         // Assert.assertTrue(res.getBody().contains("\"value\" : 1510.0"));

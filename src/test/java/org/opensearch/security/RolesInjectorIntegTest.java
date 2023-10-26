@@ -22,6 +22,8 @@ import java.util.function.Supplier;
 
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -86,18 +88,18 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
     public void testRolesInject() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles.yml"), Settings.EMPTY);
 
-        Assert.assertEquals(
-            clusterInfo.numNodes,
+        assertThat(
             clusterHelper.nodeClient()
                 .admin()
                 .cluster()
                 .health(new ClusterHealthRequest().waitForGreenStatus())
                 .actionGet()
-                .getNumberOfNodes()
+                .getNumberOfNodes(),
+            is(clusterInfo.numNodes)
         );
-        Assert.assertEquals(
-            ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+        assertThat(
+            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus(),
+            is(ClusterHealthStatus.GREEN)
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)

@@ -38,12 +38,13 @@ public class DelegateTest {
         settingsBuilder.put("path.home", ".");
         AuditLogImpl auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, null, null, null);
         auditLog.close();
+        // import static org.hamcrest.MatcherAssert.assertThat;
+        // import static org.hamcrest.Matchers.is;
         // if (expectedClass != null) {
         // Assert.assertNotNull("delegate is null for type: "+type,auditLog.delegate);
-        // Assert.assertEquals(expectedClass, auditLog.delegate.getClass());
+        // assertThat(auditLog.delegate.getClass(), is(expectedClass));
         // } else {
         // Assert.assertNull(auditLog.delegate);
         // }
-
     }
 }

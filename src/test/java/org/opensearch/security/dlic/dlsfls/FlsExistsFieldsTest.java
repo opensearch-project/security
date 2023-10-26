@@ -14,6 +14,8 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -105,9 +107,9 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
             + "}";
 
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/data/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executePostRequest("/data/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("a-normal-0"));
@@ -116,9 +118,9 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
 
         // only see's - timestamp and host field
         // therefore non-existing does not exist so we expect c-missing2-0 to be returned
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/data/_search?pretty", query, encodeBasicHeader("fls_exists", "password"))).getStatusCode()
+        assertThat(
+            (res = rh.executePostRequest("/data/_search?pretty", query, encodeBasicHeader("fls_exists", "password"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("a-normal-0"));

@@ -14,6 +14,8 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -55,10 +57,11 @@ public class DlsScrollTest extends AbstractDlsFlsTest {
         setup();
 
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+
+        assertThat(
             (res = rh.executeGetRequest("/deals/_search?scroll=1m&pretty=true&size=5", encodeBasicHeader("dept_manager", "password")))
-                .getStatusCode()
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 101,"));
 
@@ -67,13 +70,13 @@ public class DlsScrollTest extends AbstractDlsFlsTest {
         while (true) {
             int start = res.getBody().indexOf("_scroll_id") + 15;
             String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start + 1));
-            Assert.assertEquals(
-                HttpStatus.SC_OK,
+            assertThat(
                 (res = rh.executePostRequest(
                     "/_search/scroll?pretty=true",
                     "{\"scroll\" : \"1m\", \"scroll_id\" : \"" + scrollid + "\"}",
                     encodeBasicHeader("dept_manager", "password")
-                )).getStatusCode()
+                )).getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
             Assert.assertTrue(res.getBody().contains("\"value\" : 101,"));
             Assert.assertFalse(res.getBody().contains("\"amount\" : 3"));
@@ -86,6 +89,6 @@ public class DlsScrollTest extends AbstractDlsFlsTest {
             }
         }
 
-        Assert.assertEquals(21, c);
+        assertThat(c, is(21));
     }
 }

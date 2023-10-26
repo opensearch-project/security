@@ -21,6 +21,8 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -37,13 +39,13 @@ public class TaskTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest(
                 "_tasks?group_by=parents&pretty",
                 encodeBasicHeader("nagilum", "nagilum"),
                 new BasicHeader(Task.X_OPAQUE_ID, "myOpaqueId12")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
         Assert.assertTrue(res.getBody().split("X-Opaque-Id").length > 2);
         Assert.assertTrue(!res.getBody().contains("failures"));

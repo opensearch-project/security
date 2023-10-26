@@ -37,6 +37,8 @@ import org.apache.hc.core5.http.HttpVersion;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
@@ -78,19 +80,19 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        Assert.assertEquals(
-            HttpStatus.SC_SERVICE_UNAVAILABLE,
-            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        assertThat(
+            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode(),
+            is(HttpStatus.SC_SERVICE_UNAVAILABLE)
         );
-        Assert.assertEquals(
-            HttpStatus.SC_SERVICE_UNAVAILABLE,
-            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        assertThat(
+            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode(),
+            is(HttpStatus.SC_SERVICE_UNAVAILABLE)
         );
 
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(
-            HttpStatus.SC_CREATED,
-            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        assertThat(
+            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode(),
+            is(HttpStatus.SC_CREATED)
         );
 
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_size_in_bytes\" : 0"));
@@ -112,13 +114,14 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        assertThat(
+            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode(),
+            is(HttpStatus.SC_UNAUTHORIZED)
         );
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+
+        assertThat(
+            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode(),
+            is(HttpStatus.SC_UNAUTHORIZED)
         );
 
     }
@@ -139,12 +142,12 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore.jks", "truststore.jks")) {
             Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
-            Assert.assertEquals(whoAmIRes.getStatusLine().getStatusCode(), 200);
+            assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
             // Should be using HTTP/2 by default
-            Assert.assertEquals(whoAmIRes.getStatusLine().getProtocolVersion(), HttpVersion.HTTP_2);
+            assertThat(HttpVersion.HTTP_2, is(whoAmIRes.getStatusLine().getProtocolVersion()));
             JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
             String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
-            Assert.assertEquals(whoAmIResponsePayload, "CN=spock,OU=client,O=client,L=Test,C=DE", whoAmIResNode.get("dn").asText());
+            assertThat(whoAmIResponsePayload, "CN=spock,OU=client,O=client,L=Test,C=DE", is(whoAmIResNode.get("dn").asText()));
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_admin").asBoolean());
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_node_certificate_request").asBoolean());
         }
@@ -173,12 +176,12 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             )
         ) {
             Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
-            Assert.assertEquals(whoAmIRes.getStatusLine().getStatusCode(), 200);
+            assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
             // The HTTP/1.1 is forced and should be used instead
-            Assert.assertEquals(whoAmIRes.getStatusLine().getProtocolVersion(), HttpVersion.HTTP_1_1);
+            assertThat(HttpVersion.HTTP_1_1, is(whoAmIRes.getStatusLine().getProtocolVersion()));
             JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
             String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
-            Assert.assertEquals(whoAmIResponsePayload, "CN=spock,OU=client,O=client,L=Test,C=DE", whoAmIResNode.get("dn").asText());
+            assertThat(whoAmIResponsePayload, "CN=spock,OU=client,O=client,L=Test,C=DE", is(whoAmIResNode.get("dn").asText()));
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_admin").asBoolean());
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_node_certificate_request").asBoolean());
         }
@@ -210,7 +213,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         }
 
         try (Client tc = getClient()) {
-            Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(clusterInfo.numNodes));
             tc.index(
                 new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .id("internalusers")
@@ -220,7 +223,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                 ConfigUpdateAction.INSTANCE,
                 new ConfigUpdateRequest(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups" })
             ).actionGet();
-            Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
+            assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
         }
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
@@ -244,7 +247,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         }
 
         try (Client tc = getClient()) {
-            Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(clusterInfo.numNodes));
             tc.index(
                 new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .id("config")
@@ -252,7 +255,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             ).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[] { "config" }))
                 .actionGet();
-            Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
+            assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
         }
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
@@ -272,7 +275,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             Assert.assertTrue(res.getBody().contains("opendistro_security_anonymous"));
             Assert.assertTrue(res.getBody().contains("name=opendistro_security_anonymous"));
             Assert.assertTrue(res.getBody().contains("roles=[opendistro_security_anonymous_backendrole]"));
-            Assert.assertEquals(200, res.getStatusCode());
+            assertThat(res.getStatusCode(), is(200));
         }
     }
 
@@ -283,9 +286,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         Thread.sleep(10000);
 
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(), is(HttpStatus.SC_OK));
         HttpResponse res = rh.executeGetRequest("/_cluster/health", encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), HttpStatus.SC_OK, is(res.getStatusCode()));
+
     }
 
     @Test
@@ -298,16 +302,17 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             setup(Settings.EMPTY, null, settings, false);
             RestHelper rh = nonSslRestHelper();
             Thread.sleep(10000);
-            Assert.assertEquals(
-                HttpStatus.SC_SERVICE_UNAVAILABLE,
-                rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
+            assertThat(
+                rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(),
+                is(HttpStatus.SC_SERVICE_UNAVAILABLE)
             );
 
             ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
             restart(Settings.EMPTY, null, settings, false);
             rh = nonSslRestHelper();
             Thread.sleep(10000);
-            Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+            assertThat(rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(), is(HttpStatus.SC_OK));
+
         } finally {
             ClusterHelper.resetSystemProperties();
         }
@@ -322,25 +327,27 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         HttpResponse resc = rh.executeGetRequest("_search");
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));
     }
 
     @Test
     public void testDiscoveryWithoutInitialization() throws Exception {
         setup(Settings.EMPTY, null, Settings.EMPTY, false);
-        Assert.assertEquals(
-            clusterInfo.numNodes,
+        assertThat(
             clusterHelper.nodeClient()
                 .admin()
                 .cluster()
                 .health(new ClusterHealthRequest().waitForGreenStatus())
                 .actionGet()
-                .getNumberOfNodes()
+                .getNumberOfNodes(),
+            is(clusterInfo.numNodes)
         );
-        Assert.assertEquals(
-            ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+
+        assertThat(
+            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus(),
+            is(ClusterHealthStatus.GREEN)
         );
+
     }
 }

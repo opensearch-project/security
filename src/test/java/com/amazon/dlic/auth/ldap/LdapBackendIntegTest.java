@@ -17,6 +17,8 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 
@@ -55,7 +57,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("jacksonm", "secret")).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("jacksonm", "secret")).getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -64,7 +66,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("wrong", "wrong")).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("wrong", "wrong")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
     }
 
     @Test
@@ -77,13 +79,13 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), settings);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest(
                 "_opendistro/_security/authinfo",
                 new BasicHeader("opendistro_security_impersonate_as", "jacksonm"),
                 encodeBasicHeader("spock", "spocksecret")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
         Assert.assertTrue(res.getBody().contains("ldap.dn"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.entryDN"));

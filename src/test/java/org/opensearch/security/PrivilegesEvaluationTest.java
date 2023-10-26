@@ -12,8 +12,9 @@
 package org.opensearch.security;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -49,9 +50,8 @@ public class PrivilegesEvaluationTest extends SingleClusterTest {
             "/*hidden_test*/_search?expand_wildcards=all&pretty=true",
             encodeBasicHeader("hidden_test", "nagilum")
         );
-        Assert.assertEquals(httpResponse.getBody(), 403, httpResponse.getStatusCode());
-
+        assertThat(httpResponse.getBody(), 403, is(httpResponse.getStatusCode()));
         httpResponse = rh.executeGetRequest("/hidden_test_not_hidden?pretty=true", encodeBasicHeader("hidden_test", "nagilum"));
-        Assert.assertEquals(httpResponse.getBody(), 200, httpResponse.getStatusCode());
+        assertThat(httpResponse.getBody(), 200, is(httpResponse.getStatusCode()));
     }
 }

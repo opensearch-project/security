@@ -51,6 +51,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -921,8 +923,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
         JsonNode jsonNode = readTree(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(jsonNode.get("errors").booleanValue());
-        Assert.assertEquals(201, jsonNode.get("items").get(0).get("index").get("status").intValue());
-        Assert.assertEquals(403, jsonNode.get("items").get(1).get("index").get("status").intValue());
+        assertThat(jsonNode.get("items").get(0).get("index").get("status").intValue(), is(201));
+        assertThat(jsonNode.get("items").get(1).get("index").get("status").intValue(), is(403));
     }
 
     @Test
