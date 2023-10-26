@@ -108,9 +108,9 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         }
     }
 
-    protected void validateJson(final String json) throws Exceshption {
+    protected void validateJson(final String json) throws Exception {
         if (json == null || json.isEmpty()) {
-            throw new Exception("json is either null or empty");
+            throw new NullPointerException("json is either null or empty");
         }
 
         JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
