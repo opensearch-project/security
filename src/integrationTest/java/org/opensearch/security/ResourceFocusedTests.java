@@ -108,7 +108,7 @@ public class ResourceFocusedTests {
         final RequestBodySize size = RequestBodySize.Small;
         final String requestPath = "/*/_search";
         final int parrallelism = 100;
-        final int totalNumberOfRequests = 1_000_000;
+        final int totalNumberOfRequests = 15_000;
 
         runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests);
     }

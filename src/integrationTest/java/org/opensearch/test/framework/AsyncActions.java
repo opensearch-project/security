@@ -18,7 +18,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class AsyncActions {
+    private final static Logger LOG = LogManager.getLogger(AsyncActions.class);
 
     /**
      * Using the provided generator create a list of completable futures.
@@ -45,12 +49,31 @@ public class AsyncActions {
      * @return Completed results from the futures
      */
     public static <T> List<T> getAll(final List<CompletableFuture<T>> futures, final int n, final TimeUnit unit) {
+        LOG.info("Starting to wait for " + futures.size() + " futures to complete in for " + unit.toSeconds(n) + " seconds.");
+        final long startTimeMs = System.currentTimeMillis();
         final CompletableFuture<Void> futuresCompleted = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         try {
             futuresCompleted.get(n, unit);
         } catch (final Exception ex) {
-            final long completedFutures = futures.stream().filter(CompletableFuture::isDone).count();
-            throw new RuntimeException("Unable to wait for all futures to compete, " + completedFutures + " have finished.", ex);
+            final long completedFuturesCount = futures.stream().filter(CompletableFuture::isDone).count();
+            final String perfReport = calculatePerfReport(startTimeMs, completedFuturesCount);
+            throw new RuntimeException(
+                "Unable to wait for all futures to compete, of "
+                    + futures.size()
+                    + " futures "
+                    + completedFuturesCount
+                    + " have finished."
+                    + perfReport
+            );
+        }
+        final long completedFuturesCount = futures.stream().filter(CompletableFuture::isDone).count();
+        final String perfReport = calculatePerfReport(startTimeMs, completedFuturesCount);
+        LOG.info(perfReport);
+
+        final long elapsedTimeMs = System.currentTimeMillis() - startTimeMs;
+        final long expectedMs = unit.toMillis(n);
+        if (elapsedTimeMs > .75 * expectedMs) {
+            LOG.warn("Completion time was within 25% of the expected time, more than this threshold is recommended.");
         }
 
         return futures.stream().map(future -> {
@@ -60,5 +83,17 @@ public class AsyncActions {
                 throw new RuntimeException(ex);
             }
         }).collect(Collectors.toList());
+    }
+
+    private static String calculatePerfReport(final long startTimeMs, final long completedFuturesCount) {
+        final long elapsedTimeMs = System.currentTimeMillis() - startTimeMs;
+        final double avgTimePerFutureMs = (double) elapsedTimeMs / completedFuturesCount;
+        final double futuresPerSecond = 1000 / avgTimePerFutureMs;
+        return String.format(
+            "Waited for %d seconds, completion speed was on average %.2fms per future %.2fx per second.",
+            TimeUnit.MILLISECONDS.toSeconds(elapsedTimeMs),
+            avgTimePerFutureMs,
+            futuresPerSecond
+        );
     }
 }
