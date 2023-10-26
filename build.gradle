@@ -27,7 +27,8 @@ buildscript {
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
         kafka_version  = '3.6.0'
         apache_cxf_version = '4.0.3'
-        open_saml_version = '4.3.0'
+        open_saml_version = '5.0.0'
+        open_saml_shib_version = '9.0.0'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.11.5'
         guava_version = '32.1.3-jre'
@@ -598,14 +599,22 @@ dependencies {
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.1'
 
     //OpenSAML
-    implementation 'net.shibboleth.utilities:java-support:8.4.0'
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
-    implementation "org.opensaml:opensaml-core:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
+
+    implementation "net.shibboleth:shib-support:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-security:${open_saml_shib_version}"
+    implementation "net.shibboleth:shib-networking:${open_saml_shib_version}"
+
+    implementation "org.opensaml:opensaml-core-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-core-impl:${open_saml_version}"
+
     implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
+
     implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
     implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
+
     implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
     implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
         exclude(group: 'org.apache.velocity', module: 'velocity')
@@ -640,6 +649,7 @@ dependencies {
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
+    testImplementation "jakarta.servlet:jakarta.servlet-api:6.0.0"
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"

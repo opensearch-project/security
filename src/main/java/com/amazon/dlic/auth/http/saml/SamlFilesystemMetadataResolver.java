@@ -17,7 +17,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import net.shibboleth.utilities.java.support.resolver.ResolverException;
+import net.shibboleth.shared.resolver.ResolverException;
 import org.opensaml.saml.metadata.resolver.impl.FilesystemMetadataResolver;
 
 import org.opensearch.common.settings.Settings;

@@ -33,9 +33,9 @@ import com.onelogin.saml2.logout.LogoutRequest;
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Constants;
 import com.onelogin.saml2.util.Util;
-import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
-import net.shibboleth.utilities.java.support.component.DestructableComponent;
-import net.shibboleth.utilities.java.support.xml.BasicParserPool;
+import net.shibboleth.shared.component.ComponentInitializationException;
+import net.shibboleth.shared.component.DestructableComponent;
+import net.shibboleth.shared.xml.impl.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -350,12 +350,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
 
         try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws ComponentInitializationException {
-                    metadataResolver.initialize();
-                    return null;
-                }
+            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+                metadataResolver.initialize();
+                return null;
             });
         } catch (PrivilegedActionException e) {
             if (e.getCause() instanceof ComponentInitializationException) {

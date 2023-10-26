@@ -17,10 +17,11 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.time.Duration;
 
-import net.shibboleth.utilities.java.support.resolver.ResolverException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
+import net.shibboleth.shared.resolver.ResolverException;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 
 import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
@@ -41,12 +42,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
     @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {
-                @Override
-                public byte[] run() throws ResolverException {
-                    return SamlHTTPMetadataResolver.super.fetchMetadata();
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) () -> SamlHTTPMetadataResolver.super.fetchMetadata());
         } catch (PrivilegedActionException e) {
 
             if (e.getCause() instanceof ResolverException) {
@@ -70,12 +66,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
                 sm.checkPermission(new SpecialPermission());
             }
 
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<HttpClient>() {
-                @Override
-                public HttpClient run() throws Exception {
-                    return createHttpClient0(settings, configPath);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<HttpClient>) () -> createHttpClient0(settings, configPath));
         } catch (PrivilegedActionException e) {
             if (e.getCause() instanceof Exception) {
                 throw (Exception) e.getCause();
@@ -86,15 +77,15 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
     }
 
     private static HttpClient createHttpClient0(Settings settings, Path configPath) throws Exception {
-
         HttpClientBuilder builder = HttpClients.custom();
-
         builder.useSystemProperties();
 
         SettingsBasedSSLConfiguratorV4.SSLConfig sslConfig = getSSLConfig(settings, configPath);
 
         if (sslConfig != null) {
-            builder.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory());
+            builder.setConnectionManager(
+                PoolingHttpClientConnectionManagerBuilder.create().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory5()).build()
+            );
         }
 
         return builder.build();
