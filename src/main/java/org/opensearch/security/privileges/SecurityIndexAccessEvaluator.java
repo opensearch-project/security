@@ -43,10 +43,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -154,6 +151,16 @@ public class SecurityIndexAccessEvaluator {
     }
 
     /**
+     * Checks if user is a service account user
+     * @param user request which contains attribute of service account
+     * @return true if a match is found, false otherwise
+     */
+    public Boolean isServiceAccount(final User user) {
+        Map<String, String> userAttributesMap = user.getCustomAttributesMap();
+        return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
+    }
+
+    /**
      * Checks if request is for any system index
      * @param requestedResolved request which contains indices to be matched against system indices
      * @return true if a match is found, false otherwise
@@ -235,6 +242,13 @@ public class SecurityIndexAccessEvaluator {
         boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
 
         if (isSystemIndexPermissionEnabled) {
+            if (isServiceAccount(user) && !containsSystemIndex) {
+                auditLog.logSecurityIndexAttempt(request, action, task);
+                log.info("{} not permitted for a service account {} on non system indices.", action, securityRoles);
+                presponse.allowed = false;
+                presponse.markComplete();
+                return;
+            }
             boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
             if (containsProtectedIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
