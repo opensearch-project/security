@@ -577,7 +577,7 @@ public class PrivilegesEvaluator {
 
     public Boolean isServiceAccount(final User user) {
         Map<String, String> userAttributesMap = user.getCustomAttributesMap();
-        return userAttributesMap != null && "true".equals(userAttributesMap.get("service"));
+        return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
     }
 
     public Set<String> mapRoles(final User user, final TransportAddress caller) {
