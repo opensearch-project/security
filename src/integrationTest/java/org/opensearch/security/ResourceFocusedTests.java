@@ -177,12 +177,13 @@ public class ResourceFocusedTests {
             gzipOutputStream.finish();
 
             final byte[] compressedRequestBody = byteArrayOutputStream.toByteArray();
-            LOG.info(String.format(
-                        "Original size was %,d bytes, compressed to %,d bytes, ratio %,.2f",
-                        uncompressedBytesSize,
-                        compressedRequestBody.length,
-                        ((double) uncompressedBytesSize / compressedRequestBody.length)
-                    )
+            LOG.info(
+                String.format(
+                    "Original size was %,d bytes, compressed to %,d bytes, ratio %,.2f",
+                    uncompressedBytesSize,
+                    compressedRequestBody.length,
+                    ((double) uncompressedBytesSize / compressedRequestBody.length)
+                )
             );
             return compressedRequestBody;
         } catch (final IOException ioe) {
