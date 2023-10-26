@@ -12,6 +12,8 @@
 package org.opensearch.security.action.onbehalf;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,6 +21,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.client.node.NodeClient;
@@ -60,6 +64,12 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
     public static final Integer OBO_MAX_EXPIRY_SECONDS = 10 * 60;
 
     public static final String DEFAULT_SERVICE = "self-issued";
+
+    protected final Logger log = LogManager.getLogger(this.getClass());
+
+    private static final Set<String> RECOGNIZED_PARAMS = new HashSet<>(
+        Arrays.asList("durationSeconds", "description", "roleSecurityMode", "service")
+    );
 
     @Subscribe
     public void onConfigModelChanged(ConfigModel configModel) {
@@ -128,13 +138,13 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                     final String clusterIdentifier = clusterService.getClusterName().value();
 
                     final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
-                    final String description = (String) requestBody.getOrDefault("description", null);
 
-                    final Integer tokenDuration = Optional.ofNullable(requestBody.get("durationSeconds"))
-                        .map(value -> (String) value)
-                        .map(Integer::parseInt)
-                        .map(value -> Math.min(value, OBO_MAX_EXPIRY_SECONDS)) // Max duration seconds are 600
-                        .orElse(OBO_DEFAULT_EXPIRY_SECONDS); // Fallback to default
+                    validateRequestParameters(requestBody);
+
+                    Integer tokenDuration = parseAndValidateDurationSeconds(requestBody.get("durationSeconds"));
+                    tokenDuration = Math.min(tokenDuration, OBO_MAX_EXPIRY_SECONDS);
+
+                    final String description = (String) requestBody.getOrDefault("description", null);
 
                     final Boolean roleSecurityMode = Optional.ofNullable(requestBody.get("roleSecurityMode"))
                         .map(value -> (Boolean) value)
@@ -161,8 +171,13 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
+                } catch (IllegalArgumentException iae) {
+                    builder.startObject().field("error", iae.getMessage()).endObject();
+                    response = new BytesRestResponse(RestStatus.BAD_REQUEST, builder);
                 } catch (final Exception exception) {
-                    builder.startObject().field("error", exception.toString()).endObject();
+                    log.error("Unexpected error occurred: ", exception);
+
+                    builder.startObject().field("error", "An unexpected error occurred. Please check the input and try again.").endObject();
 
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
                 }
@@ -176,4 +191,26 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         return this.configModel.mapSecurityRoles(user, null);
     }
 
+    private void validateRequestParameters(Map<String, Object> requestBody) throws IllegalArgumentException {
+        for (String key : requestBody.keySet()) {
+            if (!RECOGNIZED_PARAMS.contains(key)) {
+                throw new IllegalArgumentException("Unrecognized parameter: " + key);
+            }
+        }
+    }
+
+    private Integer parseAndValidateDurationSeconds(Object durationObj) throws IllegalArgumentException {
+        if (durationObj == null) {
+            return OBO_DEFAULT_EXPIRY_SECONDS;
+        }
+
+        if (durationObj instanceof Integer) {
+            return (Integer) durationObj;
+        } else if (durationObj instanceof String) {
+            try {
+                return Integer.parseInt((String) durationObj);
+            } catch (NumberFormatException ignored) {}
+        }
+        throw new IllegalArgumentException("durationSeconds must be an integer.");
+    }
 }

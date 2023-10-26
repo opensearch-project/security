@@ -19,7 +19,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: peternied/discerning-merger@v1
+      - uses: peternied/discerning-merger@v3
         if: steps.find-triggering-pr.outputs.pr-number != null
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

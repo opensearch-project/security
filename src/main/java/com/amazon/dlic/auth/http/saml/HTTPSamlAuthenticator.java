@@ -27,6 +27,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.nimbusds.jose.jwk.JWK;
 import com.onelogin.saml2.authn.AuthnRequest;
 import com.onelogin.saml2.logout.LogoutRequest;
 import com.onelogin.saml2.settings.Saml2Settings;
@@ -36,7 +37,6 @@ import net.shibboleth.utilities.java.support.component.ComponentInitializationEx
 import net.shibboleth.utilities.java.support.component.DestructableComponent;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -184,7 +184,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
                 // Verficiation of SAML ASC endpoint only works with RestRequests
                 if (!(request instanceof OpenSearchRequest)) {
-                    throw new SecurityRequestChannelUnsupported();
+                    throw new SecurityRequestChannelUnsupported(
+                        API_AUTHTOKEN_SUFFIX + " not supported for request of type " + request.getClass().getName()
+                    );
                 } else {
                     final OpenSearchRequest openSearchRequest = (OpenSearchRequest) request;
                     final RestRequest restRequest = openSearchRequest.breakEncapsulationForRequest();
@@ -200,6 +202,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                 new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "")
             );
         } catch (Exception e) {
+            if (e instanceof SecurityRequestChannelUnsupported) {
+                throw (SecurityRequestChannelUnsupported) e;
+            }
             log.error("Error in reRequestAuthentication()", e);
             return Optional.empty();
         }
@@ -475,12 +480,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             return new KeyProvider() {
 
                 @Override
-                public JsonWebKey getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
+                public JWK getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
                     return authTokenProcessorHandler.getSigningKey();
                 }
 
                 @Override
-                public JsonWebKey getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
+                public JWK getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException {
                     return authTokenProcessorHandler.getSigningKey();
                 }
             };

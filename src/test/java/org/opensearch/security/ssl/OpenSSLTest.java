@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 import org.junit.AfterClass;
@@ -206,7 +207,10 @@ public class OpenSSLTest extends SSLTest {
             .put(settings)// -----
             .build();
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                .start()
+        ) {
             ClusterHealthResponse res = node.client()
                 .admin()
                 .cluster()

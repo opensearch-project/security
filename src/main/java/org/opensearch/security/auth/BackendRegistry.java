@@ -61,10 +61,8 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
-import org.opensearch.security.ssl.util.Utils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -365,7 +363,7 @@ public class BackendRegistry {
                 return false;
             }
 
-            final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
+            final String tenant = resolveTenantFrom(request);
 
             if (isDebugEnabled) {
                 log.debug("Rest user '{}' is authenticated", authenticatedUser);
@@ -393,7 +391,7 @@ public class BackendRegistry {
             }
 
             if (authCredentials == null && anonymousAuthEnabled) {
-                final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
+                final String tenant = resolveTenantFrom(request);
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
 
@@ -436,6 +434,10 @@ public class BackendRegistry {
             return false;
         }
         return authenticated;
+    }
+
+    private String resolveTenantFrom(final SecurityRequest request) {
+        return Optional.ofNullable(request.header("securitytenant")).orElse(request.header("security_tenant"));
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequestChannel request, AuthCredentials authCredentials) {
@@ -616,8 +618,7 @@ public class BackendRegistry {
             for (final AuthDomain authDomain : restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
 
-                // Skip over the OnBehalfOfAuthenticator since it is not compatible for user impersonation
-                if (authDomain.getHttpAuthenticator() instanceof OnBehalfOfAuthenticator) {
+                if (!authDomain.getHttpAuthenticator().supportsImpersonation()) {
                     continue;
                 }
 

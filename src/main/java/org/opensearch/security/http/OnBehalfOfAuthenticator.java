@@ -68,8 +68,18 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         String oboEnabledSetting = settings.get("enabled", "true");
         oboEnabled = Boolean.parseBoolean(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
-        JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-        jwtParser = builder.build();
+
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+        jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
+            @Override
+            public JwtParser run() {
+                JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
+                return builder.build();
+            }
+        });
 
         this.clusterName = clusterName;
         this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
@@ -245,4 +255,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return "onbehalfof_jwt";
     }
 
+    @Override
+    public boolean supportsImpersonation() {
+        return false;
+    }
 }

@@ -319,7 +319,7 @@ public class OnBehalfOfAuthenticatorTest {
             System.setSecurityManager(null);
         }
 
-        verify(mockSecurityManager, times(2)).checkPermission(any(SpecialPermission.class));
+        verify(mockSecurityManager, times(3)).checkPermission(any(SpecialPermission.class));
     }
 
     @Test

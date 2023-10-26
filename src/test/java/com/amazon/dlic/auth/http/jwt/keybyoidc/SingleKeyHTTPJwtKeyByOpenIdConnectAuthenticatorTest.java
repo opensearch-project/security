@@ -12,6 +12,7 @@
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
+import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.Assert;
@@ -39,7 +40,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
             Assert.assertNotNull(creds);
             Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(List.of(TestJwts.TEST_AUDIENCE).toString(), creds.getAttributes().get("attr.jwt.aud"));
             Assert.assertEquals(0, creds.getBackendRoles().size());
             Assert.assertEquals(4, creds.getAttributes().size());
 
@@ -89,7 +90,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
             Assert.assertNotNull(creds);
             Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(List.of(TestJwts.TEST_AUDIENCE).toString(), creds.getAttributes().get("attr.jwt.aud"));
             Assert.assertEquals(0, creds.getBackendRoles().size());
             Assert.assertEquals(4, creds.getAttributes().size());
         } finally {
@@ -139,7 +140,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
             Assert.assertNotNull(creds);
             Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(List.of(TestJwts.TEST_AUDIENCE).toString(), creds.getAttributes().get("attr.jwt.aud"));
             Assert.assertEquals(0, creds.getBackendRoles().size());
             Assert.assertEquals(4, creds.getAttributes().size());
 
@@ -167,7 +168,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
             Assert.assertNotNull(creds);
             Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(List.of(TestJwts.TEST_AUDIENCE).toString(), creds.getAttributes().get("attr.jwt.aud"));
             Assert.assertEquals(0, creds.getBackendRoles().size());
             Assert.assertEquals(4, creds.getAttributes().size());
 
@@ -190,7 +191,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
             Assert.assertNotNull(creds);
             Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(List.of(TestJwts.TEST_AUDIENCE).toString(), creds.getAttributes().get("attr.jwt.aud"));
             Assert.assertEquals(0, creds.getBackendRoles().size());
             Assert.assertEquals(4, creds.getAttributes().size());
 

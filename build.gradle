@@ -25,13 +25,13 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
-        kafka_version  = '3.5.1'
+        kafka_version  = '3.6.0'
         apache_cxf_version = '4.0.3'
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.2'
-        guava_version = '32.1.2-jre'
-        jaxb_version = '2.3.8'
+        guava_version = '32.1.3-jre'
+        jaxb_version = '2.3.9'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -66,7 +66,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.5.0"
     id "org.gradle.test-retry" version "1.5.6"
     id 'eclipse'
-    id "com.github.spotbugs" version "5.1.3"
+    id "com.github.spotbugs" version "5.2.1"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -94,6 +94,64 @@ spotbugsTest {
 
 java.sourceCompatibility = JavaVersion.VERSION_11
 java.targetCompatibility = JavaVersion.VERSION_11
+
+
+compileJava {
+    options.compilerArgs = [
+            '-Xlint:auxiliaryclass',
+            '-Xlint:cast',
+            '-Xlint:classfile',
+            '-Xlint:dep-ann',
+            '-Xlint:divzero',
+            '-Xlint:empty',
+            '-Xlint:exports',
+            '-Xlint:fallthrough',
+            '-Xlint:finally',
+            '-Xlint:module',
+            '-Xlint:opens',
+            '-Xlint:overloads',
+            '-Xlint:overrides',
+            '-Xlint:-processing',
+            '-Xlint:rawtypes',
+            '-Xlint:removal',
+            '-Xlint:requires-automatic',
+            '-Xlint:requires-transitive-automatic',
+            '-Xlint:static',
+            '-Xlint:unchecked',
+            '-Xlint:varargs',
+            '-Xlint:preview',
+            '-Werror']
+    options.encoding = 'UTF-8'
+}
+
+compileTestJava {
+    options.compilerArgs = [
+            '-Xlint:auxiliaryclass',
+            '-Xlint:cast',
+            '-Xlint:classfile',
+            '-Xlint:dep-ann',
+            '-Xlint:divzero',
+            '-Xlint:empty',
+            '-Xlint:exports',
+            '-Xlint:fallthrough',
+            '-Xlint:finally',
+            '-Xlint:module',
+            '-Xlint:opens',
+            '-Xlint:overloads',
+            '-Xlint:overrides',
+            '-Xlint:-processing',
+            '-Xlint:rawtypes',
+            '-Xlint:removal',
+            '-Xlint:requires-automatic',
+            '-Xlint:requires-transitive-automatic',
+            '-Xlint:static',
+            '-Xlint:unchecked',
+            '-Xlint:varargs',
+            '-Xlint:preview',
+            '-Werror']
+    options.encoding = 'UTF-8'
+}
+
 
 licenseHeaders.enabled = true
 
@@ -323,8 +381,16 @@ jacocoTestReport {
 
 checkstyle {
     toolVersion "10.3.3"
+    showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
+
+tasks.withType(Checkstyle) {
+    reports {
+        ignoreFailures = false
+    }
+}
+
 
 opensearchplugin {
     name 'opensearch-security'
@@ -383,20 +449,6 @@ repositories {
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
 
-tasks.withType(Checkstyle) {
-    showViolations true
-    reports {
-        ignoreFailures = false
-    }
-}
-
-tasks.withType(JavaCompile) {
-    configure(options) {
-        options.encoding = 'UTF-8'
-        options.compilerArgs << '-Xlint:removal' << '-Werror'
-    }
-}
-
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
 
 allprojects {
@@ -433,11 +485,14 @@ configurations {
             force "org.xerial.snappy:snappy-java:1.1.10.5"
             force "com.google.guava:guava:${guava_version}"
 
+            // for spotbugs dependency conflict
+            force "org.apache.commons:commons-lang3:${versions.commonslang}"
+
             // For integrationTest
-            force "org.apache.httpcomponents:httpclient:4.5.13"
+            force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.22.0"
-            force "org.checkerframework:checker-qual:3.38.0"
+            force "com.google.errorprone:error_prone_annotations:2.23.0"
+            force "org.checkerframework:checker-qual:3.39.0"
         }
     }
 
@@ -503,6 +558,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.31'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
@@ -526,9 +582,6 @@ dependencies {
 
     runtimeOnly 'net.minidev:accessors-smart:2.5.0'
 
-    implementation("org.apache.cxf:cxf-rt-rs-security-jose:${apache_cxf_version}") {
-        exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
-    }
     runtimeOnly "org.apache.cxf:cxf-core:${apache_cxf_version}"
     implementation "org.apache.cxf:cxf-rt-rs-json-basic:${apache_cxf_version}"
     runtimeOnly "org.apache.cxf:cxf-rt-security:${apache_cxf_version}"
@@ -537,9 +590,9 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.16.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.22.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.23.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
-    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.1'
     runtimeOnly 'org.ow2.asm:asm:9.6'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.1'
@@ -565,23 +618,23 @@ dependencies {
 
     implementation "com.nulab-inc:zxcvbn:1.8.2"
 
-    runtimeOnly 'com.google.guava:failureaccess:1.0.1'
+    runtimeOnly 'com.google.guava:failureaccess:1.0.2'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
-    runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.19'
+    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.21'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
-    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
+    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.5.1'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.38.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.39.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
@@ -595,6 +648,7 @@ dependencies {
     testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:search-pipeline-common:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
@@ -604,10 +658,13 @@ dependencies {
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
-    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.12'
+    testImplementation 'commons-validator:commons-validator:1.7'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation 'org.springframework:spring-beans:5.3.30'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
@@ -654,8 +711,8 @@ dependencies {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-    integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.13"
-    integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.13"
+    integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
+    integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.13"
     integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.13"
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"

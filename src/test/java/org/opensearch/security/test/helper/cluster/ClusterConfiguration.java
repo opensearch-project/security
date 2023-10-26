@@ -27,6 +27,7 @@
 package org.opensearch.security.test.helper.cluster;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.opensearch.percolator.PercolatorModulePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.search.aggregations.matrix.MatrixAggregationModulePlugin;
+import org.opensearch.search.pipeline.common.SearchPipelineCommonModulePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.transport.Netty4ModulePlugin;
 
@@ -78,7 +80,14 @@ public enum ClusterConfiguration {
     CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
 
     // 3 nodes (1m, 2d) plus additional UserInjectorPlugin
-    USERINJECTOR(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true));
+    USERINJECTOR(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),
+
+    // 3 nodes with search pipelines module installed
+    SEARCH_PIPELINE(
+        new NodeSettings(true, false, List.of(SearchPipelineCommonModulePlugin.class)),
+        new NodeSettings(false, true, List.of(SearchPipelineCommonModulePlugin.class)),
+        new NodeSettings(false, true, List.of(SearchPipelineCommonModulePlugin.class))
+    );
 
     private List<NodeSettings> nodeSettings = new LinkedList<>();
 
@@ -117,6 +126,7 @@ public enum ClusterConfiguration {
     public static class NodeSettings {
         public boolean clusterManagerNode;
         public boolean dataNode;
+
         public List<Class<? extends Plugin>> plugins = Lists.newArrayList(
             Netty4ModulePlugin.class,
             OpenSearchSecurityPlugin.class,
@@ -143,8 +153,8 @@ public enum ClusterConfiguration {
             return this;
         }
 
-        public Class<? extends Plugin>[] getPlugins() {
-            return plugins.toArray(new Class[0]);
+        public Collection<Class<? extends Plugin>> getPlugins() {
+            return List.copyOf(plugins);
         }
     }
 }
