@@ -171,7 +171,7 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
+            .put("exchange_key", "6aff3042-1327-4f3d-82f0-40a157ac4464")
             .put("roles_key", "roles")
             .put("path.home", ".")
             .build();
