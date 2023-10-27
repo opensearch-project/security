@@ -68,7 +68,7 @@ public class DefaultConfigurationTests {
             Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
         }
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            client.assertCorrectCredentials(ADMIN_USER_NAME);
+            client.confirmCorrectCredentials(ADMIN_USER_NAME);
             HttpResponse response = client.get("/_plugins/_security/api/internalusers");
             response.assertStatusCode(200);
             Map<String, Object> users = response.getBodyAs(Map.class);
