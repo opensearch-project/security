@@ -50,7 +50,7 @@ runs:
           -Dbwc.version.next=${{ steps.build-next.outputs.built-version }} -i
         build-root-directory: bwc-test
 
-    - uses: actions/upload-artifact@v3
+    - uses: alehechka/upload-tartifact@v2
       if: always()
       with:
         name: ${{ inputs.report-artifact-name }}
