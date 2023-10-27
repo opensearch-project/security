@@ -49,7 +49,7 @@ public class AsyncActions {
      * @return Completed results from the futures
      */
     public static <T> List<T> getAll(final List<CompletableFuture<T>> futures, final int n, final TimeUnit unit) {
-        LOG.info("Starting to wait for " + futures.size() + " futures to complete in for " + unit.toSeconds(n) + " seconds.");
+        LOG.info("Starting to wait for " + futures.size() + " futures to complete in " + unit.toSeconds(n) + " seconds.");
         final long startTimeMs = System.currentTimeMillis();
         final CompletableFuture<Void> futuresCompleted = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         try {
@@ -58,7 +58,7 @@ public class AsyncActions {
             final long completedFuturesCount = futures.stream().filter(CompletableFuture::isDone).count();
             final String perfReport = calculatePerfReport(startTimeMs, completedFuturesCount);
             throw new RuntimeException(
-                "Unable to wait for all futures to compete, of "
+                "Unable to wait for all futures to complete, of "
                     + futures.size()
                     + " futures "
                     + completedFuturesCount

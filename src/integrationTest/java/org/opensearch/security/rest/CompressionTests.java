@@ -88,7 +88,7 @@ public class CompressionTests {
 
             final var authorizedRequests = AsyncActions.generate(() -> {
                 countDownLatch.await();
-                System.err.println("Generation triggerd authorizedRequests");
+                System.err.println("Generation triggered authorizedRequests");
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                 post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
                 return client.executeRequest(post, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
@@ -96,7 +96,7 @@ public class CompressionTests {
 
             final var unauthorizedRequests = AsyncActions.generate(() -> {
                 countDownLatch.await();
-                System.err.println("Generation triggerd unauthorizedRequests");
+                System.err.println("Generation triggered unauthorizedRequests");
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                 post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
                 return client.executeRequest(post);
