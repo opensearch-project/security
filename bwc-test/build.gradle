@@ -44,7 +44,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.10.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.10.1-SNAPSHOT")
         opensearch_group = "org.opensearch"
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
     }
@@ -79,7 +79,7 @@ testingConventions.enabled = false
 validateNebulaPom.enabled = false
 
 String previousVersion = System.getProperty("bwc.version.previous", "2.9.0.0")
-String nextVersion = System.getProperty("bwc.version.next", "2.10.0.0")
+String nextVersion = System.getProperty("bwc.version.next", "2.10.1.0")
 
 String bwcVersion = previousVersion
 String baseName = "securityBwcCluster"
