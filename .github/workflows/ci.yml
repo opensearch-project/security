@@ -32,77 +32,77 @@ jobs:
       run: |
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
-#  test:
-#    name: test
-#    needs: generate-test-list
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
-#        platform: [windows-latest, ubuntu-latest]
-#        jdk: [11, 17]
-#    runs-on: ${{ matrix.platform }}
-#
-#    steps:
-#    - name: Set up JDK for build and test
-#      uses: actions/setup-java@v3
-#      with:
-#        distribution: temurin # Temurin is a distribution of adoptium
-#        java-version: ${{ matrix.jdk }}
-#
-#    - name: Checkout security
-#      uses: actions/checkout@v4
-#
-#    - name: Build and Test
-#      uses: gradle/gradle-build-action@v2
-#      with:
-#        cache-disabled: true
-#        arguments: |
-#          ${{ matrix.gradle_task }} -Dbuild.snapshot=false
-#
-#    - uses: alehechka/upload-tartifact@v2
-#      if: always()
-#      with:
-#        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
-#        path: |
-#          ./build/reports/
-#
-#  report-coverage:
-#    needs:
-#      - "test"
-#      - "integration-tests"
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/download-artifact@v3
-#        with:
-#          path: downloaded-artifacts
-#
-#      - name: Display structure of downloaded files
-#        run: ls -R
-#        working-directory: downloaded-artifacts
-#
-#      - name: Extract downloaded artifacts
-#        run: |
-#          for archive in ./*/artifact.tar; do
-#            (cd "$(dirname "$archive")" && tar -xvf artifact.tar)
-#          done
-#        working-directory: downloaded-artifacts
-#
-#      - name: Display structure of downloaded files
-#        run: ls -R
-#        working-directory: downloaded-artifacts
-#
-#      - name: Upload Coverage with retry
-#        uses: Wandalen/wretry.action@v1.3.0
-#        with:
-#          attempt_limit: 5
-#          attempt_delay: 2000
-#          action: codecov/codecov-action@v3
-#          with: |
-#            token: ${{ secrets.CODECOV_TOKEN }}
-#            fail_ci_if_error: true
-#            directory: downloaded-artifacts
-#            verbose: true
+  test:
+    name: test
+    needs: generate-test-list
+    strategy:
+      fail-fast: false
+      matrix:
+        gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
+        platform: [windows-latest, ubuntu-latest]
+        jdk: [11, 17]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v4
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      with:
+        cache-disabled: true
+        arguments: |
+          ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+
+    - uses: alehechka/upload-tartifact@v2
+      if: always()
+      with:
+        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
+        path: |
+          ./build/reports/
+
+  report-coverage:
+    needs:
+      - "test"
+      - "integration-tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: downloaded-artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: downloaded-artifacts
+
+      - name: Extract downloaded artifacts
+        run: |
+          for archive in ./*/artifact.tar; do
+            (cd "$(dirname "$archive")" && tar -xvf artifact.tar)
+          done
+        working-directory: downloaded-artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: downloaded-artifacts
+
+      - name: Upload Coverage with retry
+        uses: Wandalen/wretry.action@v1.3.0
+        with:
+          attempt_limit: 5
+          attempt_delay: 2000
+          action: codecov/codecov-action@v3
+          with: |
+            token: ${{ secrets.CODECOV_TOKEN }}
+            fail_ci_if_error: true
+            directory: downloaded-artifacts
+            verbose: true
 
 
   integration-tests:
@@ -140,32 +140,32 @@ jobs:
           ./build/reports/
 
 
-#  resource-tests:
-#    env:
-#      CI_ENVIRONMENT: resource-test
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        jdk: [17]
-#        platform: [ubuntu-latest]
-#    runs-on: ${{ matrix.platform }}
-#
-#    steps:
-#    - name: Set up JDK for build and test
-#      uses: actions/setup-java@v3
-#      with:
-#        distribution: temurin # Temurin is a distribution of adoptium
-#        java-version: ${{ matrix.jdk }}
-#
-#    - name: Checkout security
-#      uses: actions/checkout@v4
-#
-#    - name: Build and Test
-#      uses: gradle/gradle-build-action@v2
-#      with:
-#        cache-disabled: true
-#        arguments: |
-#            integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
+  resource-tests:
+    env:
+      CI_ENVIRONMENT: resource-test
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [17]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v4
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      with:
+        cache-disabled: true
+        arguments: |
+            integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
 
   backward-compatibility-build:
     runs-on: ubuntu-latest
@@ -185,31 +185,31 @@ jobs:
           arguments: |
             -p bwc-test build -x test -x integTest
 
-#  backward-compatibility:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        jdk: [11, 17]
-#        platform: [ubuntu-latest, windows-latest]
-#    runs-on: ${{ matrix.platform }}
-#
-#    steps:
-#    - uses: actions/setup-java@v3
-#      with:
-#        distribution: temurin # Temurin is a distribution of adoptium
-#        java-version: ${{ matrix.jdk }}
-#
-#    - name: Checkout Security Repo
-#      uses: actions/checkout@v4
-#
-#    - id: build-previous
-#      uses: ./.github/actions/run-bwc-suite
-#      with:
-#        plugin-previous-branch: "2.x"
-#        plugin-next-branch: "current_branch"
-#        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
-#        username: admin
-#        password: admin
+  backward-compatibility:
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        platform: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - uses: actions/setup-java@v3
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout Security Repo
+      uses: actions/checkout@v4
+
+    - id: build-previous
+      uses: ./.github/actions/run-bwc-suite
+      with:
+        plugin-previous-branch: "2.x"
+        plugin-next-branch: "current_branch"
+        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
+        username: admin
+        password: admin
 
   code-ql:
     runs-on: ubuntu-latest
