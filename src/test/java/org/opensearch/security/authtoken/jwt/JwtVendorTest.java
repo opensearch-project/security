@@ -102,7 +102,7 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
 
         SignedJWT signedJWT = SignedJWT.parse(encodedJwt);
 
@@ -119,14 +119,14 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtWithRoleSecurityMode() throws Exception {
-        String issuer = "cluster_0";
-        String subject = "admin";
-        String audience = "audience_0";
-        List<String> roles = List.of("IT", "HR");
-        List<String> backendRoles = List.of("Sales", "Support");
-        String expectedRoles = "IT,HR";
-        String expectedBackendRoles = "Sales,Support";
+    public void testCreateJwtWithBackendRolesIncluded() throws Exception {
+        final String issuer = "cluster_0";
+        final String subject = "admin";
+        final String audience = "audience_0";
+        final List<String> roles = List.of("IT", "HR");
+        final List<String> backendRoles = List.of("Sales", "Support");
+        final String expectedRoles = "IT,HR";
+        final String expectedBackendRoles = "Sales,Support";
 
         int expirySeconds = 300;
         LongSupplier currentTime = () -> (long) 100;
@@ -139,7 +139,7 @@ public class JwtVendorTest {
             // CS-ENFORCE-SINGLE
             .build();
         final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
 
         SignedJWT signedJWT = SignedJWT.parse(encodedJwt);
 
@@ -166,10 +166,10 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
-        Throwable exception = assertThrows(RuntimeException.class, () -> {
+        final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
                 jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         });
@@ -189,10 +189,10 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
 
-        Throwable exception = assertThrows(RuntimeException.class, () -> {
+        final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
                 jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         });
@@ -204,18 +204,18 @@ public class JwtVendorTest {
 
     @Test
     public void testCreateJwtWithBadEncryptionKey() {
-        String issuer = "cluster_0";
-        String subject = "admin";
-        String audience = "audience_0";
-        List<String> roles = List.of("admin");
-        Integer expirySeconds = 300;
+        final String issuer = "cluster_0";
+        final String subject = "admin";
+        final String audience = "audience_0";
+        final List<String> roles = List.of("admin");
+        final Integer expirySeconds = 300;
 
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
 
-        Throwable exception = assertThrows(RuntimeException.class, () -> {
+        final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
                 new JwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         });
@@ -233,10 +233,10 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
-        Throwable exception = assertThrows(RuntimeException.class, () -> {
+        final Throwable exception = assertThrows(RuntimeException.class, () -> {
             try {
                 jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         });
@@ -249,7 +249,7 @@ public class JwtVendorTest {
         logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
         when(mockAppender.getName()).thenReturn("MockAppender");
         when(mockAppender.isStarted()).thenReturn(true);
-        Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
+        final Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
         logger.addAppender(mockAppender);
         logger.setLevel(Level.DEBUG);
 
@@ -258,24 +258,24 @@ public class JwtVendorTest {
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
-        String issuer = "cluster_0";
-        String subject = "admin";
-        String audience = "audience_0";
-        List<String> roles = List.of("IT", "HR");
-        List<String> backendRoles = List.of("Sales", "Support");
-        int expirySeconds = 300;
+        final String issuer = "cluster_0";
+        final String subject = "admin";
+        final String audience = "audience_0";
+        final List<String> roles = List.of("IT", "HR");
+        final List<String> backendRoles = List.of("Sales", "Support");
+        final int expirySeconds = 300;
 
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
 
         verify(mockAppender, times(1)).append(logEventCaptor.capture());
 
-        LogEvent logEvent = logEventCaptor.getValue();
-        String logMessage = logEvent.getMessage().getFormattedMessage();
+        final LogEvent logEvent = logEventCaptor.getValue();
+        final String logMessage = logEvent.getMessage().getFormattedMessage();
         assertTrue(logMessage.startsWith("Created JWT:"));
 
-        String[] parts = logMessage.split("\\.");
+        final String[] parts = logMessage.split("\\.");
         assertTrue(parts.length >= 3);
     }
 }
