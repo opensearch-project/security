@@ -1205,7 +1205,6 @@ public class SearchOperationTest {
 
     @Test
     public void shouldReindexDocuments_positive() throws IOException {
-        // todo add count of documents in index, occasional memory problems happen
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(REINDEXING_USER)) {
             ReindexRequest reindexRequest = new ReindexRequest().setSourceIndices(SONG_INDEX_NAME).setDestIndex(WRITE_SONG_INDEX_NAME);
 
