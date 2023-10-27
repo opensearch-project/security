@@ -99,19 +99,15 @@ class AuthTokenProcessorHandler {
             this.samlRolesSeparatorPattern = Pattern.compile(samlRolesSeparator);
         }
 
-        if (samlRolesKey == null || samlRolesKey.length() == 0) {
+        if (samlRolesKey == null || samlRolesKey.isEmpty()) {
             log.warn("roles_key is not configured, will only extract subject from SAML");
             samlRolesKey = null;
         }
 
-        if (samlSubjectKey == null || samlSubjectKey.length() == 0) {
+        if (samlSubjectKey == null || samlSubjectKey.isEmpty()) {
             // If subjectKey == null, get subject from the NameID element.
             // Thus, this is a valid configuration.
             samlSubjectKey = null;
-        }
-
-        if (samlRolesSeparator == null || samlRolesSeparator.length() == 0) {
-            samlRolesSeparator = null;
         }
 
         this.initJwtExpirySettings(settings);
@@ -128,12 +124,7 @@ class AuthTokenProcessorHandler {
                 sm.checkPermission(new SpecialPermission());
             }
 
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<Optional<SecurityResponse>>() {
-                @Override
-                public Optional<SecurityResponse> run() throws SamlConfigException, IOException {
-                    return handleLowLevel(restRequest);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<Optional<SecurityResponse>>) () -> handleLowLevel(restRequest));
         } catch (PrivilegedActionException e) {
             if (e.getCause() instanceof Exception) {
                 throw (Exception) e.getCause();
@@ -252,7 +243,7 @@ class AuthTokenProcessorHandler {
         String exchangeKey = settings.get("exchange_key");
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
-            exchangeKey = padSecret(new String(Base64.getDecoder().decode(exchangeKey), StandardCharsets.UTF_8), JWSAlgorithm.HS512);
+            exchangeKey = padSecret(new String(Base64.getUrlDecoder().decode(exchangeKey), StandardCharsets.UTF_8), JWSAlgorithm.HS512);
 
             return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
@@ -266,7 +257,10 @@ class AuthTokenProcessorHandler {
                 );
             }
 
-            String k = padSecret(new String(Base64.getDecoder().decode(jwkSettings.get("k")), StandardCharsets.UTF_8), JWSAlgorithm.HS512);
+            String k = padSecret(
+                new String(Base64.getUrlDecoder().decode(jwkSettings.get("k")), StandardCharsets.UTF_8),
+                JWSAlgorithm.HS512
+            );
 
             return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
