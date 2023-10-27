@@ -103,8 +103,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
                     builder.startObject();
                     builder.field("user", token.getSubject());
-                    builder.field("authenticationToken", token.getExpiry());
-                    builder.field("durationSeconds", tokenDuration);
+                    builder.field("authenticationToken", token.getCompleteToken());
+                    builder.field("durationSeconds", token.getExpiresInSeconds());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
@@ -157,6 +157,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                 return Long.parseLong((String) durationObj);
             } catch (final NumberFormatException ignored) {}
         }
-        throw new IllegalArgumentException("durationSeconds must be an number.");
+        throw new IllegalArgumentException("durationSeconds must be a number.");
     }
 }

@@ -77,6 +77,7 @@ import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.identity.Subject;
+import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
@@ -241,7 +242,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
-    private volatile SecuritySubject subject = new SecuritySubject();
     private volatile SecurityTokenManager tokenManager;
     private volatile DynamicConfigFactory dcf;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
@@ -570,9 +570,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         principalExtractor
                     )
                 );
-                final CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(tokenManager);
-                dcf.registerDCFListener(cobot);
-                handlers.add(cobot);
+                handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -1044,7 +1042,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
-        subject.setThreadContext(threadPool.getThreadContext());
         tokenManager = new SecurityTokenManager(cs, threadPool, userService, settings);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
@@ -1095,6 +1092,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(restLayerEvaluator);
         dcf.registerDCFListener(securityRestHandler);
+        dcf.registerDCFListener(tokenManager);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
@@ -1948,7 +1946,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Subject getSubject() {
-        return subject;
+        // Not supported
+        return new NoopSubject();
     }
 
     @Override

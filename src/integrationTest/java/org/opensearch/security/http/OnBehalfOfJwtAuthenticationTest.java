@@ -120,8 +120,8 @@ public class OnBehalfOfJwtAuthenticationTest {
 
     @Test
     public void shouldAuthenticateWithOBOTokenEndPoint() {
-        String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
-        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        final String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
+        final Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
         authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, HttpStatus.SC_OK);
     }
 
@@ -129,36 +129,36 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotAuthenticateWithATemperedOBOToken() {
         String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
         oboToken = oboToken.substring(0, oboToken.length() - 1); // tampering the token
-        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        final Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
         authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
     public void shouldNotAuthenticateForUsingOBOTokenToAccessOBOEndpoint() {
-        String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
-        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        final String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
+        final Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
-            TestRestClient.HttpResponse response = client.postJson(CREATE_OBO_TOKEN_PATH, OBO_DESCRIPTION);
+            final TestRestClient.HttpResponse response = client.postJson(CREATE_OBO_TOKEN_PATH, OBO_DESCRIPTION);
             response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
         }
     }
 
     @Test
     public void shouldNotAuthenticateForUsingOBOTokenToAccessAccountEndpoint() {
-        String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
-        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        final String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
+        final Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
-            TestRestClient.HttpResponse response = client.putJson("_plugins/_security/api/account", CURRENT_AND_NEW_PASSWORDS);
+            final TestRestClient.HttpResponse response = client.putJson("_plugins/_security/api/account", CURRENT_AND_NEW_PASSWORDS);
             response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
         }
     }
 
     @Test
     public void shouldAuthenticateForNonAdminUserWithOBOPermission() {
-        String oboToken = generateOboToken(OBO_USER_NAME_WITH_PERM, DEFAULT_PASSWORD);
-        Header oboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        final String oboToken = generateOboToken(OBO_USER_NAME_WITH_PERM, DEFAULT_PASSWORD);
+        final Header oboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
         authenticateWithOboToken(oboAuthHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
     }
 
@@ -171,18 +171,18 @@ public class OnBehalfOfJwtAuthenticationTest {
 
     @Test
     public void shouldNotIncludeRolesFromHostMappingInOBOToken() {
-        String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
+        final String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
 
-        Claims claims = Jwts.parserBuilder()
+        final Claims claims = Jwts.parserBuilder()
             .setSigningKey(Base64.getDecoder().decode(signingKey))
             .build()
             .parseClaimsJws(oboToken)
             .getBody();
 
-        Object er = claims.get("er");
-        EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
-        String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
-        Set<String> roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+        final Object er = claims.get("er");
+        final EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+        final String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
+        final Set<String> roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
 
         assertThat(roles, equalTo(HOST_MAPPING_OBO_USER.getRoleNames()));
         assertThat(roles, not(contains("host_mapping_role")));
@@ -192,9 +192,9 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotAuthenticateWithInvalidDurationSeconds() {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(ADMIN_USER_NAME);
-            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_DURATIONSECONDS);
+            final TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_DURATIONSECONDS);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getTextFromJsonBody("/error"), equalTo("durationSeconds must be an integer."));
+            assertThat(response.getTextFromJsonBody("/error"), equalTo("durationSeconds must be a number."));
         }
     }
 
@@ -202,16 +202,16 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotAuthenticateWithInvalidAPIParameter() {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(ADMIN_USER_NAME);
-            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_PARAMETERS);
+            final TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_PARAMETERS);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
             assertThat(response.getTextFromJsonBody("/error"), equalTo("Unrecognized parameter: invalidParameter"));
         }
     }
 
-    private String generateOboToken(String username, String password) {
+    private String generateOboToken(final String username, final String password) {
         try (TestRestClient client = cluster.getRestClient(username, password)) {
             client.confirmCorrectCredentials(username);
-            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
+            final TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getTextFromJsonBody("/user"), notNullValue());
             assertThat(response.getTextFromJsonBody("/authenticationToken"), notNullValue());
@@ -220,13 +220,13 @@ public class OnBehalfOfJwtAuthenticationTest {
         }
     }
 
-    private void authenticateWithOboToken(Header authHeader, String expectedUsername, int expectedStatusCode) {
+    private void authenticateWithOboToken(final Header authHeader, final String expectedUsername, final int expectedStatusCode) {
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
-            TestRestClient.HttpResponse response = client.getAuthInfo();
+            final TestRestClient.HttpResponse response = client.getAuthInfo();
             response.assertStatusCode(expectedStatusCode);
             assertThat(response.getStatusCode(), equalTo(expectedStatusCode));
             if (expectedStatusCode == HttpStatus.SC_OK) {
-                String username = response.getTextFromJsonBody(POINTER_USERNAME);
+                final String username = response.getTextFromJsonBody(POINTER_USERNAME);
                 assertThat(username, equalTo(expectedUsername));
             }
         }

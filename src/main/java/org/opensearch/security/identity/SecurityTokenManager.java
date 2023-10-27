@@ -1,11 +1,13 @@
 package org.opensearch.security.identity;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import joptsimple.internal.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -19,6 +21,7 @@ import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
@@ -34,28 +37,48 @@ public class SecurityTokenManager implements TokenManager {
     private final ClusterService cs;
     private final ThreadPool threadPool;
     private final UserService userService;
-    private final JwtVendor jwtVendor;
 
-    private ConfigModel configModel;
+    private JwtVendor jwtVendor = null;
+    private ConfigModel configModel = null;
 
-    /**
-     * The constructor for the SecurityTokenManager
-     * @param cs The cluster service for the token manager to use
-     * @param threadPool The thread pool for the token manager to use
-     * @param userService The global instance of the user service that should be used
-     * @param timeProvider An optional time provider that yields the current time in SECONDS
-     * @param settings Any settings. It should always include those used for creating JWTs
-     */
     public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService, final Settings settings) {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
-        this.jwtVendor = null;
+    }
+
+    @Subscribe
+    public void onConfigModelChanged(final ConfigModel configModel) {
+        logger.error("!!!onConfigModelChanged!!!");
+        this.configModel = configModel;
+    }
+
+    @Subscribe
+    public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
+        logger.error("!!!onDynamicConfigModelChanged!!!");
+        final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
+        final Boolean enabled = oboSettings.getAsBoolean("enabled", false);
+        logger.error("was enabled? " + enabled);
+        if (enabled) {
+            jwtVendor = new JwtVendor(oboSettings, Optional.empty());
+        } else {
+            jwtVendor = null;
+        }
+        logger.error("jwtVendor state = " + jwtVendor);
+    }
+
+    private boolean oboNotSupported() {
+        return jwtVendor == null;
     }
 
     @Override
     public ExpiringBearerAuthToken issueOnBehalfOfToken(final Subject subject, final OnBehalfOfClaims claims) {
-        if (!(subject instanceof NoopSubject)) {
+        if (oboNotSupported()) {
+            // TODO: link that doc!
+            throw new OpenSearchSecurityException("The OnBehalfOf token generate is not enabled, see {link to doc} for more information on this feature.");
+        } 
+
+        if (subject != null && !(subject instanceof NoopSubject)) {
             logger.warn("Unsupported subject for OnBehalfOfToken token generation, {}", subject);
             throw new IllegalArgumentException("Unsupported subject to generate OnBehalfOfToken");
         }

@@ -58,11 +58,7 @@ public class JwtVendor {
         } else {
             this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(settings.get("encryption_key"));
         }
-        if (timeProvider.isPresent()) {
-            this.timeProvider = timeProvider.get();
-        } else {
-            this.timeProvider = () -> System.currentTimeMillis();
-        }
+        this.timeProvider = timeProvider.orElse(System::currentTimeMillis);
     }
 
     /*
@@ -109,7 +105,8 @@ public class JwtVendor {
         final List<String> backendRoles,
         final boolean includeBackendRoles
     ) throws JOSEException, ParseException {
-        final Date now = new Date(timeProvider.getAsLong());
+        final long currentTimeMs = timeProvider.getAsLong();
+        final Date now = new Date();
 
         final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
         claimsBuilder.issuer(issuer);
@@ -122,7 +119,7 @@ public class JwtVendor {
         if (expirySeconds <= 0) {
             throw new IllegalArgumentException("The expiration time should be a positive integer");
         }
-        final Date expiryTime = new Date(timeProvider.getAsLong() + expirySeconds * 1000);
+        final Date expiryTime = new Date(currentTimeMs + expirySeconds * 1000);
         claimsBuilder.expirationTime(expiryTime);
 
         if (roles != null) {
