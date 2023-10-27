@@ -89,7 +89,7 @@ public class CertificateAuthenticationTest {
         CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
         try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-            client.assertCorrectCredentials(USER_SPOCK);
+            client.confirmCorrectCredentials(USER_SPOCK);
         }
     }
 
@@ -98,7 +98,7 @@ public class CertificateAuthenticationTest {
         CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_KIRK);
         try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-            client.assertCorrectCredentials(USER_KIRK);
+            client.confirmCorrectCredentials(USER_KIRK);
         }
     }
 
