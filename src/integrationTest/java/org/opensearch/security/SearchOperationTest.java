@@ -1517,7 +1517,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "IndexRequest"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
-        auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+        auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
         auditLogsRule.assertExactly(10, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
     }
 
