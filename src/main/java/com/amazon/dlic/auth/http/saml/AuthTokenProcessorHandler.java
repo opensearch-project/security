@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -242,7 +243,7 @@ class AuthTokenProcessorHandler {
         String exchangeKey = settings.get("exchange_key");
 
         if (!Strings.isNullOrEmpty(exchangeKey)) {
-            exchangeKey = padSecret(exchangeKey, JWSAlgorithm.HS512);
+            exchangeKey = padSecret(new String(Base64.getUrlDecoder().decode(exchangeKey), StandardCharsets.UTF_8), JWSAlgorithm.HS512);
 
             return new OctetSequenceKey.Builder(exchangeKey.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
@@ -256,7 +257,7 @@ class AuthTokenProcessorHandler {
                 );
             }
 
-            String k = padSecret(jwkSettings.get("k"), JWSAlgorithm.HS512);
+            String k = padSecret(new String(Base64.getUrlDecoder().decode(jwkSettings.get("k")), StandardCharsets.UTF_8), JWSAlgorithm.HS512);
 
             return new OctetSequenceKey.Builder(k.getBytes(StandardCharsets.UTF_8)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
