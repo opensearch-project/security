@@ -358,7 +358,7 @@ public class PrivilegesEvaluator {
             if (serviceAccountUser) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
-                log.info("{} is a service account which as no access to cluster level permission of {}.", user, action0);
+                log.info("{} is a service account which has no access to cluster level permission of {}.", user, action0);
                 return presponse;
             }
 

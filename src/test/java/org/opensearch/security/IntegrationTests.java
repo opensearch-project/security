@@ -1074,4 +1074,16 @@ public class IntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_cat/health", encodeBasicHeader("picard", "picard")).getStatusCode());
     }
+
+    // TODO: SOMETHING LIKE THIS
+    @Test
+    public void testServiceAccountClusterPermissions() throws Exception {
+
+        setup();
+
+        RestHelper rh = nonSslRestHelper();
+        HttpResponse response = rh.executeGetRequest("_cat/health", encodeBasicHeader("bug.99", "nagilum"));
+        System.out.println("The service account cluster perm response is: " + response.toString());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
 }
