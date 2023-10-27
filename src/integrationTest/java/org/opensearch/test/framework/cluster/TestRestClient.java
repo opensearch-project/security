@@ -135,37 +135,6 @@ public class TestRestClient implements AutoCloseable {
         assertThat(message, username, equalTo(expectedUserName));
     }
 
-    public HttpResponse getOnBehalfOfToken(String jsonData, Header... headers) {
-        try {
-            HttpPost httpPost = new HttpPost(
-                new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/generateonbehalfoftoken?pretty").build()
-            );
-            httpPost.setEntity(toStringEntity(jsonData));
-            return executeRequest(httpPost, mergeHeaders(CONTENT_TYPE_JSON, headers));
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException("Incorrect URI syntax", ex);
-        }
-    }
-
-    public HttpResponse changeInternalUserPassword(String jsonData, Header... headers) {
-        try {
-            HttpPut httpPut = new HttpPut(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/account?pretty").build());
-            httpPut.setEntity(toStringEntity(jsonData));
-            return executeRequest(httpPut, mergeHeaders(CONTENT_TYPE_JSON, headers));
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException("Incorrect URI syntax", ex);
-        }
-    }
-
-    public void assertCorrectCredentials(String expectedUserName) {
-        HttpResponse response = getAuthInfo();
-        assertThat(response, notNullValue());
-        response.assertStatusCode(200);
-        String username = response.getTextFromJsonBody("/user_name");
-        String message = String.format("Expected user name is '%s', but was '%s'", expectedUserName, username);
-        assertThat(message, username, equalTo(expectedUserName));
-    }
-
     public HttpResponse head(String path, Header... headers) {
         return executeRequest(new HttpHead(getHttpServerUri() + "/" + path), headers);
     }

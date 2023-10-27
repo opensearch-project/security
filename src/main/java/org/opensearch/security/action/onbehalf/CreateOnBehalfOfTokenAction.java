@@ -13,7 +13,6 @@ package org.opensearch.security.action.onbehalf;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,8 +57,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private ConfigModel configModel;
 
-    private DynamicConfigModel dcm;
-
     public static final Integer OBO_DEFAULT_EXPIRY_SECONDS = 5 * 60;
     public static final Integer OBO_MAX_EXPIRY_SECONDS = 10 * 60;
 
@@ -67,24 +64,18 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    private static final Set<String> RECOGNIZED_PARAMS = new HashSet<>(
-        Arrays.asList("durationSeconds", "description", "roleSecurityMode", "service")
-    );
-
     @Subscribe
-    public void onConfigModelChanged(ConfigModel configModel) {
+    public void onConfigModelChanged(final ConfigModel configModel) {
         this.configModel = configModel;
     }
 
     @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-        this.dcm = dcm;
+    public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
+        final Settings settings = dcm.getDynamicOnBehalfOfSettings();
 
-        Settings settings = dcm.getDynamicOnBehalfOfSettings();
-
-        Boolean enabled = Boolean.parseBoolean(settings.get("enabled"));
-        String signingKey = settings.get("signing_key");
-        String encryptionKey = settings.get("encryption_key");
+        final Boolean enabled = Boolean.parseBoolean(settings.get("enabled"));
+        final String signingKey = settings.get("signing_key");
+        final String encryptionKey = settings.get("encryption_key");
 
         if (!Boolean.FALSE.equals(enabled) && signingKey != null && encryptionKey != null) {
             this.vendor = new JwtVendor(settings, Optional.empty());
@@ -109,7 +100,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
     }
 
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+    protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
         switch (request.method()) {
             case POST:
                 return handlePost(request, client);
@@ -118,10 +109,10 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         }
     }
 
-    private RestChannelConsumer handlePost(RestRequest request, NodeClient client) throws IOException {
+    private RestChannelConsumer handlePost(final RestRequest request, final NodeClient client) throws IOException {
         return new RestChannelConsumer() {
             @Override
-            public void accept(RestChannel channel) throws Exception {
+            public void accept(final RestChannel channel) throws Exception {
                 final XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response;
                 try {
@@ -141,18 +132,14 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
                     validateRequestParameters(requestBody);
 
-                    Integer tokenDuration = parseAndValidateDurationSeconds(requestBody.get("durationSeconds"));
+                    Integer tokenDuration = parseAndValidateDurationSeconds(requestBody.get(InputParameters.DURATION.paramName));
                     tokenDuration = Math.min(tokenDuration, OBO_MAX_EXPIRY_SECONDS);
 
-                    final String description = (String) requestBody.getOrDefault("description", null);
+                    final String description = (String) requestBody.getOrDefault(InputParameters.DESCRIPTION.paramName, null);
 
-                    final Boolean roleSecurityMode = Optional.ofNullable(requestBody.get("roleSecurityMode"))
-                        .map(value -> (Boolean) value)
-                        .orElse(true); // Default to false if null
-
-                    final String service = (String) requestBody.getOrDefault("service", DEFAULT_SERVICE);
+                    final String service = (String) requestBody.getOrDefault(InputParameters.SERVICE.paramName, DEFAULT_SERVICE);
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    Set<String> mappedRoles = mapRoles(user);
+                    final Set<String> mappedRoles = mapRoles(user);
 
                     builder.startObject();
                     builder.field("user", user.getName());
@@ -164,14 +151,14 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         tokenDuration,
                         mappedRoles.stream().collect(Collectors.toList()),
                         user.getRoles().stream().collect(Collectors.toList()),
-                        roleSecurityMode
+                        false
                     );
                     builder.field("authenticationToken", token);
                     builder.field("durationSeconds", tokenDuration);
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
-                } catch (IllegalArgumentException iae) {
+                } catch (final IllegalArgumentException iae) {
                     builder.startObject().field("error", iae.getMessage()).endObject();
                     response = new BytesRestResponse(RestStatus.BAD_REQUEST, builder);
                 } catch (final Exception exception) {
@@ -187,19 +174,32 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         };
     }
 
+    private enum InputParameters {
+        DURATION("durationSeconds"),
+        DESCRIPTION("description"),
+        SERVICE("service");
+
+        final String paramName;
+
+        private InputParameters(final String paramName) {
+            this.paramName = paramName;
+        }
+    }
+
     private Set<String> mapRoles(final User user) {
         return this.configModel.mapSecurityRoles(user, null);
     }
 
-    private void validateRequestParameters(Map<String, Object> requestBody) throws IllegalArgumentException {
-        for (String key : requestBody.keySet()) {
-            if (!RECOGNIZED_PARAMS.contains(key)) {
-                throw new IllegalArgumentException("Unrecognized parameter: " + key);
-            }
+    private void validateRequestParameters(final Map<String, Object> requestBody) throws IllegalArgumentException {
+        for (final String key : requestBody.keySet()) {
+            Arrays.stream(InputParameters.values())
+                .filter(param -> param.paramName.equalsIgnoreCase(key))
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Unrecognized parameter: " + key));
         }
     }
 
-    private Integer parseAndValidateDurationSeconds(Object durationObj) throws IllegalArgumentException {
+    private Integer parseAndValidateDurationSeconds(final Object durationObj) throws IllegalArgumentException {
         if (durationObj == null) {
             return OBO_DEFAULT_EXPIRY_SECONDS;
         }
@@ -209,7 +209,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         } else if (durationObj instanceof String) {
             try {
                 return Integer.parseInt((String) durationObj);
-            } catch (NumberFormatException ignored) {}
+            } catch (final NumberFormatException ignored) {}
         }
         throw new IllegalArgumentException("durationSeconds must be an integer.");
     }

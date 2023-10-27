@@ -108,7 +108,7 @@ public class JwtVendor {
         Integer expirySeconds,
         List<String> roles,
         List<String> backendRoles,
-        boolean roleSecurityMode
+        boolean includeBackendRoles
     ) throws JOSEException, ParseException {
         final Date now = new Date(timeProvider.getAsLong());
 
@@ -139,7 +139,7 @@ public class JwtVendor {
             throw new IllegalArgumentException("Roles cannot be null");
         }
 
-        if (!roleSecurityMode && backendRoles != null) {
+        if (includeBackendRoles && backendRoles != null) {
             String listOfBackendRoles = String.join(",", backendRoles);
             claimsBuilder.claim("br", listOfBackendRoles);
         }
