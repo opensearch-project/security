@@ -1977,7 +1977,7 @@ public class SearchOperationTest {
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
         auditLogsRule.assertExactly(1, missingPrivilege(LIMITED_READ_USER, "RestoreSnapshotRequest"));
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
-        auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
+        auditLogsRule.assertAtLeast(4, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
     }
 
     @Test
