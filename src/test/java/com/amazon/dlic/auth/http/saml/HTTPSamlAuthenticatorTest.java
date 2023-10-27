@@ -26,6 +26,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -167,36 +168,40 @@ public class HTTPSamlAuthenticatorTest {
         mockSamlIdpServer.setAuthenticateUser("horst");
         mockSamlIdpServer.setEndpointQueryString(null);
 
-        Settings settings = Settings.builder()
-            .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
-            .put("kibana_url", "http://wherever")
-            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "6aff3042-1327-4f3d-82f0-40a157ac4464")
-            .put("roles_key", "roles")
-            .put("path.home", ".")
-            .build();
+        Set<String> exchangeKeys = Set.of("abc", "6aff3042-1327-4f3d-82f0-40a157ac4464");
+        // should work with both keys
+        for (String exchKey : exchangeKeys) {
+            Settings settings = Settings.builder()
+                .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://wherever")
+                .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("exchange_key", exchKey)
+                .put("roles_key", "roles")
+                .put("path.home", ".")
+                .build();
 
-        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+            HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
 
-        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+            AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
 
-        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+            String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
-        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+            RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
 
-        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
-        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
-            responseJson,
-            new TypeReference<HashMap<String, Object>>() {
-            }
-        );
-        String authorization = (String) response.get("authorization");
+            String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
+            HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
+                responseJson,
+                new TypeReference<HashMap<String, Object>>() {
+                }
+            );
+            String authorization = (String) response.get("authorization");
 
-        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+            Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+            SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+            Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+        }
     }
 
     private Optional<SecurityResponse> sendToAuthenticator(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) {
