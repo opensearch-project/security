@@ -16,7 +16,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -180,7 +179,6 @@ public class PointInTimeOperationTest {
         }
     }
 
-    @Ignore("Pretty sure cleanUpPits is returning before all of the PITs have actually been deleted")
     @Test
     public void listAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
@@ -247,7 +245,6 @@ public class PointInTimeOperationTest {
         }
     }
 
-    @Ignore("Pretty sure cleanUpPits is returning before all of the PITs have actually been deleted")
     @Test
     public void deleteAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
@@ -413,10 +410,25 @@ public class PointInTimeOperationTest {
     /**
     * Deletes all PITs.
     */
+
+    // && <- remove when fixed
     public void cleanUpPits() throws IOException {
+        // && attempt to connect as admin
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
+
+            // && probably implement check here?
+
+            // && get all point in time searches & log them for debug
+            System.out.println("TEEeEEeEeeeeeeeeeessssssstttttt");
+            // && this fixes it?
+            GetAllPitNodesResponse GetAllPitNodesResponse = restHighLevelClient.getAllPits(DEFAULT);
+            System.out.println(GetAllPitNodesResponse);
+            // && investigate why this fixes listAllPits_positive test
+
             try {
+                // && deletes all PITs in the cluster
                 restHighLevelClient.deleteAllPits(DEFAULT);
+                // && handle error (don't change)
             } catch (OpenSearchStatusException ex) {
                 if (ex.status() != RestStatus.NOT_FOUND) {
                     throw ex;
