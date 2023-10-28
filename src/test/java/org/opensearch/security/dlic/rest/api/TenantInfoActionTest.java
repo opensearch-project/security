@@ -19,20 +19,24 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.test.framework.AsyncActions;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     private String payload = "{\"hosts\":[],\"users\":[\"sarek\"],"
-            + "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated "
-            + "from v6\"}";
+        + "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated "
+        + "from v6\"}";
     private final String BASE_ENDPOINT;
     private final String ENDPOINT;
 
@@ -48,8 +52,8 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     @Test
     public void testTenantInfoAPIAccess() throws Exception {
         Settings settings = Settings.builder()
-                .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
-                .build();
+            .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
+            .build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
@@ -69,8 +73,8 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     @Test
     public void testTenantInfoAPIUpdate() throws Exception {
         Settings settings = Settings.builder()
-                .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
-                .build();
+            .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
+            .build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
@@ -79,14 +83,13 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
 
         // update security config
         RestHelper.HttpResponse response = rh.executePatchRequest(
-                BASE_ENDPOINT + "/api/securityconfig",
-                "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\","
-                        + "\"value\": \"opendistro_security_internal\"}]",
-                new Header[0]);
+            BASE_ENDPOINT + "/api/securityconfig",
+            "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\"," + "\"value\": \"opendistro_security_internal\"}]",
+            new Header[0]
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(BASE_ENDPOINT + "/api/rolesmapping/opendistro_security_internal", payload,
-                new Header[0]);
+        response = rh.executePutRequest(BASE_ENDPOINT + "/api/rolesmapping/opendistro_security_internal", payload, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         rh.sendAdminCertificate = false;
@@ -96,61 +99,33 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testParallelPutRequests() throws Exception {
-
         setup();
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
+        final String TENANTS_ENDPOINT = BASE_ENDPOINT + "/api/tenants/tenant1";
+        final String TENANTS_BODY = "{\"description\":\"create new tenant\"}";
 
-        String[] tenantNames = { "tenant_1", "tenant_2" };
-        String[] descriptions = { "create tenant 1", "create tenant 2" };
-        HttpResponse[] responses = executeMultipleAsyncPutRequest(tenantNames, descriptions);
-        int numCreatedResponses = 0;
-        int numConflictResponses = 0;
-        Integer requestIndexCreated = null;
-        for (int i = 0; i < responses.length; i++) {
-            HttpResponse response = responses[i];
-            if (response.getStatusCode() == HttpStatus.SC_CREATED) {
-                numCreatedResponses++;
-                requestIndexCreated = i;
-            } else if (response.getStatusCode() == HttpStatus.SC_CONFLICT) {
-                numConflictResponses++;
-            }
-        }
-        Assert.assertEquals(1, numCreatedResponses); // check that no more than 1 created status is read
-        Assert.assertEquals(1, numConflictResponses); // check that no more than 1 conflict status is read
-        Assert.assertNotNull(requestIndexCreated); // check that a created status is read
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final List<CompletableFuture<RestHelper.HttpResponse>> conflictingRequests = AsyncActions.generate(() -> {
+            return rh.executePutRequest(TENANTS_ENDPOINT, TENANTS_BODY);
+        }, 2, 4);
 
-        HttpResponse response = rh
-                .executeGetRequest(BASE_ENDPOINT + "/api/tenants/" + tenantNames[requestIndexCreated]);
-        Assert.assertEquals(descriptions[requestIndexCreated],
-                response.findValueInJson(tenantNames[requestIndexCreated] + ".description"));
-    }
+        // Make sure all requests start at the same time
+        countDownLatch.countDown();
 
-    private HttpResponse[] executeMultipleAsyncPutRequest(final String[] names,
-            final String[] descriptions) throws Exception {
-        final int numOfRequests = Math.min(names.length, descriptions.length);
-        final String TENANTS_ENDPOINT = BASE_ENDPOINT + "/api/tenants/";
-        final ExecutorService executorService = Executors.newFixedThreadPool(numOfRequests);
-        try {
-            List<Future<HttpResponse>> futures = new ArrayList<>(numOfRequests);
-            for (int i_ = 0; i_ < numOfRequests; i_++) {
-                final int i = i_;
-                final String request = TENANTS_ENDPOINT + names[i];
-                final String body = String.format("{\"description\":\"%s\"}", descriptions[i]);
-                futures.add(executorService.submit(() -> rh.executePutRequest(request, body)));
-            }
-            return futures.stream().map(this::from).toArray(HttpResponse[]::new);
-        } finally {
-            executorService.shutdown();
-        }
-    }
+        AtomicInteger numCreatedResponses = new AtomicInteger();
+        AsyncActions.getAll(conflictingRequests, 1, TimeUnit.SECONDS).forEach((response) -> {
+            assertThat(response.getStatusCode(), anyOf(equalTo(HttpStatus.SC_CREATED), equalTo(HttpStatus.SC_CONFLICT))); // make sure every
+                                                                                                                          // response is
+                                                                                                                          // either 201 or
+                                                                                                                          // 409
+            if (response.getStatusCode() == HttpStatus.SC_CREATED) numCreatedResponses.getAndIncrement(); // check how many synchronous
+                                                                                                          // requests are going through
+        });
+        assertThat(numCreatedResponses.get(), equalTo(1)); // should only be one 201
 
-    private HttpResponse from(Future<HttpResponse> future) {
-        try {
-            return future.get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        RestHelper.HttpResponse getResponse = rh.executeGetRequest(TENANTS_ENDPOINT); // make sure the one 201 works
+        assertThat(getResponse.findValueInJson("tenant1" + ".description"), equalTo("create new tenant"));
     }
 }
