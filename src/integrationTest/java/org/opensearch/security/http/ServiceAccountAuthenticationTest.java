@@ -29,7 +29,10 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.opensearch.security.support.ConfigConstants.*;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -43,8 +46,9 @@ public class ServiceAccountAuthenticationTest {
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String SERVICE_ACCOUNT_USER_NAME = "admin-extension";
-
+    // CS-ENFORCE-SINGLE
     private static final TestSecurityConfig.Role SERVICE_ACCOUNT_ADMIN_ROLE = new TestSecurityConfig.Role("admin-extension-role")
         .clusterPermissions("*")
         .indexPermissions("*", "system:admin/system_index")
@@ -87,8 +91,8 @@ public class ServiceAccountAuthenticationTest {
 
     @Test
     public void testClusterHealthWithServiceAccountCred() throws JsonProcessingException {
-        try (TestRestClient client = cluster.getRestClient("admin-extension", DEFAULT_PASSWORD)) {
-            client.confirmCorrectCredentials("admin-extension");
+        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
+            client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get("_cluster/health");
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
@@ -104,8 +108,8 @@ public class ServiceAccountAuthenticationTest {
 
     @Test
     public void testReadSysIndexWithServiceAccountCred() {
-        try (TestRestClient client = cluster.getRestClient("admin-extension", DEFAULT_PASSWORD)) {
-            client.confirmCorrectCredentials("admin-extension");
+        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
+            client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get("test-sys-index");
             response.assertStatusCode(HttpStatus.SC_OK);
             // TODO: REMOVE THIS AND PARSING/CHECKING THE RESPONSE
@@ -115,8 +119,8 @@ public class ServiceAccountAuthenticationTest {
 
     @Test
     public void testReadNonSysIndexWithServiceAccountCred() {
-        try (TestRestClient client = cluster.getRestClient("admin-extension", DEFAULT_PASSWORD)) {
-            client.confirmCorrectCredentials("admin-extension");
+        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
+            client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get("test-non-sys-index");
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             // TODO: REMOVE THIS AND PARSING/CHECKING THE RESPONSE
