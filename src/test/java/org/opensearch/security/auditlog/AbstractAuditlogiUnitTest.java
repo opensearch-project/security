@@ -11,7 +11,6 @@
 
 package org.opensearch.security.auditlog;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
@@ -86,33 +85,14 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
     protected void validateMsgs(final Collection<AuditMessage> msgs) throws Exception {
         for (AuditMessage msg : msgs) {
-            try {
-                validateMsg(msg);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(msg + " errored because of following validateMsg error: " + e.getMessage(), e);
-            } catch (JsonMappingException e) {
-                throw e;
-            }
+            validateMsg(msg);
         }
 
     }
 
     protected void validateMsg(final AuditMessage msg) throws Exception {
-        try {
-            validateJson(msg.toJson());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("msg.toJson() errored with message: " + e.getMessage(), e);
-        } catch (JsonMappingException e) {
-            throw e;
-        }
-
-        try {
-            validateJson(msg.toPrettyString());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("msg.toPrettyString() errored with message: " + e.getMessage(), e);
-        } catch (JsonMappingException e) {
-            throw e;
-        }
+        validateJson(msg.toJson());
+        validateJson(msg.toPrettyString());
     }
 
     protected void validateJson(final String json) throws Exception { // this function can throw either IllegalArgumentException, JsonMappingException
