@@ -128,6 +128,18 @@ public class ServiceAccountAuthenticationTest {
         }
     }
 
+    @Test
+    public void testReadBothWithServiceAccountCred() {
+        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
+            client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
+            TestRestClient.HttpResponse response = client.get("test-non-sys-index,test-sys-index");
+            response.assertStatusCode(HttpStatus.SC_OK);
+            // TODO: CHECK IT ONLY READ SYSTEM INDEX AND FILTERED OUT REGULAR INDEX
+            // TODO: REMOVE THIS AND PARSING/CHECKING THE RESPONSE
+            System.out.println(response);
+        }
+    }
+
     // TODO: REMOVE THIS DEBUGGING TEST CASE
     @Test
     public void testReadNonSysIndexWithAdminCred() {

@@ -200,6 +200,29 @@ public class SecurityIndexAccessEvaluator {
     }
 
     /**
+     * Checks if the request contains any regular (non-system and non-protected) indices.
+     * Regular indices are those that are not categorized as system indices or protected system indices.
+     * This method helps in identifying requests that might be accessing regular indices alongside system indices.
+     * @param requestedResolved The resolved object of the request, which contains the list of indices from the original request.
+     * @return true if the request contains any regular indices, false otherwise.
+     */
+    private boolean requestContainsAnyRegularIndices(final Resolved requestedResolved) {
+        Set<String> allIndices = requestedResolved.getAllIndices();
+
+        List<String> allSystemIndices = getAllSystemIndices(requestedResolved);
+        List<String> allProtectedSystemIndices = getAllProtectedSystemIndices(requestedResolved);
+
+        for (String index : allIndices) {
+            // Check if the index is not in the list of system or protected system indices
+            if (!allSystemIndices.contains(index) && !allProtectedSystemIndices.contains(index)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Is the current action allowed to be performed on security index
      * @param action request action on security index
      * @return true if action is allowed, false otherwise
@@ -233,17 +256,41 @@ public class SecurityIndexAccessEvaluator {
     ) {
         // Perform access check is system index permissions are enabled
         boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
+        boolean containsRegularIndex = requestContainsAnyRegularIndices(requestedResolved);
         boolean serviceAccountUser = user.isServiceAccount();
 
         if (isSystemIndexPermissionEnabled) {
-            if (serviceAccountUser && !containsSystemIndex) {
-                auditLog.logSecurityIndexAttempt(request, action, task);
-                if (log.isInfoEnabled()) {
-                    log.info("{} not permitted for a service account {} on non system indices.", action, securityRoles);
+            if (serviceAccountUser) {
+                if (!containsSystemIndex && containsRegularIndex) {
+                    auditLog.logSecurityIndexAttempt(request, action, task);
+                    if (log.isInfoEnabled()) {
+                        log.info("{} not permitted for a service account {} on non-system indices.", action, securityRoles);
+                    }
+                    presponse.allowed = false;
+                    presponse.markComplete();
+                    return;
+                } else if (containsSystemIndex && containsRegularIndex) {
+                    // Filter out regular indices
+                    List<String> systemIndices = getAllSystemIndices(requestedResolved);
+                    irr.replace(request, false, systemIndices.toArray(new String[0]));
+                    if (log.isDebugEnabled()) {
+                        log.debug("Filtered out regular indices, resulting list is {}", systemIndices);
+                    }
+                    // Recalculate indices after filtering
+                    Resolved filteredResolved = irr.resolveRequest(request);
+                    evaluateSystemIndicesAccess(
+                        action,
+                        filteredResolved,
+                        request,
+                        task,
+                        presponse,
+                        securityRoles,
+                        user,
+                        resolver,
+                        clusterService
+                    );
+                    return;
                 }
-                presponse.allowed = false;
-                presponse.markComplete();
-                return;
             }
             boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
             if (containsProtectedIndex) {
