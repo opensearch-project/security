@@ -18,6 +18,8 @@ import java.security.cert.CertificateException;
 
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.security.test.helper.file.FileHelper;
 
@@ -34,7 +36,8 @@ public class CertFromTruststoreTests {
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca");
 
-        Assert.assertEquals(1, cert.getClientTrustedCerts().length);
+        assertThat(cert.getClientTrustedCerts().length, is(1));
+
         Assert.assertTrue(cert.getClientTrustedCerts().equals(cert.getServerTrustedCerts()));
     }
 
@@ -47,8 +50,8 @@ public class CertFromTruststoreTests {
         );
 
         CertFromTruststore cert = new CertFromTruststore(props, null);
+        assertThat(cert.getClientTrustedCerts().length, is(1));
 
-        Assert.assertEquals(1, cert.getClientTrustedCerts().length);
     }
 
     public void testLoadDifferentCertsForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
@@ -61,8 +64,9 @@ public class CertFromTruststoreTests {
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca", "root-ca");
 
-        Assert.assertEquals(1, cert.getClientTrustedCerts().length);
-        Assert.assertEquals(1, cert.getServerTrustedCerts().length);
+        assertThat(cert.getClientTrustedCerts().length, is(1));
+
+        assertThat(cert.getServerTrustedCerts().length, is(1));
         // we are loading same cert twice
         Assert.assertFalse(cert.getClientTrustedCerts().equals(cert.getServerTrustedCerts()));
     }

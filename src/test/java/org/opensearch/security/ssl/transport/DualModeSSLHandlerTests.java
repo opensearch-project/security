@@ -13,6 +13,8 @@ package org.opensearch.security.ssl.transport;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -20,7 +22,6 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslHandler;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -114,6 +115,6 @@ public class DualModeSSLHandlerTests {
         Mockito.verify(ctx, Mockito.times(1)).writeAndFlush(serverHelloReplyBuffer.capture());
 
         String actualReply = serverHelloReplyBuffer.getValue().getCharSequence(0, 6, StandardCharsets.UTF_8).toString();
-        Assert.assertEquals(SSLConnectionTestUtil.DUAL_MODE_SERVER_HELLO_MSG, actualReply);
+        assertThat(actualReply, is(SSLConnectionTestUtil.DUAL_MODE_SERVER_HELLO_MSG));
     }
 }

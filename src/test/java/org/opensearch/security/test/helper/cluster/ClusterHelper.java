@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -380,7 +382,7 @@ public final class ClusterHelper {
                 log.debug("... cluster state ok {} with {} nodes", healthResponse.getStatus().name(), healthResponse.getNumberOfNodes());
             }
 
-            org.junit.Assert.assertEquals(expectedNodeCount, healthResponse.getNumberOfNodes());
+            assertThat(healthResponse.getNumberOfNodes(), is(expectedNodeCount));
 
             final NodesInfoResponse res = client.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 

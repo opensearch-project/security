@@ -12,8 +12,9 @@ package org.opensearch.security.support;
 
 import java.io.Serializable;
 
-import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import static org.opensearch.security.support.Base64Helper.deserializeObject;
 import static org.opensearch.security.support.Base64Helper.serializeObject;
@@ -36,8 +37,8 @@ public class Base64HelperTest {
     @Test
     public void testSerde() {
         String test = "string";
-        Assert.assertEquals(test, ds(test));
-        Assert.assertEquals(test, dsJDK(test));
+        assertThat(ds(test), is(test));
+        assertThat(dsJDK(test), is(test));
     }
 
     @Test
@@ -45,8 +46,8 @@ public class Base64HelperTest {
         String test = "string";
         String jdkSerialized = Base64Helper.serializeObject(test, true);
         String customSerialized = Base64Helper.serializeObject(test, false);
-        Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(jdkSerialized));
-        Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(customSerialized));
+        assertThat(Base64Helper.ensureJDKSerialized(jdkSerialized), is(jdkSerialized));
+        assertThat(Base64Helper.ensureJDKSerialized(customSerialized), is(jdkSerialized));
 
     }
 

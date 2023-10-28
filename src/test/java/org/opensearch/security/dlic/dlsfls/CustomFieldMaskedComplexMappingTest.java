@@ -16,6 +16,8 @@ import java.nio.charset.StandardCharsets;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -61,9 +63,9 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
             + "}";
 
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
 
         Assert.assertTrue(res.getBody().contains("win 8"));
@@ -84,19 +86,20 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("c1f04335d9f41"));
 
         for (int i = 0; i < 10; i++) {
-            Assert.assertEquals(
-                HttpStatus.SC_OK,
+            assertThat(
                 rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("user_masked_nowc1", "password"))
-                    .getStatusCode()
+                    .getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
+
         }
 
         for (int i = 0; i < 10; i++) {
 
-            Assert.assertEquals(
-                HttpStatus.SC_OK,
+            assertThat(
                 (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("user_masked_nowc", "password")))
-                    .getStatusCode()
+                    .getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
 
             Assert.assertFalse(res.getBody().contains("\"aaa"));
@@ -118,18 +121,19 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
             Assert.assertFalse(res.getBody().contains("osx"));
             Assert.assertFalse(res.getBody().contains("win 7"));
 
-            Assert.assertEquals(
-                HttpStatus.SC_OK,
-                rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin")).getStatusCode()
+            assertThat(
+                rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin")).getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
 
         }
 
         for (int i = 0; i < 10; i++) {
-            Assert.assertEquals(
-                HttpStatus.SC_OK,
-                (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+            assertThat(
+                (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
+
             Assert.assertTrue(res.getBody().contains("win 8"));
             Assert.assertTrue(res.getBody().contains("win xp"));
             Assert.assertTrue(res.getBody().contains("ios"));
@@ -157,10 +161,11 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertFalse(
             res.getBody()
                 .contains(
@@ -187,11 +192,12 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
 
         for (int i = 0; i < 10; i++) {
 
-            Assert.assertEquals(
-                HttpStatus.SC_OK,
+            assertThat(
                 (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("user_masked_nowc", "password")))
-                    .getStatusCode()
+                    .getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
+
             Assert.assertTrue(
                 res.getBody()
                     .contains(
@@ -217,10 +223,11 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
             Assert.assertFalse(res.getBody().contains("\"timestamp\" : \"2018-07-22T20:45:16.163Z"));
         }
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertFalse(
             res.getBody()
                 .contains(

@@ -21,6 +21,8 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -41,51 +43,51 @@ public class Base64JDKHelperTest {
     @Test
     public void testString() {
         String string = "string";
-        Assert.assertEquals(string, ds(string));
+        assertThat(ds(string), is(string));
     }
 
     @Test
     public void testInteger() {
         Integer integer = 0;
-        Assert.assertEquals(integer, ds(integer));
+        assertThat(ds(integer), is(integer));
     }
 
     @Test
     public void testDouble() {
         Double number = 0.0;
-        Assert.assertEquals(number, ds(number));
+        assertThat(ds(number), is(number));
     }
 
     @Test
     public void testInetSocketAddress() {
         InetSocketAddress inetSocketAddress = new InetSocketAddress(0);
-        Assert.assertEquals(inetSocketAddress, ds(inetSocketAddress));
+        assertThat(ds(inetSocketAddress), is(inetSocketAddress));
     }
 
     @Test
     public void testUser() {
         User user = new User("user");
-        Assert.assertEquals(user, ds(user));
+        assertThat(ds(user), is(user));
     }
 
     @Test
     public void testSourceFieldsContext() {
         SourceFieldsContext sourceFieldsContext = new SourceFieldsContext(new SearchRequest(""));
-        Assert.assertEquals(sourceFieldsContext.toString(), ds(sourceFieldsContext).toString());
+        assertThat(ds(sourceFieldsContext).toString(), is(sourceFieldsContext.toString()));
     }
 
     @Test
     public void testHashMap() {
         HashMap<String, String> map = new HashMap<>();
         map.put("key", "value");
-        Assert.assertEquals(map, ds(map));
+        assertThat(ds(map), is(map));
     }
 
     @Test
     public void testArrayList() {
         ArrayList<String> list = new ArrayList<>();
         list.add("value");
-        Assert.assertEquals(list, ds(list));
+        assertThat(ds(list), is(list));
     }
 
     @Test(expected = OpenSearchException.class)
@@ -112,7 +114,7 @@ public class Base64JDKHelperTest {
             34,
             WildcardMatcher.ANY
         );
-        Assert.assertEquals(ldapUser, ds(ldapUser));
+        assertThat(ds(ldapUser), is(ldapUser));
     }
 
     @Test
@@ -122,7 +124,7 @@ public class Base64JDKHelperTest {
         // we expect to get User object when deserializing InjectedUser via JDK serialization
         User user = new User("username");
         User deserializedUser = (User) ds(injectedUser);
-        Assert.assertEquals(user, deserializedUser);
+        assertThat(deserializedUser, is(user));
         Assert.assertTrue(deserializedUser.isInjected());
     }
 }

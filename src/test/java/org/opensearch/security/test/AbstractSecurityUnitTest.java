@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -265,7 +267,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     protected void initialize(ClusterHelper clusterHelper, ClusterInfo clusterInfo, DynamicSecurityConfig securityConfig)
         throws IOException {
         try (Client tc = clusterHelper.nodeClient()) {
-            Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(clusterInfo.numNodes));
 
             try {
                 tc.admin().indices().create(new CreateIndexRequest(".opendistro_security")).actionGet();
@@ -283,7 +285,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                 new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))
             ).actionGet();
             Assert.assertFalse(cur.failures().toString(), cur.hasFailures());
-            Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
+            assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
 
             SearchResponse sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
             sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();

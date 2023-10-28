@@ -13,6 +13,8 @@ package org.opensearch.security.support;
 
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.opensearch.OpenSearchException;
 
 import java.net.InetSocketAddress;
@@ -23,7 +25,7 @@ public class StreamableRegistryTest {
 
     @Test
     public void testStreamableTypeIDs() {
-        Assert.assertEquals(1, streamableRegistry.getStreamableID(InetSocketAddress.class));
+        assertThat(streamableRegistry.getStreamableID(InetSocketAddress.class), is(1));
         Assert.assertThrows(OpenSearchException.class, () -> streamableRegistry.getStreamableID(String.class));
     }
 }
