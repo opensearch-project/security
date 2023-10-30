@@ -41,7 +41,12 @@ public class SecurityTokenManager implements TokenManager {
     private JwtVendor jwtVendor = null;
     private ConfigModel configModel = null;
 
-    public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService, final Settings settings) {
+    public SecurityTokenManager(
+        final ClusterService cs,
+        final ThreadPool threadPool,
+        final UserService userService,
+        final Settings settings
+    ) {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
@@ -75,8 +80,10 @@ public class SecurityTokenManager implements TokenManager {
     public ExpiringBearerAuthToken issueOnBehalfOfToken(final Subject subject, final OnBehalfOfClaims claims) {
         if (oboNotSupported()) {
             // TODO: link that doc!
-            throw new OpenSearchSecurityException("The OnBehalfOf token generate is not enabled, see {link to doc} for more information on this feature.");
-        } 
+            throw new OpenSearchSecurityException(
+                "The OnBehalfOf token generate is not enabled, see {link to doc} for more information on this feature."
+            );
+        }
 
         if (subject != null && !(subject instanceof NoopSubject)) {
             logger.warn("Unsupported subject for OnBehalfOfToken token generation, {}", subject);
@@ -87,7 +94,6 @@ public class SecurityTokenManager implements TokenManager {
             throw new IllegalArgumentException("Claims must be supplied with an audience value");
         }
 
-
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             throw new OpenSearchSecurityException("Unsupported user to generate OnBehalfOfToken");
@@ -97,13 +103,15 @@ public class SecurityTokenManager implements TokenManager {
         final Set<String> mappedRoles = configModel.mapSecurityRoles(user, callerAddress);
 
         try {
-            return jwtVendor.createJwt(cs.getClusterName().value(),
+            return jwtVendor.createJwt(
+                cs.getClusterName().value(),
                 user.getName(),
                 claims.getAudience(),
                 claims.getExpiration(),
                 mappedRoles.stream().collect(Collectors.toList()),
                 user.getRoles().stream().collect(Collectors.toList()),
-                false);
+                false
+            );
         } catch (final Exception ex) {
             logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate OnBehalfOfToken");

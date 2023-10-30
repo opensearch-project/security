@@ -32,7 +32,7 @@ public class ExpiringBearerAuthToken extends BearerAuthToken {
 
     public Date getExpiry() {
         return expiry;
-    } 
+    }
 
     public long getExpiresInSeconds() {
         return expiresInSeconds;

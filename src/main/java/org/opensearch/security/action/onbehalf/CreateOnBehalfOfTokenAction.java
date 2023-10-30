@@ -151,7 +151,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         }
 
         if (durationObj instanceof Integer) {
-            return (Integer)durationObj;
+            return (Integer) durationObj;
         } else if (durationObj instanceof String) {
             try {
                 return Long.parseLong((String) durationObj);

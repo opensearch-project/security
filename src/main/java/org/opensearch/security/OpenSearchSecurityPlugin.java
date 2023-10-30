@@ -126,7 +126,6 @@ import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.identity.SecuritySubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
@@ -778,7 +777,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public List<TransportInterceptor> getTransportInterceptors(final NamedWriteableRegistry namedWriteableRegistry, final ThreadContext threadContext) {
+    public List<TransportInterceptor> getTransportInterceptors(
+        final NamedWriteableRegistry namedWriteableRegistry,
+        final ThreadContext threadContext
+    ) {
         final List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {

@@ -182,7 +182,10 @@ public class OnBehalfOfJwtAuthenticationTest {
         final Object er = claims.get("er");
         final EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
         final String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
-        final Set<String> roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+        final Set<String> roles = Arrays.stream(rolesClaim.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toSet());
 
         assertThat(roles, equalTo(HOST_MAPPING_OBO_USER.getRoleNames()));
         assertThat(roles, not(contains("host_mapping_role")));
