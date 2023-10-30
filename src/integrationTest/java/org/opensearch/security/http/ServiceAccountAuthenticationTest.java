@@ -81,7 +81,7 @@ public class ServiceAccountAuthenticationTest {
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_admin__all_access"),
                 SECURITY_SYSTEM_INDICES_KEY,
-                List.of("test-sys-index")
+                List.of(TEST_SYS_INDEX.getName())
             )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
@@ -106,13 +106,13 @@ public class ServiceAccountAuthenticationTest {
     public void testReadSysIndexWithServiceAccountCred() {
         try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
-            TestRestClient.HttpResponse response = client.get("test-sys-index");
+            TestRestClient.HttpResponse response = client.get(TEST_SYS_INDEX.getName());
             response.assertStatusCode(HttpStatus.SC_OK);
 
             String responseBody = response.getBody();
 
             assertNotNull("Response body should not be null", responseBody);
-            assertTrue(responseBody.contains("test-sys-index"));
+            assertTrue(responseBody.contains(TEST_SYS_INDEX.getName()));
         }
     }
 
@@ -120,7 +120,7 @@ public class ServiceAccountAuthenticationTest {
     public void testReadNonSysIndexWithServiceAccountCred() {
         try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
-            TestRestClient.HttpResponse response = client.get("test-non-sys-index");
+            TestRestClient.HttpResponse response = client.get(TEST_NON_SYS_INDEX.getName());
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
             String responseBody = response.getBody();
@@ -140,8 +140,8 @@ public class ServiceAccountAuthenticationTest {
         String responseBody = response.getBody();
 
         assertNotNull("Response body should not be null", responseBody);
-        assertTrue(responseBody.contains("test-sys-index"));
-        assertFalse(responseBody.contains("test-non-sys-index"));
+        assertTrue(responseBody.contains(TEST_SYS_INDEX.getName()));
+        assertFalse(responseBody.contains(TEST_NON_SYS_INDEX.getName()));
 
     }
 }
