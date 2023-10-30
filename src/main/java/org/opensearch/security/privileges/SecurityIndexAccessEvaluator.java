@@ -259,10 +259,12 @@ public class SecurityIndexAccessEvaluator {
                     log.info("{} not permitted for a service account {} on non-system indices.", action, securityRoles);
                 } else if (containsSystemIndex && log.isDebugEnabled()) {
                     List<String> regularIndices = requestedResolved.getAllIndices()
-                            .stream()
-                            .filter(index -> !getAllSystemIndices(requestedResolved).contains(index)
-                                    && !getAllProtectedSystemIndices(requestedResolved).contains(index))
-                            .collect(Collectors.toList());
+                        .stream()
+                        .filter(
+                            index -> !getAllSystemIndices(requestedResolved).contains(index)
+                                && !getAllProtectedSystemIndices(requestedResolved).contains(index)
+                        )
+                        .collect(Collectors.toList());
                     log.debug("Service account cannot access regular indices: {}", regularIndices);
                 }
                 presponse.allowed = false;
