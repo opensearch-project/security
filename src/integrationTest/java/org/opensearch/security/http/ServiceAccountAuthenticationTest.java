@@ -12,9 +12,6 @@
 package org.opensearch.security.http;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -30,7 +27,6 @@ import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY;
@@ -93,70 +89,59 @@ public class ServiceAccountAuthenticationTest {
         .build();
 
     @Test
-    public void testClusterHealthWithServiceAccountCred() throws JsonProcessingException {
+    public void testClusterHealthWithServiceAccountCred() {
         try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get("_cluster/health");
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
             String responseBody = response.getBody();
+
             assertNotNull("Response body should not be null", responseBody);
-
-            ObjectMapper objectMapper = new ObjectMapper();
-            String typeField = objectMapper.readTree(responseBody).at("/error/root_cause/0/type").asText();
-
-            assertEquals("security_exception", typeField);
+            assertTrue(responseBody.contains("\"type\":\"security_exception\""));
         }
     }
 
     @Test
-    public void testReadSysIndexWithServiceAccountCred() throws JsonProcessingException {
+    public void testReadSysIndexWithServiceAccountCred() {
         try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get("test-sys-index");
             response.assertStatusCode(HttpStatus.SC_OK);
 
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+            String responseBody = response.getBody();
 
-            boolean hasTestSysIndex = jsonResponse.has("test-sys-index");
-            assertTrue("Response should contain 'test-sys-index'", hasTestSysIndex);
-
+            assertNotNull("Response body should not be null", responseBody);
+            assertTrue(responseBody.contains("test-sys-index"));
         }
     }
 
     @Test
-    public void testReadNonSysIndexWithServiceAccountCred() throws JsonProcessingException {
+    public void testReadNonSysIndexWithServiceAccountCred() {
         try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get("test-non-sys-index");
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+
             String responseBody = response.getBody();
 
             assertNotNull("Response body should not be null", responseBody);
-
-            ObjectMapper objectMapper = new ObjectMapper();
-            String typeField = objectMapper.readTree(responseBody).at("/error/root_cause/0/type").asText();
-
-            assertEquals("security_exception", typeField);
+            assertTrue(responseBody.contains("\"type\":\"security_exception\""));
         }
     }
 
     @Test
-    public void testReadBothWithServiceAccountCred() throws JsonProcessingException {
+    public void testReadBothWithServiceAccountCred() {
         TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD);
         client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
         TestRestClient.HttpResponse response = client.get("test-non-sys-index,test-sys-index");
         response.assertStatusCode(HttpStatus.SC_OK);
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+        String responseBody = response.getBody();
 
-        boolean hasTestSysIndex = jsonResponse.has("test-sys-index");
-        boolean hasTestNonSysIndex = jsonResponse.has("test-non-sys-index");
-
-        assertTrue("Response should contain 'test-sys-index'", hasTestSysIndex);
-        assertFalse("Response should not contain 'test-non-sys-index'", hasTestNonSysIndex);
+        assertNotNull("Response body should not be null", responseBody);
+        assertTrue(responseBody.contains("test-sys-index"));
+        assertFalse(responseBody.contains("test-non-sys-index"));
 
     }
 }
