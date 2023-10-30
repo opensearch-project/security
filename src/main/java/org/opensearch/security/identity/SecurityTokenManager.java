@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
- package org.opensearch.security.identity;
+package org.opensearch.security.identity;
 
 import java.util.Optional;
 import java.util.Set;
@@ -26,7 +26,6 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.AuthToken;
-import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
@@ -52,11 +51,7 @@ public class SecurityTokenManager implements TokenManager {
     private JwtVendor jwtVendor = null;
     private ConfigModel configModel = null;
 
-    public SecurityTokenManager(
-        final ClusterService cs,
-        final ThreadPool threadPool,
-        final UserService userService
-    ) {
+    public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
@@ -72,14 +67,19 @@ public class SecurityTokenManager implements TokenManager {
         final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
         final Boolean enabled = oboSettings.getAsBoolean("enabled", false);
         if (enabled) {
-            jwtVendor = new JwtVendor(oboSettings, Optional.empty());
+            jwtVendor = createJwtVendor(oboSettings);
         } else {
             jwtVendor = null;
         }
     }
 
-    private boolean oboNotSupported() {
-        return jwtVendor == null;
+    /** For testing */
+    JwtVendor createJwtVendor(final Settings settings) {
+        return new JwtVendor(settings, Optional.empty());
+    }
+
+    boolean oboNotSupported() {
+        return jwtVendor == null || configModel == null;
     }
 
     @Override
@@ -127,9 +127,9 @@ public class SecurityTokenManager implements TokenManager {
     @Override
     public AuthToken issueServiceAccountToken(final String serviceId) {
         try {
-            return new BasicAuthToken(this.userService.generateAuthToken(serviceId));
+            return userService.generateAuthToken(serviceId);
         } catch (final Exception e) {
-            logger.error("Error creating sevice final account auth token, service {}", serviceId);
+            logger.error("Error creating sevice final account auth token, service " + serviceId, e);
             throw new OpenSearchSecurityException("Unable to issue service account token");
         }
     }

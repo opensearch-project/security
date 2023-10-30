@@ -9,75 +9,58 @@
  * GitHub history for details.
  */
 
- package org.opensearch.security.identity;
+package org.opensearch.security.identity;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.LongSupplier;
+import java.util.Set;
 
-import com.google.common.io.BaseEncoding;
-import com.nimbusds.jwt.SignedJWT;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.Logger;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
-import org.opensearch.identity.tokens.BasicAuthToken;
-import org.opensearch.identity.tokens.BearerAuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
-import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
+import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.jwk.JWK;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
-import static org.hamcrest.core.IsNull.notNullValue;
-
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SecurityTokenManagerTest {
 
     private SecurityTokenManager tokenManager;
-    private ArgumentCaptor<LogEvent> logEventCaptor;
 
+    @Mock
+    private JwtVendor jwtVendor;
     @Mock
     private ClusterService cs;
     @Mock
@@ -87,254 +70,178 @@ public class SecurityTokenManagerTest {
 
     @Before
     public void setup() {
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService);
+        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService));
     }
 
     @After
     public void after() {
-        verifyNoInteractions(cs);
-        verifyNoInteractions(threadPool);
-        verifyNoInteractions(userService);
+        verifyNoMoreInteractions(cs);
+        verifyNoMoreInteractions(threadPool);
+        verifyNoMoreInteractions(userService);
     }
 
-    @Test
-    public void onConfigModelChanged() {
+    public void onConfigModelChanged_oboNotSupported() {
         final ConfigModel configModel = mock(ConfigModel.class);
 
         tokenManager.onConfigModelChanged(configModel);
 
-        verifyNoInteractions(configModel);
+        assertThat(tokenManager.oboNotSupported(), equalTo(true));
+        verifyNoMoreInteractions(configModel);
     }
 
     @Test
     public void onDynamicConfigModelChanged_JwtVendorEnabled() {
-        final DynamicConfigModel dcm = mock(DynamicConfigModel.class, RETURNS_DEEP_STUBS);
-        tokenManager.onDynamicConfigModelChanged(dcm);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        final DynamicConfigModel mockConfigModel = createMockJwtVendorInTokenManager();
 
-        verify(dcm).getDynamicOnBehalfOfSettings();
+        tokenManager.onConfigModelChanged(configModel);
+
+        assertThat(tokenManager.oboNotSupported(), equalTo(false));
+        verify(mockConfigModel).getDynamicOnBehalfOfSettings();
+        verifyNoMoreInteractions(configModel);
     }
 
-    // @Test
-    // public void testCreateJwkFromSettings() {
-    // final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
+    @Test
+    public void onDynamicConfigModelChanged_JwtVendorDisabled() {
+        final Settings settings = Settings.builder().put("enabled", false).build();
+        final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
+        when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        tokenManager.onDynamicConfigModelChanged(dcm);
 
-    // final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
-    // Assert.assertEquals("HS512", jwk.v1().getAlgorithm().getName());
-    // Assert.assertEquals("sig", jwk.v1().getKeyUse().toString());
-    // Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
-    // }
+        assertThat(tokenManager.oboNotSupported(), equalTo(true));
+        verify(dcm).getDynamicOnBehalfOfSettings();
+        verify(tokenManager, never()).createJwtVendor(any());
+    }
 
-    // @Test
-    // public void testCreateJwkFromSettingsWithWeakKey() {
-    // final Settings settings = Settings.builder().put("signing_key", "abcd1234").build();
-    // final Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
-    // assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
-    // }
+    /** Creates the jwt vendor and returns a mock for validation if needed */
+    private DynamicConfigModel createMockJwtVendorInTokenManager() {
+        final Settings settings = Settings.builder().put("enabled", true).build();
+        final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
+        when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        doAnswer((invocation) -> jwtVendor).when(tokenManager).createJwtVendor(settings);
+        tokenManager.onDynamicConfigModelChanged(dcm);
+        return dcm;
+    }
 
-    // @Test
-    // public void testCreateJwkFromSettingsWithoutSigningKey() {
-    // final Settings settings = Settings.builder().put("jwt", "").build();
-    // final Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
-    // assertThat(
-    // exception.getMessage(),
-    // equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
-    // );
-    // }
+    @Test
+    public void issueServiceAccountToken_error() throws Exception {
+        final String expectedAccountName = "abc-123";
+        when(userService.generateAuthToken(expectedAccountName)).thenThrow(new IOException("foobar"));
 
-    // @Test
-    // public void testCreateJwtWithRoles() throws Exception {
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final Set<String> roles = Set.of("IT", "HR");
-    // final Set<String> backendRoles = Set.of("Sales", "Support");
-    // final String expectedRoles = "IT,HR";
-    // final int expirySeconds = 300;
-    // // 2023 oct 4, 10:00:00 AM GMT
-    // final LongSupplier currentTime = () -> 1696413600000L;
-    // final String claimsEncryptionKey = "1234567890123456";
-    // final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key",
-    // claimsEncryptionKey).build();
+        final OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> tokenManager.issueServiceAccountToken(expectedAccountName)
+        );
+        assertThat(exception.getMessage(), equalTo("Unable to issue service account token"));
 
-    // final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-    // final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+        verify(userService).generateAuthToken(expectedAccountName);
+    }
 
-    // final SignedJWT signedJWT = SignedJWT.parse(encodedJwt);
+    @Test
+    public void issueServiceAccountToken_success() throws Exception {
+        final String expectedAccountName = "abc-123";
+        final AuthToken authToken = mock(AuthToken.class);
+        when(userService.generateAuthToken(expectedAccountName)).thenReturn(authToken);
 
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
-    // // 2023 oct 4, 10:00:00 AM GMT
-    // assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("iat")).getTime(), is(1696413600000L));
-    // // 2023 oct 4, 10:05:00 AM GMT
-    // assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
-    // final EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-    // assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), nullValue());
-    // }
+        final AuthToken token = tokenManager.issueServiceAccountToken(expectedAccountName);
 
-    // @Test
-    // public void testCreateJwtWithBackendRolesIncluded() throws Exception {
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final List<String> roles = List.of("IT", "HR");
-    // final List<String> backendRoles = List.of("Sales", "Support");
-    // final String expectedRoles = "IT,HR";
-    // final String expectedBackendRoles = "Sales,Support";
+        assertThat(token, equalTo(authToken));
 
-    // final long expirySeconds = 300L;
-    // final LongSupplier currentTime = () -> (long) 100;
-    // final String claimsEncryptionKey = "1234567890123456";
-    // final Settings settings = Settings.builder()
-    // .put("signing_key", signingKeyB64Encoded)
-    // .put("encryption_key", claimsEncryptionKey)
-    // // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-    // .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
-    // // CS-ENFORCE-SINGLE
-    // .build();
-    // final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-    // final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        verify(userService).generateAuthToken(expectedAccountName);
+    }
 
-    // final SignedJWT signedJWT = SignedJWT.parse(encodedJwt);
+    @Test
+    public void issueOnBehalfOfToken_notEnabledOnCluster() {
+        final OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> tokenManager.issueOnBehalfOfToken(null, null)
+        );
+        assertThat(
+            exception.getMessage(),
+            equalTo("The OnBehalfOf token generate is not enabled, see {link to doc} for more information on this feature.")
+        );
+    }
 
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("exp"), is(notNullValue()));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), is(notNullValue()));
-    // assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br").toString(), equalTo(expectedBackendRoles));
+    @Test
+    public void issueOnBehalfOfToken_unsupportedSubjectType() {
+        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        final IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> tokenManager.issueOnBehalfOfToken(mock(Subject.class), null)
+        );
+        assertThat(exception.getMessage(), equalTo("Unsupported subject to generate OnBehalfOfToken"));
+    }
 
-    // final EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-    // assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
-    // }
+    @Test
+    public void issueOnBehalfOfToken_missingAudience() {
+        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        final IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims(null, 450L))
+        );
+        assertThat(exception.getMessage(), equalTo("Claims must be supplied with an audience value"));
+    }
 
-    // @Test
-    // public void testCreateJwtWithNegativeExpiry() {
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final Set<String> roles = Set.of("admin");
-    // final long expirySeconds = -300L;
-    // final String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key",
-    // claimsEncryptionKey).build();
-    // final JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
+    @Test
+    public void issueOnBehalfOfToken_cannotFindUserInThreadContext() {
+        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L))
+        );
+        assertThat(exception.getMessage(), equalTo("Unsupported user to generate OnBehalfOfToken"));
 
-    // final Throwable exception = assertThrows(RuntimeException.class, () -> {
-    // try {
-    // jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-    // } catch (final Exception e) {
-    // throw new RuntimeException(e);
-    // }
-    // });
-    // assertEquals("java.lang.IllegalArgumentException: The expiration time should be a positive integer", exception.getMessage());
-    // }
+        verify(threadPool).getThreadContext();
+    }
 
-    // @Test
-    // public void testCreateJwtWithExceededExpiry() throws Exception {
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final Set<String> roles = Set.of("IT", "HR");
-    // final Set<String> backendRoles = Set.of("Sales", "Support");
-    // final long expirySeconds = 900L;
-    // final LongSupplier currentTime = () -> (long) 100;
-    // final String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key",
-    // claimsEncryptionKey).build();
-    // final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+    @Test
+    public void issueOnBehalfOfToken_jwtGenerationFailure() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
-    // final Throwable exception = assertThrows(RuntimeException.class, () -> {
-    // try {
-    // jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
-    // } catch (final Exception e) {
-    // throw new RuntimeException(e);
-    // }
-    // });
-    // assertEquals(
-    // "java.lang.IllegalArgumentException: The provided expiration time exceeds the maximum allowed duration of 600 seconds",
-    // exception.getMessage()
-    // );
-    // }
+        createMockJwtVendorInTokenManager();
 
-    // @Test
-    // public void testCreateJwtWithBadEncryptionKey() {
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final List<String> roles = List.of("admin");
-    // final Integer expirySeconds = 300;
+        when(jwtVendor.createJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenThrow(
+            new RuntimeException("foobar")
+        );
+        final OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L))
+        );
+        assertThat(exception.getMessage(), equalTo("Unable to generate OnBehalfOfToken"));
 
-    // final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
+    }
 
-    // final Throwable exception = assertThrows(RuntimeException.class, () -> {
-    // try {
-    // new JwtVendor(settings, Optional.empty()).createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-    // } catch (final Exception e) {
-    // throw new RuntimeException(e);
-    // }
-    // });
-    // assertEquals("java.lang.IllegalArgumentException: encryption_key cannot be null", exception.getMessage());
-    // }
+    @Test
+    public void issueOnBehalfOfToken_success() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
 
-    // @Test
-    // public void testCreateJwtWithBadRoles() {
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final Set<String> roles = null;
-    // final long expirySeconds = 300L;
-    // final String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key",
-    // claimsEncryptionKey).build();
-    // final JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
+        createMockJwtVendorInTokenManager();
 
-    // final Throwable exception = assertThrows(RuntimeException.class, () -> {
-    // try {
-    // jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of(), true);
-    // } catch (final Exception e) {
-    // throw new RuntimeException(e);
-    // }
-    // });
-    // assertEquals("java.lang.IllegalArgumentException: Roles cannot be null", exception.getMessage());
-    // }
+        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
+        when(jwtVendor.createJwt(any(), anyString(), anyString(), anyLong(), any(), any(), anyBoolean())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L));
 
-    // @Test
-    // public void testCreateJwtLogsCorrectly() throws Exception {
-    // mockAppender = mock(Appender.class);
-    // logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
-    // when(mockAppender.getName()).thenReturn("MockAppender");
-    // when(mockAppender.isStarted()).thenReturn(true);
-    // final Logger logger = (Logger) LogManager.getLogger(JwtVendor.class);
-    // logger.addAppender(mockAppender);
-    // logger.setLevel(Level.DEBUG);
+        assertThat(returnedToken, equalTo(authToken));
 
-    // // Mock settings and other required dependencies
-    // final LongSupplier currentTime = () -> (long) 100;
-    // final String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-    // final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key",
-    // claimsEncryptionKey).build();
-
-    // final String issuer = "cluster_0";
-    // final String subject = "admin";
-    // final String audience = "audience_0";
-    // final List<String> roles = List.of("IT", "HR");
-    // final List<String> backendRoles = List.of("Sales", "Support");
-    // final int expirySeconds = 300;
-
-    // final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-
-    // jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
-
-    // verify(mockAppender, times(1)).append(logEventCaptor.capture());
-
-    // final LogEvent logEvent = logEventCaptor.getValue();
-    // final String logMessage = logEvent.getMessage().getFormattedMessage();
-    // assertTrue(logMessage.startsWith("Created JWT:"));
-
-    // final String[] parts = logMessage.split("\\.");
-    // assertTrue(parts.length >= 3);
-    // }
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
+    }
 }
