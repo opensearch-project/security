@@ -263,25 +263,18 @@ public class SecurityIndexAccessEvaluator {
                     presponse.markComplete();
                     return;
                 } else if (containsSystemIndex && containsRegularIndex) {
-                    // Filter out regular indices
-                    List<String> systemIndices = getAllSystemIndices(requestedResolved);
-                    irr.replace(request, false, systemIndices.toArray(new String[0]));
                     if (log.isDebugEnabled()) {
-                        log.debug("Filtered out regular indices, resulting list is {}", systemIndices);
+                        List<String> regularIndices = requestedResolved.getAllIndices()
+                            .stream()
+                            .filter(
+                                index -> !getAllSystemIndices(requestedResolved).contains(index)
+                                    && !getAllProtectedSystemIndices(requestedResolved).contains(index)
+                            )
+                            .collect(Collectors.toList());
+                        log.debug("Service account cannot access regular indices: {}", regularIndices);
                     }
-                    // Recalculate indices after filtering
-                    Resolved filteredResolved = irr.resolveRequest(request);
-                    evaluateSystemIndicesAccess(
-                        action,
-                        filteredResolved,
-                        request,
-                        task,
-                        presponse,
-                        securityRoles,
-                        user,
-                        resolver,
-                        clusterService
-                    );
+                    presponse.allowed = false;
+                    presponse.markComplete();
                     return;
                 }
             }

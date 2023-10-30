@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY;
@@ -138,13 +137,12 @@ public class ServiceAccountAuthenticationTest {
         TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD);
         client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
         TestRestClient.HttpResponse response = client.get((TEST_SYS_INDEX.getName() + "," + TEST_NON_SYS_INDEX.getName()));
-        response.assertStatusCode(HttpStatus.SC_OK);
+        response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
 
         String responseBody = response.getBody();
 
         assertNotNull("Response body should not be null", responseBody);
-        assertTrue(responseBody.contains(TEST_SYS_INDEX.getName()));
-        assertFalse(responseBody.contains(TEST_NON_SYS_INDEX.getName()));
+        assertTrue(responseBody.contains("\"type\":\"security_exception\""));
 
     }
 }
