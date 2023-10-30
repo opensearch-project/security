@@ -253,30 +253,21 @@ public class SecurityIndexAccessEvaluator {
         boolean serviceAccountUser = user.isServiceAccount();
 
         if (isSystemIndexPermissionEnabled) {
-            if (serviceAccountUser) {
-                if (!containsSystemIndex && containsRegularIndex) {
-                    auditLog.logSecurityIndexAttempt(request, action, task);
-                    if (log.isInfoEnabled()) {
-                        log.info("{} not permitted for a service account {} on non-system indices.", action, securityRoles);
-                    }
-                    presponse.allowed = false;
-                    presponse.markComplete();
-                    return;
-                } else if (containsSystemIndex && containsRegularIndex) {
-                    if (log.isDebugEnabled()) {
-                        List<String> regularIndices = requestedResolved.getAllIndices()
+            if (serviceAccountUser && containsRegularIndex) {
+                auditLog.logSecurityIndexAttempt(request, action, task);
+                if (!containsSystemIndex && log.isInfoEnabled()) {
+                    log.info("{} not permitted for a service account {} on non-system indices.", action, securityRoles);
+                } else if (containsSystemIndex && log.isDebugEnabled()) {
+                    List<String> regularIndices = requestedResolved.getAllIndices()
                             .stream()
-                            .filter(
-                                index -> !getAllSystemIndices(requestedResolved).contains(index)
-                                    && !getAllProtectedSystemIndices(requestedResolved).contains(index)
-                            )
+                            .filter(index -> !getAllSystemIndices(requestedResolved).contains(index)
+                                    && !getAllProtectedSystemIndices(requestedResolved).contains(index))
                             .collect(Collectors.toList());
-                        log.debug("Service account cannot access regular indices: {}", regularIndices);
-                    }
-                    presponse.allowed = false;
-                    presponse.markComplete();
-                    return;
+                    log.debug("Service account cannot access regular indices: {}", regularIndices);
                 }
+                presponse.allowed = false;
+                presponse.markComplete();
+                return;
             }
             boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
             if (containsProtectedIndex) {
