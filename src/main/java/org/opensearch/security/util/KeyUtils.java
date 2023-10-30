@@ -13,13 +13,13 @@ package org.opensearch.security.util;
 
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.core.common.Strings;
 
 import java.security.AccessController;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
@@ -48,7 +48,7 @@ public class KeyUtils {
                     return null;
                 } else {
                     try {
-                        Key key = null;
+                        PublicKey key = null;
 
                         final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
                             .replace("-----END PUBLIC KEY-----", "");
@@ -57,6 +57,7 @@ public class KeyUtils {
 
                         try {
                             key = getPublicKey(decoded, "RSA");
+
                         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                             log.debug("No public RSA key, try other algos ({})", e.toString());
                         }
@@ -68,10 +69,10 @@ public class KeyUtils {
                         }
 
                         if (Objects.nonNull(key)) {
-                            return Jwts.parserBuilder().setSigningKey(key);
+                            return Jwts.parser().verifyWith(key);
                         }
 
-                        return Jwts.parserBuilder().setSigningKey(decoded);
+                        return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(decoded));
                     } catch (Throwable e) {
                         log.error("Error while creating JWT authenticator", e);
                         throw new OpenSearchSecurityException(e.toString(), e);

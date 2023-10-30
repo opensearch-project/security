@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.crypto.SecretKey;
+
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -25,6 +27,8 @@ import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
 import org.junit.Assert;
+import io.jsonwebtoken.security.Keys;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -173,7 +177,9 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotIncludeRolesFromHostMappingInOBOToken() {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
 
-        Claims claims = Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(oboToken).getBody();
+        SecretKey key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKey));
+
+        Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(oboToken).getPayload();
 
         Object er = claims.get("er");
         EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
