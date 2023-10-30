@@ -123,7 +123,9 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             log.info(e.toString());
             throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
         } catch (BadCredentialsException | ParseException e) {
-            log.info("Extracting JWT token from {} failed", jwtString, e);
+            if (log.isTraceEnabled()) {
+                log.trace("Extracting JWT token from {} failed", jwtString, e);
+            }
             return null;
         }
 
