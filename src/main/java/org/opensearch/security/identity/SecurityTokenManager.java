@@ -75,7 +75,12 @@ public class SecurityTokenManager implements TokenManager {
 
     /** For testing */
     JwtVendor createJwtVendor(final Settings settings) {
-        return new JwtVendor(settings, Optional.empty());
+        try {
+            return new JwtVendor(settings, Optional.empty());
+        } catch (final Exception ex) {
+            logger.error("Unable to create the JwtVendor instance", ex);
+            return null;
+        }
     }
 
     boolean oboNotSupported() {
@@ -87,7 +92,7 @@ public class SecurityTokenManager implements TokenManager {
         if (oboNotSupported()) {
             // TODO: link that doc!
             throw new OpenSearchSecurityException(
-                "The OnBehalfOf token generate is not enabled, see {link to doc} for more information on this feature."
+                "The OnBehalfOf token generation is not enabled, see {link to doc} for more information on this feature."
             );
         }
 

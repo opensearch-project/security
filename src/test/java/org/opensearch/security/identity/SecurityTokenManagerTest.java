@@ -158,7 +158,7 @@ public class SecurityTokenManagerTest {
         );
         assertThat(
             exception.getMessage(),
-            equalTo("The OnBehalfOf token generate is not enabled, see {link to doc} for more information on this feature.")
+            equalTo("The OnBehalfOf token generation is not enabled, see {link to doc} for more information on this feature.")
         );
     }
 
