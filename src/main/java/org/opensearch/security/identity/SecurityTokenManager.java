@@ -55,8 +55,7 @@ public class SecurityTokenManager implements TokenManager {
     public SecurityTokenManager(
         final ClusterService cs,
         final ThreadPool threadPool,
-        final UserService userService,
-        final Settings settings
+        final UserService userService
     ) {
         this.cs = cs;
         this.threadPool = threadPool;
@@ -65,22 +64,18 @@ public class SecurityTokenManager implements TokenManager {
 
     @Subscribe
     public void onConfigModelChanged(final ConfigModel configModel) {
-        logger.error("!!!onConfigModelChanged!!!");
         this.configModel = configModel;
     }
 
     @Subscribe
     public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
-        logger.error("!!!onDynamicConfigModelChanged!!!");
         final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
         final Boolean enabled = oboSettings.getAsBoolean("enabled", false);
-        logger.error("was enabled? " + enabled);
         if (enabled) {
             jwtVendor = new JwtVendor(oboSettings, Optional.empty());
         } else {
             jwtVendor = null;
         }
-        logger.error("jwtVendor state = " + jwtVendor);
     }
 
     private boolean oboNotSupported() {

@@ -11,71 +11,108 @@
 
  package org.opensearch.security.identity;
 
-// import java.nio.charset.StandardCharsets;
-// import java.util.Date;
-// import java.util.List;
-// import java.util.Optional;
-// import java.util.function.LongSupplier;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.LongSupplier;
 
-// import com.google.common.io.BaseEncoding;
-// import com.nimbusds.jwt.SignedJWT;
-// import org.apache.commons.lang3.RandomStringUtils;
-// import org.apache.logging.log4j.Level;
-// import org.apache.logging.log4j.LogManager;
-// import org.apache.logging.log4j.core.Appender;
-// import org.apache.logging.log4j.core.LogEvent;
-// import org.apache.logging.log4j.core.Logger;
-// import org.junit.Assert;
-// import org.junit.Test;
-// import org.mockito.ArgumentCaptor;
-// import org.opensearch.OpenSearchException;
-// import org.opensearch.common.collect.Tuple;
-// import org.opensearch.common.settings.Settings;
-// import org.opensearch.common.util.concurrent.ThreadContext;
-// import org.opensearch.identity.Subject;
-// import org.opensearch.identity.tokens.AuthToken;
-// import org.opensearch.identity.tokens.BasicAuthToken;
-// import org.opensearch.identity.tokens.BearerAuthToken;
-// import org.opensearch.identity.tokens.OnBehalfOfClaims;
-// import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
-// import org.opensearch.security.securityconf.ConfigModel;
-// import org.opensearch.security.support.ConfigConstants;
+import com.google.common.io.BaseEncoding;
+import com.nimbusds.jwt.SignedJWT;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.OpenSearchException;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.identity.Subject;
+import org.opensearch.identity.tokens.AuthToken;
+import org.opensearch.identity.tokens.BasicAuthToken;
+import org.opensearch.identity.tokens.BearerAuthToken;
+import org.opensearch.identity.tokens.OnBehalfOfClaims;
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.UserService;
+import org.opensearch.threadpool.ThreadPool;
 
-// import com.nimbusds.jose.JWSSigner;
-// import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.jwk.JWK;
 
-// import static org.hamcrest.MatcherAssert.assertThat;
-// import static org.hamcrest.Matchers.containsString;
-// import static org.hamcrest.Matchers.equalTo;
-// import static org.hamcrest.Matchers.is;
-// import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
-// import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.core.IsNull.notNullValue;
 
-// import static org.junit.Assert.assertEquals;
-// import static org.junit.Assert.assertThrows;
-// import static org.junit.Assert.assertTrue;
-// import static org.mockito.Mockito.mock;
-// import static org.mockito.Mockito.times;
-// import static org.mockito.Mockito.verify;
-// import static org.mockito.Mockito.when;
-// import static org.opensearch.security.identity.SecurityTokenManager.createJwkFromSettings;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SecurityTokenManagerTest {
 
-    // private SecurityTokenManager tokenManager;
-    // private ClusterService clusterService;
-    // private ThreadPool threadPool;
-    // private UserService userService;
-    // private ConfigModel configModel;
-    // private ThreadContext threadContext;
-    // private Appender mockAppender;
-    // private ArgumentCaptor<LogEvent> logEventCaptor;
+    private SecurityTokenManager tokenManager;
+    private ArgumentCaptor<LogEvent> logEventCaptor;
 
-    // final static String signingKey =
-    // "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most
-    // powerful quantum computer to crack";
-    // final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
+    @Mock
+    private ClusterService cs;
+    @Mock
+    private ThreadPool threadPool;
+    @Mock
+    private UserService userService;
+
+    @Before
+    public void setup() {
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService);
+    }
+
+    @After
+    public void after() {
+        verifyNoInteractions(cs);
+        verifyNoInteractions(threadPool);
+        verifyNoInteractions(userService);
+    }
+
+    @Test
+    public void onConfigModelChanged() {
+        final ConfigModel configModel = mock(ConfigModel.class);
+
+        tokenManager.onConfigModelChanged(configModel);
+
+        verifyNoInteractions(configModel);
+    }
+
+    @Test
+    public void onDynamicConfigModelChanged_JwtVendorEnabled() {
+        final DynamicConfigModel dcm = mock(DynamicConfigModel.class, RETURNS_DEEP_STUBS);
+        tokenManager.onDynamicConfigModelChanged(dcm);
+
+        verify(dcm).getDynamicOnBehalfOfSettings();
+    }
 
     // @Test
     // public void testCreateJwkFromSettings() {
