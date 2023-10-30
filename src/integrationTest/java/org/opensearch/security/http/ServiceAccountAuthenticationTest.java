@@ -48,15 +48,16 @@ public class ServiceAccountAuthenticationTest {
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     public static final String SERVICE_ACCOUNT_USER_NAME = "admin-extension";
     // CS-ENFORCE-SINGLE
-    private static final TestSecurityConfig.Role SERVICE_ACCOUNT_ADMIN_ROLE = new TestSecurityConfig.Role("admin-extension-role")
-        .clusterPermissions("*")
-        .indexPermissions("*", "system:admin/system_index")
-        .on("*");
 
     static final TestSecurityConfig.User SERVICE_ACCOUNT_ADMIN_USER = new TestSecurityConfig.User(SERVICE_ACCOUNT_USER_NAME).attr(
         SERVICE_ATTRIBUTE,
         "true"
-    ).roles(SERVICE_ACCOUNT_ADMIN_ROLE);
+    )
+        .roles(
+            new TestSecurityConfig.Role("admin-extension-role").clusterPermissions("*")
+                .indexPermissions("*", "system:admin/system_index")
+                .on("*")
+        );
 
     private static final TestIndex TEST_NON_SYS_INDEX = TestIndex.name("test-non-sys-index")
         .setting("index.number_of_shards", 1)
@@ -134,7 +135,7 @@ public class ServiceAccountAuthenticationTest {
     public void testReadBothWithServiceAccountCred() {
         TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD);
         client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
-        TestRestClient.HttpResponse response = client.get("test-non-sys-index,test-sys-index");
+        TestRestClient.HttpResponse response = client.get((TEST_SYS_INDEX.getName() + "," + TEST_NON_SYS_INDEX.getName()));
         response.assertStatusCode(HttpStatus.SC_OK);
 
         String responseBody = response.getBody();
