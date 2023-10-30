@@ -106,7 +106,7 @@ public class JwtVendor {
         final boolean includeBackendRoles
     ) throws JOSEException, ParseException {
         final long currentTimeMs = timeProvider.getAsLong();
-        final Date now = new Date();
+        final Date now = new Date(currentTimeMs);
 
         final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
         claimsBuilder.issuer(issuer);

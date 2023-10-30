@@ -78,7 +78,6 @@ import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.noop.NoopSubject;
-import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
@@ -255,11 +254,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return actionTrace.isTraceEnabled();
     }
 
-    public static void traceAction(final String message) {
+    public static void traceAction(String message) {
         actionTrace.trace(message);
     }
 
-    public static void traceAction(final String message, final Object p0) {
+    public static void traceAction(String message, Object p0) {
         actionTrace.trace(message, p0);
     }
 
@@ -377,7 +376,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     if (Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
                         try (Stream<Path> s = Files.walk(confPath)) {
                             return s.distinct().filter(p -> checkFilePermissions(p)).collect(Collectors.toList());
-                        } catch (final Exception e) {
+                        } catch (Exception e) {
                             log.error(e.toString());
                             return null;
                         }
@@ -407,7 +406,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     if (Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
                         try (Stream<Path> s = Files.walk(confPath)) {
                             return s.distinct().map(p -> sha256(p)).collect(Collectors.toList());
-                        } catch (final Exception e) {
+                        } catch (Exception e) {
                             log.error(e.toString());
                             return null;
                         }
@@ -432,7 +431,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
     }
 
-    private String sha256(final Path p) {
+    private String sha256(Path p) {
 
         if (!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
             return "";
@@ -444,11 +443,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         try {
-            final MessageDigest digester = MessageDigest.getInstance("SHA256");
+            MessageDigest digester = MessageDigest.getInstance("SHA256");
             final String hash = org.bouncycastle.util.encoders.Hex.toHexString(digester.digest(Files.readAllBytes(p)));
             log.debug(hash + " :: " + p);
             return hash;
-        } catch (final Exception e) {
+        } catch (Exception e) {
             throw new OpenSearchSecurityException("Unable to digest file " + p, e);
         }
     }
@@ -463,7 +462,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         try {
             perms = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
-        } catch (final Exception e) {
+        } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Cannot determine posix file permissions for {} due to {}", p, e);
             }
@@ -500,13 +499,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public List<RestHandler> getRestHandlers(
-        final Settings settings,
-        final RestController restController,
-        final ClusterSettings clusterSettings,
-        final IndexScopedSettings indexScopedSettings,
-        final SettingsFilter settingsFilter,
-        final IndexNameExpressionResolver indexNameExpressionResolver,
-        final Supplier<DiscoveryNodes> nodesInCluster
+        Settings settings,
+        RestController restController,
+        ClusterSettings clusterSettings,
+        IndexScopedSettings indexScopedSettings,
+        SettingsFilter settingsFilter,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<DiscoveryNodes> nodesInCluster
     ) {
 
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
@@ -607,7 +606,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
-        final List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
+        List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if (!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
@@ -616,7 +615,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public void onIndexModule(final IndexModule indexModule) {
+    public void onIndexModule(IndexModule indexModule) {
         // called for every index!
 
         if (!disabled && !client && !SSLConfig.isSslOnlyMode()) {
@@ -650,12 +649,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 }
 
                 @Override
-                public void clear(final String reason) {
+                public void clear(String reason) {
                     nodeCache.clearIndex(index().getName());
                 }
 
                 @Override
-                public Weight doCache(final Weight weight, final QueryCachingPolicy policy) {
+                public Weight doCache(Weight weight, QueryCachingPolicy policy) {
                     @SuppressWarnings("unchecked")
                     final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
                         threadPool.getThreadContext(),
@@ -684,12 +683,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             indexModule.addSearchOperationListener(new GuardedSearchOperationWrapper() {
 
                 @Override
-                public void onPreQueryPhase(final SearchContext context) {
+                public void onPreQueryPhase(SearchContext context) {
                     dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get());
                 }
 
                 @Override
-                public void onNewReaderContext(final ReaderContext readerContext) {
+                public void onNewReaderContext(ReaderContext readerContext) {
                     final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
@@ -706,7 +705,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 }
 
                 @Override
-                public void onNewScrollContext(final ReaderContext readerContext) {
+                public void onNewScrollContext(ReaderContext readerContext) {
                     final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
@@ -723,7 +722,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 }
 
                 @Override
-                public void validateReaderContext(final ReaderContext readerContext, final TransportRequest transportRequest) {
+                public void validateReaderContext(ReaderContext readerContext, TransportRequest transportRequest) {
                     if (transportRequest instanceof InternalScrollSearchRequest) {
                         final Object _isLocal = readerContext.getFromContext("_opendistro_security_scroll_auth_local");
                         final Object _user = readerContext.getFromContext("_opendistro_security_scroll_auth");
@@ -743,8 +742,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 }
 
                 @Override
-                public void onQueryPhase(final SearchContext searchContext, final long tookInNanos) {
-                    final QuerySearchResult queryResult = searchContext.queryResult();
+                public void onQueryPhase(SearchContext searchContext, long tookInNanos) {
+                    QuerySearchResult queryResult = searchContext.queryResult();
                     assert queryResult != null;
                     if (!queryResult.hasAggs()) {
                         return;
@@ -769,7 +768,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public List<ActionFilter> getActionFilters() {
-        final List<ActionFilter> filters = new ArrayList<>(1);
+        List<ActionFilter> filters = new ArrayList<>(1);
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
             filters.add(Objects.requireNonNull(sf));
         }
@@ -777,27 +776,24 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public List<TransportInterceptor> getTransportInterceptors(
-        final NamedWriteableRegistry namedWriteableRegistry,
-        final ThreadContext threadContext
-    ) {
-        final List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
+    public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
+        List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
             interceptors.add(new TransportInterceptor() {
 
                 @Override
                 public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(
-                    final String action,
-                    final String executor,
-                    final boolean forceExecution,
-                    final TransportRequestHandler<T> actualHandler
+                    String action,
+                    String executor,
+                    boolean forceExecution,
+                    TransportRequestHandler<T> actualHandler
                 ) {
 
                     return new TransportRequestHandler<T>() {
 
                         @Override
-                        public void messageReceived(final T request, final TransportChannel channel, final Task task) throws Exception {
+                        public void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
                             si.getHandler(action, actualHandler).messageReceived(request, channel, task);
                         }
                     };
@@ -805,17 +801,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 }
 
                 @Override
-                public AsyncSender interceptSender(final AsyncSender sender) {
+                public AsyncSender interceptSender(AsyncSender sender) {
 
                     return new AsyncSender() {
 
                         @Override
                         public <T extends TransportResponse> void sendRequest(
-                            final Connection connection,
-                            final String action,
-                            final TransportRequest request,
-                            final TransportRequestOptions options,
-                            final TransportResponseHandler<T> handler
+                            Connection connection,
+                            String action,
+                            TransportRequest request,
+                            TransportRequestOptions options,
+                            TransportResponseHandler<T> handler
                         ) {
                             si.sendRequestDecorate(sender, connection, action, request, options, handler, localNode.get());
                         }
@@ -829,15 +825,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Map<String, Supplier<Transport>> getTransports(
-        final Settings settings,
-        final ThreadPool threadPool,
-        final PageCacheRecycler pageCacheRecycler,
-        final CircuitBreakerService circuitBreakerService,
-        final NamedWriteableRegistry namedWriteableRegistry,
-        final NetworkService networkService,
-        final Tracer tracer
+        Settings settings,
+        ThreadPool threadPool,
+        PageCacheRecycler pageCacheRecycler,
+        CircuitBreakerService circuitBreakerService,
+        NamedWriteableRegistry namedWriteableRegistry,
+        NetworkService networkService,
+        Tracer tracer
     ) {
-        final Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
+        Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
 
         if (SSLConfig.isSslOnlyMode()) {
             return super.getTransports(
@@ -875,16 +871,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(
-        final Settings settings,
-        final ThreadPool threadPool,
-        final BigArrays bigArrays,
-        final PageCacheRecycler pageCacheRecycler,
-        final CircuitBreakerService circuitBreakerService,
-        final NamedXContentRegistry xContentRegistry,
-        final NetworkService networkService,
-        final Dispatcher dispatcher,
-        final ClusterSettings clusterSettings,
-        final Tracer tracer
+        Settings settings,
+        ThreadPool threadPool,
+        BigArrays bigArrays,
+        PageCacheRecycler pageCacheRecycler,
+        CircuitBreakerService circuitBreakerService,
+        NamedXContentRegistry xContentRegistry,
+        NetworkService networkService,
+        Dispatcher dispatcher,
+        ClusterSettings clusterSettings,
+        Tracer tracer
     ) {
 
         if (SSLConfig.isSslOnlyMode()) {
@@ -952,17 +948,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Collection<Object> createComponents(
-        final Client localClient,
-        final ClusterService clusterService,
-        final ThreadPool threadPool,
-        final ResourceWatcherService resourceWatcherService,
-        final ScriptService scriptService,
-        final NamedXContentRegistry xContentRegistry,
-        final Environment environment,
-        final NodeEnvironment nodeEnvironment,
-        final NamedWriteableRegistry namedWriteableRegistry,
-        final IndexNameExpressionResolver indexNameExpressionResolver,
-        final Supplier<RepositoriesService> repositoriesServiceSupplier
+        Client localClient,
+        ClusterService clusterService,
+        ThreadPool threadPool,
+        ResourceWatcherService resourceWatcherService,
+        ScriptService scriptService,
+        NamedXContentRegistry xContentRegistry,
+        Environment environment,
+        NodeEnvironment nodeEnvironment,
+        NamedWriteableRegistry namedWriteableRegistry,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
 
         SSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
@@ -1122,7 +1118,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
         if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            final DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
+            DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
             e.subscribeForChanges(dcf);
         }
 
@@ -1160,7 +1156,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public List<Setting<?>> getSettings() {
-        final List<Setting<?>> settings = new ArrayList<Setting<?>>();
+        List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.addAll(super.getSettings());
 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
@@ -1383,8 +1379,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             final BiFunction<String, Boolean, Setting<Boolean>> boolSettingNodeScopeFiltered = (
-                final String keyWithNamespace,
-                final Boolean value) -> Setting.boolSetting(keyWithNamespace, value, Property.NodeScope, Property.Filtered);
+                String keyWithNamespace,
+                Boolean value) -> Setting.boolSetting(keyWithNamespace, value, Property.NodeScope, Property.Filtered);
 
             Arrays.stream(FilterEntries.values()).map(filterEntry -> {
                 switch (filterEntry) {
@@ -1849,7 +1845,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public List<String> getSettingsFilter() {
-        final List<String> settingsFilter = new ArrayList<>();
+        List<String> settingsFilter = new ArrayList<>();
 
         if (disabled) {
             return settingsFilter;
@@ -1860,7 +1856,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public void onNodeStarted(final DiscoveryNode localNode) {
+    public void onNodeStarted(DiscoveryNode localNode) {
         log.info("Node started");
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
@@ -1919,10 +1915,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 }
 
                 if (!excludesSet.isEmpty()) {
-                    final WildcardMatcher excludeMatcher = WildcardMatcher.from(excludesSet);
+                    WildcardMatcher excludeMatcher = WildcardMatcher.from(excludesSet);
                     return field -> !excludeMatcher.test(handleKeyword(field));
                 } else {
-                    final WildcardMatcher includeMatcher = WildcardMatcher.from(includesSet);
+                    WildcardMatcher includeMatcher = WildcardMatcher.from(includesSet);
                     return field -> includeMatcher.test(handleKeyword(field));
                 }
             }
@@ -1930,7 +1926,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(final Settings settings) {
+    public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
         final String indexPattern = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
@@ -1953,7 +1949,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public TokenManager getTokenManager() {
+    public SecurityTokenManager getTokenManager() {
         return tokenManager;
     }
 
@@ -1971,9 +1967,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         public GuiceHolder(
             final RepositoriesService repositoriesService,
             final TransportService remoteClusterService,
-            final IndicesService indicesService,
-            final PitService pitService,
-            final ExtensionsManager extensionsManager
+            IndicesService indicesService,
+            PitService pitService,
+            ExtensionsManager extensionsManager
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
@@ -2014,10 +2010,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         @Override
-        public void addLifecycleListener(final LifecycleListener listener) {}
+        public void addLifecycleListener(LifecycleListener listener) {}
 
         @Override
-        public void removeLifecycleListener(final LifecycleListener listener) {}
+        public void removeLifecycleListener(LifecycleListener listener) {}
 
         @Override
         public void start() {}
