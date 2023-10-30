@@ -212,14 +212,7 @@ public class SecurityIndexAccessEvaluator {
         List<String> allSystemIndices = getAllSystemIndices(requestedResolved);
         List<String> allProtectedSystemIndices = getAllProtectedSystemIndices(requestedResolved);
 
-        for (String index : allIndices) {
-            // Check if the index is not in the list of system or protected system indices
-            if (!allSystemIndices.contains(index) && !allProtectedSystemIndices.contains(index)) {
-                return true;
-            }
-        }
-
-        return false;
+        return allIndices.stream().anyMatch(index -> !allSystemIndices.contains(index) && !allProtectedSystemIndices.contains(index));
     }
 
     /**
