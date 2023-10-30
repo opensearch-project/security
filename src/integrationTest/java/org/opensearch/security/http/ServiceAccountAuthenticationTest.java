@@ -54,7 +54,9 @@ public class ServiceAccountAuthenticationTest {
         "true"
     )
         .roles(
+            // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
             new TestSecurityConfig.Role("admin-extension-role").clusterPermissions("*")
+                // CS-ENFORCE-SINGLE
                 .indexPermissions("*", "system:admin/system_index")
                 .on("*")
         );
