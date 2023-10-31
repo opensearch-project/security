@@ -66,7 +66,6 @@ public class SecurityTokenManager implements TokenManager {
     public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
         final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
         final Boolean enabled = oboSettings.getAsBoolean("enabled", false);
-        logger.warn("Detected change in the dynamic configuration, enabled=" + enabled);
         if (enabled) {
             jwtVendor = createJwtVendor(oboSettings);
         } else {
