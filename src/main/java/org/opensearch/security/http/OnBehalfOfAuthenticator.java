@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -87,7 +88,13 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private JwtParserBuilder initParserBuilder(final String signingKey) {
         final int signingKeyLengthBits = signingKey.length() * 8;
         if (signingKeyLengthBits < MINIMUM_SIGNING_KEY_BIT_LENGTH) {
-            throw new OpenSearchSecurityException("Signing key size was " + signingKeyLengthBits + " bits, which is not secure enough. Please use a signing_key with a size >= " + MINIMUM_SIGNING_KEY_BIT_LENGTH + " bits.");
+            throw new OpenSearchSecurityException(
+                "Signing key size was "
+                    + signingKeyLengthBits
+                    + " bits, which is not secure enough. Please use a signing_key with a size >= "
+                    + MINIMUM_SIGNING_KEY_BIT_LENGTH
+                    + " bits."
+            );
         }
         JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
 
@@ -177,8 +184,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            final String audience = claims.getAudience();
-            if (audience == null) {
+            final Set<String> audience = claims.getAudience();
+            if (audience == null || audience.isEmpty()) {
                 log.error("Valid jwt on behalf of token with no audience");
                 return null;
             }

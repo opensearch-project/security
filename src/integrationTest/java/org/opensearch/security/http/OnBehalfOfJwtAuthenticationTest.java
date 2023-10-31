@@ -19,9 +19,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.crypto.SecretKey;
+
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -67,7 +71,9 @@ public class OnBehalfOfJwtAuthenticationTest {
             )
         );
     private static final String alternativeSigningKey = Base64.getEncoder()
-        .encodeToString("alternativeSigningKeyalternativeSigningKeyalternativeSigningKeyalternativeSigningKey".getBytes(StandardCharsets.UTF_8));
+        .encodeToString(
+            "alternativeSigningKeyalternativeSigningKeyalternativeSigningKeyalternativeSigningKey".getBytes(StandardCharsets.UTF_8)
+        );
 
     private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
     public static final String ADMIN_USER_NAME = "admin";
@@ -197,11 +203,9 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotIncludeRolesFromHostMappingInOBOToken() {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
 
-        Claims claims = Jwts.parserBuilder()
-            .setSigningKey(Base64.getDecoder().decode(signingKey))
-            .build()
-            .parseClaimsJws(oboToken)
-            .getBody();
+        SecretKey key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKey));
+
+        Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(oboToken).getPayload();
 
         Object er = claims.get("er");
         EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
