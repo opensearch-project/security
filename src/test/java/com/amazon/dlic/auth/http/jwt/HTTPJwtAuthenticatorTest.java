@@ -33,9 +33,13 @@ import org.apache.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class HTTPJwtAuthenticatorTest {
 
@@ -67,14 +71,16 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testBadKey() {
-
-        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            Settings.builder().put("signing_key", BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 })),
-            Jwts.builder().setSubject("Leonard McCoy")
-        );
-
-        Assert.assertNull(credentials);
+    public void testBadKey() throws Exception {
+        try {
+            final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+                Settings.builder().put("signing_key", BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 })),
+                Jwts.builder().setSubject("Leonard McCoy")
+            );
+            fail("Expected WeakKeyException");
+        } catch (OpenSearchSecurityException e) {
+            assertTrue("Expected error message to contain WeakKeyException", e.getMessage().contains("WeakKeyException"));
+        }
     }
 
     @Test
