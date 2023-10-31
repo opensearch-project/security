@@ -43,7 +43,7 @@ public class UserServiceUnitTests {
     UserService userService;
 
     final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
-    final int INTERNAL_ACCOUNTS_IN_SETTINGS = 66;
+    final int INTERNAL_ACCOUNTS_IN_SETTINGS = 67;
     String serviceAccountUsername = "bug.99";
     String internalAccountUsername = "sarek";
 
