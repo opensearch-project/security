@@ -80,10 +80,10 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                 final XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response;
                 try {
-                    if (securityTokenManager == null) {
+                    if (!securityTokenManager.issueOnBehalfOfTokenAllowed()) {
                         channel.sendResponse(
                             new BytesRestResponse(
-                                RestStatus.SERVICE_UNAVAILABLE,
+                                RestStatus.BAD_REQUEST,
                                 "The OnBehalfOf token generating API has been disabled, see {link to doc} for more information on this feature." /* TODO: Update the link to the documentation website */
                             )
                         );

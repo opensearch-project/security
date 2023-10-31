@@ -85,7 +85,7 @@ public class SecurityTokenManagerTest {
 
         tokenManager.onConfigModelChanged(configModel);
 
-        assertThat(tokenManager.oboNotSupported(), equalTo(true));
+        assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(false));
         verifyNoMoreInteractions(configModel);
     }
 
@@ -96,7 +96,7 @@ public class SecurityTokenManagerTest {
 
         tokenManager.onConfigModelChanged(configModel);
 
-        assertThat(tokenManager.oboNotSupported(), equalTo(false));
+        assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(true));
         verify(mockConfigModel).getDynamicOnBehalfOfSettings();
         verifyNoMoreInteractions(configModel);
     }
@@ -108,7 +108,7 @@ public class SecurityTokenManagerTest {
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
 
-        assertThat(tokenManager.oboNotSupported(), equalTo(true));
+        assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(false));
         verify(dcm).getDynamicOnBehalfOfSettings();
         verify(tokenManager, never()).createJwtVendor(any());
     }
@@ -164,7 +164,7 @@ public class SecurityTokenManagerTest {
 
     @Test
     public void issueOnBehalfOfToken_unsupportedSubjectType() {
-        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> tokenManager.issueOnBehalfOfToken(mock(Subject.class), null)
@@ -174,7 +174,7 @@ public class SecurityTokenManagerTest {
 
     @Test
     public void issueOnBehalfOfToken_missingAudience() {
-        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims(null, 450L))
@@ -184,7 +184,7 @@ public class SecurityTokenManagerTest {
 
     @Test
     public void issueOnBehalfOfToken_cannotFindUserInThreadContext() {
-        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final OpenSearchSecurityException exception = assertThrows(
@@ -199,7 +199,7 @@ public class SecurityTokenManagerTest {
     @Test
     public void issueOnBehalfOfToken_jwtGenerationFailure() throws Exception {
         doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
-        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
@@ -225,7 +225,7 @@ public class SecurityTokenManagerTest {
     @Test
     public void issueOnBehalfOfToken_success() throws Exception {
         doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
-        doAnswer(invocation -> false).when(tokenManager).oboNotSupported();
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
         when(threadPool.getThreadContext()).thenReturn(threadContext);

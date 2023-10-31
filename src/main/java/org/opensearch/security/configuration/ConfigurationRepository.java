@@ -461,7 +461,7 @@ public class ConfigurationRepository {
             throw new OpenSearchException(e);
         }
 
-        if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
+        if (logComplianceEvent && auditLog.getComplianceConfig() != null && auditLog.getComplianceConfig().isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(MediaTypeRegistry.JSON, retVal.get(configurationType)));

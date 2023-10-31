@@ -66,6 +66,7 @@ public class SecurityTokenManager implements TokenManager {
     public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
         final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
         final Boolean enabled = oboSettings.getAsBoolean("enabled", false);
+        logger.warn("Detected change in the dynamic configuration, enabled=" + enabled);
         if (enabled) {
             jwtVendor = createJwtVendor(oboSettings);
         } else {
@@ -83,13 +84,13 @@ public class SecurityTokenManager implements TokenManager {
         }
     }
 
-    boolean oboNotSupported() {
-        return jwtVendor == null || configModel == null;
+    public boolean issueOnBehalfOfTokenAllowed() {
+        return jwtVendor != null && configModel != null;
     }
 
     @Override
     public ExpiringBearerAuthToken issueOnBehalfOfToken(final Subject subject, final OnBehalfOfClaims claims) {
-        if (oboNotSupported()) {
+        if (!issueOnBehalfOfTokenAllowed()) {
             // TODO: link that doc!
             throw new OpenSearchSecurityException(
                 "The OnBehalfOf token generation is not enabled, see {link to doc} for more information on this feature."
