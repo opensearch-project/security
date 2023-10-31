@@ -17,7 +17,8 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -31,7 +32,7 @@ public class AccountApiActionConfigValidationsTest extends AbstractApiActionVali
 
         var result = accountApiAction.validCurrentPassword(SecurityConfiguration.of(requestContent(), "u", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
 
         u.setHash(Utils.hash("aaaa".toCharArray()));
         result = accountApiAction.validCurrentPassword(SecurityConfiguration.of(requestContent(), "u", configuration));
@@ -49,7 +50,7 @@ public class AccountApiActionConfigValidationsTest extends AbstractApiActionVali
 
         var result = accountApiAction.updatePassword(SecurityConfiguration.of(requestContent, "u", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
 
         requestContent.put("password", "cccccc");
         result = accountApiAction.updatePassword(SecurityConfiguration.of(requestContent, "u", configuration));

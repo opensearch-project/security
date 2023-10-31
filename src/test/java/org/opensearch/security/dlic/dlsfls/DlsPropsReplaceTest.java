@@ -14,6 +14,8 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -62,24 +64,26 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 5,\n      \"relation"));
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password")))
-                .getStatusCode()
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest("/prop-mapped/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password")))
-                .getStatusCode()
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"amount\" : 6060"));
     }

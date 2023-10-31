@@ -15,6 +15,8 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
@@ -49,7 +51,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             encodeBasicHeader("admin", "admin")
         );
         Thread.sleep(1500);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
@@ -83,7 +85,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
         Thread.sleep(1500);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
@@ -116,7 +118,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "kirk-keystore.jks";
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
         Thread.sleep(1500);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 2);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
@@ -173,7 +175,9 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             encodeBasicHeader("admin", "admin")
         );
         Thread.sleep(1500);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+
+        assertThat(response.getBody(), HttpStatus.SC_CREATED, is(response.getStatusCode()));
+
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.isEmpty());
     }
 
@@ -202,7 +206,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
         Thread.sleep(1500);
         String auditLogImpl = TestAuditlogImpl.sb.toString();
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(TestAuditlogImpl.messages.size() + "", TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(auditLogImpl.contains("audit_request_effective_user"));
         Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
@@ -228,19 +232,19 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         // read internal users and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.clear();
         rh.executeGetRequest("/_opendistro/_security/api/internalusers");
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
         Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
 
         // read internal user worf and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.clear();
         rh.executeGetRequest("/_opendistro/_security/api/internalusers/worf");
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
         Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
 
         // create internal user and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.clear();
         rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"password\":\"some new user password\"}");
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
         Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
     }
 }

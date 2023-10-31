@@ -14,6 +14,8 @@ package org.opensearch.security.auditlog.impl;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
@@ -282,7 +284,7 @@ public class TracingTests extends SingleClusterTest {
         // end pause1
 
         // search
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin")).getStatusCode());
+        assertThat(rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin")).getStatusCode(), is(HttpStatus.SC_OK));
         // search done
 
         // pause2
@@ -331,21 +333,21 @@ public class TracingTests extends SingleClusterTest {
 
         // search
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
 
         int start = res.getBody().indexOf("_scroll_id") + 15;
         String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start + 1));
         // search scroll
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executePostRequest(
                 "/_search/scroll?pretty=true",
                 "{\"scroll_id\" : \"" + scrollid + "\"}",
                 encodeBasicHeader("admin", "admin")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
 
         // search done
@@ -452,27 +454,27 @@ public class TracingTests extends SingleClusterTest {
         String data1 = FileHelper.loadFile("auditlog/data1.json");
         String data2 = FileHelper.loadFile("auditlog/data1mod.json");
         HttpResponse res = rh.executePutRequest("myindex1/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(201, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(201));
         res = rh.executePutRequest("myindex1/_doc/1?refresh", data2, encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(409, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(409));
         res = rh.executeDeleteRequest("myindex1/_doc/1?refresh", encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(403, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(403));
         res = rh.executeGetRequest("myindex1/_doc/1", encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(200, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(200));
         Assert.assertFalse(res.getBody().contains("city"));
         Assert.assertTrue(res.getBody().contains("\"found\":true,"));
 
         // immutable 2
         res = rh.executePutRequest("myindex2/_doc/1?refresh", data1, encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(201, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(201));
         res = rh.executePutRequest("myindex2/_doc/1?refresh", data2, encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(200, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(200));
         res = rh.executeGetRequest("myindex2/_doc/1", encodeBasicHeader("admin", "admin"));
         Assert.assertTrue(res.getBody().contains("city"));
         res = rh.executeDeleteRequest("myindex2/_doc/1?refresh", encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(200, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(200));
         res = rh.executeGetRequest("myindex2/_doc/1", encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(404, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(404));
     }
 
 }

@@ -46,7 +46,8 @@ import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 
 import static java.util.Collections.emptySet;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 // CS-ENFORCE-SINGLE
@@ -165,7 +166,9 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
+
+                assertThat(user, is(transientUser));
+
             }
         };
         // isSameNodeRequest = true
@@ -173,8 +176,8 @@ public class SecurityInterceptorTests {
 
         // from original context
         User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+        assertThat(user, is(transientUser));
+        assertThat(null, is(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)));
 
         // checking thread context inside sendRequestDecorate
         sender = new AsyncSender() {
@@ -187,7 +190,7 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
+                assertThat(Base64Helper.serializeObject(user, useJDKSerialization), is(serializedUserHeader));
             }
         };
         // isSameNodeRequest = false
@@ -195,8 +198,8 @@ public class SecurityInterceptorTests {
 
         // from original context
         User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser2, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+        assertThat(user, is(transientUser2));
+        assertThat(null, is(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)));
     }
 
     @Test

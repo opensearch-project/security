@@ -20,6 +20,8 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
@@ -71,41 +73,41 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         // --- GET_UT
         // GET_UT, actiongroup exists
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/CRUD_UT", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         List<String> permissions = settings.getAsList("CRUD_UT.allowed_actions");
         Assert.assertNotNull(permissions);
-        Assert.assertEquals(2, permissions.size());
+        assertThat(permissions.size(), is(2));
         Assert.assertTrue(permissions.contains("READ_UT"));
         Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_WRITE"));
 
         // GET_UT, actiongroup does not exist
         response = rh.executeGetRequest(ENDPOINT + "/nothinghthere", header);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // GET_UT, old endpoint
         response = rh.executeGetRequest(ENDPOINT, header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // GET_UT, old endpoint
         response = rh.executeGetRequest(ENDPOINT, header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // GET_UT, new endpoint which replaces configuration endpoint
         response = rh.executeGetRequest(ENDPOINT, header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // GET_UT, old endpoint
         response = rh.executeGetRequest(ENDPOINT, header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // GET_UT, new endpoint which replaces configuration endpoint
         response = rh.executeGetRequest(ENDPOINT, header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // GET_UT, new endpoint which replaces configuration endpoint
         response = rh.executeGetRequest(ENDPOINT, header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     void verifyDeleteForSuperAdmin(final Header[] header, final boolean userAdminCert) throws Exception {
@@ -114,13 +116,13 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = userAdminCert;
 
         HttpResponse response = rh.executeDeleteRequest(ENDPOINT + "/idonotexist", header);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // remove action group READ_UT, read access not possible since
         // opendistro_security_role_starfleet
         // uses this action group.
         response = rh.executeDeleteRequest(ENDPOINT + "/READ_UT", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         rh.sendAdminCertificate = false;
         checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
@@ -145,18 +147,18 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         // put with empty payload, must fail
         rh.sendAdminCertificate = userAdminCert;
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/SOMEGROUP", "", header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message(), settings.get("reason"));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message()));
 
         // put new configuration with invalid payload, must fail
         response = rh.executePutRequest(ENDPOINT + "/SOMEGROUP", FileHelper.loadFile("restapi/actiongroup_not_parseable.json"), header);
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE.message()));
 
         response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", FileHelper.loadFile("restapi/actiongroup_crud.json"), header);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
 
         rh.sendAdminCertificate = false;
 
@@ -167,7 +169,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         // restore READ_UT action groups
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/READ_UT", FileHelper.loadFile("restapi/actiongroup_read.json"), header);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
 
         rh.sendAdminCertificate = false;
         // read/write allowed again
@@ -177,25 +179,25 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         // -- PUT, new JSON format including readonly flag, disallowed in REST API
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", FileHelper.loadFile("restapi/actiongroup_readonly.json"), header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // -- DELETE read only resource, must be forbidden
         // superAdmin can delete read only resource
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executeDeleteRequest(ENDPOINT + "/GET_UT", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // -- PUT read only resource, must be forbidden
         // superAdmin can add/update read only resource
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/GET_UT", FileHelper.loadFile("restapi/actiongroup_read.json"), header);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
         Assert.assertFalse(response.getBody().contains("Resource 'GET_UT' is read-only."));
 
         // PUT with role name
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/kibana_user", FileHelper.loadFile("restapi/actiongroup_read.json"), header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(
             response.getBody().contains("kibana_user is an existing role. A action group cannot be named with an existing role name.")
         );
@@ -203,25 +205,25 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         // PUT with self-referencing action groups
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/reference_itself", "{\"allowed_actions\": [\"reference_itself\"]}", header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(response.getBody().contains("reference_itself cannot be an allowed_action of itself"));
 
         // -- GET_UT hidden resource, must be 404 but super admin can find it
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executeGetRequest(ENDPOINT + "/INTERNAL", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
 
         // -- DELETE hidden resource, must be 404
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executeDeleteRequest(ENDPOINT + "/INTERNAL", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(response.getBody().contains("'INTERNAL' deleted."));
 
         // -- PUT hidden resource, must be forbidden
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/INTERNAL", FileHelper.loadFile("restapi/actiongroup_read.json"), header);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
     }
 
     void verifyPatchForSuperAdmin(final Header[] header, final boolean userAdminCert) throws Exception {
@@ -233,7 +235,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // PATCH read only resource, must be forbidden
         // SuperAdmin can patch read only resource
@@ -243,7 +245,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // PATCH with self-referencing action groups
         rh.sendAdminCertificate = userAdminCert;
@@ -252,7 +254,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/allowed_actions/-\", \"value\": \"GET_UT\" }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(response.getBody().contains("GET_UT cannot be an allowed_action of itself"));
 
         // bulk PATCH with self-referencing action groups
@@ -262,7 +264,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
                 + "{ \"op\": \"add\", \"path\": \"/BULKNEW2\", \"value\": {\"allowed_actions\": [\"READ_UT\"] } }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(response.getBody().contains("BULKNEW1 cannot be an allowed_action of itself"));
 
         // PATCH hidden resource, must be not found, can be found by superadmin, but fails with no path exist error
@@ -272,12 +274,12 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePatchRequest(ENDPOINT + "/CRUD_UT", "[{ \"op\": \"add\", \"path\": \"/hidden\", \"value\": true }]", header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(
             response.getBody(),
             response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*")
@@ -290,7 +292,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"1/INTERNAL/allowed_actions/-\", " + "\"value\": \"OPENDISTRO_SECURITY_DELETE\" }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // PATCH new format
         rh.sendAdminCertificate = userAdminCert;
@@ -299,13 +301,13 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/allowed_actions/-\", " + "\"value\": \"OPENDISTRO_SECURITY_DELETE\" }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/CRUD_UT", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         List<String> permissions = settings.getAsList("CRUD_UT.allowed_actions");
         Assert.assertNotNull(permissions);
-        Assert.assertEquals(3, permissions.size());
+        assertThat(permissions.size(), is(3));
         Assert.assertTrue(permissions.contains("READ_UT"));
         Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_WRITE"));
         Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_DELETE"));
@@ -319,11 +321,11 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/GET_UT/a\", \"value\": [ \"foo\", \"bar\" ] }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"add\", \"path\": \"/GET_UT/description\", \"value\": \"foo\" }]", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // PATCH hidden resource, must be bad request
         rh.sendAdminCertificate = userAdminCert;
@@ -332,24 +334,24 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/INTERNAL/a\", \"value\": [ \"foo\", \"bar\" ] }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // PATCH delete read only resource, must be forbidden
         // SuperAdmin can delete read only resource
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"remove\", \"path\": \"/GET_UT\" }]", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // PATCH delete hidden resource, must be bad request
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"remove\", \"path\": \"/INTERNAL\" }]", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(response.getBody().contains("\"message\":\"Resource updated."));
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = userAdminCert;
         response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"add\", \"path\": \"/CRUD_UT/hidden\", \"value\": true }]", header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // add new resource with hidden flag, must fail with validation error
@@ -359,7 +361,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/NEWNEWNEW\", \"value\": {\"allowed_actions\": [\"indices:data/write*\"], \"hidden\":true }}]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // add new valid resources
@@ -370,37 +372,37 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
                 + "{ \"op\": \"add\", \"path\": \"/BULKNEW2\", \"value\": {\"allowed_actions\": [\"READ_UT\"] } }]",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/BULKNEW1", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         permissions = settings.getAsList("BULKNEW1.allowed_actions");
         Assert.assertNotNull(permissions);
-        Assert.assertEquals(2, permissions.size());
+        assertThat(permissions.size(), is(2));
         Assert.assertTrue(permissions.contains("indices:data/*"));
         Assert.assertTrue(permissions.contains("cluster:monitor/*"));
 
         response = rh.executeGetRequest(ENDPOINT + "/BULKNEW2", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         permissions = settings.getAsList("BULKNEW2.allowed_actions");
         Assert.assertNotNull(permissions);
-        Assert.assertEquals(1, permissions.size());
+        assertThat(permissions.size(), is(1));
         Assert.assertTrue(permissions.contains("READ_UT"));
 
         // delete resource
         response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"remove\", \"path\": \"/BULKNEW1\" }]", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/BULKNEW1", header);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // assert other resource is still there
         response = rh.executeGetRequest(ENDPOINT + "/BULKNEW2", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         permissions = settings.getAsList("BULKNEW2.allowed_actions");
         Assert.assertNotNull(permissions);
-        Assert.assertEquals(1, permissions.size());
+        assertThat(permissions.size(), is(1));
         Assert.assertTrue(permissions.contains("READ_UT"));
     }
 
@@ -449,18 +451,23 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         final Header restApiHeader = encodeBasicHeader("test", "test");
 
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/rest_api_admin_group", restAdminAllowedActions(), restApiAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        assertThat(response.getBody(), HttpStatus.SC_FORBIDDEN, is(response.getStatusCode()));
+
         response = rh.executePutRequest(ENDPOINT + "/rest_api_admin_group", restAdminAllowedActions(), restApiAdminActionGroupsHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getBody(), HttpStatus.SC_FORBIDDEN, is(response.getStatusCode()));
+
         response = rh.executePutRequest(ENDPOINT + "/rest_api_admin_group", restAdminAllowedActions(), restApiHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getBody(), HttpStatus.SC_FORBIDDEN, is(response.getStatusCode()));
 
         response = rh.executePatchRequest(ENDPOINT, restAdminPatchBody(), restApiAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getBody(), HttpStatus.SC_FORBIDDEN, is(response.getStatusCode()));
+
         response = rh.executePatchRequest(ENDPOINT, restAdminPatchBody(), restApiAdminActionGroupsHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getBody(), HttpStatus.SC_FORBIDDEN, is(response.getStatusCode()));
+
         response = rh.executePatchRequest(ENDPOINT, restAdminPatchBody(), restApiHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getBody(), HttpStatus.SC_FORBIDDEN, is(response.getStatusCode()));
     }
 
     String restAdminAllowedActions() throws JsonProcessingException {
@@ -492,11 +499,11 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         // Delete read only actiongroups
         response = rh.executeDeleteRequest(ENDPOINT + "/create_index", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Put read only actiongroups
         response = rh.executePutRequest(ENDPOINT + "/create_index", FileHelper.loadFile("restapi/actiongroup_crud.json"), new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Patch single read only actiongroups
         response = rh.executePatchRequest(
@@ -504,7 +511,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Patch multiple read only actiongroups
         response = rh.executePatchRequest(
@@ -512,18 +519,18 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/create_index/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         response = rh.executeGetRequest(ENDPOINT + "/INTERNAL", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Delete hidden actiongroups
         response = rh.executeDeleteRequest(ENDPOINT + "/INTERNAL", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Put hidden actiongroups
         response = rh.executePutRequest(ENDPOINT + "/INTERNAL", FileHelper.loadFile("restapi/actiongroup_crud.json"), new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Patch hidden actiongroups
         response = rh.executePatchRequest(
@@ -531,7 +538,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Patch multiple hidden actiongroups
         response = rh.executePatchRequest(
@@ -539,7 +546,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/INTERNAL/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
     }
 
@@ -552,8 +559,8 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/actiongroup_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", body, new Header[0]);
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message()));
     }
 
 }

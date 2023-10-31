@@ -17,6 +17,8 @@ import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -31,9 +33,9 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
         JsonWebKey jwk = JwtVendor.createJwkFromSettings(settings);
-        Assert.assertEquals("HS512", jwk.getAlgorithm());
-        Assert.assertEquals("sig", jwk.getPublicKeyUse().toString());
-        Assert.assertEquals("abc123", jwk.getProperty("k"));
+        assertThat(jwk.getAlgorithm(), is("HS512"));
+        assertThat(jwk.getPublicKeyUse().toString(), is("sig"));
+        assertThat(jwk.getProperty("k"), is("abc123"));
     }
 
     @Test
@@ -46,9 +48,11 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals(
-            "java.lang.Exception: Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.",
-            exception.getMessage()
+        assertThat(
+            exception.getMessage(),
+            is(
+                "java.lang.Exception: Settings for signing key is missing. Please specify at least the option signing_key with a shared secret."
+            )
         );
     }
 
@@ -72,14 +76,14 @@ public class JwtVendorTest {
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
 
-        Assert.assertEquals("cluster_0", jwt.getClaim("iss"));
-        Assert.assertEquals("admin", jwt.getClaim("sub"));
-        Assert.assertEquals("audience_0", jwt.getClaim("aud"));
+        assertThat(jwt.getClaim("iss"), is("cluster_0"));
+        assertThat(jwt.getClaim("sub"), is("admin"));
+        assertThat(jwt.getClaim("aud"), is("audience_0"));
         Assert.assertNotNull(jwt.getClaim("iat"));
         Assert.assertNotNull(jwt.getClaim("exp"));
-        Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
+        assertThat(jwt.getClaim("exp"), is(expectedExp));
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        Assert.assertEquals(expectedRoles, encryptionUtil.decrypt(jwt.getClaim("er").toString()));
+        assertThat(encryptionUtil.decrypt(jwt.getClaim("er").toString()), is(expectedRoles));
         Assert.assertNull(jwt.getClaim("br"));
     }
 
@@ -111,16 +115,16 @@ public class JwtVendorTest {
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
 
-        Assert.assertEquals("cluster_0", jwt.getClaim("iss"));
-        Assert.assertEquals("admin", jwt.getClaim("sub"));
-        Assert.assertEquals("audience_0", jwt.getClaim("aud"));
+        assertThat(jwt.getClaim("iss"), is("cluster_0"));
+        assertThat(jwt.getClaim("sub"), is("admin"));
+        assertThat(jwt.getClaim("aud"), is("audience_0"));
         Assert.assertNotNull(jwt.getClaim("iat"));
         Assert.assertNotNull(jwt.getClaim("exp"));
-        Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
+        assertThat(jwt.getClaim("exp"), is(expectedExp));
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        Assert.assertEquals(expectedRoles, encryptionUtil.decrypt(jwt.getClaim("er").toString()));
+        assertThat(encryptionUtil.decrypt(jwt.getClaim("er").toString()), is(expectedRoles));
         Assert.assertNotNull(jwt.getClaim("br"));
-        Assert.assertEquals(expectedBackendRoles, jwt.getClaim("br"));
+        assertThat(jwt.getClaim("br"), is(expectedBackendRoles));
     }
 
     @Test
@@ -141,7 +145,7 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.Exception: The expiration time should be a positive integer", exception.getMessage());
+        assertThat(exception.getMessage(), is("java.lang.Exception: The expiration time should be a positive integer"));
     }
 
     @Test
@@ -161,7 +165,7 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.IllegalArgumentException: encryption_key cannot be null", exception.getMessage());
+        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: encryption_key cannot be null"));
     }
 
     @Test
@@ -182,6 +186,6 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        Assert.assertEquals("java.lang.Exception: Roles cannot be null", exception.getMessage());
+        assertThat(exception.getMessage(), is("java.lang.Exception: Roles cannot be null"));
     }
 }

@@ -28,7 +28,8 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
@@ -57,8 +58,8 @@ public class UserInjectorTest {
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2");
         User injectedUser = userInjector.getInjectedUser();
-        assertEquals(injectedUser.getName(), "user");
-        assertEquals(injectedUser.getRoles(), roles);
+        assertThat("user", is(injectedUser.getName()));
+        assertThat(roles, is(injectedUser.getRoles()));
     }
 
     @Test
