@@ -38,24 +38,18 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ServiceAccountAuthenticationTest {
 
-    public static final String DEFAULT_PASSWORD = "secret";
-
     public static final String SERVICE_ATTRIBUTE = "service";
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
-    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-    public static final String SERVICE_ACCOUNT_USER_NAME = "admin-extension";
-    // CS-ENFORCE-SINGLE
+    public static final String SERVICE_ACCOUNT_USER_NAME = "test-service-account";
 
     static final TestSecurityConfig.User SERVICE_ACCOUNT_ADMIN_USER = new TestSecurityConfig.User(SERVICE_ACCOUNT_USER_NAME).attr(
         SERVICE_ATTRIBUTE,
         "true"
     )
         .roles(
-            // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-            new TestSecurityConfig.Role("admin-extension-role").clusterPermissions("*")
-                // CS-ENFORCE-SINGLE
+            new TestSecurityConfig.Role("test-service-account-role").clusterPermissions("*")
                 .indexPermissions("*", "system:admin/system_index")
                 .on("*")
         );
@@ -92,7 +86,7 @@ public class ServiceAccountAuthenticationTest {
 
     @Test
     public void testClusterHealthWithServiceAccountCred() {
-        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
+        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_ADMIN_USER)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get("_cluster/health");
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
@@ -106,7 +100,7 @@ public class ServiceAccountAuthenticationTest {
 
     @Test
     public void testReadSysIndexWithServiceAccountCred() {
-        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
+        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_ADMIN_USER)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get(TEST_SYS_INDEX.getName());
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -120,7 +114,7 @@ public class ServiceAccountAuthenticationTest {
 
     @Test
     public void testReadNonSysIndexWithServiceAccountCred() {
-        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD)) {
+        try (TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_ADMIN_USER)) {
             client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
             TestRestClient.HttpResponse response = client.get(TEST_NON_SYS_INDEX.getName());
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
@@ -134,7 +128,7 @@ public class ServiceAccountAuthenticationTest {
 
     @Test
     public void testReadBothWithServiceAccountCred() {
-        TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_USER_NAME, DEFAULT_PASSWORD);
+        TestRestClient client = cluster.getRestClient(SERVICE_ACCOUNT_ADMIN_USER);
         client.confirmCorrectCredentials(SERVICE_ACCOUNT_USER_NAME);
         TestRestClient.HttpResponse response = client.get((TEST_SYS_INDEX.getName() + "," + TEST_NON_SYS_INDEX.getName()));
         response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
