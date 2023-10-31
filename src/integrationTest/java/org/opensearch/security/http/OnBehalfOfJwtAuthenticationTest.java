@@ -306,7 +306,6 @@ public class OnBehalfOfJwtAuthenticationTest {
             final String patchBody = "[{ \"op\": \"replace\", \"path\": \"/config/dynamic/on_behalf_of\", \"value\":"
                 + configBuilder.toString()
                 + "}]";
-            System.err.println("&&& Patch Body: \n" + patchBody);
             final var response = adminClient.patch("_plugins/_security/api/securityconfig", patchBody);
             response.assertStatusCode(HttpStatus.SC_OK);
         } catch (final IOException ex) {
