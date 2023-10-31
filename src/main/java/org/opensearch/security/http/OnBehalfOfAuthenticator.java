@@ -86,6 +86,10 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
+        if (signingKey == null) {
+            throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing_key");
+        }
+
         final int signingKeyLengthBits = signingKey.length() * 8;
         if (signingKeyLengthBits < MINIMUM_SIGNING_KEY_BIT_LENGTH) {
             throw new OpenSearchSecurityException(
@@ -97,10 +101,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             );
         }
         JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
-
-        if (jwtParserBuilder == null) {
-            throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing key");
-        }
 
         return jwtParserBuilder;
     }

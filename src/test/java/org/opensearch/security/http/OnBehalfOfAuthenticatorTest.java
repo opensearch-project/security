@@ -107,7 +107,7 @@ public class OnBehalfOfAuthenticatorTest {
                 false
             )
         );
-        assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
+        assertThat(exception.getMessage(), equalTo("Unable to find on behalf of authenticator signing_key"));
     }
 
     @Test
@@ -115,13 +115,16 @@ public class OnBehalfOfAuthenticatorTest {
         Exception exception = assertThrows(
             RuntimeException.class,
             () -> extractCredentialsFromJwtHeader(
-                null,
+                "",
                 claimsEncryptionKey,
                 Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy"),
                 false
             )
         );
-        assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
+        assertThat(
+            exception.getMessage(),
+            equalTo("Signing key size was 0 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+        );
     }
 
     @Test
@@ -135,7 +138,10 @@ public class OnBehalfOfAuthenticatorTest {
                 false
             )
         );
-        assertTrue(exception.getMessage().contains("The specified key byte array is 80 bits"));
+        assertThat(
+            exception.getMessage(),
+            equalTo("Signing key size was 128 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+        );
     }
 
     @Test
@@ -145,7 +151,10 @@ public class OnBehalfOfAuthenticatorTest {
             OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, "testCluster");
             fail("Expected WeakKeyException");
         } catch (OpenSearchSecurityException e) {
-            assertTrue("Expected error message to contain WeakKeyException", e.getMessage().contains("WeakKeyException"));
+            assertThat(
+                e.getMessage(),
+                equalTo("Signing key size was 56 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+            );
         }
     }
 
