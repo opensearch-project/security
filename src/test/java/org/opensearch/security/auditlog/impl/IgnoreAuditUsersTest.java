@@ -13,10 +13,11 @@ package org.opensearch.security.auditlog.impl;
 
 import java.net.InetSocketAddress;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.ClusterName;
@@ -78,7 +79,7 @@ public class IgnoreAuditUsersTest {
         );
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(0, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(0));
     }
 
     @Test
@@ -99,7 +100,7 @@ public class IgnoreAuditUsersTest {
         );
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
     }
 
     @Test
@@ -119,7 +120,7 @@ public class IgnoreAuditUsersTest {
         );
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
     }
 
     @Test
@@ -159,7 +160,7 @@ public class IgnoreAuditUsersTest {
         );
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(0, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(0));
 
         settings = Settings.builder()
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
@@ -184,7 +185,7 @@ public class IgnoreAuditUsersTest {
         );
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
 
         settings = Settings.builder()
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
@@ -211,7 +212,7 @@ public class IgnoreAuditUsersTest {
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
         al.logSecurityIndexAttempt(sr, "indices:data/read/search", null);
         al.logMissingPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(TestAuditlogImpl.messages.toString(), 0, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.toString(), 0, is(TestAuditlogImpl.messages.size()));
 
         settings = Settings.builder()
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
@@ -236,7 +237,7 @@ public class IgnoreAuditUsersTest {
         );
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
     }
 
     private static ThreadPool newThreadPool(Object... transients) {

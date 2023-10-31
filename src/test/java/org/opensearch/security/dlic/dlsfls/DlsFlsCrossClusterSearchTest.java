@@ -15,6 +15,8 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -151,7 +153,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
             encodeBasicHeader("human_resources_trainee", "password")
         );
         String body = ccs.getBody();
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(body.contains("crl1"));
         Assert.assertTrue(body.contains("crl2"));
         Assert.assertTrue(body.contains("\"value\" : 1,\n      \"relation"));
@@ -164,7 +166,8 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         Assert.assertFalse(body.contains("secret1"));
         Assert.assertFalse(body.contains("AnotherSecredField"));
         Assert.assertFalse(body.contains("xxx1"));
-        Assert.assertEquals(ccs.getHeaders().toString(), 3, ccs.getHeaders().size());
+        assertThat(ccs.getHeaders().toString(), 3, is(ccs.getHeaders().size()));
+
     }
 
     @Test
@@ -237,7 +240,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
             "cross_cluster_two:humanresources/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("human_resources_trainee", "password")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));
         Assert.assertTrue(ccs.getBody().contains("\"value\" : 1,\n      \"relation"));
@@ -250,7 +253,8 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("__fn__crl2"));
         Assert.assertFalse(ccs.getBody().contains("secret1"));
         Assert.assertFalse(ccs.getBody().contains("AnotherSecredField"));
-        Assert.assertEquals(ccs.getHeaders().toString(), 3, ccs.getHeaders().size());
+        assertThat(ccs.getHeaders().toString(), 3, is(ccs.getHeaders().size()));
+
     }
 
     @Test
@@ -365,7 +369,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
             "cross_cluster_two:humanresources,humanresources/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
             encodeBasicHeader("human_resources_trainee", "password")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));
         Assert.assertTrue(ccs.getBody().contains("\"value\" : 2,\n      \"relation"));
@@ -380,6 +384,6 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("secret1"));
         Assert.assertFalse(ccs.getBody().contains("AnotherSecredField"));
         Assert.assertTrue(ccs.getBody().contains("someoneelse"));
-        Assert.assertEquals(ccs.getHeaders().toString(), 3, ccs.getHeaders().size());
+        assertThat(ccs.getHeaders().toString(), 3, is(ccs.getHeaders().size()));
     }
 }

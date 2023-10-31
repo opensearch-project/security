@@ -19,6 +19,8 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
@@ -62,10 +64,12 @@ public class DateMathTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty", encodeBasicHeader("admin", "admin")))
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertTrue(res.getBody().contains("ipaddr"));
@@ -73,13 +77,14 @@ public class DateMathTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("mymsg"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest(
                 "%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty",
                 encodeBasicHeader("opendistro_security_logstash", "password")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("ipaddr"));
@@ -95,22 +100,24 @@ public class DateMathTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty", encodeBasicHeader("admin", "admin")))
-                .getStatusCode()
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("ipaddr"));
         Assert.assertTrue(res.getBody().contains("message"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest(
                 "%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty",
                 encodeBasicHeader("opendistro_security_logstash", "password")
-            )).getStatusCode()
+            )).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertFalse(res.getBody().contains("ipaddr"));
         Assert.assertFalse(res.getBody().contains("message"));
         Assert.assertTrue(res.getBody().contains("msgid"));
@@ -123,9 +130,9 @@ public class DateMathTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("logstash-*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("logstash-*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -134,11 +141,12 @@ public class DateMathTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("mymsg"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
+        assertThat(
             (res = rh.executeGetRequest("logstash-*/_search?pretty", encodeBasicHeader("opendistro_security_logstash", "password")))
-                .getStatusCode()
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("ipaddr"));
@@ -154,10 +162,11 @@ public class DateMathTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertTrue(res.getBody().contains("ipaddr"));
@@ -165,10 +174,12 @@ public class DateMathTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("mymsg"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("regex", "password"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("regex", "password")))
+                .getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("ipaddr"));

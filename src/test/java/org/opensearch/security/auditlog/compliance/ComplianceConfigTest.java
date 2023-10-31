@@ -21,7 +21,8 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -41,8 +42,10 @@ public class ComplianceConfigTest {
         assertFalse(complianceConfig.shouldLogReadMetadataOnly());
         assertFalse(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForReadMatcher());
-        assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
+
+        assertThat(complianceConfig.getIgnoredComplianceUsersForReadMatcher(), is(defaultIgnoredUserMatcher));
+        assertThat(complianceConfig.getIgnoredComplianceUsersForWriteMatcher(), is(defaultIgnoredUserMatcher));
+
     }
 
     @Test
@@ -76,13 +79,13 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.shouldLogReadMetadataOnly());
         assertTrue(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertEquals(
-            WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")),
-            complianceConfig.getIgnoredComplianceUsersForReadMatcher()
+        assertThat(
+            complianceConfig.getIgnoredComplianceUsersForReadMatcher(),
+            is(WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")))
         );
-        assertEquals(
-            WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")),
-            complianceConfig.getIgnoredComplianceUsersForWriteMatcher()
+        assertThat(
+            complianceConfig.getIgnoredComplianceUsersForWriteMatcher(),
+            is(WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")))
         );
 
         // test write history

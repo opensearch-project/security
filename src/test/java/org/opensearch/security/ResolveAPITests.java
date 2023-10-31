@@ -18,8 +18,9 @@ package org.opensearch.security;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
 import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -47,10 +48,11 @@ public class ResolveAPITests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -61,10 +63,11 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -77,16 +80,17 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode(),
+            is(HttpStatus.SC_FORBIDDEN)
         );
         log.debug(res.getBody());
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         log.debug(res.getBody());
         assertContains(res, "*starfleet*");
         assertContains(res, "*starfleet_academy*");
@@ -103,10 +107,11 @@ public class ResolveAPITests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse res;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -117,10 +122,11 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -133,10 +139,11 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -147,10 +154,11 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*public*");
         assertContains(res, "*xyz*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode(),
+            is(HttpStatus.SC_OK)
         );
+
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -163,10 +171,11 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("_resolve/index/vulcangov*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        assertThat(
+            (res = rh.executeGetRequest("_resolve/index/vulcangov*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode(),
+            is(HttpStatus.SC_FORBIDDEN)
         );
+
         log.debug(res.getBody());
     }
 
