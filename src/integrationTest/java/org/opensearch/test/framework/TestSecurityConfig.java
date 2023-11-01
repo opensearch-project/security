@@ -29,6 +29,7 @@
 package org.opensearch.test.framework;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -58,6 +59,9 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.common.io.stream.Writeable;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -252,7 +256,7 @@ public class TestSecurityConfig {
         }
     }
 
-    public static class User implements UserCredentialsHolder, ToXContentObject {
+    public static class User implements UserCredentialsHolder, ToXContentObject, Serializable, Writeable {
 
         public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(
             new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
@@ -261,11 +265,25 @@ public class TestSecurityConfig {
         String name;
         private String password;
         List<Role> roles = new ArrayList<>();
-        private Map<String, Object> attributes = new HashMap<>();
+        List<String> backendRoles = new ArrayList<>();
+        String requestedTenant;
+        private Map<String, String> attributes = new HashMap<>();
 
         public User(String name) {
             this.name = name;
             this.password = "secret";
+        }
+
+        public User(final StreamInput in) throws IOException {
+            super();
+            name = in.readString();
+            roles.addAll(in.readList(StreamInput::readString).stream().map(r -> new Role(r)).collect(Collectors.toList()));
+            requestedTenant = in.readString();
+            if (requestedTenant.isEmpty()) {
+                requestedTenant = null;
+            }
+            attributes = in.readMap(StreamInput::readString, StreamInput::readString);
+            backendRoles.addAll(in.readList(StreamInput::readString));
         }
 
         public User password(String password) {
@@ -282,7 +300,12 @@ public class TestSecurityConfig {
             return this;
         }
 
-        public User attr(String key, Object value) {
+        public User backendRoles(String... backendRoles) {
+            this.backendRoles.addAll(Arrays.asList(backendRoles));
+            return this;
+        }
+
+        public User attr(String key, String value) {
             this.attributes.put(key, value);
             return this;
         }
@@ -315,12 +338,25 @@ public class TestSecurityConfig {
                 xContentBuilder.field("opendistro_security_roles", roleNames);
             }
 
+            if (!backendRoles.isEmpty()) {
+                xContentBuilder.field("backend_roles", backendRoles);
+            }
+
             if (attributes != null && attributes.size() != 0) {
                 xContentBuilder.field("attributes", attributes);
             }
 
             xContentBuilder.endObject();
             return xContentBuilder;
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(name);
+            out.writeStringCollection(roles.stream().map(r -> r.getName()).collect(Collectors.toList()));
+            out.writeString(requestedTenant == null ? "" : requestedTenant);
+            out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
+            out.writeStringCollection(backendRoles == null ? Collections.emptyList() : new ArrayList<String>(backendRoles));
         }
     }
 
