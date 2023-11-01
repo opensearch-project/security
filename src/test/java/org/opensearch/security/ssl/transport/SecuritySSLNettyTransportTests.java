@@ -101,7 +101,7 @@ public class SecuritySSLNettyTransportTests {
         ChannelHandler channelHandler = securitySSLNettyTransport.getServerChannelInitializer("test-server-channel");
 
         assertThat(channelHandler, is(notNullValue()));
-        assertThat(channelHandler, instanceOf(SSLServerChannelInitializer.class));
+        assertThat(channelHandler, is(instanceOf(SSLServerChannelInitializer.class)));
     }
 
     @Test
@@ -110,7 +110,7 @@ public class SecuritySSLNettyTransportTests {
         ChannelHandler channelHandler = securitySSLNettyTransport.getClientChannelInitializer(discoveryNode);
 
         assertThat(channelHandler, is(notNullValue()));
-        assertThat(channelHandler, instanceOf(SSLClientChannelInitializer.class));
+        assertThat(channelHandler, is(instanceOf(SSLClientChannelInitializer.class)));
     }
 
 }

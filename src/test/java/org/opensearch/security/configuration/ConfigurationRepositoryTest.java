@@ -12,6 +12,7 @@
 package org.opensearch.security.configuration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -104,7 +105,7 @@ public class ConfigurationRepositoryTest {
         SecurityDynamicConfiguration<?> config = configRepository.getConfiguration(CType.CONFIG);
 
         assertThat(config, instanceOf(SecurityDynamicConfiguration.class));
-        assertThat(config.getCEntries().size(), is(0));
+        assertThat(config.getCEntries().size(), is(equalTo(0)));
     }
 
     @Test

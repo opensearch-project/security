@@ -11,6 +11,10 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,12 +40,12 @@ public class SelfRefreshingKeySetTest {
     public void getKey_withKidShouldReturnValidKey() throws AuthenticatorUnavailableException, BadCredentialsException {
 
         OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
-        Assert.assertEquals(TestJwk.OCT_1_K, key.getKeyValue().decodeToString());
+        assertThat(TestJwk.OCT_1_K, is(equalTo(key.getKeyValue().decodeToString())));
     }
 
     @Test
-    public void getKey_withNullKidShouldThrowAuthenticatorUnavailableException()
-            throws AuthenticatorUnavailableException, BadCredentialsException {
+    public void getKey_withNullKidShouldThrowAuthenticatorUnavailableException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
         Assert.assertThrows(AuthenticatorUnavailableException.class, () -> selfRefreshingKeySet.getKey(null));
 
@@ -55,16 +59,15 @@ public class SelfRefreshingKeySetTest {
     }
 
     @Test
-    public void getKeyAfterRefresh_withKidShouldReturnKey()
-            throws AuthenticatorUnavailableException, BadCredentialsException {
+    public void getKeyAfterRefresh_withKidShouldReturnKey() throws AuthenticatorUnavailableException, BadCredentialsException {
 
         OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKeyAfterRefresh("kid/b");
-        Assert.assertEquals(TestJwk.OCT_2_K, key.getKeyValue().decodeToString());
+        assertThat(TestJwk.OCT_2_K, is(equalTo(key.getKeyValue().decodeToString())));
     }
 
     @Test
-    public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes()
-            throws InterruptedException, ExecutionException {
+    public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes() throws InterruptedException,
+        ExecutionException {
 
         int numThreads = 10;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
@@ -75,9 +78,7 @@ public class SelfRefreshingKeySetTest {
                 synchronized (lock) {
                     try {
                         selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
-                    } catch (AuthenticatorUnavailableException e) {
-                    } catch (BadCredentialsException e) {
-                    }
+                    } catch (AuthenticatorUnavailableException e) {} catch (BadCredentialsException e) {}
                 }
             });
         }
@@ -85,14 +86,13 @@ public class SelfRefreshingKeySetTest {
         executor.shutdown();
         executor.awaitTermination(1, TimeUnit.SECONDS);
 
-        Assert.assertEquals(10, selfRefreshingKeySet.getRefreshCount());
-        Assert.assertEquals(0, selfRefreshingKeySet.getQueuedGetCount());
-
+        assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(equalTo(numThreads)));
+        assertThat((int) selfRefreshingKeySet.getQueuedGetCount(), is(equalTo((0))));
     }
 
     @Test
-    public void getKeyAfterRefresh_withNullKidShouldThrowBadCredentialsException()
-            throws AuthenticatorUnavailableException, BadCredentialsException {
+    public void getKeyAfterRefresh_withNullKidShouldThrowBadCredentialsException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh(null));
     }
