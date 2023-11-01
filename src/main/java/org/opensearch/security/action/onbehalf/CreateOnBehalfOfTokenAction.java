@@ -15,31 +15,21 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.authtoken.jwt.JwtVendor;
-import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.DynamicConfigModel;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
-import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.security.identity.SecurityTokenManager;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -51,42 +41,16 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         "/_plugins/_security/api"
     );
 
-    private JwtVendor vendor;
-    private final ThreadPool threadPool;
-    private final ClusterService clusterService;
-
-    private ConfigModel configModel;
-
-    public static final Integer OBO_DEFAULT_EXPIRY_SECONDS = 5 * 60;
-    public static final Integer OBO_MAX_EXPIRY_SECONDS = 10 * 60;
-
+    public static final long OBO_DEFAULT_EXPIRY_SECONDS = 5 * 60;
+    public static final long OBO_MAX_EXPIRY_SECONDS = 10 * 60;
     public static final String DEFAULT_SERVICE = "self-issued";
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    private static final Logger LOG = LogManager.getLogger(CreateOnBehalfOfTokenAction.class);
 
-    @Subscribe
-    public void onConfigModelChanged(final ConfigModel configModel) {
-        this.configModel = configModel;
-    }
+    private final SecurityTokenManager securityTokenManager;
 
-    @Subscribe
-    public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
-        final Settings settings = dcm.getDynamicOnBehalfOfSettings();
-
-        final Boolean enabled = Boolean.parseBoolean(settings.get("enabled"));
-        final String signingKey = settings.get("signing_key");
-        final String encryptionKey = settings.get("encryption_key");
-
-        if (!Boolean.FALSE.equals(enabled) && signingKey != null && encryptionKey != null) {
-            this.vendor = new JwtVendor(settings, Optional.empty());
-        } else {
-            this.vendor = null;
-        }
-    }
-
-    public CreateOnBehalfOfTokenAction(final Settings settings, final ThreadPool threadPool, final ClusterService clusterService) {
-        this.threadPool = threadPool;
-        this.clusterService = clusterService;
+    public CreateOnBehalfOfTokenAction(final SecurityTokenManager securityTokenManager) {
+        this.securityTokenManager = securityTokenManager;
     }
 
     @Override
@@ -116,45 +80,31 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                 final XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response;
                 try {
-                    if (vendor == null) {
+                    if (!securityTokenManager.issueOnBehalfOfTokenAllowed()) {
                         channel.sendResponse(
                             new BytesRestResponse(
-                                RestStatus.SERVICE_UNAVAILABLE,
+                                RestStatus.BAD_REQUEST,
                                 "The OnBehalfOf token generating API has been disabled, see {link to doc} for more information on this feature." /* TODO: Update the link to the documentation website */
                             )
                         );
                         return;
                     }
 
-                    final String clusterIdentifier = clusterService.getClusterName().value();
-
                     final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
 
                     validateRequestParameters(requestBody);
 
-                    Integer tokenDuration = parseAndValidateDurationSeconds(requestBody.get(InputParameters.DURATION.paramName));
+                    long tokenDuration = parseAndValidateDurationSeconds(requestBody.get(InputParameters.DURATION.paramName));
                     tokenDuration = Math.min(tokenDuration, OBO_MAX_EXPIRY_SECONDS);
 
                     final String description = (String) requestBody.getOrDefault(InputParameters.DESCRIPTION.paramName, null);
-
                     final String service = (String) requestBody.getOrDefault(InputParameters.SERVICE.paramName, DEFAULT_SERVICE);
-                    final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    final Set<String> mappedRoles = mapRoles(user);
+                    final var token = securityTokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims(service, tokenDuration));
 
                     builder.startObject();
-                    builder.field("user", user.getName());
-
-                    final String token = vendor.createJwt(
-                        clusterIdentifier,
-                        user.getName(),
-                        service,
-                        tokenDuration,
-                        mappedRoles.stream().collect(Collectors.toList()),
-                        user.getRoles().stream().collect(Collectors.toList()),
-                        false
-                    );
-                    builder.field("authenticationToken", token);
-                    builder.field("durationSeconds", tokenDuration);
+                    builder.field("user", token.getSubject());
+                    builder.field("authenticationToken", token.getCompleteToken());
+                    builder.field("durationSeconds", token.getExpiresInSeconds());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
@@ -162,7 +112,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                     builder.startObject().field("error", iae.getMessage()).endObject();
                     response = new BytesRestResponse(RestStatus.BAD_REQUEST, builder);
                 } catch (final Exception exception) {
-                    log.error("Unexpected error occurred: ", exception);
+                    LOG.error("Unexpected error occurred: ", exception);
 
                     builder.startObject().field("error", "An unexpected error occurred. Please check the input and try again.").endObject();
 
@@ -186,10 +136,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         }
     }
 
-    private Set<String> mapRoles(final User user) {
-        return this.configModel.mapSecurityRoles(user, null);
-    }
-
     private void validateRequestParameters(final Map<String, Object> requestBody) throws IllegalArgumentException {
         for (final String key : requestBody.keySet()) {
             Arrays.stream(InputParameters.values())
@@ -199,7 +145,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         }
     }
 
-    private Integer parseAndValidateDurationSeconds(final Object durationObj) throws IllegalArgumentException {
+    private long parseAndValidateDurationSeconds(final Object durationObj) throws IllegalArgumentException {
         if (durationObj == null) {
             return OBO_DEFAULT_EXPIRY_SECONDS;
         }
@@ -208,9 +154,9 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
             return (Integer) durationObj;
         } else if (durationObj instanceof String) {
             try {
-                return Integer.parseInt((String) durationObj);
+                return Long.parseLong((String) durationObj);
             } catch (final NumberFormatException ignored) {}
         }
-        throw new IllegalArgumentException("durationSeconds must be an integer.");
+        throw new IllegalArgumentException("durationSeconds must be a number.");
     }
 }
