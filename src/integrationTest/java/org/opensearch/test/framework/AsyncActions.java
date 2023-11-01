@@ -55,8 +55,6 @@ public class AsyncActions {
         try {
             futuresCompleted.get(n, unit);
         } catch (final Exception ex) {
-            System.out.println("Got exception: " + ex.getMessage());
-            ex.printStackTrace();
             final long completedFuturesCount = futures.stream().filter(CompletableFuture::isDone).count();
             final String perfReport = calculatePerfReport(startTimeMs, completedFuturesCount);
             throw new RuntimeException(

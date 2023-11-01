@@ -60,7 +60,7 @@ public class AsyncTests {
         .build();
 
     @Test
-    public void testIndexAndCacheInvalidationMixed() throws Exception {
+    public void testBulkAndCacheInvalidationMixed() throws Exception {
         String indexName = "test-index";
         final String invalidateCachePath = "/_plugins/_security/api/cache";
         final String nodesPath = "/_nodes";
