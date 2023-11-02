@@ -16,6 +16,7 @@ import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -23,8 +24,8 @@ import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -112,37 +113,36 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             return null;
         }
 
-        JwtToken jwt;
+        SignedJWT jwt;
+        JWTClaimsSet claimsSet;
 
         try {
             jwt = jwtVerifier.getVerifiedJwtToken(jwtString);
+            claimsSet = jwt.getJWTClaimsSet();
         } catch (AuthenticatorUnavailableException e) {
             log.info(e.toString());
             throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
-        } catch (BadCredentialsException e) {
-            log.info("Extracting JWT token from {} failed", jwtString, e);
+        } catch (BadCredentialsException | ParseException e) {
+            if (log.isTraceEnabled()) {
+                log.trace("Extracting JWT token from {} failed", jwtString, e);
+            }
             return null;
         }
 
-        JwtClaims claims = jwt.getClaims();
-
-        final String subject = extractSubject(claims);
-
+        final String subject = extractSubject(claimsSet);
         if (subject == null) {
             log.error("No subject found in JWT token");
             return null;
         }
 
-        final String[] roles = extractRoles(claims);
-
+        final String[] roles = extractRoles(claimsSet);
         final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
-        for (Entry<String, Object> claim : claims.asMap().entrySet()) {
+        for (Entry<String, Object> claim : claimsSet.getClaims().entrySet()) {
             ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
         }
 
         return ac;
-
     }
 
     protected String getJwtTokenString(SecurityRequest request) {
@@ -174,7 +174,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     }
 
     @VisibleForTesting
-    public String extractSubject(JwtClaims claims) {
+    public String extractSubject(JWTClaimsSet claims) {
         String subject = claims.getSubject();
 
         if (subjectKey != null) {
@@ -204,7 +204,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     @SuppressWarnings("unchecked")
     @VisibleForTesting
-    public String[] extractRoles(JwtClaims claims) {
+    public String[] extractRoles(JWTClaimsSet claims) {
         if (rolesKey == null) {
             return new String[0];
         }
