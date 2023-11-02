@@ -28,7 +28,9 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Data
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.SecurityJsonNode;
+import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
@@ -47,6 +49,12 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends AbstractApiAction {
+
+    @Override
+    protected void consumeParameters(final RestRequest request) {
+        request.param("name");
+        request.param("filterBy");
+    }
 
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
@@ -96,7 +104,13 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     private void internalUsersApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder
+        requestHandlersBuilder.onGetRequest(
+            request -> ValidationResult.success(request).map(this::processGetRequest).map(securityConfiguration -> {
+                final var configuration = securityConfiguration.configuration();
+                filterUsers(configuration, filterParam(request));
+                return ValidationResult.success(securityConfiguration);
+            })
+        )
             // Overrides the GET request functionality to allow for the special case of requesting an auth token.
             .override(
                 Method.POST,
@@ -121,6 +135,21 @@ public class InternalUsersApiAction extends AbstractApiAction {
                     .map(this::validateAndUpdatePassword)
                     .map(this::addEntityToConfig)
             );
+
+    }
+
+    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration users, UserFilterType userType) {
+        userService.includeAccountsIfType(users, userType);
+        return ValidationResult.success(SecurityConfiguration.of(users.getCType().toString(), users));
+
+    }
+
+    protected final UserFilterType filterParam(final RestRequest request) {
+        final String filter = request.param("filterBy");
+        if (Strings.isNullOrEmpty(filter)) {
+            return UserFilterType.ANY;
+        }
+        return UserFilterType.fromString(filter);
     }
 
     ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
@@ -179,8 +208,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
         try {
             final var username = securityConfiguration.entityName();
             final var content = (ObjectNode) securityConfiguration.requestContent();
-            if (request.hasParam("service")) {
-                content.put("service", request.param("service"));
+            if (request.hasParam("attributes")) {
+                content.put("attributes", request.param("attributes"));
             }
             if (request.hasParam("enabled")) {
                 content.put("enabled", request.param("enabled"));
