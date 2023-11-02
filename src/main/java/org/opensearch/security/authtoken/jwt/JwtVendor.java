@@ -11,6 +11,8 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
@@ -104,48 +106,64 @@ public class JwtVendor {
         final List<String> roles,
         final List<String> backendRoles,
         final boolean includeBackendRoles
-    ) throws JOSEException, ParseException {
-        final long currentTimeMs = timeProvider.getAsLong();
-        final Date now = new Date(currentTimeMs);
+    ) {
+        return AccessController.doPrivileged(new PrivilegedAction<ExpiringBearerAuthToken>() {
+            @Override
+            public ExpiringBearerAuthToken run() {
+                try {
+                    final long currentTimeMs = timeProvider.getAsLong();
+                    final Date now = new Date(currentTimeMs);
 
-        final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
-        claimsBuilder.issuer(issuer);
-        claimsBuilder.issueTime(now);
-        claimsBuilder.subject(subject);
-        claimsBuilder.audience(audience);
-        claimsBuilder.notBeforeTime(now);
+                    final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
+                    claimsBuilder.issuer(issuer);
+                    claimsBuilder.issueTime(now);
+                    claimsBuilder.subject(subject);
+                    claimsBuilder.audience(audience);
+                    claimsBuilder.notBeforeTime(now);
 
-        final long expirySeconds = Math.min(requestedExpirySeconds, MAX_EXPIRY_SECONDS);
-        if (expirySeconds <= 0) {
-            throw new IllegalArgumentException("The expiration time should be a positive integer");
-        }
-        final Date expiryTime = new Date(currentTimeMs + expirySeconds * 1000);
-        claimsBuilder.expirationTime(expiryTime);
+                    final long expirySeconds = Math.min(requestedExpirySeconds, MAX_EXPIRY_SECONDS);
+                    if (expirySeconds <= 0) {
+                        throw new IllegalArgumentException("The expiration time should be a positive integer");
+                    }
+                    final Date expiryTime = new Date(currentTimeMs + expirySeconds * 1000);
+                    claimsBuilder.expirationTime(expiryTime);
 
-        if (roles != null) {
-            final String listOfRoles = String.join(",", roles);
-            claimsBuilder.claim("er", encryptionDecryptionUtil.encrypt(listOfRoles));
-        } else {
-            throw new IllegalArgumentException("Roles cannot be null");
-        }
+                    if (roles != null) {
+                        final String listOfRoles = String.join(",", roles);
+                        claimsBuilder.claim("er", encryptionDecryptionUtil.encrypt(listOfRoles));
+                    } else {
+                        throw new IllegalArgumentException("Roles cannot be null");
+                    }
 
-        if (includeBackendRoles && backendRoles != null) {
-            final String listOfBackendRoles = String.join(",", backendRoles);
-            claimsBuilder.claim("br", listOfBackendRoles);
-        }
+                    if (includeBackendRoles && backendRoles != null) {
+                        final String listOfBackendRoles = String.join(",", backendRoles);
+                        claimsBuilder.claim("br", listOfBackendRoles);
+                    }
 
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
-        final SignedJWT signedJwt = new SignedJWT(header, claimsBuilder.build());
+                    final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
+                    final SignedJWT signedJwt = new SignedJWT(header, claimsBuilder.build());
 
-        // Sign the JWT so it can be serialized
-        signedJwt.sign(signer);
+                    // Sign the JWT so it can be serialized
+                    signedJwt.sign(signer);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug(
-                "Created JWT: " + signedJwt.serialize() + "\n" + signedJwt.getHeader().toJSONObject() + "\n" + signedJwt.getJWTClaimsSet()
-            );
-        }
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(
+                            "Created JWT: "
+                                + signedJwt.serialize()
+                                + "\n"
+                                + signedJwt.getHeader().toJSONObject()
+                                + "\n"
+                                + signedJwt.getJWTClaimsSet().toJSONObject()
+                        );
+                    }
 
-        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime, expirySeconds);
+                    return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime, expirySeconds);
+
+                } catch (JOSEException | ParseException e) {
+                    logger.error("Error while creating JWT token", e);
+                    throw new OpenSearchException("Error while creating JWT token", e);
+                }
+            }
+        });
     }
 }
