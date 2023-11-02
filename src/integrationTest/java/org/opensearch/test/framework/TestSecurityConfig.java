@@ -29,7 +29,6 @@
 package org.opensearch.test.framework;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;

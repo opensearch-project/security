@@ -105,9 +105,6 @@ public class AsyncTests {
             allRequests.addAll(nodesRequests);
             Collections.shuffle(allRequests);
             AsyncActions.getAll(allRequests, 150, TimeUnit.SECONDS).forEach((response) -> {
-                if (response.getStatusCode() == HttpStatus.SC_INTERNAL_SERVER_ERROR) {
-                    System.out.println("Response body: " + response.getBody());
-                }
                 assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
             });
         }
