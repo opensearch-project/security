@@ -72,33 +72,31 @@ public class AsyncTests {
 
             final CountDownLatch countDownLatch = new CountDownLatch(1);
 
-            final var cacheInvalidationRequests = AsyncActions.generate(() -> {
+            List<CompletableFuture<HttpResponse>> allRequests = new ArrayList<CompletableFuture<HttpResponse>>();
+
+            allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
                 final HttpDelete delete = new HttpDelete(client.getHttpServerUri() + invalidateCachePath);
                 return client.executeRequest(delete, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
-            }, parallelism, totalNumberOfRequests);
+            }, parallelism, totalNumberOfRequests));
 
-            final var bulkRequests = AsyncActions.generate(() -> {
+            allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + bulkPath);
                 post.setEntity(new ByteArrayEntity(document.getBytes(StandardCharset.UTF_8), ContentType.APPLICATION_JSON));
                 return client.executeRequest(post, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
-            }, parallelism, totalNumberOfRequests);
+            }, parallelism, totalNumberOfRequests));
 
-            final var nodesRequests = AsyncActions.generate(() -> {
+            allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
                 final HttpGet get = new HttpGet(client.getHttpServerUri() + nodesPath);
                 return client.executeRequest(get, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
-            }, parallelism, totalNumberOfRequests);
+            }, parallelism, totalNumberOfRequests));
 
             // Make sure all requests start at the same time
             countDownLatch.countDown();
-
-            List<CompletableFuture<HttpResponse>> allRequests = new ArrayList<CompletableFuture<HttpResponse>>();
-            allRequests.addAll(cacheInvalidationRequests);
-            allRequests.addAll(bulkRequests);
-            allRequests.addAll(nodesRequests);
             Collections.shuffle(allRequests);
+
             AsyncActions.getAll(allRequests, 30, TimeUnit.SECONDS).forEach((response) -> { response.assertStatusCode(HttpStatus.SC_OK); });
         }
     }
