@@ -175,7 +175,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
-        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 19;
+        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 20;
         final String serviceAccountName = "JohnDoeService";
         HttpResponse response;
 
