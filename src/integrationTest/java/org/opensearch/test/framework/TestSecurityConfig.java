@@ -256,7 +256,7 @@ public class TestSecurityConfig {
         }
     }
 
-    public static class User implements UserCredentialsHolder, ToXContentObject, Serializable, Writeable {
+    public static class User implements UserCredentialsHolder, ToXContentObject, Writeable {
 
         public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(
             new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
