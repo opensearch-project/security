@@ -94,6 +94,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     private final Map<String, LocalCluster> remotes;
     private volatile LocalOpenSearchCluster localOpenSearchCluster;
     private final List<TestIndex> testIndices;
+    private String primaryNode;
 
     private boolean loadConfigurationIntoIndex;
 
@@ -156,6 +157,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     @Override
     protected void after() {
         System.clearProperty(INIT_CONFIGURATION_DIR);
+        this.primaryNode = null;
         close();
     }
 
@@ -179,7 +181,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     @Override
     public InetSocketAddress getHttpAddress() {
-        return localOpenSearchCluster.clientNode().getHttpAddress();
+        return this.primaryNode == null ? localOpenSearchCluster.clientNode().getHttpAddress() : localOpenSearchCluster.getNodeByName(primaryNode).getHttpAddress();
     }
 
     public int getHttpPort() {
@@ -531,4 +533,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         return testCertificates;
     }
 
+    public void setPrimaryNode(String primaryNode) {
+        this.primaryNode = primaryNode;
+    }
 }
