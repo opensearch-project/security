@@ -41,7 +41,6 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -67,7 +66,7 @@ public class AsyncTests {
         final int parallelism = 5;
         final int totalNumberOfRequests = 30;
 
-        try (final TestRestClient client = cluster.getRestClient()) {
+        try (final TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             IndexOperationsHelper.createIndex(cluster, indexName);
 
             final CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -77,20 +76,20 @@ public class AsyncTests {
             allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
                 final HttpDelete delete = new HttpDelete(client.getHttpServerUri() + invalidateCachePath);
-                return client.executeRequest(delete, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
+                return client.executeRequest(delete);
             }, parallelism, totalNumberOfRequests));
 
             allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + bulkPath);
                 post.setEntity(new ByteArrayEntity(document.getBytes(StandardCharset.UTF_8), ContentType.APPLICATION_JSON));
-                return client.executeRequest(post, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
+                return client.executeRequest(post);
             }, parallelism, totalNumberOfRequests));
 
             allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
                 final HttpGet get = new HttpGet(client.getHttpServerUri() + nodesPath);
-                return client.executeRequest(get, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
+                return client.executeRequest(get);
             }, parallelism, totalNumberOfRequests));
 
             // Make sure all requests start at the same time
