@@ -40,6 +40,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -102,9 +103,9 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
 
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
+        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, false);
 
-        SignedJWT signedJWT = SignedJWT.parse(encodedJwt);
+        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
@@ -139,9 +140,9 @@ public class JwtVendorTest {
             // CS-ENFORCE-SINGLE
             .build();
         final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        final String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
 
-        SignedJWT signedJWT = SignedJWT.parse(encodedJwt);
+        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
@@ -183,23 +184,16 @@ public class JwtVendorTest {
         String audience = "audience_0";
         List<String> roles = List.of("IT", "HR");
         List<String> backendRoles = List.of("Sales", "Support");
-        int expirySeconds = 900;
+        int expirySeconds = 900_000;
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
 
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertEquals(
-            "java.lang.IllegalArgumentException: The provided expiration time exceeds the maximum allowed duration of 600 seconds",
-            exception.getMessage()
-        );
+        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles, true);
+        // Expiry is a hint, the max value is controlled by the JwtVendor and reduced as is seen fit.
+        assertThat(authToken.getExpiresInSeconds(), not(equalTo(expirySeconds)));
+        assertThat(authToken.getExpiresInSeconds(), equalTo(600L));
     }
 
     @Test

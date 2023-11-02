@@ -46,7 +46,6 @@ public class JwtVendor {
     private final JWSSigner signer;
     private final LongSupplier timeProvider;
     private final EncryptionDecryptionUtil encryptionDecryptionUtil;
-    private static final Integer DEFAULT_EXPIRY_SECONDS = 300;
     private static final Integer MAX_EXPIRY_SECONDS = 600;
 
     public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
@@ -59,11 +58,7 @@ public class JwtVendor {
         } else {
             this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(settings.get("encryption_key"));
         }
-        if (timeProvider.isPresent()) {
-            this.timeProvider = timeProvider.get();
-        } else {
-            this.timeProvider = () -> System.currentTimeMillis();
-        }
+        this.timeProvider = timeProvider.orElse(System::currentTimeMillis);
     }
 
     /*
@@ -72,15 +67,15 @@ public class JwtVendor {
      *   PublicKeyUse: SIGN
      *   Encryption Algorithm: HS512
      * */
-    static Tuple<JWK, JWSSigner> createJwkFromSettings(Settings settings) {
+    static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings) {
         final OctetSequenceKey key;
         if (!isKeyNull(settings, "signing_key")) {
-            String signingKey = settings.get("signing_key");
+            final String signingKey = settings.get("signing_key");
             key = new OctetSequenceKey.Builder(Base64.getDecoder().decode(signingKey)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
         } else {
-            Settings jwkSettings = settings.getAsSettings("jwt").getAsSettings("key");
+            final Settings jwkSettings = settings.getAsSettings("jwt").getAsSettings("key");
 
             if (jwkSettings.isEmpty()) {
                 throw new OpenSearchException(
@@ -88,7 +83,7 @@ public class JwtVendor {
                 );
             }
 
-            String signingKey = jwkSettings.get("k");
+            final String signingKey = jwkSettings.get("k");
             key = new OctetSequenceKey.Builder(Base64.getDecoder().decode(signingKey)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
@@ -96,21 +91,22 @@ public class JwtVendor {
 
         try {
             return new Tuple<>(key, new MACSigner(key));
-        } catch (KeyLengthException kle) {
+        } catch (final KeyLengthException kle) {
             throw new OpenSearchException(kle);
         }
     }
 
-    public String createJwt(
-        String issuer,
-        String subject,
-        String audience,
-        Integer expirySeconds,
-        List<String> roles,
-        List<String> backendRoles,
-        boolean includeBackendRoles
+    public ExpiringBearerAuthToken createJwt(
+        final String issuer,
+        final String subject,
+        final String audience,
+        final long requestedExpirySeconds,
+        final List<String> roles,
+        final List<String> backendRoles,
+        final boolean includeBackendRoles
     ) throws JOSEException, ParseException {
-        final Date now = new Date(timeProvider.getAsLong());
+        final long currentTimeMs = timeProvider.getAsLong();
+        final Date now = new Date(currentTimeMs);
 
         final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
         claimsBuilder.issuer(issuer);
@@ -119,28 +115,22 @@ public class JwtVendor {
         claimsBuilder.audience(audience);
         claimsBuilder.notBeforeTime(now);
 
-        if (expirySeconds > MAX_EXPIRY_SECONDS) {
-            throw new IllegalArgumentException(
-                "The provided expiration time exceeds the maximum allowed duration of " + MAX_EXPIRY_SECONDS + " seconds"
-            );
-        }
-
-        expirySeconds = (expirySeconds == null) ? DEFAULT_EXPIRY_SECONDS : Math.min(expirySeconds, MAX_EXPIRY_SECONDS);
+        final long expirySeconds = Math.min(requestedExpirySeconds, MAX_EXPIRY_SECONDS);
         if (expirySeconds <= 0) {
             throw new IllegalArgumentException("The expiration time should be a positive integer");
         }
-        final Date expiryTime = new Date(timeProvider.getAsLong() + expirySeconds * 1000);
+        final Date expiryTime = new Date(currentTimeMs + expirySeconds * 1000);
         claimsBuilder.expirationTime(expiryTime);
 
         if (roles != null) {
-            String listOfRoles = String.join(",", roles);
+            final String listOfRoles = String.join(",", roles);
             claimsBuilder.claim("er", encryptionDecryptionUtil.encrypt(listOfRoles));
         } else {
             throw new IllegalArgumentException("Roles cannot be null");
         }
 
         if (includeBackendRoles && backendRoles != null) {
-            String listOfBackendRoles = String.join(",", backendRoles);
+            final String listOfBackendRoles = String.join(",", backendRoles);
             claimsBuilder.claim("br", listOfBackendRoles);
         }
 
@@ -156,6 +146,6 @@ public class JwtVendor {
             );
         }
 
-        return signedJwt.serialize();
+        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime, expirySeconds);
     }
 }

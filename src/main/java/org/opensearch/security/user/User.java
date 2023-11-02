@@ -286,4 +286,14 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
             ? Collections.synchronizedSet(Collections.emptySet())
             : Collections.unmodifiableSet(this.securityRoles);
     }
+
+    /**
+     * Check the custom attributes associated with this user
+     *
+     * @return true if it has a service account attributes. otherwise false
+     */
+    public boolean isServiceAccount() {
+        Map<String, String> userAttributesMap = this.getCustomAttributesMap();
+        return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
+    }
 }
