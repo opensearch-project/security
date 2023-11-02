@@ -126,6 +126,15 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
 
+    public void confirmCorrectCredentials(String expectedUserName) {
+        HttpResponse response = getAuthInfo();
+        assertThat(response, notNullValue());
+        response.assertStatusCode(200);
+        String username = response.getTextFromJsonBody("/user_name");
+        String message = String.format("Expected user name is '%s', but was '%s'", expectedUserName, username);
+        assertThat(message, username, equalTo(expectedUserName));
+    }
+
     public HttpResponse getOnBehalfOfToken(String jsonData, Header... headers) {
         try {
             HttpPost httpPost = new HttpPost(
