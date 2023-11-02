@@ -350,7 +350,7 @@ public class UserService {
     ) {
         for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
             final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-            final Map accountAttributes = internalUserEntry.getAttributes();
+            final Map<String, String> accountAttributes = internalUserEntry.getAttributes();
             final String accountName = entry.getKey();
             final boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
 
