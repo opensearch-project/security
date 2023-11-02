@@ -58,9 +58,6 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
-import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.core.common.io.stream.Writeable;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -255,7 +252,7 @@ public class TestSecurityConfig {
         }
     }
 
-    public static class User implements UserCredentialsHolder, ToXContentObject, Writeable {
+    public static class User implements UserCredentialsHolder, ToXContentObject {
 
         public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(
             new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
@@ -271,18 +268,6 @@ public class TestSecurityConfig {
         public User(String name) {
             this.name = name;
             this.password = "secret";
-        }
-
-        public User(final StreamInput in) throws IOException {
-            super();
-            name = in.readString();
-            roles.addAll(in.readList(StreamInput::readString).stream().map(r -> new Role(r)).collect(Collectors.toList()));
-            requestedTenant = in.readString();
-            if (requestedTenant.isEmpty()) {
-                requestedTenant = null;
-            }
-            attributes = in.readMap(StreamInput::readString, StreamInput::readString);
-            backendRoles.addAll(in.readList(StreamInput::readString));
         }
 
         public User password(String password) {
@@ -347,15 +332,6 @@ public class TestSecurityConfig {
 
             xContentBuilder.endObject();
             return xContentBuilder;
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(name);
-            out.writeStringCollection(roles.stream().map(r -> r.getName()).collect(Collectors.toList()));
-            out.writeString(requestedTenant == null ? "" : requestedTenant);
-            out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
-            out.writeStringCollection(backendRoles == null ? Collections.emptyList() : new ArrayList<String>(backendRoles));
         }
     }
 

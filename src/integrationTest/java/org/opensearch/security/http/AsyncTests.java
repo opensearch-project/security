@@ -39,8 +39,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
@@ -76,14 +74,12 @@ public class AsyncTests {
 
             final var cacheInvalidationRequests = AsyncActions.generate(() -> {
                 countDownLatch.await();
-                System.err.println("Generation triggered invalidate cache requests");
                 final HttpDelete delete = new HttpDelete(client.getHttpServerUri() + invalidateCachePath);
                 return client.executeRequest(delete, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
             }, parallelism, totalNumberOfRequests);
 
             final var bulkRequests = AsyncActions.generate(() -> {
                 countDownLatch.await();
-                System.err.println("Generation triggered bulk requests");
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + bulkPath);
                 post.setEntity(new ByteArrayEntity(document.getBytes(StandardCharset.UTF_8), ContentType.APPLICATION_JSON));
                 return client.executeRequest(post, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
@@ -91,7 +87,6 @@ public class AsyncTests {
 
             final var nodesRequests = AsyncActions.generate(() -> {
                 countDownLatch.await();
-                System.err.println("Generation triggered node requests");
                 final HttpGet get = new HttpGet(client.getHttpServerUri() + nodesPath);
                 return client.executeRequest(get, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
             }, parallelism, totalNumberOfRequests);
@@ -104,9 +99,7 @@ public class AsyncTests {
             allRequests.addAll(bulkRequests);
             allRequests.addAll(nodesRequests);
             Collections.shuffle(allRequests);
-            AsyncActions.getAll(allRequests, 150, TimeUnit.SECONDS).forEach((response) -> {
-                assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-            });
+            AsyncActions.getAll(allRequests, 30, TimeUnit.SECONDS).forEach((response) -> { response.assertStatusCode(HttpStatus.SC_OK); });
         }
     }
 }
