@@ -13,8 +13,6 @@ package org.opensearch.security.http;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.nimbusds.jose.util.StandardCharset;
 
-import org.apache.hc.client5.http.classic.methods.HttpDelete;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpStatus;
@@ -59,8 +57,8 @@ public class AsyncTests {
     @Test
     public void testBulkAndCacheInvalidationMixed() throws Exception {
         String indexName = "test-index";
-        final String invalidateCachePath = "/_plugins/_security/api/cache";
-        final String nodesPath = "/_nodes";
+        final String invalidateCachePath = "_plugins/_security/api/cache";
+        final String nodesPath = "_nodes";
         final String bulkPath = "/_bulk";
         final String document = ("{ \"index\": { \"_index\": \"" + indexName + "\" }}\n{ \"foo\": \"bar\" }\n").repeat(5);
         final int parallelism = 5;
@@ -75,8 +73,7 @@ public class AsyncTests {
 
             allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
-                final HttpDelete delete = new HttpDelete(client.getHttpServerUri() + invalidateCachePath);
-                return client.executeRequest(delete);
+                return client.delete(invalidateCachePath);
             }, parallelism, totalNumberOfRequests));
 
             allRequests.addAll(AsyncActions.generate(() -> {
@@ -88,8 +85,7 @@ public class AsyncTests {
 
             allRequests.addAll(AsyncActions.generate(() -> {
                 countDownLatch.await();
-                final HttpGet get = new HttpGet(client.getHttpServerUri() + nodesPath);
-                return client.executeRequest(get);
+                return client.get(nodesPath);
             }, parallelism, totalNumberOfRequests));
 
             // Make sure all requests start at the same time
