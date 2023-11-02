@@ -34,7 +34,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 
-import com.google.common.collect.Lists;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
@@ -54,7 +53,6 @@ import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -64,6 +62,8 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.xcontent.XContentType;
+
+import com.google.common.collect.Lists;
 
 public class HttpClient implements Closeable {
 
@@ -179,30 +179,8 @@ public class HttpClient implements Closeable {
         this.supportedCipherSuites = supportedCipherSuites;
         this.keystoreAlias = keystoreAlias;
 
-        /*
-        * pattern helps to get the port number after last colon.
-        * \d matches a  digit equivalent to [0-9].
-        */
-        Pattern pattern = Pattern.compile(":(\\d+)");
-
-        HttpHost[] hosts = Arrays.stream(servers).map(server -> {
-            int lastIndexColon = server.lastIndexOf(':');
-            String url = server.substring(0, lastIndexColon);
-            String uri = server.substring(lastIndexColon);
-            Matcher matcher = pattern.matcher(uri);
-            if (matcher.find()) {
-                int port = Integer.parseInt(matcher.group(1));
-                return new HttpHost(ssl ? "https" : "http", url, port);
-            } else {
-                return null;
-            }
-        })
-            .filter(Objects::nonNull) // Filter out null values
-            .collect(Collectors.toList())
-            .toArray(HttpHost[]::new);
-
+        HttpHost[] hosts = createHosts(servers);
         RestClientBuilder builder = RestClient.builder(hosts);
-        // builder.setMaxRetryTimeoutMillis(10000);
 
         builder.setFailureListener(new RestClient.FailureListener() {
             @Override
@@ -225,6 +203,30 @@ public class HttpClient implements Closeable {
         });
 
         rclient = new RestHighLevelClient(builder);
+    }
+
+    private HttpHost[] createHosts(String[] servers) {
+        /*
+         * pattern helps to get the port number.
+         * \d matches a digit equivalent to [0-9].
+         * $ determines the end of the URL.
+         * So the port number has to be at the end of the URL,
+         * if it is not there, it means the URL contains a
+         * specific path for OpenSearch.
+         */
+        Pattern pattern = Pattern.compile(":(\\d+)$");
+
+        return Arrays.stream(servers).map(server -> {
+            server = server.replaceAll("https://|http://", "");
+            Matcher matcher = pattern.matcher(server);
+            if (matcher.find()) {
+                String url = server.split(pattern.toString())[0];
+                int port = Integer.parseInt(matcher.group(1));
+                return new HttpHost(ssl ? "https" : "http", url, port);
+            } else {
+                return new HttpHost(ssl ? "https" : "http", server);
+            }
+        }).collect(Collectors.toList()).toArray(HttpHost[]::new);
     }
 
     public boolean index(final String content, final String index, final String type, final boolean refresh) {
