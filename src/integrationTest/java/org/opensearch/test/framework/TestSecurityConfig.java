@@ -261,7 +261,9 @@ public class TestSecurityConfig {
         String name;
         private String password;
         List<Role> roles = new ArrayList<>();
-        private Map<String, Object> attributes = new HashMap<>();
+        List<String> backendRoles = new ArrayList<>();
+        String requestedTenant;
+        private Map<String, String> attributes = new HashMap<>();
 
         public User(String name) {
             this.name = name;
@@ -282,7 +284,12 @@ public class TestSecurityConfig {
             return this;
         }
 
-        public User attr(String key, Object value) {
+        public User backendRoles(String... backendRoles) {
+            this.backendRoles.addAll(Arrays.asList(backendRoles));
+            return this;
+        }
+
+        public User attr(String key, String value) {
             this.attributes.put(key, value);
             return this;
         }
@@ -313,6 +320,10 @@ public class TestSecurityConfig {
 
             if (!roleNames.isEmpty()) {
                 xContentBuilder.field("opendistro_security_roles", roleNames);
+            }
+
+            if (!backendRoles.isEmpty()) {
+                xContentBuilder.field("backend_roles", backendRoles);
             }
 
             if (attributes != null && attributes.size() != 0) {
