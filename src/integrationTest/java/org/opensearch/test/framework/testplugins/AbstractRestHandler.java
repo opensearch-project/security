@@ -11,8 +11,8 @@ package org.opensearch.test.framework.testplugins;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;

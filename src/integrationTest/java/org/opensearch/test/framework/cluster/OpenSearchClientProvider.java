@@ -213,11 +213,11 @@ public interface OpenSearchClientProvider {
         return new TestRestClient(getHttpAddress(), configuration.getHeaders(), getSSLContext(), configuration.getSourceInetAddress());
     }
 
-    private SSLContext getSSLContext() {
+    default SSLContext getSSLContext() {
         return getSSLContext(null);
     }
 
-    private SSLContext getSSLContext(CertificateData useCertificateData) {
+    default SSLContext getSSLContext(CertificateData useCertificateData) {
         X509Certificate[] trustCertificates;
 
         try {

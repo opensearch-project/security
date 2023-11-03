@@ -13,7 +13,7 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.admin.indices.cache.clear.ClearIndicesCacheResponse;
-import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.RestStatus;
 
 class SuccessfulClearIndicesCacheResponseMatcher extends TypeSafeDiagnosingMatcher<ClearIndicesCacheResponse> {
 

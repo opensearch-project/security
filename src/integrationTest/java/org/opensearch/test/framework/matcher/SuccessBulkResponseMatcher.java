@@ -17,7 +17,7 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkResponse;
-import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.RestStatus;
 
 class SuccessBulkResponseMatcher extends TypeSafeDiagnosingMatcher<BulkResponse> {
 

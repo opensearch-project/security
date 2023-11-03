@@ -71,8 +71,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.common.Strings;
-import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.common.Strings;
+import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.security.DefaultObjectMapper;
 
 import static java.lang.String.format;
@@ -170,7 +172,11 @@ public class TestRestClient implements AutoCloseable {
     }
 
     public HttpResponse putJson(String path, ToXContentObject body) {
-        return putJson(path, Strings.toString(XContentType.JSON, body));
+        try {
+        return putJson(path, XContentHelper.toXContent(body, XContentType.JSON, true).toString());
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 
     public HttpResponse put(String path) {
@@ -189,7 +195,11 @@ public class TestRestClient implements AutoCloseable {
     }
 
     public HttpResponse postJson(String path, ToXContentObject body) {
-        return postJson(path, Strings.toString(XContentType.JSON, body));
+        try {
+            return postJson(path, XContentHelper.toXContent(body, XContentType.JSON, true).toString());
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 
     public HttpResponse post(String path) {
@@ -259,7 +269,7 @@ public class TestRestClient implements AutoCloseable {
 
     protected final CloseableHttpClient getHTTPClient() {
         HttpRoutePlanner routePlanner = Optional.ofNullable(sourceInetAddress).map(LocalAddressRoutePlanner::new).orElse(null);
-        var factory = new CloseableHttpClientFactory(sslContext, requestConfig, routePlanner, null);
+        CloseableHttpClientFactory factory = new CloseableHttpClientFactory(sslContext, requestConfig, routePlanner, null);
         return factory.getHTTPClient();
     }
 

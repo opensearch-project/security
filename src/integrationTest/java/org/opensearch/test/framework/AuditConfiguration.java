@@ -11,8 +11,8 @@ package org.opensearch.test.framework;
 
 import java.io.IOException;
 
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentBuilder;
 
 public class AuditConfiguration implements ToXContentObject {
     private final boolean enabled;

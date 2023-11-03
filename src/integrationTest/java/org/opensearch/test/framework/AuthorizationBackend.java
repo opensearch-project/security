@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentBuilder;
 
 public class AuthorizationBackend implements ToXContentObject {
     private final String type;

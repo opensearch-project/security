@@ -25,10 +25,13 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
@@ -63,7 +66,7 @@ public class CompressionTests {
 
         final byte[] compressedRequestBody = createCompressedRequestBody(rawBody);
         try (final TestRestClient client = cluster.getRestClient(ADMIN_USER, new BasicHeader("Content-Encoding", "gzip"))) {
-            final var requests = AsyncActions.generate(() -> {
+            final List<CompletableFuture<HttpResponse>> requests = AsyncActions.generate(() -> {
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                 post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
                 return client.executeRequest(post);
@@ -85,7 +88,7 @@ public class CompressionTests {
         try (final TestRestClient client = cluster.getRestClient(new BasicHeader("Content-Encoding", "gzip"))) {
             final CountDownLatch countDownLatch = new CountDownLatch(1);
 
-            final var authorizedRequests = AsyncActions.generate(() -> {
+            final List<CompletableFuture<HttpResponse>> authorizedRequests = AsyncActions.generate(() -> {
                 countDownLatch.await();
                 System.err.println("Generation triggered authorizedRequests");
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
@@ -93,7 +96,7 @@ public class CompressionTests {
                 return client.executeRequest(post, getBasicAuthHeader(ADMIN_USER.getName(), ADMIN_USER.getPassword()));
             }, parallelism, totalNumberOfRequests);
 
-            final var unauthorizedRequests = AsyncActions.generate(() -> {
+            final List<CompletableFuture<HttpResponse>> unauthorizedRequests = AsyncActions.generate(() -> {
                 countDownLatch.await();
                 System.err.println("Generation triggered unauthorizedRequests");
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);

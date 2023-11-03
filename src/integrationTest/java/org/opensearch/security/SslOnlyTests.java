@@ -50,7 +50,7 @@ public class SslOnlyTests {
 
             // in SSL only mode the security plugin does not register a handler for resource /_plugins/_security/whoami. Therefore error
             // response is returned.
-            response.assertStatusCode(400);
+            response.assertStatusCode(404);
         }
     }
 

@@ -13,9 +13,9 @@ import java.io.IOException;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.ToXContent;
+import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentBuilder;
 
 public class OnBehalfOfConfig implements ToXContentObject {
     private Boolean oboEnabled;

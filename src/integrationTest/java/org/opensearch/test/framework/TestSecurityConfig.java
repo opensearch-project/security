@@ -52,10 +52,11 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
-import org.opensearch.core.common.bytes.BytesReference;
+import org.opensearch.common.Strings;
+import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 
@@ -693,8 +694,7 @@ public class TestSecurityConfig {
         }
 
         builder.endObject();
-
-        return builder.toString();
+        return Strings.toString(builder);
     }
 
     private void writeSingleEntryConfigToIndex(Client client, CType configType, ToXContentObject config) {
@@ -715,7 +715,7 @@ public class TestSecurityConfig {
 
             builder.endObject();
 
-            String json = builder.toString();
+            String json = Strings.toString(builder);
 
             log.info("Writing security plugin configuration into index " + configType + ":\n" + json);
 

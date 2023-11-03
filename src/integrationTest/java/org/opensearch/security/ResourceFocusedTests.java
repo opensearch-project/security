@@ -17,7 +17,9 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -42,6 +44,7 @@ import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
@@ -124,7 +127,7 @@ public class ResourceFocusedTests {
     ) {
         final byte[] compressedRequestBody = createCompressedRequestBody(size);
         try (final TestRestClient client = cluster.getRestClient(new BasicHeader("Content-Encoding", "gzip"))) {
-            final var requests = AsyncActions.generate(() -> {
+            final List<CompletableFuture<HttpResponse>> requests = AsyncActions.generate(() -> {
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                 post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
                 return client.executeRequest(post);

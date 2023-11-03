@@ -134,7 +134,7 @@ class CertificatesIssuer {
             KeyPair publicAndPrivateKey = algorithmKit.generateKeyPair();
             KeyPair parentKeyPair = requireNonNull(parentCertificateData, "Issuer certificate data are required").getKeyPair();
             X500Name issuerName = parentCertificateData.getCertificateSubject();
-            var x509CertificateHolder = buildCertificateHolder(
+            X509CertificateHolder x509CertificateHolder = buildCertificateHolder(
                 requireNonNull(metadata, "Certificate metadata are required"),
                 issuerName,
                 publicAndPrivateKey.getPublic(),
