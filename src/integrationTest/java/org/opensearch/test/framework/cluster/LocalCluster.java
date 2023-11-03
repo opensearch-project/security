@@ -181,7 +181,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     @Override
     public InetSocketAddress getHttpAddress() {
-        return this.primaryNode == null ? localOpenSearchCluster.clientNode().getHttpAddress() : localOpenSearchCluster.getNodeByName(primaryNode).getHttpAddress();
+        return this.primaryNode == null ? localOpenSearchCluster.clusterManagerNode().getHttpAddress() : localOpenSearchCluster.getNodeByName(primaryNode).getHttpAddress();
     }
 
     public int getHttpPort() {
