@@ -11,21 +11,6 @@
 
 package org.opensearch.security.http;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
-
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
@@ -46,10 +31,20 @@ import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.security.WeakKeyException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
@@ -78,12 +73,9 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-        jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
-            @Override
-            public JwtParser run() {
-                JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-                return builder.build();
-            }
+        jwtParser = AccessController.doPrivileged((PrivilegedAction<JwtParser>) () -> {
+            JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
+            return builder.build();
         });
         this.clusterName = clusterName;
         this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
