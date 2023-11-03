@@ -148,6 +148,8 @@ public class ConfigV7 {
                 + authc
                 + ", authz="
                 + authz
+                + ", on_behalf_of="
+                + on_behalf_of
                 + "]";
         }
     }
@@ -482,7 +484,7 @@ public class ConfigV7 {
 
     public static class OnBehalfOfSettings {
         @JsonProperty("enabled")
-        private Boolean oboEnabled = Boolean.TRUE;
+        private Boolean oboEnabled = Boolean.FALSE;
         @JsonProperty("signing_key")
         private String signingKey;
         @JsonProperty("encryption_key")

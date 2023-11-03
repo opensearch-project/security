@@ -97,4 +97,14 @@ public class ConfigV7Test {
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
         assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
     }
+
+    @Test
+    public void testOnBehalfOfSettings() {
+        ConfigV7.OnBehalfOfSettings oboSettings;
+
+        oboSettings = new ConfigV7.OnBehalfOfSettings();
+        Assert.assertEquals(oboSettings.getOboEnabled(), Boolean.FALSE);
+        Assert.assertNull(oboSettings.getSigningKey());
+        Assert.assertNull(oboSettings.getEncryptionKey());
+    }
 }
