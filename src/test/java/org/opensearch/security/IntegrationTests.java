@@ -331,7 +331,7 @@ public class IntegrationTests extends SingleClusterTest {
         setup();
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("bug.99", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("bug.88", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("a", "b")).getStatusCode());
         Assert.assertEquals(
             HttpStatus.SC_OK,

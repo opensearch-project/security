@@ -2,12 +2,19 @@
 _meta:
   type: "internalusers"
   config_version: 2
-bug.99:
+bug.88:
   hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
   reserved: false
   hidden: false
   backend_roles: []
   attributes: {}
+  description: "Migrated from v6"
+bug.99:
+  hash: "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {service : "true"}
   description: "Migrated from v6"
 user_c:
   hash: "$2a$04$jQcEXpODnTFoGDuA7DPdSevA84CuH/7MOYkb80M3XZIrH76YMWS9G"

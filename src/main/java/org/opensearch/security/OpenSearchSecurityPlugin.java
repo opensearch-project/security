@@ -55,6 +55,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
@@ -100,11 +101,15 @@ import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.core.index.Index;
+import org.opensearch.identity.Subject;
+import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ExtensionAwarePlugin;
+import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -146,6 +151,7 @@ import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
@@ -199,7 +205,16 @@ import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvalua
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
-public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
+public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
+    implements
+        ClusterPlugin,
+        MapperPlugin,
+        // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
+        ExtensionAwarePlugin,
+        IdentityPlugin
+// CS-ENFORCE-SINGLE
+
+{
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -223,6 +238,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
+    private volatile SecurityTokenManager tokenManager;
     private volatile DynamicConfigFactory dcf;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile SecurityFilter sf;
@@ -550,9 +566,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         principalExtractor
                     )
                 );
-                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool, Objects.requireNonNull(cs));
-                dcf.registerDCFListener(cobot);
-                handlers.add(cobot);
+                handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -1024,6 +1038,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
@@ -1074,6 +1089,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(restLayerEvaluator);
         dcf.registerDCFListener(securityRestHandler);
+        dcf.registerDCFListener(tokenManager);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
@@ -1923,6 +1939,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return field.substring(0, field.length() - KEYWORD.length());
         }
         return field;
+    }
+
+    @Override
+    public Subject getSubject() {
+        // Not supported
+        return new NoopSubject();
+    }
+
+    @Override
+    public SecurityTokenManager getTokenManager() {
+        return tokenManager;
     }
 
     public static class GuiceHolder implements LifecycleComponent {

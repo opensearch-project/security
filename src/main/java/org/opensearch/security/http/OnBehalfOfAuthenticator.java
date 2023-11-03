@@ -11,17 +11,6 @@
 
 package org.opensearch.security.http;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
@@ -29,7 +18,6 @@ import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -43,12 +31,24 @@ import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
+    private static final int MINIMUM_SIGNING_KEY_BIT_LENGTH = 512;
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
@@ -73,24 +73,30 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-        jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
-            @Override
-            public JwtParser run() {
-                JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-                return builder.build();
-            }
+        jwtParser = AccessController.doPrivileged((PrivilegedAction<JwtParser>) () -> {
+            JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
+            return builder.build();
         });
-
         this.clusterName = clusterName;
         this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
-        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
-
-        if (jwtParserBuilder == null) {
-            throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing key");
+        if (signingKey == null) {
+            throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing_key");
         }
+
+        final int signingKeyLengthBits = signingKey.length() * 8;
+        if (signingKeyLengthBits < MINIMUM_SIGNING_KEY_BIT_LENGTH) {
+            throw new OpenSearchSecurityException(
+                "Signing key size was "
+                    + signingKeyLengthBits
+                    + " bits, which is not secure enough. Please use a signing_key with a size >= "
+                    + MINIMUM_SIGNING_KEY_BIT_LENGTH
+                    + " bits."
+            );
+        }
+        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
 
         return jwtParserBuilder;
     }

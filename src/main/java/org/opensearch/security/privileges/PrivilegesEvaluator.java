@@ -353,7 +353,15 @@ public class PrivilegesEvaluator {
             namedXContentRegistry
         );
 
+        final boolean serviceAccountUser = user.isServiceAccount();
         if (isClusterPerm(action0)) {
+            if (serviceAccountUser) {
+                presponse.missingPrivileges.add(action0);
+                presponse.allowed = false;
+                log.info("{} is a service account which doesn't have access to cluster level permission: {}", user, action0);
+                return presponse;
+            }
+
             if (!securityRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
