@@ -359,7 +359,7 @@ public class ConfigV6 {
 
     public static class OnBehalfOfSettings {
         @JsonProperty("enabled")
-        private Boolean oboEnabled = Boolean.TRUE;
+        private Boolean oboEnabled = Boolean.FALSE;
         @JsonProperty("signing_key")
         private String signingKey;
         @JsonProperty("encryption_key")
