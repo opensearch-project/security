@@ -26,6 +26,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,8 +34,7 @@ import javax.net.ssl.KeyManagerFactory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableMap;
-import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import com.nimbusds.jwt.SignedJWT;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -42,8 +42,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensaml.saml.saml2.core.NameIDType;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.common.io.stream.BytesStreamOutput;
@@ -65,6 +63,7 @@ import org.opensearch.security.util.FakeRestRequest;
 
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class HTTPSamlAuthenticatorTest {
     protected MockSamlIdpServer mockSamlIdpServer;
@@ -123,7 +122,7 @@ public class HTTPSamlAuthenticatorTest {
     }
 
     @Test
-    public void basicTest() throws Exception {
+    public void testRawHMACSettings() throws Exception {
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
         mockSamlIdpServer.setAuthenticateUser("horst");
@@ -133,8 +132,9 @@ public class HTTPSamlAuthenticatorTest {
             .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
             .put("kibana_url", "http://wherever")
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
             .put("roles_key", "roles")
+            .put("jwt.key.kty", "oct")
+            .put("jwt.key.k", "abc")
             .put("path.home", ".")
             .build();
 
@@ -156,10 +156,52 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        assertThat(jwt.getClaim("sub"), is("horst"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+    }
+
+    @Test
+    public void basicTest() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+
+        Set<String> exchangeKeys = Set.of("abc", "6aff3042-1327-4f3d-82f0-40a157ac4464");
+        // should work with both keys
+        for (String exchKey : exchangeKeys) {
+            Settings settings = Settings.builder()
+                .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://wherever")
+                .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("exchange_key", exchKey)
+                .put("roles_key", "roles")
+                .put("path.home", ".")
+                .build();
+
+            HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+            AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+            String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+            RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+
+            String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
+            HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
+                responseJson,
+                new TypeReference<HashMap<String, Object>>() {
+                }
+            );
+            String authorization = (String) response.get("authorization");
+
+            Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+            SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+
+            Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+        }
     }
 
     private Optional<SecurityResponse> sendToAuthenticator(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) {
@@ -210,10 +252,9 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        assertThat(jwt.getClaim("sub"), is("horst"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
     }
 
     @Test
@@ -254,13 +295,12 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC\\User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC\\User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
 
-        assertThat(jwt.getClaim("sub"), is("ABC\\User1"));
-        assertThat(samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()), is("ABC\\User1"));
-        assertThat(String.valueOf(jwt.getClaim("roles")), is("[ABC\\Admin]"));
-        assertThat(samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0], is("ABC\\Admin"));
     }
 
     @Test
@@ -301,13 +341,11 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
-
-        assertThat(jwt.getClaim("sub"), is("ABC\"User1"));
-        assertThat(samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()), is("ABC\"User1"));
-        assertThat(String.valueOf(jwt.getClaim("roles")), is("[ABC\"Admin]"));
-        assertThat(samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0], is("ABC\"Admin"));
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC\"User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC\"User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC\"Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC\"Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
     }
 
     @Test
@@ -348,13 +386,11 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
-
-        assertThat(jwt.getClaim("sub"), is("ABC/User1"));
-        assertThat(samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()), is("ABC/User1"));
-        assertThat(String.valueOf(jwt.getClaim("roles")), is("[ABC/Admin]"));
-        assertThat(samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0], is("ABC/Admin"));
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC/User1", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertEquals("ABC/User1", samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getJWTClaimsSet()));
+        Assert.assertEquals("[ABC/Admin]", String.valueOf(jwt.getJWTClaimsSet().getClaim("roles")));
+        Assert.assertEquals("ABC/Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
     }
 
     @Test
@@ -395,10 +431,9 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertEquals("ABC/Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getJWTClaimsSet())[0]);
 
-        assertThat(samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0], is("ABC/Admin"));
     }
 
     @Test
@@ -438,10 +473,9 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        assertThat(jwt.getClaim("sub"), is("horst"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
     }
 
     @Test(expected = RuntimeException.class)
@@ -499,10 +533,9 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        assertThat(jwt.getClaim("sub"), is("horst"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
     }
 
     @Test
@@ -538,7 +571,7 @@ public class HTTPSamlAuthenticatorTest {
         );
         SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
 
-        assertThat(response.getStatus(), is(RestStatus.UNAUTHORIZED.getStatus()));
+        Assert.assertEquals(RestStatus.UNAUTHORIZED.getStatus(), response.getStatus());
     }
 
     @Test
@@ -568,7 +601,7 @@ public class HTTPSamlAuthenticatorTest {
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
         SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
 
-        assertThat(response.getStatus(), is(401));
+        Assert.assertEquals(401, response.getStatus());
     }
 
     @Test
@@ -595,7 +628,7 @@ public class HTTPSamlAuthenticatorTest {
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
         SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
 
-        assertThat(response.getStatus(), is(401));
+        Assert.assertEquals(401, response.getStatus());
     }
 
     @SuppressWarnings("unchecked")
@@ -634,13 +667,12 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        assertThat(jwt.getClaim("sub"), is("horst"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
         Assert.assertArrayEquals(
             new String[] { "a ", "c", "b   ", "d", "   e", "f", "g", "h", " ", "i" },
-            ((List<String>) jwt.getClaim("roles")).toArray(new String[0])
+            ((List<String>) jwt.getJWTClaimsSet().getClaim("roles")).toArray(new String[0])
         );
     }
 
@@ -677,10 +709,9 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        assertThat(jwt.getClaim("sub"), is("horst"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
     }
 
     @Test
@@ -727,11 +758,13 @@ public class HTTPSamlAuthenticatorTest {
 
         Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-        JwtToken jwt = jwtConsumer.getJwtToken();
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
 
-        assertThat(jwt.getClaim("sub"), is("horst"));
-        Assert.assertArrayEquals(new String[] { "a", "b" }, ((List<String>) jwt.getClaim("roles")).toArray(new String[0]));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+        Assert.assertArrayEquals(
+            new String[] { "a", "b" },
+            ((List<String>) jwt.getJWTClaimsSet().getClaim("roles")).toArray(new String[0])
+        );
     }
 
     @Test
@@ -845,10 +878,8 @@ public class HTTPSamlAuthenticatorTest {
 
             Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
 
-            JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
-            JwtToken jwt = jwtConsumer.getJwtToken();
-
-            assertThat(jwt.getClaim("sub"), is("horst"));
+            SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+            Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
         }
     }
 
@@ -866,9 +897,9 @@ public class HTTPSamlAuthenticatorTest {
             Assert.fail("Invalid WWW-Authenticate header: " + wwwAuthenticateHeader);
         }
 
-        assertThat(wwwAuthenticateHeaderMatcher.group(1), is("X-Security-IdP"));
-        assertThat(wwwAuthenticateHeaderMatcher.group(4), is("location"));
-        assertThat(wwwAuthenticateHeaderMatcher.group(6), is("requestId"));
+        Assert.assertEquals("X-Security-IdP", wwwAuthenticateHeaderMatcher.group(1));
+        Assert.assertEquals("location", wwwAuthenticateHeaderMatcher.group(4));
+        Assert.assertEquals("requestId", wwwAuthenticateHeaderMatcher.group(6));
 
         String location = wwwAuthenticateHeaderMatcher.group(5);
         String requestId = wwwAuthenticateHeaderMatcher.group(7);

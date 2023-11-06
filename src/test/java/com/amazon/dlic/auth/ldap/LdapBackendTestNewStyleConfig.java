@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.TreeSet;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -23,8 +24,6 @@ import org.junit.Test;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
@@ -38,6 +37,8 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+
+import static org.hamcrest.Matchers.hasItem;
 
 public class LdapBackendTestNewStyleConfig {
 
@@ -71,7 +72,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test(expected = OpenSearchSecurityException.class)
@@ -119,7 +120,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test(expected = OpenSearchSecurityException.class)
@@ -196,7 +197,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test
@@ -218,7 +219,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test
@@ -232,7 +233,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test
@@ -256,7 +257,7 @@ public class LdapBackendTestNewStyleConfig {
                 new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
             );
         } catch (Exception e) {
-            assertThat(org.ldaptive.LdapException.class, is(e.getCause().getClass()));
+            Assert.assertEquals(e.getCause().getClass(), org.ldaptive.LdapException.class);
             Assert.assertTrue(e.getCause().getMessage().contains("Unable to connec"));
         }
 
@@ -283,7 +284,7 @@ public class LdapBackendTestNewStyleConfig {
                 new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
             );
         } catch (Exception e) {
-            assertThat(org.ldaptive.LdapException.class, is(e.getCause().getClass()));
+            Assert.assertEquals(e.getCause().getClass(), org.ldaptive.LdapException.class);
             Assert.assertTrue(e.getCause().getMessage().contains("Unable to connec"));
         }
 
@@ -310,7 +311,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
 
     }
 
@@ -333,7 +334,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test
@@ -350,7 +351,7 @@ public class LdapBackendTestNewStyleConfig {
                 new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
             );
         } catch (final Exception e) {
-            assertThat(e.getCause().getClass(), is(org.ldaptive.LdapException.class));
+            Assert.assertEquals(org.ldaptive.LdapException.class, e.getCause().getClass());
         }
     }
 
@@ -388,10 +389,10 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
-        assertThat(user.getRoles().size(), is(2));
-        assertThat(new ArrayList<>(new TreeSet<>(user.getRoles())).get(0), is("ceo"));
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
+        Assert.assertEquals(2, user.getRoles().size());
+        Assert.assertEquals("ceo", new ArrayList<>(new TreeSet<>(user.getRoles())).get(0));
+        Assert.assertEquals(user.getName(), user.getUserEntry().getDn());
     }
 
     @Test
@@ -405,7 +406,7 @@ public class LdapBackendTestNewStyleConfig {
         final Connection con = LDAPAuthorizationBackend.getConnection(settings, null);
         try {
             final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), true);
-            assertThat(ref1.getDn(), is("cn=refsolved,ou=people,o=TEST"));
+            Assert.assertEquals("cn=refsolved,ou=people,o=TEST", ref1.getDn());
         } finally {
             con.close();
         }
@@ -454,10 +455,10 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("ssign", "ssignsecret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Special\\, Sign,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Special\\, Sign,ou=people,o=TEST", user.getName());
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
-        assertThat(user.getName(), is("cn=Special\\, Sign,ou=people,o=TEST"));
-        assertThat(user.getRoles().size(), is(4));
+        Assert.assertEquals("cn=Special\\, Sign,ou=people,o=TEST", user.getName());
+        Assert.assertEquals(4, user.getRoles().size());
         Assert.assertTrue(user.getRoles().toString().contains("ceo"));
     }
 
@@ -480,11 +481,11 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getOriginalUsername(), is("Michael Jackson"));
-        assertThat(user.getUserEntry().getDn(), is("cn=Michael Jackson,ou=people,o=TEST"));
-        assertThat(user.getRoles().size(), is(2));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(0), is("ceo"));
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        Assert.assertEquals("Michael Jackson", user.getOriginalUsername());
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getUserEntry().getDn());
+        Assert.assertEquals(2, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
+        Assert.assertEquals(user.getName(), user.getUserEntry().getDn());
     }
 
     @Test
@@ -504,9 +505,9 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("jacksonm"));
-        assertThat(user.getRoles().size(), is(2));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(0), is("ceo"));
+        Assert.assertEquals("jacksonm", user.getName());
+        Assert.assertEquals(2, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
     }
 
     @Test
@@ -527,9 +528,9 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(4));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(1), is("nested1"));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(4, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested1"));
     }
 
     @Test
@@ -551,10 +552,10 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(2));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(0), is("ceo"));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(1), is("nested2"));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(2, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested2"));
     }
 
     @Test
@@ -575,9 +576,9 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(4));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(1), is("cn=nested1,ou=groups,o=TEST"));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(4, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("cn=nested1,ou=groups,o=TEST"));
     }
 
     @Test
@@ -599,9 +600,9 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("jacksonm"));
-        assertThat(user.getRoles().size(), is(2));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(0), is("cn=ceo,ou=groups,o=TEST"));
+        Assert.assertEquals("jacksonm", user.getName());
+        Assert.assertEquals(2, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("cn=ceo,ou=groups,o=TEST"));
     }
 
     @Test
@@ -618,7 +619,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("jacksonm"));
+        Assert.assertEquals("jacksonm", user.getName());
     }
 
     @Test
@@ -640,7 +641,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test
@@ -663,9 +664,9 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
-        assertThat(user.getRoles().size(), is(0));
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
+        Assert.assertEquals(0, user.getRoles().size());
+        Assert.assertEquals(user.getName(), user.getUserEntry().getDn());
     }
 
     @Test
@@ -688,10 +689,10 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(8));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(4), is("nested3"));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(7), is("rolemo4"));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(8, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested3"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("rolemo4"));
     }
 
     @Test
@@ -715,10 +716,10 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(6));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(4), is("role2"));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(2), is("nested1"));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(6, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("role2"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested1"));
 
     }
 
@@ -743,8 +744,8 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(4));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(4, user.getRoles().size());
 
     }
 
@@ -770,8 +771,8 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(4));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(4, user.getRoles().size());
 
     }
 
@@ -795,10 +796,10 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("spock"));
-        assertThat(user.getRoles().size(), is(3));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(1), is("nested3"));
-        assertThat(new ArrayList(new TreeSet(user.getRoles())).get(2), is("rolemo4"));
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(3, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested3"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("rolemo4"));
     }
 
     @Test
@@ -813,8 +814,8 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
-        assertThat(user.getCustomAttributesMap().toString(), user.getCustomAttributesMap().size(), is(16));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
+        Assert.assertEquals(user.getCustomAttributesMap().toString(), 16, user.getCustomAttributesMap().size());
         Assert.assertFalse(user.getCustomAttributesMap().toString(), user.getCustomAttributesMap().containsKey("attr.ldap.userpassword"));
 
         settings = Settings.builder()
@@ -827,7 +828,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        assertThat(user.getCustomAttributesMap().toString(), user.getCustomAttributesMap().size(), is(2));
+        Assert.assertEquals(user.getCustomAttributesMap().toString(), 2, user.getCustomAttributesMap().size());
 
         settings = Settings.builder()
             .putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
@@ -839,7 +840,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
 
-        assertThat(user.getCustomAttributesMap().toString(), user.getCustomAttributesMap().size(), is(2));
+        Assert.assertEquals(user.getCustomAttributesMap().toString(), 2, user.getCustomAttributesMap().size());
 
     }
 
@@ -863,8 +864,8 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("nondnroles"));
-        assertThat(user.getRoles().size(), is(5));
+        Assert.assertEquals("nondnroles", user.getName());
+        Assert.assertEquals(5, user.getRoles().size());
         Assert.assertTrue("Roles do not contain non-LDAP role 'kibanauser'", user.getRoles().contains("kibanauser"));
         Assert.assertTrue("Roles do not contain non-LDAP role 'humanresources'", user.getRoles().contains("humanresources"));
         Assert.assertTrue("Roles do not contain LDAP role 'dummyempty'", user.getRoles().contains("dummyempty"));
@@ -890,7 +891,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
     }
 
     @Test
@@ -908,7 +909,7 @@ public class LdapBackendTestNewStyleConfig {
             new AuthCredentials("presleye", "secret".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Elvis Presley,ou=people2,o=TEST"));
+        Assert.assertEquals("cn=Elvis Presley,ou=people2,o=TEST", user.getName());
     }
 
     @Test(expected = OpenSearchSecurityException.class)
@@ -968,14 +969,14 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
-        assertThat(user.getRoles().size(), is(3));
+        Assert.assertEquals("cn=Michael Jackson,ou=people,o=TEST", user.getName());
+        Assert.assertEquals(3, user.getRoles().size());
 
         Assert.assertTrue(user.getRoles().contains("ceo"));
         Assert.assertTrue(user.getRoles().contains("king"));
         Assert.assertTrue(user.getRoles().contains("role2"));
 
-        assertThat(user.getUserEntry().getDn(), is(user.getName()));
+        Assert.assertEquals(user.getName(), user.getUserEntry().getDn());
     }
 
     @Test
@@ -999,8 +1000,8 @@ public class LdapBackendTestNewStyleConfig {
         new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
-        assertThat(user.getName(), is("cn=Freddy Mercury,ou=people2,o=TEST"));
-        assertThat(user.getRoles().size(), is(1));
+        Assert.assertEquals("cn=Freddy Mercury,ou=people2,o=TEST", user.getName());
+        Assert.assertEquals(1, user.getRoles().size());
 
         Assert.assertTrue(user.getRoles().contains("crossnested2"));
         // The user is NOT in crossnested1!
