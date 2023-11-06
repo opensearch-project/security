@@ -13,6 +13,8 @@ package org.opensearch.security.httpclient;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -25,8 +27,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.HostnameVerifier;
@@ -206,27 +206,21 @@ public class HttpClient implements Closeable {
     }
 
     private HttpHost[] createHosts(String[] servers) {
-        /*
-         * pattern helps to get the port number.
-         * \d matches a digit equivalent to [0-9].
-         * $ determines the end of the URL.
-         * So the port number has to be at the end of the URL,
-         * if it is not there, it means the URL contains a
-         * specific path for OpenSearch.
-         */
-        Pattern pattern = Pattern.compile(":(\\d+)$");
-
         return Arrays.stream(servers).map(server -> {
-            server = server.replaceAll("https://|http://", "");
-            Matcher matcher = pattern.matcher(server);
-            if (matcher.find()) {
-                String url = server.split(pattern.toString())[0];
-                int port = Integer.parseInt(matcher.group(1));
-                return new HttpHost(ssl ? "https" : "http", url, port);
-            } else {
-                return new HttpHost(ssl ? "https" : "http", server);
+            try {
+                server = addSchemeBasedOnSSL(server);
+                URI uri = new URI(server);
+                return new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
+            } catch (URISyntaxException e) {
+                return null;
             }
-        }).collect(Collectors.toList()).toArray(HttpHost[]::new);
+        }).filter(Objects::nonNull).collect(Collectors.toList()).toArray(HttpHost[]::new);
+    }
+
+    private String addSchemeBasedOnSSL(String server) {
+        server = server.replaceAll("https://|http://", "");
+        String protocol = ssl ? "https://" : "http://";
+        return protocol.concat(server);
     }
 
     public boolean index(final String content, final String index, final String type, final boolean refresh) {
