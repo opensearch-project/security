@@ -29,6 +29,7 @@ public class InstallDemoConfiguration {
     static boolean initsecurity = false;
     static boolean cluster_mode = false;
     static boolean skip_updates = true;
+    static String SCRIPT_DIR;
     static String BASE_DIR;
     static String OPENSEARCH_CONF_FILE;
     static String OPENSEARCH_BIN_DIR;
@@ -56,10 +57,10 @@ public class InstallDemoConfiguration {
         initializeVariables();
         printVariables();
         checkIfSecurityPluginIsAlreadyConfigured();
+        setAdminPassword();
         createDemoCertificates();
         writeSecurityConfigToOpenSearchYML();
         runSecurityAdminCommands();
-        setAdminPassword();
     }
 
     private static void printScriptHeaders() {
@@ -67,12 +68,15 @@ public class InstallDemoConfiguration {
         System.out.println("** This tool will be deprecated in the next major release of OpenSearch **");
         System.out.println("** https://github.com/opensearch-project/security/issues/1755           **");
         System.out.println("**************************************************************************");
-        System.out.println("\n\n");
+        System.out.println("\n");
         System.out.println("OpenSearch Security Demo Installer");
         System.out.println("** Warning: Do not use on production or public reachable systems **");
     }
 
     private static void readArguments(String[] args) {
+        // set script execution dir
+        SCRIPT_DIR = args[0];
+
         for (String arg : args) {
             switch (arg) {
                 case "-y":
@@ -139,18 +143,15 @@ public class InstallDemoConfiguration {
     }
 
     private static void setBaseDir() {
-        String DIR = System.getProperty("user.dir");
-        BASE_DIR = DIR + File.separator + ".." + File.separator + ".." + File.separator;
+        File baseDirFile = new File(SCRIPT_DIR).getParentFile().getParentFile().getParentFile();
+        BASE_DIR = baseDirFile != null ? baseDirFile.getAbsolutePath() : null;
 
-        if (new File(BASE_DIR).isDirectory()) {
-            String baseDir = System.getProperty("user.dir");
-            System.setProperty("user.dir", BASE_DIR);
-            BASE_DIR = System.getProperty("user.dir");
-            System.setProperty("user.dir", baseDir);
-            System.out.println("Basedir: " + BASE_DIR);
-        } else {
+        if (BASE_DIR == null || !new File(BASE_DIR).isDirectory()) {
             System.out.println("DEBUG: basedir does not exist");
+            System.exit(-1);
         }
+
+        BASE_DIR += File.separator;
     }
 
     private static void setOpenSearchVariables() {
@@ -265,8 +266,67 @@ public class InstallDemoConfiguration {
             System.out.println("OpenSearch configuration file does not exist. Quit.");
             System.exit(-1);
         }
-        // Reset the exit value
-        System.exit(0);
+    }
+
+    private static void setAdminPassword() {
+        String ADMIN_PASSWORD = "";
+        String initialAdminPassword = System.getenv("initialAdminPassword");
+        String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
+        String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
+        try {
+            if (initialAdminPassword != null && !initialAdminPassword.isEmpty()) {
+                ADMIN_PASSWORD = initialAdminPassword;
+            } else {
+                File adminPasswordFile = new File(ADMIN_PASSWORD_FILE_PATH);
+                if (adminPasswordFile.exists() && adminPasswordFile.length() > 0) {
+                    try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH))) {
+                        ADMIN_PASSWORD = br.readLine();
+                    }
+                } else {
+                    System.out.println(
+                        "Unable to find the admin password for the cluster. Please set initialAdminPassword environment variable or create a file "
+                            + ADMIN_PASSWORD_FILE_PATH
+                            + " with a single line that contains the password."
+                    );
+                    System.exit(-1);
+                }
+            }
+            System.out.println("   ***************************************************");
+            System.out.println("   ***   ADMIN PASSWORD SET TO: " + ADMIN_PASSWORD + "    ***");
+            System.out.println("   ***************************************************");
+
+            String hashedAdminPassword = Hasher.hash(ADMIN_PASSWORD.toCharArray());
+
+            if (hashedAdminPassword.isEmpty()) {
+                System.out.println("Hash the admin password failure, see console for details");
+                System.exit(-1);
+            }
+
+            File tempFile = new File(INTERNAL_USERS_FILE_PATH + ".tmp");
+            BufferedReader reader = new BufferedReader(new FileReader(INTERNAL_USERS_FILE_PATH));
+            FileWriter writer = new FileWriter(tempFile);
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
+                    line = line.replace(
+                        "\"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"",
+                        "\"" + hashedAdminPassword + "\""
+                    );
+                }
+                writer.write(line + System.lineSeparator());
+            }
+
+            reader.close();
+            writer.close();
+
+            if (!tempFile.renameTo(new File(INTERNAL_USERS_FILE_PATH))) {
+                throw new IOException("Unable to update the internal users file with the hashed password.");
+            }
+
+        } catch (IOException e) {
+            System.exit(-1);
+        }
     }
 
     public static void createDemoCertificates() {
@@ -279,7 +339,6 @@ public class InstallDemoConfiguration {
                 setFilePermissions(filePath);
             } catch (IOException e) {
                 System.err.println("Error writing certificate to file: " + cert.getFileName());
-
             }
         }
     }
@@ -378,6 +437,9 @@ public class InstallDemoConfiguration {
     }
 
     private static void runSecurityAdminCommands() {
+        System.out.println("### Success");
+        System.out.println("### Execute this script now on all your nodes and then start all nodes");
+
         try {
             String securityAdminScriptPath = OPENSEARCH_PLUGINS_DIR
                 + "opensearch-security"
@@ -394,6 +456,7 @@ public class InstallDemoConfiguration {
             Path file = Paths.get(securityAdminDemoScriptPath);
             Set<PosixFilePermission> perms = new HashSet<>();
             // Add the execute permission for owner, group, and others
+            perms.add(PosixFilePermission.OWNER_READ);
             perms.add(PosixFilePermission.OWNER_EXECUTE);
             perms.add(PosixFilePermission.GROUP_EXECUTE);
             perms.add(PosixFilePermission.OTHERS_EXECUTE);
@@ -435,7 +498,9 @@ public class InstallDemoConfiguration {
             System.out.println("### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.");
             System.out.println("### (Ignore the SSL certificate warning because we installed self-signed demo certificates)");
 
-        } catch (IOException e) {}
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     private static void createSecurityAdminDemoScript(String securityAdminScriptPath, String securityAdminDemoScriptPath)
@@ -463,72 +528,11 @@ public class InstallDemoConfiguration {
         }
 
         // Write securityadmin_demo script
-        FileWriter writer = new FileWriter(securityAdminDemoScriptPath + FILE_EXTENSION);
+        FileWriter writer = new FileWriter(securityAdminDemoScriptPath);
         for (String command : securityAdminCommands) {
             writer.write(command + "\n");
         }
         writer.close();
-    }
-
-    private static void setAdminPassword() {
-        String ADMIN_PASSWORD = "";
-        String initialAdminPassword = System.getenv("initialAdminPassword");
-        String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
-        String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
-        try {
-            if (initialAdminPassword != null && !initialAdminPassword.isEmpty()) {
-                ADMIN_PASSWORD = initialAdminPassword;
-            } else {
-                File adminPasswordFile = new File(ADMIN_PASSWORD_FILE_PATH);
-                if (adminPasswordFile.exists() && adminPasswordFile.length() > 0) {
-                    try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH))) {
-                        ADMIN_PASSWORD = br.readLine();
-                    }
-                } else {
-                    System.out.println(
-                        "Unable to find the admin password for the cluster. Please set initialAdminPassword environment variable or create a file "
-                            + ADMIN_PASSWORD_FILE_PATH
-                            + " with a single line that contains the password."
-                    );
-                    System.exit(1);
-                }
-            }
-            System.out.println("   ***************************************************");
-            System.out.println("   ***   ADMIN PASSWORD SET TO: " + ADMIN_PASSWORD + "    ***");
-            System.out.println("   ***************************************************");
-
-            String hashedAdminPassword = Hasher.hash(ADMIN_PASSWORD.toCharArray());
-
-            if (hashedAdminPassword.isEmpty()) {
-                System.out.println("Hash the admin password failure, see console for details");
-                System.exit(1);
-            }
-
-            File tempFile = new File(INTERNAL_USERS_FILE_PATH + ".tmp");
-            BufferedReader reader = new BufferedReader(new FileReader(INTERNAL_USERS_FILE_PATH));
-            FileWriter writer = new FileWriter(tempFile);
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
-                    line = line.replace(
-                        "\"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"",
-                        "\"" + hashedAdminPassword + "\""
-                    );
-                }
-                writer.write(line + System.lineSeparator());
-            }
-
-            reader.close();
-            writer.close();
-
-            if (!tempFile.renameTo(new File(INTERNAL_USERS_FILE_PATH))) {
-                throw new IOException("Unable to update the internal users file with the hashed password.");
-            }
-
-        } catch (IOException e) {
-            System.exit(1);
-        }
     }
 }
 
