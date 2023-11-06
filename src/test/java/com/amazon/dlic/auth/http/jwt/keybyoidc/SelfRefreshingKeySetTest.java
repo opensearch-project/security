@@ -14,8 +14,6 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
@@ -29,18 +27,18 @@ public class SelfRefreshingKeySetTest {
         SelfRefreshingKeySet selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
 
         JsonWebKey key1 = selfRefreshingKeySet.getKey("kid/a");
-        assertThat(key1.getProperty("k"), is(TestJwk.OCT_1_K));
-        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1));
+        Assert.assertEquals(TestJwk.OCT_1_K, key1.getProperty("k"));
+        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
 
         JsonWebKey key2 = selfRefreshingKeySet.getKey("kid/b");
-        assertThat(key2.getProperty("k"), is(TestJwk.OCT_2_K));
-        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1));
+        Assert.assertEquals(TestJwk.OCT_2_K, key2.getProperty("k"));
+        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
 
         try {
             selfRefreshingKeySet.getKey("kid/X");
             Assert.fail("Expected a BadCredentialsException");
         } catch (BadCredentialsException e) {
-            assertThat(selfRefreshingKeySet.getRefreshCount(), is(2));
+            Assert.assertEquals(2, selfRefreshingKeySet.getRefreshCount());
         }
 
     }
@@ -65,11 +63,11 @@ public class SelfRefreshingKeySetTest {
 
         provider.unblock();
 
-        assertThat(f1.get().getProperty("k"), is(TestJwk.OCT_1_K));
-        assertThat(f2.get().getProperty("k"), is(TestJwk.OCT_2_K));
+        Assert.assertEquals(TestJwk.OCT_1_K, f1.get().getProperty("k"));
+        Assert.assertEquals(TestJwk.OCT_2_K, f2.get().getProperty("k"));
 
-        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1));
-        assertThat(selfRefreshingKeySet.getQueuedGetCount(), is(1));
+        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
+        Assert.assertEquals(1, selfRefreshingKeySet.getQueuedGetCount());
 
     }
 
