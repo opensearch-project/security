@@ -39,6 +39,7 @@ public class AuditLogsRule implements TestRule {
     private static final Logger log = LogManager.getLogger(AuditLogsRule.class);
 
     private List<AuditMessage> currentTestAuditMessages;
+    private List<AuditMessage> currentTransportTestAuditMessages;
 
     public List<AuditMessage> getCurrentTestAuditMessages() {
         return currentTestAuditMessages;
@@ -56,6 +57,7 @@ public class AuditLogsRule implements TestRule {
     private void afterWaitingForAuditLogs() {
         if (log.isDebugEnabled()) {
             log.debug("Audit records captured during test:\n{}", auditMessagesToString(currentTestAuditMessages));
+            log.debug("Audit transport records captured during test:\n{}", auditMessagesToString(currentTransportTestAuditMessages));
         }
     }
 
@@ -70,10 +72,10 @@ public class AuditLogsRule implements TestRule {
     }
 
     public void assertExactly(long expectedNumberOfAuditMessages, Predicate<AuditMessage> predicate) {
-        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate));
+        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate), currentTestAuditMessages);
     }
 
-    private void assertExactly(Matcher<List<AuditMessage>> matcher) {
+    private void assertExactly(Matcher<List<AuditMessage>> matcher, List<AuditMessage> currentTestAuditMessages) {
         // pollDelay - initial delay before first evaluation
         Awaitility.await("Await for audit logs")
             .atMost(3, TimeUnit.SECONDS)
@@ -82,7 +84,11 @@ public class AuditLogsRule implements TestRule {
     }
 
     public void assertAtLeast(long minCount, Predicate<AuditMessage> predicate) {
-        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate));
+        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate), currentTestAuditMessages);
+    }
+
+    public void assertAtLeastTransportMessages(long minCount, Predicate<AuditMessage> predicate) {
+        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate), currentTransportTestAuditMessages);
     }
 
     private static String auditMessagesToString(List<AuditMessage> audits) {
@@ -122,11 +128,13 @@ public class AuditLogsRule implements TestRule {
     private void afterTest() {
         TestRuleAuditLogSink.unregisterListener();
         this.currentTestAuditMessages = null;
+        this.currentTransportTestAuditMessages = null;
     }
 
     private void beforeTest(String methodName) {
         log.info("Start collecting audit logs before test {}", methodName);
         this.currentTestAuditMessages = synchronizedList(new ArrayList<>());
+        this.currentTransportTestAuditMessages = synchronizedList(new ArrayList<>());
         TestRuleAuditLogSink.registerListener(this);
     }
 
