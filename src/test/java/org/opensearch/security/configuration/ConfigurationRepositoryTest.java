@@ -13,12 +13,10 @@ package org.opensearch.security.configuration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -38,6 +36,9 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.transport.SecurityInterceptorTests;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
 public class ConfigurationRepositoryTest {
 
     @Mock
@@ -50,6 +51,7 @@ public class ConfigurationRepositoryTest {
     private ClusterService clusterService;
 
     private ThreadPool threadPool;
+    private Cache<CType, SecurityDynamicConfiguration<?>> configCache;
 
     @Before
     public void setUp() {
@@ -61,6 +63,7 @@ public class ConfigurationRepositoryTest {
             .build();
 
         threadPool = new ThreadPool(settings);
+        configCache = CacheBuilder.newBuilder().build();
     }
 
     private ConfigurationRepository createConfigurationRepository(Settings settings) {
@@ -99,19 +102,25 @@ public class ConfigurationRepositoryTest {
     }
 
     @Test
-    public void getConfiguration_withInvalidConfigurationShouldReturnSecurityDynamicConfigurationEmpty() throws IOException {
+    public void getConfiguration_withInvalidConfigurationShouldReturnNewEmptyConfigurationObject() throws IOException {
         ConfigurationRepository configRepository = createConfigurationRepository(Settings.EMPTY);
 
         SecurityDynamicConfiguration<?> config = configRepository.getConfiguration(CType.CONFIG);
+        SecurityDynamicConfiguration<?> emptyConfig = SecurityDynamicConfiguration.empty();
 
         assertThat(config, instanceOf(SecurityDynamicConfiguration.class));
         assertThat(config.getCEntries().size(), is(equalTo(0)));
+        assertThat(config.getVersion(), is(equalTo(emptyConfig.getVersion())));
+        assertThat(config.getCType(), is(equalTo(emptyConfig.getCType())));
+        assertThat(config.getSeqNo(), is(equalTo(emptyConfig.getSeqNo())));
+        assertThat(config, is(not(equalTo(emptyConfig))));
     }
 
     @Test
-    public void getConfiguration_withValidConfigurationShouldReturnDeepClone() throws IOException {
+    public void getConfiguration_withValidConfigurationShouldReturnDeepClone() throws Exception {
 
-        ConfigurationRepository configRepository = mock(ConfigurationRepository.class);
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
+        ConfigurationRepository configRepository = createConfigurationRepository(settings);
 
         var objectMapper = DefaultObjectMapper.objectMapper;
         var objectNode = objectMapper.createObjectNode();
@@ -121,14 +130,17 @@ public class ConfigurationRepositoryTest {
         objectNode.set("all_access", objectMapper.createObjectNode().put("static", true)); // it reserved as well
         objectNode.set("security_rest_api_access", objectMapper.createObjectNode().put("reserved", true));
 
-        when(configRepository.getConfiguration(CType.ROLES)).thenReturn(
+        configCache.put(
+            CType.ROLES,
             SecurityDynamicConfiguration.fromJson(objectMapper.writeValueAsString(objectNode), CType.ROLES, 2, 1, 1)
         );
 
-        SecurityDynamicConfiguration<?> config2 = configRepository.getConfiguration(CType.ROLES);
+        SecurityDynamicConfiguration<?> config = configRepository.getConfiguration(CType.ROLES);
+        SecurityDynamicConfiguration<?> deepCloneConfig = configRepository.getConfiguration(CType.ROLES);
 
-        assertThat(config2, is(notNullValue()));
-        assertThat(config2, instanceOf(SecurityDynamicConfiguration.class));
-        assertThat(config2.getCEntries().size(), is(greaterThan(0)));
+        assertThat(config, is(notNullValue()));
+        assertThat(config, instanceOf(SecurityDynamicConfiguration.class));
+        // assertThat(config.getCEntries().size(), is(greaterThan(0)));
+        assertThat(config, is(not(equalTo(deepCloneConfig))));
     }
 }

@@ -30,111 +30,109 @@ import com.nimbusds.jose.jwk.OctetSequenceKey;
 
 public class SelfRefreshingKeySetTest {
 
-	private SelfRefreshingKeySet selfRefreshingKeySet;
+    private SelfRefreshingKeySet selfRefreshingKeySet;
 
-	@Before
-	public void setUp() {
-		selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
-	}
+    @Before
+    public void setUp() {
+        selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
+    }
 
-	@Test
-	public void getKey_withKidShouldReturnValidKey() throws AuthenticatorUnavailableException, BadCredentialsException {
+    @Test
+    public void getKey_withKidShouldReturnValidKey() throws AuthenticatorUnavailableException, BadCredentialsException {
 
-		OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
-		assertThat(TestJwk.OCT_1_K, is(equalTo(key.getKeyValue().decodeToString())));
-	}
+        OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
+        assertThat(TestJwk.OCT_1_K, is(equalTo(key.getKeyValue().decodeToString())));
+    }
 
-	@Test
-	public void getKey_withNullKidShouldThrowAuthenticatorUnavailableException() throws AuthenticatorUnavailableException,
-			BadCredentialsException {
+    @Test
+    public void getKey_withNullKidShouldThrowAuthenticatorUnavailableException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
-		Assert.assertThrows(AuthenticatorUnavailableException.class, () -> selfRefreshingKeySet.getKey(null));
+        Assert.assertThrows(AuthenticatorUnavailableException.class, () -> selfRefreshingKeySet.getKey(null));
 
-	}
+    }
 
-	@Test
-	public void getKey_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
-			BadCredentialsException {
+    @Test
+    public void getKey_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
-		Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
-	}
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
+    }
 
-	@Test
-	public void getKeyAfterRefresh_withKidShouldReturnKey() throws AuthenticatorUnavailableException, BadCredentialsException {
+    @Test
+    public void getKeyAfterRefresh_withKidShouldReturnKey() throws AuthenticatorUnavailableException, BadCredentialsException {
 
-		OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKeyAfterRefresh("kid/b");
-		assertThat(TestJwk.OCT_2_K, is(equalTo(key.getKeyValue().decodeToString())));
-	}
+        OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKeyAfterRefresh("kid/b");
+        assertThat(TestJwk.OCT_2_K, is(equalTo(key.getKeyValue().decodeToString())));
+    }
 
-	@Test
-	public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes() throws InterruptedException,
-			ExecutionException {
+    @Test
+    public void getKeyAfterRefresh_queuedGetCountVariableShouldBeZeroWhenFinishWithAllKeyRefreshes() throws InterruptedException,
+        ExecutionException {
 
-		int numThreads = 10;
-		ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-		Object lock = new Object();
+        int numThreads = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        Object lock = new Object();
 
-		for (int i = 0; i < numThreads; i++) {
-			executor.execute(() -> {
-				synchronized (lock) {
-					try {
-						selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
-					} catch (AuthenticatorUnavailableException e) {} catch (BadCredentialsException e) {}
-				}
-			});
-		}
+        for (int i = 0; i < numThreads; i++) {
+            executor.execute(() -> {
+                synchronized (lock) {
+                    try {
+                        selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
+                    } catch (AuthenticatorUnavailableException e) {} catch (BadCredentialsException e) {}
+                }
+            });
+        }
 
-		executor.shutdown();
-		executor.awaitTermination(1, TimeUnit.SECONDS);
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.SECONDS);
 
-		assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(equalTo(numThreads)));
-		assertThat((int) selfRefreshingKeySet.getQueuedGetCount(), is(equalTo((0))));
-	}
+        assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(equalTo(numThreads)));
+        assertThat((int) selfRefreshingKeySet.getQueuedGetCount(), is(equalTo((0))));
+    }
 
-	@Test
-	public void getKeyAfterRefresh_withNullKidShouldThrowBadCredentialsException() throws AuthenticatorUnavailableException,
-			BadCredentialsException {
+    @Test
+    public void getKeyAfterRefresh_withNullKidShouldThrowBadCredentialsException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
-		Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh(null));
-	}
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh(null));
+    }
 
-	@Test
-	public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
-			BadCredentialsException {
+    @Test
+    public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
-		Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh("kid/X"));
-	}
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh("kid/X"));
+    }
 
-	static class MockKeySetProvider implements KeySetProvider {
+    static class MockKeySetProvider implements KeySetProvider {
 
-		@Override
-		public JWKSet get() throws AuthenticatorUnavailableException {
-			return TestJwk.OCT_1_2_3;
-		}
-	}
+        @Override
+        public JWKSet get() throws AuthenticatorUnavailableException {
+            return TestJwk.OCT_1_2_3;
+        }
+    }
 
-	@Test
-	public void getKeyAfterRefresh_queueShouldHavePendingTasks() throws InterruptedException, ExecutionException {
+    @Test
+    public void getKeyAfterRefresh_queueShouldHavePendingTasks() throws InterruptedException, ExecutionException {
 
-		int numThreads = 10;
-		ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        int numThreads = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
 
-		for (int i = 0; i < numThreads; i++) {
-			executor.execute(() -> {
-				try {
-					selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
-				} catch (AuthenticatorUnavailableException e) {
-				} catch (BadCredentialsException e) {
-				}
-			});
-		}
+        for (int i = 0; i < numThreads; i++) {
+            executor.execute(() -> {
+                try {
+                    selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
+                } catch (AuthenticatorUnavailableException e) {} catch (BadCredentialsException e) {}
+            });
+        }
 
-		executor.shutdown();
-		executor.awaitTermination(1, TimeUnit.SECONDS);
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.SECONDS);
 
-		// There is at least 1 refreshing key in progress.
-		assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(greaterThan(0)));
-		// It should have at least 1 pending call waiting to start refreshing the key.
-		assertThat((int) selfRefreshingKeySet.getQueuedGetCount(), is(greaterThan(0)));
-	}
+        // There is at least 1 refreshing key in progress.
+        assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(greaterThan(0)));
+        // It should have at least 1 pending call waiting to start refreshing the key.
+        assertThat((int) selfRefreshingKeySet.getQueuedGetCount(), is(greaterThan(0)));
+    }
 }
