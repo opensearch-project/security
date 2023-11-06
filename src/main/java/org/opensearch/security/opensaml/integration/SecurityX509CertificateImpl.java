@@ -24,7 +24,7 @@ import java.util.Objects;
 
 /**
  * The class was adapted from {@link org.opensaml.xmlsec.signature.impl.X509CertificateBuilder}.
- * The main reason is that it is only one way to set up CleanerCreator
+ * The main reason is that it is only one way to set up {@link CleanerFactory}
  * together with cleaners daemon thread factory which is required for OpenSearch
  */
 public class SecurityX509CertificateImpl extends AbstractXMLObject implements X509Certificate {
