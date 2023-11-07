@@ -11,12 +11,17 @@
 
 package org.opensearch.security;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
+
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -26,11 +31,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.mockito.Mock;
 
 public class UserServiceUnitTests {
     SecurityDynamicConfiguration<?> config;

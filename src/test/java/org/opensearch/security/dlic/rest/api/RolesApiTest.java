@@ -11,6 +11,8 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.util.List;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -19,6 +21,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
@@ -26,8 +29,6 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-
-import java.util.List;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;

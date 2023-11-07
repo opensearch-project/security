@@ -11,8 +11,6 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
-import static org.apache.http.HttpHeaders.AUTHORIZATION;
-
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyFactory;
@@ -23,14 +21,9 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.regex.Pattern;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.security.WeakKeyException;
 
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -45,6 +38,13 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
+import io.jsonwebtoken.security.WeakKeyException;
+
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
 public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 

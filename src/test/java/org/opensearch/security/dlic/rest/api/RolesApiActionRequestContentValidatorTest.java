@@ -11,12 +11,13 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
+
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.security.util.FakeRestRequest;
-
-import java.io.IOException;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

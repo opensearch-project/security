@@ -11,13 +11,17 @@
 
 package org.opensearch.security.privileges;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Set;
+
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.get.MultiGetRequest;
@@ -36,14 +40,12 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Set;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -52,7 +54,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SecurityIndexAccessEvaluatorTest {

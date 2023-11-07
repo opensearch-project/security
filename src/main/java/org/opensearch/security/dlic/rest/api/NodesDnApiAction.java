@@ -18,9 +18,9 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;

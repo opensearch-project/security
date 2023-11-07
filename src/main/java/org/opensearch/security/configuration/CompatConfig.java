@@ -28,13 +28,14 @@ package org.opensearch.security.configuration;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
+
+import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY;
 

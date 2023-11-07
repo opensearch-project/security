@@ -17,42 +17,6 @@
 
 package org.opensearch.security.ssl;
 
-import com.google.common.collect.ImmutableList;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-import io.netty.util.internal.PlatformDependent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Object;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.ASN1String;
-import org.bouncycastle.asn1.ASN1TaggedObject;
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.env.Environment;
-import org.opensearch.security.ssl.util.CertFileProps;
-import org.opensearch.security.ssl.util.CertFromFile;
-import org.opensearch.security.ssl.util.CertFromKeystore;
-import org.opensearch.security.ssl.util.CertFromTruststore;
-import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.KeystoreProps;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.transport.NettyAllocator;
-
-import javax.crypto.Cipher;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -77,6 +41,44 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.crypto.Cipher;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+
+import com.google.common.collect.ImmutableList;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Object;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1String;
+import org.bouncycastle.asn1.ASN1TaggedObject;
+
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
+import org.opensearch.security.ssl.util.CertFileProps;
+import org.opensearch.security.ssl.util.CertFromFile;
+import org.opensearch.security.ssl.util.CertFromKeystore;
+import org.opensearch.security.ssl.util.CertFromTruststore;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.KeystoreProps;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.transport.NettyAllocator;
+
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
+import io.netty.util.internal.PlatformDependent;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;

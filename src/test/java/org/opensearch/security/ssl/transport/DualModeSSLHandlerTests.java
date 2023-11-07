@@ -14,20 +14,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import org.opensearch.security.ssl.SecurityKeyStore;
+import org.opensearch.security.ssl.util.SSLConnectionTestUtil;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslHandler;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import org.opensearch.security.ssl.SecurityKeyStore;
-import org.opensearch.security.ssl.util.SSLConnectionTestUtil;
 
 import static org.opensearch.transport.NettyAllocator.getAllocator;
 

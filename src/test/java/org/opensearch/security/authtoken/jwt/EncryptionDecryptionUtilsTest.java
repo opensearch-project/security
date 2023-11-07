@@ -11,9 +11,10 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.util.Base64;
+
 import org.junit.Assert;
 import org.junit.Test;
-import java.util.Base64;
 
 public class EncryptionDecryptionUtilsTest {
 

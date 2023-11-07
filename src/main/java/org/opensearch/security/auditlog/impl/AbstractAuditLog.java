@@ -26,10 +26,9 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.BaseEncoding;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,14 +41,15 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentHelper;
-import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.bytes.BytesReference;
+import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.index.shard.ShardId;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -59,7 +59,6 @@ import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
-import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -72,6 +71,8 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
+
+import com.flipkart.zjsonpatch.JsonDiff;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 

@@ -15,10 +15,12 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.netty.handler.codec.http.HttpRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.http.netty4.Netty4HttpChannel;
+
+import io.netty.handler.codec.http.HttpRequest;
 
 public class NettyRequestChannel extends NettyRequest implements SecurityRequestChannel {
     private final Logger log = LogManager.getLogger(NettyRequestChannel.class);
