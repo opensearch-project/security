@@ -12,7 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
