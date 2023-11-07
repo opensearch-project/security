@@ -41,6 +41,7 @@ runs:
       with:
         cache-disabled: true
         arguments: |
+          -p bwc-test
           bwcTestSuite
           -Dtests.security.manager=false
           -Dtests.opensearch.secure=true
@@ -48,7 +49,6 @@ runs:
           -Dtests.opensearch.password=${{ inputs.password }}
           -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
           -Dbwc.version.next=${{ steps.build-next.outputs.built-version }} -i
-        build-root-directory: bwc-test
 
     - uses: alehechka/upload-tartifact@v2
       if: always()

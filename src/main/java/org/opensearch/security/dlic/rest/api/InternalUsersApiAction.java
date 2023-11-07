@@ -166,11 +166,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         try {
             final var username = securityConfiguration.entityName();
             final var authToken = userService.generateAuthToken(username);
-            if (!Strings.isNullOrEmpty(authToken)) {
-                ok(channel, "'" + username + "' authtoken generated " + authToken);
-            } else {
-                badRequest(channel, "'" + username + "' authtoken failed to be created.");
-            }
+            ok(channel, "'" + username + "' authtoken generated " + authToken);
         } catch (final UserServiceException e) {
             badRequest(channel, e.getMessage());
         }

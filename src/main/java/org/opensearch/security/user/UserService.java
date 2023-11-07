@@ -41,6 +41,8 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.identity.tokens.AuthToken;
+import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -245,7 +247,7 @@ public class UserService {
      * @param accountName A string representing the name of the account
      * @return A string auth token
      */
-    public String generateAuthToken(String accountName) throws IOException {
+    public AuthToken generateAuthToken(String accountName) throws IOException {
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
 
@@ -286,7 +288,7 @@ public class UserService {
             saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
             authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
-            return authToken;
+            return new BasicAuthToken(authToken);
 
         } catch (JsonProcessingException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);

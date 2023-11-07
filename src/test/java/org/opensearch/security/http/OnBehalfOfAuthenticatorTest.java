@@ -11,7 +11,6 @@
 
 package org.opensearch.security.http;
 
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
@@ -28,22 +27,20 @@ import javax.crypto.SecretKey;
 
 import com.google.common.io.BaseEncoding;
 import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.ErrorHandler;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.junit.Test;
 
 import org.mockito.ArgumentCaptor;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
@@ -60,8 +57,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -110,7 +107,7 @@ public class OnBehalfOfAuthenticatorTest {
                 false
             )
         );
-        assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
+        assertThat(exception.getMessage(), equalTo("Unable to find on behalf of authenticator signing_key"));
     }
 
     @Test
@@ -118,13 +115,16 @@ public class OnBehalfOfAuthenticatorTest {
         Exception exception = assertThrows(
             RuntimeException.class,
             () -> extractCredentialsFromJwtHeader(
-                null,
+                "",
                 claimsEncryptionKey,
                 Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy"),
                 false
             )
         );
-        assertTrue(exception.getMessage().contains("Unable to find on behalf of authenticator signing key"));
+        assertThat(
+            exception.getMessage(),
+            equalTo("Signing key size was 0 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+        );
     }
 
     @Test
@@ -138,45 +138,24 @@ public class OnBehalfOfAuthenticatorTest {
                 false
             )
         );
-        assertTrue(exception.getMessage().contains("The specified key byte array is 80 bits"));
+        assertThat(
+            exception.getMessage(),
+            equalTo("Signing key size was 128 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+        );
     }
 
     @Test
     public void testWeakKeyExceptionHandling() throws Exception {
-        Appender mockAppender = mock(Appender.class);
-        ErrorHandler mockErrorHandler = mock(ErrorHandler.class);
-        when(mockAppender.getHandler()).thenReturn(mockErrorHandler);
-        when(mockAppender.isStarted()).thenReturn(true);
-
-        ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
-        when(mockAppender.getName()).thenReturn("MockAppender");
-        doNothing().when(mockAppender).append(logEventCaptor.capture());
-
-        Logger logger = (Logger) LogManager.getLogger(OnBehalfOfAuthenticator.class);
-        logger.addAppender(mockAppender);
-
-        JwtParser mockJwtParser = mock(JwtParser.class);
-        when(mockJwtParser.parseClaimsJws(anyString())).thenThrow(new WeakKeyException("Test Exception"));
-
         Settings settings = Settings.builder().put("signing_key", "testKey").put("encryption_key", claimsEncryptionKey).build();
-        OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, "testCluster");
-
-        Field jwtParserField = OnBehalfOfAuthenticator.class.getDeclaredField("jwtParser");
-        jwtParserField.setAccessible(true);
-        jwtParserField.set(auth, mockJwtParser);
-
-        SecurityRequest mockedRequest = mock(SecurityRequest.class);
-        when(mockedRequest.header(anyString())).thenReturn("Bearer testToken");
-        when(mockedRequest.path()).thenReturn("/some/sample/path");
-
-        auth.extractCredentials(mockedRequest, null);
-
-        boolean foundLog = logEventCaptor.getAllValues()
-            .stream()
-            .anyMatch(event -> event.getMessage().getFormattedMessage().contains("Cannot authenticate user with JWT because of "));
-        assertTrue(foundLog);
-
-        logger.removeAppender(mockAppender);
+        try {
+            OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, "testCluster");
+            fail("Expected WeakKeyException");
+        } catch (OpenSearchSecurityException e) {
+            assertThat(
+                e.getMessage(),
+                equalTo("Signing key size was 56 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+            );
+        }
     }
 
     @Test
@@ -287,7 +266,7 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> expectedAttributes = new HashMap<>();
         expectedAttributes.put("attr.jwt.iss", "cluster_0");
         expectedAttributes.put("attr.jwt.sub", "Leonard McCoy");
-        expectedAttributes.put("attr.jwt.aud", "ext_0");
+        expectedAttributes.put("attr.jwt.aud", "[ext_0]");
 
         String jwsToken = Jwts.builder()
             .setIssuer(clusterName)
