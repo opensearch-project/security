@@ -11,6 +11,10 @@
 
 package org.opensearch.security.tools;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.dlic.rest.validation.PasswordValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -23,6 +27,10 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
+
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
+import static org.opensearch.security.user.UserService.generatePassword;
 
 public class InstallDemoConfiguration {
     static boolean assumeyes = false;
@@ -274,6 +282,14 @@ public class InstallDemoConfiguration {
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
         String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         try {
+            final PasswordValidator passwordValidator = PasswordValidator.of(
+                Settings.builder()
+                    .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
+                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 8)
+                    .build()
+            );
+
+            // Read custom password
             if (initialAdminPassword != null && !initialAdminPassword.isEmpty()) {
                 ADMIN_PASSWORD = initialAdminPassword;
             } else {
@@ -282,15 +298,26 @@ public class InstallDemoConfiguration {
                     try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH))) {
                         ADMIN_PASSWORD = br.readLine();
                     }
-                } else {
-                    System.out.println(
-                        "Unable to find the admin password for the cluster. Please set initialAdminPassword environment variable or create a file "
-                            + ADMIN_PASSWORD_FILE_PATH
-                            + " with a single line that contains the password."
-                    );
-                    System.exit(-1);
                 }
             }
+
+            // Validate custom password
+            if (!ADMIN_PASSWORD.isEmpty()
+                && passwordValidator.validate("admin", ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
+                System.out.println("Password " + ADMIN_PASSWORD + " is weak. Please re-try with a stronger password.");
+                System.exit(-1);
+            }
+
+            // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We proceed with generating a new one.
+            if (ADMIN_PASSWORD.isEmpty()) {
+                System.out.println("No custom admin password found. Generating a new password now.");
+                // generate a new random password
+                while (passwordValidator.validate("admin", ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
+                    ADMIN_PASSWORD = generatePassword();
+                }
+            }
+
+            // print the password to the logs
             System.out.println("   ***************************************************");
             System.out.println("   ***   ADMIN PASSWORD SET TO: " + ADMIN_PASSWORD + "    ***");
             System.out.println("   ***************************************************");
