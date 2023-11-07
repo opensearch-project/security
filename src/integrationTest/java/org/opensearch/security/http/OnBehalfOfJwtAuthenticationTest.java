@@ -11,24 +11,30 @@
 
 package org.opensearch.security.http;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.crypto.SecretKey;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
-import org.junit.Assert;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.RolesMapping;
@@ -38,12 +44,12 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.aMapWithSize;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.contains;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -56,6 +62,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
+    private static final String CREATE_OBO_TOKEN_PATH = "_plugins/_security/api/generateonbehalfoftoken";
     private static Boolean oboEnabled = true;
     private static final String signingKey = Base64.getEncoder()
         .encodeToString(
@@ -63,6 +70,11 @@ public class OnBehalfOfJwtAuthenticationTest {
                 StandardCharsets.UTF_8
             )
         );
+    private static final String alternativeSigningKey = Base64.getEncoder()
+        .encodeToString(
+            "alternativeSigningKeyalternativeSigningKeyalternativeSigningKeyalternativeSigningKey".getBytes(StandardCharsets.UTF_8)
+        );
+
     private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
     public static final String ADMIN_USER_NAME = "admin";
     public static final String OBO_USER_NAME_WITH_PERM = "obo_user";
@@ -106,17 +118,35 @@ public class OnBehalfOfJwtAuthenticationTest {
     protected final static TestSecurityConfig.User HOST_MAPPING_OBO_USER = new TestSecurityConfig.User(OBO_USER_NAME_WITH_HOST_MAPPING)
         .roles(HOST_MAPPING_ROLE, ROLE_WITH_OBO_PERM);
 
+    private static OnBehalfOfConfig defaultOnBehalfOfConfig() {
+        return new OnBehalfOfConfig().oboEnabled(oboEnabled).signingKey(signingKey).encryptionKey(encryptionKey);
+    }
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .users(ADMIN_USER, OBO_USER, OBO_USER_NO_PERM, HOST_MAPPING_OBO_USER)
         .nodeSettings(
-            Map.of(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true, SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access"))
+            Map.of(
+                SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX,
+                true,
+                SECURITY_RESTAPI_ROLES_ENABLED,
+                ADMIN_USER.getRoleNames(),
+                SECURITY_RESTAPI_ADMIN_ENABLED,
+                true,
+                "plugins.security.unsupported.restapi.allow_securityconfig_modification",
+                true
+            )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .rolesMapping(new RolesMapping(HOST_MAPPING_ROLE).hostIPs(HOST_MAPPING_IP))
-        .onBehalfOf(new OnBehalfOfConfig().oboEnabled(oboEnabled).signingKey(signingKey).encryptionKey(encryptionKey))
+        .onBehalfOf(defaultOnBehalfOfConfig())
         .build();
+
+    @Before
+    public void before() {
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig());
+    }
 
     @Test
     public void shouldAuthenticateWithOBOTokenEndPoint() {
@@ -139,7 +169,7 @@ public class OnBehalfOfJwtAuthenticationTest {
         Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
-            TestRestClient.HttpResponse response = client.getOnBehalfOfToken(OBO_DESCRIPTION, adminOboAuthHeader);
+            TestRestClient.HttpResponse response = client.postJson(CREATE_OBO_TOKEN_PATH, OBO_DESCRIPTION);
             response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
         }
     }
@@ -150,7 +180,7 @@ public class OnBehalfOfJwtAuthenticationTest {
         Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
-            TestRestClient.HttpResponse response = client.changeInternalUserPassword(CURRENT_AND_NEW_PASSWORDS, adminOboAuthHeader);
+            TestRestClient.HttpResponse response = client.putJson("_plugins/_security/api/account", CURRENT_AND_NEW_PASSWORDS);
             response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
         }
     }
@@ -173,52 +203,86 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void shouldNotIncludeRolesFromHostMappingInOBOToken() {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_HOST_MAPPING, DEFAULT_PASSWORD);
 
-        Claims claims = Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(oboToken).getBody();
+        SecretKey key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKey));
+
+        Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(oboToken).getPayload();
 
         Object er = claims.get("er");
         EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
         String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
-        List<String> roles = Arrays.stream(rolesClaim.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toUnmodifiableList());
+        Set<String> roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
 
-        Assert.assertFalse(roles.contains("host_mapping_role"));
+        assertThat(roles, equalTo(HOST_MAPPING_OBO_USER.getRoleNames()));
+        assertThat(roles, not(contains("host_mapping_role")));
     }
 
     @Test
     public void shouldNotAuthenticateWithInvalidDurationSeconds() {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            client.assertCorrectCredentials(ADMIN_USER_NAME);
+            client.confirmCorrectCredentials(ADMIN_USER_NAME);
             TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_DURATIONSECONDS);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
-            assertTrue(oboEndPointResponse.containsValue("durationSeconds must be an integer."));
+            assertThat(response.getTextFromJsonBody("/error"), equalTo("durationSeconds must be a number."));
         }
     }
 
     @Test
     public void shouldNotAuthenticateWithInvalidAPIParameter() {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            client.assertCorrectCredentials(ADMIN_USER_NAME);
+            client.confirmCorrectCredentials(ADMIN_USER_NAME);
             TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_DESCRIPTION_WITH_INVALID_PARAMETERS);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
-            assertTrue(oboEndPointResponse.containsValue("Unrecognized parameter: invalidParameter"));
+            assertThat(response.getTextFromJsonBody("/error"), equalTo("Unrecognized parameter: invalidParameter"));
         }
+    }
+
+    @Test
+    public void shouldNotAllowTokenWhenOboIsDisabled() {
+        final String oboToken = generateOboToken(OBO_USER_NAME_WITH_PERM, DEFAULT_PASSWORD);
+        final Header oboHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
+
+        // Disable OBO via config and see that the authenticator doesn't authorize
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().oboEnabled(false));
+        authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_UNAUTHORIZED);
+
+        // Reenable OBO via config and see that the authenticator is working again
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().oboEnabled(true));
+        authenticateWithOboToken(oboHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
+    }
+
+    @Test
+    public void oboSigningCheckChangeIsDetected() {
+        final String oboTokenOrignalKey = generateOboToken(OBO_USER_NAME_WITH_PERM, DEFAULT_PASSWORD);
+        final Header oboHeaderOriginalKey = new BasicHeader("Authorization", "Bearer " + oboTokenOrignalKey);
+        authenticateWithOboToken(oboHeaderOriginalKey, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
+
+        // Change the signing key
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig().signingKey(alternativeSigningKey));
+
+        // Original key should no longer work
+        authenticateWithOboToken(oboHeaderOriginalKey, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_UNAUTHORIZED);
+
+        // Generate new key, check that it is valid
+        final String oboTokenOtherKey = generateOboToken(OBO_USER_NAME_WITH_PERM, DEFAULT_PASSWORD);
+        final Header oboHeaderOtherKey = new BasicHeader("Authorization", "Bearer " + oboTokenOtherKey);
+        authenticateWithOboToken(oboHeaderOtherKey, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
+
+        // Change back to the original signing key and the original key still works, and the new key doesn't
+        patchOnBehalfOfConfig(defaultOnBehalfOfConfig());
+        authenticateWithOboToken(oboHeaderOriginalKey, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
+        authenticateWithOboToken(oboHeaderOtherKey, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_UNAUTHORIZED);
     }
 
     private String generateOboToken(String username, String password) {
         try (TestRestClient client = cluster.getRestClient(username, password)) {
-            client.assertCorrectCredentials(username);
+            client.confirmCorrectCredentials(username);
             TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
             response.assertStatusCode(HttpStatus.SC_OK);
-            Map<String, Object> oboEndPointResponse = (Map<String, Object>) response.getBodyAs(Map.class);
-            assertThat(
-                oboEndPointResponse,
-                allOf(aMapWithSize(3), hasKey("user"), hasKey("authenticationToken"), hasKey("durationSeconds"))
-            );
-            return oboEndPointResponse.get("authenticationToken").toString();
+            assertThat(response.getTextFromJsonBody("/user"), notNullValue());
+            assertThat(response.getTextFromJsonBody("/authenticationToken"), notNullValue());
+            assertThat(response.getTextFromJsonBody("/durationSeconds"), notNullValue());
+            return response.getTextFromJsonBody("/authenticationToken").toString();
         }
     }
 
@@ -231,6 +295,21 @@ public class OnBehalfOfJwtAuthenticationTest {
                 String username = response.getTextFromJsonBody(POINTER_USERNAME);
                 assertThat(username, equalTo(expectedUsername));
             }
+        }
+    }
+
+    private void patchOnBehalfOfConfig(final OnBehalfOfConfig oboConfig) {
+        try (final TestRestClient adminClient = cluster.getRestClient(cluster.getAdminCertificate())) {
+            final XContentBuilder configBuilder = XContentFactory.jsonBuilder();
+            configBuilder.value(oboConfig);
+
+            final String patchBody = "[{ \"op\": \"replace\", \"path\": \"/config/dynamic/on_behalf_of\", \"value\":"
+                + configBuilder.toString()
+                + "}]";
+            final var response = adminClient.patch("_plugins/_security/api/securityconfig", patchBody);
+            response.assertStatusCode(HttpStatus.SC_OK);
+        } catch (final IOException ex) {
+            throw new RuntimeException(ex);
         }
     }
 }
