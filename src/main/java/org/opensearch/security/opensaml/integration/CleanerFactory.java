@@ -11,12 +11,13 @@
 
 package org.opensearch.security.opensaml.integration;
 
-import org.opensearch.common.util.concurrent.OpenSearchExecutors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.ref.Cleaner;
 import java.util.concurrent.ThreadFactory;
+
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class was adapted from {@link net.shibboleth.utilities.java.support.primitive.CleanerSupport}.

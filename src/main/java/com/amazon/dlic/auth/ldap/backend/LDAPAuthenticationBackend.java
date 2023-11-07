@@ -25,17 +25,6 @@ import java.util.UUID;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.ldaptive.Connection;
-import org.ldaptive.ConnectionConfig;
-import org.ldaptive.LdapEntry;
-import org.ldaptive.ReturnAttributes;
-import org.ldaptive.SearchFilter;
-import org.ldaptive.SearchScope;
-
-import com.amazon.dlic.auth.ldap.LdapUser;
-import com.amazon.dlic.auth.ldap.util.ConfigConstants;
-import com.amazon.dlic.auth.ldap.util.LdapHelper;
-import com.amazon.dlic.auth.ldap.util.Utils;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
@@ -43,6 +32,17 @@ import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+
+import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.util.ConfigConstants;
+import com.amazon.dlic.auth.ldap.util.LdapHelper;
+import com.amazon.dlic.auth.ldap.util.Utils;
+import org.ldaptive.Connection;
+import org.ldaptive.ConnectionConfig;
+import org.ldaptive.LdapEntry;
+import org.ldaptive.ReturnAttributes;
+import org.ldaptive.SearchFilter;
+import org.ldaptive.SearchScope;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 

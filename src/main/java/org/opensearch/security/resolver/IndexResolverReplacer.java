@@ -43,7 +43,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
@@ -95,6 +94,8 @@ import org.opensearch.snapshots.SnapshotInfo;
 import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.TransportRequest;
+
+import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 

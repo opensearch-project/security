@@ -8,13 +8,13 @@
 
 package org.opensearch.security.filter;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Delegating RestHandler that delegates all implementations to original handler

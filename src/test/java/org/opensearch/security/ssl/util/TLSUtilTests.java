@@ -10,11 +10,12 @@
  */
 package org.opensearch.security.ssl.util;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 
 import static org.opensearch.transport.NettyAllocator.getAllocator;
 

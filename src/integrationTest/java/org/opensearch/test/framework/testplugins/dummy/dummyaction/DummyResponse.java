@@ -11,6 +11,8 @@
 
 package org.opensearch.test.framework.testplugins.dummy.dummyaction;
 
+import java.io.IOException;
+
 import org.opensearch.common.xcontent.StatusToXContentObject;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.Strings;
@@ -19,8 +21,6 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
-
-import java.io.IOException;
 
 public class DummyResponse extends ActionResponse implements StatusToXContentObject {
     private final String responseString;

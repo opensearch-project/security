@@ -11,11 +11,16 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Triple;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
@@ -34,10 +39,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;

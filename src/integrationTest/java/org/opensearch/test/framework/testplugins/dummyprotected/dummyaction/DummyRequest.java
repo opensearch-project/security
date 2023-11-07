@@ -11,13 +11,13 @@
 
 package org.opensearch.test.framework.testplugins.dummyprotected.dummyaction;
 
+import java.io.IOException;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-
-import java.io.IOException;
 
 public class DummyRequest extends ActionRequest implements ToXContent {
 

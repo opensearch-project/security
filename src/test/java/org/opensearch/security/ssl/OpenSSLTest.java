@@ -22,8 +22,6 @@ import java.util.Random;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.util.internal.PlatformDependent;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -45,6 +43,9 @@ import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
+
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.util.internal.PlatformDependent;
 
 public class OpenSSLTest extends SSLTest {
     private static final String USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY = "opensearch.unsafe.use_netty_default_allocator";
