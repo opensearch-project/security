@@ -32,7 +32,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_P
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
 import static org.opensearch.security.user.UserService.generatePassword;
 
-public class InstallDemoConfiguration {
+public final class InstallDemoConfiguration {
     static boolean assumeyes = false;
     static boolean initsecurity = false;
     static boolean cluster_mode = false;
@@ -85,8 +85,8 @@ public class InstallDemoConfiguration {
         // set script execution dir
         SCRIPT_DIR = args[0];
 
-        for (String arg : args) {
-            switch (arg) {
+        for (int i=1; i< args.length; i++) {
+            switch (args[i]) {
                 case "-y":
                     assumeyes = true;
                     break;
@@ -104,7 +104,7 @@ public class InstallDemoConfiguration {
                     showHelp();
                     return;
                 default:
-                    System.out.println("Invalid option: " + arg);
+                    System.out.println("Invalid option: " + args[i]);
             }
         }
     }
