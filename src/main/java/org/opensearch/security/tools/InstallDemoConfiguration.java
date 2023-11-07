@@ -37,6 +37,8 @@ public final class InstallDemoConfiguration {
     static boolean initsecurity = false;
     static boolean cluster_mode = false;
     static boolean skip_updates = true;
+
+    static ExecutionEnvironment environment = ExecutionEnvironment.production;
     static String SCRIPT_DIR;
     static String BASE_DIR;
     static String OPENSEARCH_CONF_FILE;
@@ -85,7 +87,7 @@ public final class InstallDemoConfiguration {
         // set script execution dir
         SCRIPT_DIR = args[0];
 
-        for (int i=1; i< args.length; i++) {
+        for (int i = 1; i < args.length; i++) {
             switch (args[i]) {
                 case "-y":
                     assumeyes = true;
@@ -98,6 +100,22 @@ public final class InstallDemoConfiguration {
                     break;
                 case "-s":
                     skip_updates = false;
+                    break;
+                case "-e":
+                    i++;
+                    try {
+                        environment = ExecutionEnvironment.valueOf(args[i]);
+                    } catch (IllegalArgumentException e) {
+                        System.out.println(
+                            "Invalid argument value for execution environment. "
+                                + "Please provide one of `"
+                                + ExecutionEnvironment.production
+                                + "` OR `"
+                                + ExecutionEnvironment.test
+                                + "`"
+                        );
+                        System.exit(-1);
+                    }
                     break;
                 case "-h":
                 case "-?":
@@ -731,4 +749,9 @@ enum DemoCertificate {
     public String getContent() {
         return content;
     }
+}
+
+enum ExecutionEnvironment {
+    production,
+    test;
 }
