@@ -14,8 +14,8 @@ package org.opensearch.security;
 import java.io.File;
 import java.util.Arrays;
 
-import org.apache.http.Header;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

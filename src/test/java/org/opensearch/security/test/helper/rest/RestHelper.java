@@ -71,7 +71,7 @@ import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.ConnectionClosedException;
 import org.apache.hc.core5.http.ContentType;
-import org.apache.http.Header;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpVersion;
