@@ -160,6 +160,7 @@ public class WhoAmITests {
 
     @Test
     public void testAuditLogSimilarityWithTransportLayer() {
+        cluster.setPrimaryNode("cluster_manager_0");
         try (TestRestClient client = cluster.getRestClient(AUDIT_LOG_VERIFIER)) {
             assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
             auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(AUDIT_LOG_VERIFIER, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
