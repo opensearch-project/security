@@ -41,12 +41,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
     @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {
-                @Override
-                public byte[] run() throws ResolverException {
-                    return SamlHTTPMetadataResolver.super.fetchMetadata();
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) () -> SamlHTTPMetadataResolver.super.fetchMetadata());
         } catch (PrivilegedActionException e) {
 
             if (e.getCause() instanceof ResolverException) {
