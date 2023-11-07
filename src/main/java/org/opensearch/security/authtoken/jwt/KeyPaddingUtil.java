@@ -11,10 +11,11 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.util.ByteUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import static com.nimbusds.jose.crypto.MACSigner.getMinRequiredSecretLength;
 

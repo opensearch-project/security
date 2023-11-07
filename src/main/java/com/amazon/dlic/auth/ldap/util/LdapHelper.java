@@ -16,10 +16,11 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+
+import org.opensearch.SpecialPermission;
 
 import org.ldaptive.Connection;
 import org.ldaptive.DerefAliases;
@@ -32,8 +33,6 @@ import org.ldaptive.SearchRequest;
 import org.ldaptive.SearchResult;
 import org.ldaptive.SearchScope;
 import org.ldaptive.referral.SearchReferralHandler;
-
-import org.opensearch.SpecialPermission;
 
 public class LdapHelper {
 

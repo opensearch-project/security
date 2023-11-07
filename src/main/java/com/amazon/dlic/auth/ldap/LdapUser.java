@@ -16,16 +16,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.ldaptive.LdapAttribute;
-import org.ldaptive.LdapEntry;
-
-import com.amazon.dlic.auth.ldap.util.Utils;
-
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+
+import com.amazon.dlic.auth.ldap.util.Utils;
+import org.ldaptive.LdapAttribute;
+import org.ldaptive.LdapEntry;
 
 public class LdapUser extends User {
 

@@ -11,6 +11,10 @@
 
 package org.opensearch.test.framework.testplugins.dummy;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -27,10 +31,6 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.test.framework.testplugins.dummy.dummyaction.DummyAction;
 import org.opensearch.test.framework.testplugins.dummy.dummyaction.TransportDummyAction;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Registers a plugin with legacy routes using {@link org.opensearch.rest.RestHandler.Route}

@@ -10,12 +10,14 @@
 package org.opensearch.security.dlic.rest.api;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
+
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

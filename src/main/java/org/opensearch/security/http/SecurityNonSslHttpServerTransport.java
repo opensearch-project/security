@@ -26,10 +26,6 @@
 
 package org.opensearch.security.http;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -43,6 +39,10 @@ import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
+
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 
 public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
