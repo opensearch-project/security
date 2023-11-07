@@ -11,24 +11,24 @@
 
 package org.opensearch.security.http;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -42,12 +42,14 @@ import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
+import io.jsonwebtoken.security.WeakKeyException;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
+    private static final int MINIMUM_SIGNING_KEY_BIT_LENGTH = 512;
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
@@ -67,19 +69,38 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         String oboEnabledSetting = settings.get("enabled", "true");
         oboEnabled = Boolean.parseBoolean(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
-        JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-        jwtParser = builder.build();
 
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+        jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
+            @Override
+            public JwtParser run() {
+                JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
+                return builder.build();
+            }
+        });
         this.clusterName = clusterName;
         this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
-        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
-
-        if (jwtParserBuilder == null) {
-            throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing key");
+        if (signingKey == null) {
+            throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing_key");
         }
+
+        final int signingKeyLengthBits = signingKey.length() * 8;
+        if (signingKeyLengthBits < MINIMUM_SIGNING_KEY_BIT_LENGTH) {
+            throw new OpenSearchSecurityException(
+                "Signing key size was "
+                    + signingKeyLengthBits
+                    + " bits, which is not secure enough. Please use a signing_key with a size >= "
+                    + MINIMUM_SIGNING_KEY_BIT_LENGTH
+                    + " bits."
+            );
+        }
+        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
 
         return jwtParserBuilder;
     }
@@ -145,11 +166,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        if (jwtParser == null) {
-            log.error("Missing Signing Key. JWT authentication will not work");
-            return null;
-        }
-
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
             return null;
@@ -168,8 +184,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            final String audience = claims.getAudience();
-            if (audience == null) {
+            final Set<String> audience = claims.getAudience();
+            if (audience == null || audience.isEmpty()) {
                 log.error("Valid jwt on behalf of token with no audience");
                 return null;
             }
@@ -193,6 +209,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
         } catch (WeakKeyException e) {
             log.error("Cannot authenticate user with JWT because of ", e);
+            return null;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
@@ -211,16 +228,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        if (!BEARER.matcher(jwtToken).matches()) {
-            return null;
-        }
-
-        if (jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
-            jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
-        } else {
+        if (!BEARER.matcher(jwtToken).matches() || !jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
             logDebug("No Bearer scheme found in header");
             return null;
         }
+
+        jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
 
         return jwtToken;
     }
@@ -252,4 +265,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return "onbehalfof_jwt";
     }
 
+    @Override
+    public boolean supportsImpersonation() {
+        return false;
+    }
 }

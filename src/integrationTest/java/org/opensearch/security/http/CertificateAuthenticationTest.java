@@ -29,7 +29,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
-import static org.apache.hc.core5.http.HttpStatus.SC_OK;
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -89,7 +89,7 @@ public class CertificateAuthenticationTest {
         CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
         try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-            client.assertCorrectCredentials(USER_SPOCK);
+            client.confirmCorrectCredentials(USER_SPOCK);
         }
     }
 
@@ -98,7 +98,7 @@ public class CertificateAuthenticationTest {
         CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_KIRK);
         try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-            client.assertCorrectCredentials(USER_KIRK);
+            client.confirmCorrectCredentials(USER_KIRK);
         }
     }
 

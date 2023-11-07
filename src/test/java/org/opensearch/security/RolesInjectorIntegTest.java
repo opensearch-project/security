@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Supplier;
 
+import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,9 +120,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                RolesInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());
@@ -139,9 +138,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                RolesInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());
@@ -161,9 +158,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Node node = new PluginAwareNode(
                 false,
                 tcSettings,
-                Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class,
-                RolesInjectorPlugin.class
+                Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class)
             ).start()
         ) {
             waitForInit(node.client());

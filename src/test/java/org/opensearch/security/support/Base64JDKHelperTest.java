@@ -11,8 +11,17 @@
 
 package org.opensearch.security.support;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
-import com.google.common.io.BaseEncoding;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.hamcrest.Matchers.containsString;
+
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.ldaptive.LdapEntry;
@@ -24,12 +33,8 @@ import org.opensearch.security.user.User;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.amazon.dlic.auth.ldap.LdapUser;
+import com.google.common.io.BaseEncoding;
 
 public class Base64JDKHelperTest {
     private static final class NotSafeSerializable implements Serializable {
@@ -90,18 +95,26 @@ public class Base64JDKHelperTest {
         assertThat(ds(list), is(list));
     }
 
-    @Test(expected = OpenSearchException.class)
+    @Test
     public void notSafeSerializable() {
-        Base64JDKHelper.serializeObject(new NotSafeSerializable());
+        final OpenSearchException exception = assertThrows(
+            OpenSearchException.class,
+            () -> Base64JDKHelper.serializeObject(new NotSafeSerializable())
+        );
+        assertThat(exception.getMessage(), containsString("NotSafeSerializable is not serializable"));
     }
 
-    @Test(expected = OpenSearchException.class)
+    @Test
     public void notSafeDeserializable() throws Exception {
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (final ObjectOutputStream out = new ObjectOutputStream(bos)) {
             out.writeObject(new NotSafeSerializable());
         }
-        Base64JDKHelper.deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()));
+        final OpenSearchException exception = assertThrows(
+            OpenSearchException.class,
+            () -> Base64JDKHelper.deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()))
+        );
+        assertThat(exception.getMessage(), containsString("Unauthorized deserialization attempt"));
     }
 
     @Test

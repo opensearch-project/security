@@ -138,7 +138,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
 
     }
 
-    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration users, UserFilterType userType) {
+    protected final ValidationResult<SecurityConfiguration> filterUsers(SecurityDynamicConfiguration<?> users, UserFilterType userType) {
         userService.includeAccountsIfType(users, userType);
         return ValidationResult.success(SecurityConfiguration.of(users.getCType().toString(), users));
 
@@ -166,11 +166,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         try {
             final var username = securityConfiguration.entityName();
             final var authToken = userService.generateAuthToken(username);
-            if (!Strings.isNullOrEmpty(authToken)) {
-                ok(channel, "'" + username + "' authtoken generated " + authToken);
-            } else {
-                badRequest(channel, "'" + username + "' authtoken failed to be created.");
-            }
+            ok(channel, "'" + username + "' authtoken generated " + authToken);
         } catch (final UserServiceException e) {
             badRequest(channel, e.getMessage());
         }

@@ -70,6 +70,8 @@ public class DefaultObjectMapper {
         YAML_MAPPER.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
     }
 
+    private DefaultObjectMapper() {}
+
     public static void inject(final InjectableValues.Std injectableValues) {
         objectMapper.setInjectableValues(injectableValues);
         YAML_MAPPER.setInjectableValues(injectableValues);
@@ -220,7 +222,7 @@ public class DefaultObjectMapper {
         return objectMapper.getTypeFactory();
     }
 
-    public static Set<String> getFields(Class cls) {
+    public static Set<String> getFields(Class<?> cls) {
         return objectMapper.getSerializationConfig()
             .introspect(getTypeFactory().constructType(cls))
             .findProperties()

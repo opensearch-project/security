@@ -31,6 +31,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
+import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
@@ -48,16 +49,25 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
     }
 
     protected final void setup(Settings override) throws Exception {
-        setup(override, new DynamicSecurityConfig());
+        setup(override, new DynamicSecurityConfig(), ClusterConfiguration.DEFAULT);
     }
 
     protected final void setup(DynamicSecurityConfig dynamicSecurityConfig) throws Exception {
-        setup(Settings.EMPTY, dynamicSecurityConfig);
+        setup(Settings.EMPTY, dynamicSecurityConfig, ClusterConfiguration.DEFAULT);
     }
 
     protected final void setup(Settings override, DynamicSecurityConfig dynamicSecurityConfig) throws Exception {
+        setup(override, dynamicSecurityConfig, ClusterConfiguration.DEFAULT);
+    }
+
+    protected final void setup(DynamicSecurityConfig dynamicSecurityConfig, ClusterConfiguration clusterConfiguration) throws Exception {
+        setup(Settings.EMPTY, dynamicSecurityConfig, clusterConfiguration);
+    }
+
+    protected final void setup(Settings override, DynamicSecurityConfig dynamicSecurityConfig, ClusterConfiguration clusterConfiguration)
+        throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "debug").put(override).build();
-        setup(Settings.EMPTY, dynamicSecurityConfig, settings, true);
+        setup(Settings.EMPTY, dynamicSecurityConfig, settings, true, clusterConfiguration);
 
         try (Client tc = getClient()) {
             populateData(tc);

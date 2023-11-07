@@ -90,6 +90,21 @@ public class TestRestClientConfiguration {
     * @param headers headers
     * @return builder
     */
+    public TestRestClientConfiguration header(final String headerName, final String headerValue) {
+        this.headers.add(
+            new BasicHeader(
+                Objects.requireNonNull(headerName, "Header names are required"),
+                Objects.requireNonNull(headerValue, "Header values are required")
+            )
+        );
+        return this;
+    }
+
+    /**
+    * Add HTTP headers which are attached to each HTTP request
+    * @param headers headers
+    * @return builder
+    */
     public TestRestClientConfiguration headers(Header... headers) {
         this.headers.addAll(Arrays.asList(Objects.requireNonNull(headers, "Headers are required")));
         return this;
@@ -103,16 +118,6 @@ public class TestRestClientConfiguration {
     public TestRestClientConfiguration headers(List<Header> headers) {
         this.headers.addAll(Objects.requireNonNull(headers, "Cannot add null headers"));
         return this;
-    }
-
-    /**
-    * Add HTTP header to each request
-    * @param name header name
-    * @param value header value
-    * @return builder
-    */
-    public TestRestClientConfiguration header(String name, Object value) {
-        return headers(new BasicHeader(name, value));
     }
 
     /**

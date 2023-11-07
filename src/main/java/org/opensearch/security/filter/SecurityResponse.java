@@ -11,9 +11,11 @@
 
 package org.opensearch.security.filter;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.http.HttpHeaders;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestResponse;
@@ -25,6 +27,12 @@ public class SecurityResponse {
     private final int status;
     private final Map<String, String> headers;
     private final String body;
+
+    public SecurityResponse(final int status, final Exception e) {
+        this.status = status;
+        this.headers = CONTENT_TYPE_APP_JSON;
+        this.body = generateFailureMessage(e);
+    }
 
     public SecurityResponse(final int status, final Map<String, String> headers, final String body) {
         this.status = status;
@@ -52,4 +60,18 @@ public class SecurityResponse {
         return restResponse;
     }
 
+    protected String generateFailureMessage(final Exception e) {
+        try {
+            return XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("error")
+                .field("status", "error")
+                .field("reason", e.getMessage())
+                .endObject()
+                .endObject()
+                .toString();
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+    }
 }
