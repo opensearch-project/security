@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.http.Header;
+import org.apache.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
 
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;

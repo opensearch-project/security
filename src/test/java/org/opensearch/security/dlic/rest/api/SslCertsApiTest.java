@@ -17,8 +17,8 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.Header;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
