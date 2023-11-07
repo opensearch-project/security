@@ -76,7 +76,6 @@ grant {
 
   //SAML policy
   permission java.util.PropertyPermission "*", "read,write";
-  permission org.opensearch.secure_sm.ThreadPermission "modifyArbitraryThread";
 };
 
 grant codeBase "${codebase.netty-common}" {
