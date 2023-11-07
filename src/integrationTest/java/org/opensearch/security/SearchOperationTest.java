@@ -448,10 +448,12 @@ public class SearchOperationTest {
     @Before
     public void retrieveClusterClient() {
         this.internalClient = cluster.getInternalNodeClient();
+        cluster.setPrimaryNode("cluster_manager_0");
     }
 
     @After
     public void cleanData() throws ExecutionException, InterruptedException {
+        cluster.setPrimaryNode(null);
         Stopwatch stopwatch = Stopwatch.createStarted();
         IndicesAdminClient indices = internalClient.admin().indices();
         List<String> indicesToBeDeleted = List.of(
