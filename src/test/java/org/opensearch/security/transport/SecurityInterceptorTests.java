@@ -9,17 +9,20 @@
 package org.opensearch.security.transport;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
+import java.net.InetAddress;
 import java.net.UnknownHostException;
+
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+
 import org.opensearch.Version;
 import org.opensearch.action.search.PitService;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.repositories.RepositoriesService;
@@ -40,18 +43,16 @@ import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportInterceptor.AsyncSender;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestOptions;
-import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
+
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static java.util.Collections.emptySet;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-// CS-ENFORCE-SINGLE
-
-import java.net.InetAddress;
 
 public class SecurityInterceptorTests {
 

@@ -19,12 +19,13 @@ import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.user.AuthCredentials;
+
+import org.mockito.Mockito;
 
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;

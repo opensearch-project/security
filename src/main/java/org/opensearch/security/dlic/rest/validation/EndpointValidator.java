@@ -9,16 +9,16 @@
  */
 package org.opensearch.security.dlic.rest.validation;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityConfiguration;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;

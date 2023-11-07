@@ -23,39 +23,14 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.xml.parsers.ParserConfigurationException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
-import com.nimbusds.jose.jwk.JWK;
-import com.onelogin.saml2.authn.AuthnRequest;
-import com.onelogin.saml2.logout.LogoutRequest;
-import com.onelogin.saml2.settings.Saml2Settings;
-import com.onelogin.saml2.util.Constants;
-import com.onelogin.saml2.util.Util;
-import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
-import net.shibboleth.utilities.java.support.component.DestructableComponent;
-import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensaml.core.config.InitializationException;
-import org.opensaml.core.config.InitializationService;
-import org.opensaml.core.config.Initializer;
-import org.opensaml.saml.metadata.resolver.MetadataResolver;
-import org.opensaml.saml.metadata.resolver.impl.AbstractMetadataResolver;
-import org.opensaml.saml.metadata.resolver.impl.DOMMetadataResolver;
-import org.opensaml.xmlsec.config.impl.XMLObjectProviderInitializer;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
-
-import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -72,6 +47,30 @@ import org.opensearch.security.opensaml.integration.SecurityXMLObjectProviderIni
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.user.AuthCredentials;
+
+import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
+import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
+import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
+import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
+import com.nimbusds.jose.jwk.JWK;
+import com.onelogin.saml2.authn.AuthnRequest;
+import com.onelogin.saml2.logout.LogoutRequest;
+import com.onelogin.saml2.settings.Saml2Settings;
+import com.onelogin.saml2.util.Constants;
+import com.onelogin.saml2.util.Util;
+import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
+import net.shibboleth.utilities.java.support.component.DestructableComponent;
+import net.shibboleth.utilities.java.support.xml.BasicParserPool;
+import org.opensaml.core.config.InitializationException;
+import org.opensaml.core.config.InitializationService;
+import org.opensaml.core.config.Initializer;
+import org.opensaml.saml.metadata.resolver.MetadataResolver;
+import org.opensaml.saml.metadata.resolver.impl.AbstractMetadataResolver;
+import org.opensaml.saml.metadata.resolver.impl.DOMMetadataResolver;
+import org.opensaml.xmlsec.config.impl.XMLObjectProviderInitializer;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;

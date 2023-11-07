@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import org.junit.Test;
+
 import org.opensearch.core.rest.RestStatus;
 
 import static org.junit.Assert.assertEquals;

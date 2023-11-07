@@ -24,7 +24,6 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.util.Map;
-
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -63,14 +62,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
-
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
+
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
 
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;

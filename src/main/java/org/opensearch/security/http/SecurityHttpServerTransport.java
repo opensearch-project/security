@@ -26,7 +26,6 @@
 
 package org.opensearch.security.http;
 
-import io.netty.util.AttributeKey;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -42,6 +41,8 @@ import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
+
+import io.netty.util.AttributeKey;
 
 public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTransport {
 

@@ -29,7 +29,6 @@ package org.opensearch.security;
 import java.util.TreeSet;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.netty.handler.ssl.OpenSsl;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Assert;
@@ -56,6 +55,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import io.netty.handler.ssl.OpenSsl;
 
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 
