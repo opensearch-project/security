@@ -18,8 +18,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -27,6 +25,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 
 public class LdapBackendIntegTest2 extends SingleClusterTest {
 

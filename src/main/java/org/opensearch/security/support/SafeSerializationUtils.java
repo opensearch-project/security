@@ -11,16 +11,6 @@
 
 package org.opensearch.security.support;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import org.ldaptive.AbstractLdapBean;
-import org.ldaptive.LdapAttribute;
-import org.ldaptive.LdapEntry;
-import org.ldaptive.SearchEntry;
-import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.user.User;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -31,6 +21,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
+import org.opensearch.security.auth.UserInjector;
+import org.opensearch.security.user.User;
+
+import com.amazon.dlic.auth.ldap.LdapUser;
+import org.ldaptive.AbstractLdapBean;
+import org.ldaptive.LdapAttribute;
+import org.ldaptive.LdapEntry;
+import org.ldaptive.SearchEntry;
 
 /**
  * Provides functionality to verify if a class is categorised to be safe for serialization or

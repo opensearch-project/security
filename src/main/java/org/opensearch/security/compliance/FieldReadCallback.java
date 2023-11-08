@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import com.github.wnameless.json.flattener.JsonFlattener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.FieldInfo;
@@ -28,14 +27,16 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.support.XContentMapValues;
 import org.opensearch.core.index.Index;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.mapper.Uid;
-import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
+
+import com.github.wnameless.json.flattener.JsonFlattener;
 
 //TODO  We need to deal with caching!!
 //Currently we disable caching (and realtime requests) when FLS or DLS is applied

@@ -11,11 +11,14 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
@@ -26,9 +29,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.util.FakeRestRequest;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

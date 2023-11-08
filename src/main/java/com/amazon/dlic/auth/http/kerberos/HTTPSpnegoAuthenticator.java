@@ -11,8 +11,6 @@
 
 package com.amazon.dlic.auth.http.kerberos;
 
-import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,23 +27,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Strings;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.ietf.jgss.GSSContext;
-import org.ietf.jgss.GSSCredential;
-import org.ietf.jgss.GSSException;
-import org.ietf.jgss.GSSManager;
-import org.ietf.jgss.GSSName;
-import org.ietf.jgss.Oid;
-
-import com.amazon.dlic.auth.http.kerberos.util.JaasKrbUtil;
-import com.amazon.dlic.auth.http.kerberos.util.KrbConstants;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.SpecialPermission;
@@ -58,6 +45,17 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
+
+import com.amazon.dlic.auth.http.kerberos.util.JaasKrbUtil;
+import com.amazon.dlic.auth.http.kerberos.util.KrbConstants;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSException;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
+
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 
 public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 

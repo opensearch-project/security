@@ -23,20 +23,6 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.ldaptive.BindRequest;
-import org.ldaptive.Connection;
-import org.ldaptive.ConnectionFactory;
-import org.ldaptive.Credential;
-import org.ldaptive.LdapEntry;
-import org.ldaptive.LdapException;
-import org.ldaptive.Response;
-import org.ldaptive.ReturnAttributes;
-import org.ldaptive.pool.ConnectionPool;
-
-import com.amazon.dlic.auth.ldap.LdapUser;
-import com.amazon.dlic.auth.ldap.util.ConfigConstants;
-import com.amazon.dlic.auth.ldap.util.Utils;
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -46,6 +32,20 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+
+import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.util.ConfigConstants;
+import com.amazon.dlic.auth.ldap.util.Utils;
+import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
+import org.ldaptive.BindRequest;
+import org.ldaptive.Connection;
+import org.ldaptive.ConnectionFactory;
+import org.ldaptive.Credential;
+import org.ldaptive.LdapEntry;
+import org.ldaptive.LdapException;
+import org.ldaptive.Response;
+import org.ldaptive.ReturnAttributes;
+import org.ldaptive.pool.ConnectionPool;
 
 public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destroyable {
 

@@ -21,7 +21,6 @@ import java.nio.charset.CharsetEncoder;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
-
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -30,7 +29,6 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 
-import com.nimbusds.jose.jwk.JWKSet;
 import org.apache.http.HttpConnectionFactory;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
@@ -51,6 +49,8 @@ import org.apache.http.protocol.HttpRequestHandler;
 
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
+
+import com.nimbusds.jose.jwk.JWKSet;
 
 class MockIpdServer implements Closeable {
     final static String CTX_DISCOVER = "/discover";

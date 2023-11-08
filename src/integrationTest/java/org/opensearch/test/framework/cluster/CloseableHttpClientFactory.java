@@ -11,7 +11,6 @@ package org.opensearch.test.framework.cluster;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.client.config.RequestConfig;

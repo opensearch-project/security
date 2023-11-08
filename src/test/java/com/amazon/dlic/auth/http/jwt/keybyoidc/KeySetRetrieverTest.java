@@ -35,10 +35,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
+
+import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 
 public class KeySetRetrieverTest {
     protected static MockIpdServer mockIdpServer;

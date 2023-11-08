@@ -24,28 +24,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
 import com.google.common.collect.HashMultimap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.ldaptive.Connection;
-import org.ldaptive.ConnectionFactory;
-import org.ldaptive.LdapAttribute;
-import org.ldaptive.LdapEntry;
-import org.ldaptive.LdapException;
-import org.ldaptive.ReturnAttributes;
-import org.ldaptive.SearchFilter;
-import org.ldaptive.SearchScope;
-import org.ldaptive.pool.ConnectionPool;
-
-import com.amazon.dlic.auth.ldap.LdapUser;
-import com.amazon.dlic.auth.ldap.util.ConfigConstants;
-import com.amazon.dlic.auth.ldap.util.LdapHelper;
-import com.amazon.dlic.auth.ldap.util.Utils;
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -56,6 +40,21 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+
+import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.util.ConfigConstants;
+import com.amazon.dlic.auth.ldap.util.LdapHelper;
+import com.amazon.dlic.auth.ldap.util.Utils;
+import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
+import org.ldaptive.Connection;
+import org.ldaptive.ConnectionFactory;
+import org.ldaptive.LdapAttribute;
+import org.ldaptive.LdapEntry;
+import org.ldaptive.LdapException;
+import org.ldaptive.ReturnAttributes;
+import org.ldaptive.SearchFilter;
+import org.ldaptive.SearchScope;
+import org.ldaptive.pool.ConnectionPool;
 
 public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroyable {
 
