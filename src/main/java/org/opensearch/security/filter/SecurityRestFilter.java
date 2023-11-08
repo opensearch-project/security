@@ -59,6 +59,7 @@ import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -134,7 +135,7 @@ public class SecurityRestFilter {
             final Optional<SecurityResponse> deniedResponse = whitelistingSettings.checkRequestIsAllowed(requestChannel);
 
             if (deniedResponse.isPresent()) {
-                requestChannel.queueForSending(deniedResponse.orElseThrow());
+                requestChannel.queueForSending(deniedResponse.orElseThrow(NoSuchElementException::new));
                 requestChannel.sendResponse();
                 return;
             }

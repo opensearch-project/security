@@ -179,6 +179,7 @@ public class HTTPJwtAuthenticatorTest {
             new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
             null
         );
+    }
 
     @Test
     public void testNonBearer() throws Exception {

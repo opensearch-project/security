@@ -214,7 +214,7 @@ public class DisabledCategoriesTest {
     }
 
 	 protected void logRestSucceededLogin(AuditLog auditLog) {
-	     auditLog.logSucceededLogin("testuser.rest.succeededlogin", false, "testuser.rest.succeededlogin", new MockRestRequest());
+	     auditLog.logSucceededLogin("testuser.rest.succeededlogin", false, "testuser.rest.succeededlogin", new MockRestRequest().asSecurityRequest());
 	 }
 
 	 protected void logTransportSucceededLogin(AuditLog auditLog) {

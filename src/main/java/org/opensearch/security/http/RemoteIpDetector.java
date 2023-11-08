@@ -51,6 +51,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.Logger;
@@ -122,7 +123,7 @@ final class RemoteIpDetector {
         final String originalRemoteAddr = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)
             .map(InetAddress::getHostAddress)
-            .orElseThrow();
+            .orElseThrow(NoSuchElementException::new);
 
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
@@ -183,7 +184,7 @@ final class RemoteIpDetector {
                     final String originalRemoteHost = request.getRemoteAddress()
                         .map(InetSocketAddress::getAddress)
                         .map(InetAddress::getHostName)
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
                     log.trace(
                         "Incoming request {} with originalRemoteAddr '{}', originalRemoteHost='{}', will be seen as newRemoteAddr='{}'",
                         request.uri(),

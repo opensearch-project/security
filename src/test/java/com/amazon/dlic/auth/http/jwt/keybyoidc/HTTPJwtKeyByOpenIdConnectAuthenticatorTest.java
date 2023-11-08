@@ -69,7 +69,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
 		AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(
-				ImmutableMap.of("Authorization",  "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1_INVALID_KID).asSecurityRequest(), new HashMap<String, String>()), null);
+				ImmutableMap.of("Authorization",  "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1_INVALID_KID), new HashMap<String, String>()).asSecurityRequest(), null);
 
 		Assert.assertNotNull(creds);
 		Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
