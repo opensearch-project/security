@@ -15,9 +15,11 @@ import java.util.Map;
 
 import org.apache.http.HttpHeaders;
 
+import com.google.common.collect.ImmutableMap;
+
 public class SecurityResponse {
 
-    public static final Map<String, String> CONTENT_TYPE_APP_JSON = Map.of(HttpHeaders.CONTENT_TYPE, "application/json");
+    public static final Map<String, String> CONTENT_TYPE_APP_JSON = ImmutableMap.of(HttpHeaders.CONTENT_TYPE, "application/json");
 
     private final int status;
     private final Map<String, String> headers;

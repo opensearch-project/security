@@ -45,6 +45,8 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.AuthCredentials;
 
+import com.google.common.collect.ImmutableMap;
+
 //TODO FUTURE allow only if protocol==https
 public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
@@ -71,7 +73,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
     @Override
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials creds) {
         return Optional.of(
-            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Basic realm=\"OpenSearch Security\""), "")
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, ImmutableMap.of("WWW-Authenticate", "Basic realm=\"OpenSearch Security\""), "")
         );
     }
 

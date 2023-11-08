@@ -27,6 +27,8 @@ import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.http.HttpStatus;
@@ -239,7 +241,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     @Override
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials authCredentials) {
         return Optional.of(
-            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, ImmutableMap.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
         );
     }
 

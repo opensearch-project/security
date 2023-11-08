@@ -45,6 +45,8 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
+import com.google.common.collect.ImmutableMap;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
@@ -204,7 +206,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     @Override
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest channel, AuthCredentials creds) {
         return Optional.of(
-            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, ImmutableMap.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
         );
     }
 

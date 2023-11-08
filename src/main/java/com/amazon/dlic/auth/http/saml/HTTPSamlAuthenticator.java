@@ -54,6 +54,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.user.AuthCredentials;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.onelogin.saml2.authn.AuthnRequest;
 import com.onelogin.saml2.logout.LogoutRequest;
 import com.onelogin.saml2.settings.Saml2Settings;
@@ -202,7 +203,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
             final Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
             return Optional.of(
-                new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "")
+                new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, ImmutableMap.of("WWW-Authenticate", getWwwAuthenticateHeader(saml2Settings)), "")
             );
         } catch (Exception e) {
             log.error("Error in reRequestAuthentication()", e);
