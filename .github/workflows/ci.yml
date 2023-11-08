@@ -41,6 +41,11 @@ jobs:
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
         platform: [windows-latest, ubuntu-latest]
         jdk: [11, 17, 21]
+        exclude:
+          - platform: windows-lastest
+        include:
+          - jdk: 17
+            gradle_task: ciSecurityIntegrationTest
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -70,6 +75,7 @@ jobs:
   report-coverage:
     needs:
       - "test"
+      - "integration-tests"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
@@ -111,6 +117,8 @@ jobs:
       matrix:
         jdk: [11, 17, 21]
         platform: [ubuntu-latest] # Removed windows https://github.com/opensearch-project/security/issues/3423
+        include:
+          - jdk: 17
     runs-on: ${{ matrix.platform }}
 
     steps:
