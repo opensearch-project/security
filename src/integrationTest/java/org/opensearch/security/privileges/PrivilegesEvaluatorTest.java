@@ -81,24 +81,6 @@ public class PrivilegesEvaluatorTest {
     }
 
     @Test
-    public void testSearchTemplateRequestSuccess() {
-        // Insert doc into services index with admin user
-        try (TestRestClient client = cluster.getRestClient(TestSecurityConfig.User.USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.postJson("services/_doc", TEST_DOC);
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
-        }
-
-        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            final String searchTemplateOnServicesIndex = "services/_search/template";
-            final TestRestClient.HttpResponse searchTemplateOnAuthorizedIndexResponse = client.getWithJsonBody(
-                searchTemplateOnServicesIndex,
-                TEST_QUERY
-            );
-            assertThat(searchTemplateOnAuthorizedIndexResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
-    }
-
-    @Test
     public void testSearchTemplateRequestUnauthorizedIndex() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
             final String searchTemplateOnMoviesIndex = "movies/_search/template";

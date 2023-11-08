@@ -230,6 +230,7 @@ dependencies {
     integrationTestRuntimeOnly 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
     integrationTestRuntimeOnly 'commons-lang:commons-lang:2.4'
     integrationTestRuntimeOnly 'org.ldaptive:ldaptive:1.2.3'
+    integrationTestRuntimeOnly 'commons-collections:commons-collections:3.2.2'
 
     //integration test framework:
     integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.1') {
