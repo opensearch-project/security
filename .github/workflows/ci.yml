@@ -38,15 +38,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
-        # platform: [windows-latest, ubuntu-latest]
-        # jdk: [11, 17, 21]
-        # exclude:
-        #   - platform: windows-lastest
-        include:
-          - jdk: 17
-            gradle_task: ciSecurityIntegrationTest
-            platform: ubuntu-latest
+        gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
+        platform: [windows-latest, ubuntu-latest]
+        jdk: [11, 17, 21]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -116,11 +110,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # jdk: [11, 17, 21]
-        # platform: [ubuntu-latest] # Removed windows https://github.com/opensearch-project/security/issues/3423
-        include:
-          - jdk: 17
-            platform: ubuntu-latest
+        jdk: [11, 17, 21]
+        platform: [ubuntu-latest] # Removed windows https://github.com/opensearch-project/security/issues/3423
     runs-on: ${{ matrix.platform }}
 
     steps:
