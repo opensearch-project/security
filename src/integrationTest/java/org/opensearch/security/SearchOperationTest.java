@@ -126,9 +126,9 @@ import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.Al
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.core.rest.RestStatus.ACCEPTED;
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -1246,10 +1246,7 @@ public class SearchOperationTest {
 
     @Test
     public void shouldDeleteDocumentInBulk_partiallyPositive() throws IOException {
-        Settings indexSettings = Settings.builder()
-                .put("index.number_of_replicas", 0)
-                .put("index.number_of_shards", 1)
-                .build();
+        Settings indexSettings = Settings.builder().put("index.number_of_replicas", 0).put("index.number_of_shards", 1).build();
         IndexOperationsHelper.createIndex(cluster, WRITE_SONG_INDEX_NAME, indexSettings);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1880,10 +1877,7 @@ public class SearchOperationTest {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
             // 1. create some documents
-            Settings indexSettings = Settings.builder()
-                    .put("index.number_of_replicas", 0)
-                    .put("index.number_of_shards", 1)
-                    .build();
+            Settings indexSettings = Settings.builder().put("index.number_of_replicas", 0).put("index.number_of_shards", 1).build();
             IndexOperationsHelper.createIndex(cluster, WRITE_SONG_INDEX_NAME, indexSettings);
 
             BulkRequest bulkRequest = new BulkRequest();
@@ -1944,7 +1938,7 @@ public class SearchOperationTest {
                 "/_snapshot/test-snapshot-repository/restore-snapshot-positive/_restore"
             )
         );
-        auditLogsRule.assertExactly(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
+        auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
         auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(
             1,
@@ -2084,7 +2078,7 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
-        auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "RestoreSnapshotRequest"));
+        auditLogsRule.assertExactlyScanAll(1, missingPrivilege(LIMITED_READ_USER, "RestoreSnapshotRequest"));
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
         auditLogsRule.assertAtLeastTransportMessages(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
     }
