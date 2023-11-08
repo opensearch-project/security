@@ -329,9 +329,9 @@ public final class InstallDemoConfiguration {
             }
 
             // print the password to the logs
-            System.out.println("   ***************************************************");
-            System.out.println("   ***   ADMIN PASSWORD SET TO: " + ADMIN_PASSWORD + "    ***");
-            System.out.println("   ***************************************************");
+            System.out.println("\t***************************************************");
+            System.out.println("\t\tADMIN PASSWORD SET TO: " + ADMIN_PASSWORD);
+            System.out.println("\t***************************************************");
 
             String hashedAdminPassword = Hasher.hash(ADMIN_PASSWORD.toCharArray());
 
