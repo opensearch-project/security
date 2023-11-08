@@ -12,15 +12,15 @@ package org.opensearch.test.framework.cluster;
 import java.util.Collections;
 import java.util.Map;
 
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.ActionRequest;
-import org.opensearch.core.action.ActionResponse;
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.client.Client;
 import org.opensearch.client.FilterClient;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
 
 /**
 * The class adds provided headers into context before sending request via wrapped {@link Client}

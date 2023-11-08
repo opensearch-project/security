@@ -11,8 +11,14 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import com.fasterxml.jackson.databind.InjectableValues;
 import org.junit.Test;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
@@ -21,11 +27,6 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.util.FakeRestRequest;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

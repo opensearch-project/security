@@ -12,7 +12,6 @@ package org.opensearch.security;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import javax.net.ssl.SSLHandshakeException;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;

@@ -57,6 +57,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import io.netty.handler.ssl.OpenSsl;
+
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 
 public class IntegrationTests extends SingleClusterTest {

@@ -21,15 +21,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.ldaptive.Connection;
-import org.ldaptive.LdapEntry;
-import org.ldaptive.ReturnAttributes;
-
-import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
-import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
-import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
-import com.amazon.dlic.auth.ldap.util.ConfigConstants;
-import com.amazon.dlic.auth.ldap.util.LdapHelper;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
@@ -37,6 +28,15 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
+
+import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
+import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
+import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
+import com.amazon.dlic.auth.ldap.util.ConfigConstants;
+import com.amazon.dlic.auth.ldap.util.LdapHelper;
+import org.ldaptive.Connection;
+import org.ldaptive.LdapEntry;
+import org.ldaptive.ReturnAttributes;
 
 import static org.hamcrest.Matchers.hasItem;
 

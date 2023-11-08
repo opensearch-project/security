@@ -14,9 +14,6 @@ package org.opensearch.security.auditlog.sink;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
@@ -27,6 +24,9 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.threadpool.ThreadPool;
+
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 public final class InternalOpenSearchSink extends AuditLogSink {
 

@@ -11,6 +11,10 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
@@ -34,10 +38,6 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;

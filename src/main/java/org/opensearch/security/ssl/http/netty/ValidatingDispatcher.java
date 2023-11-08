@@ -18,7 +18,6 @@
 package org.opensearch.security.ssl.http.netty;
 
 import java.nio.file.Path;
-
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.logging.log4j.LogManager;
@@ -29,10 +28,10 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.SslExceptionHandler;

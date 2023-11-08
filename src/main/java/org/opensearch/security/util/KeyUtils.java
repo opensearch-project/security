@@ -11,14 +11,6 @@
 
 package org.opensearch.security.util;
 
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.core.common.Strings;
-
 import java.security.AccessController;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -28,6 +20,16 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Objects;
+
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.core.common.Strings;
+
+import io.jsonwebtoken.JwtParserBuilder;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
 public class KeyUtils {
 

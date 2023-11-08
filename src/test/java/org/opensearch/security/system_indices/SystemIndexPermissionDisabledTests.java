@@ -11,16 +11,19 @@
 
 package org.opensearch.security.system_indices;
 
+import java.io.IOException;
+
+import java.io.IOException;
+
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.opensearch.action.admin.indices.close.CloseIndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.test.helper.rest.RestHelper;
-
-import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

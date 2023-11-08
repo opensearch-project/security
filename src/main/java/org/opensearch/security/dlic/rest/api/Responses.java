@@ -11,14 +11,14 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-
-import java.io.IOException;
 
 public class Responses {
 

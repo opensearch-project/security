@@ -11,14 +11,14 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.opensearch.common.CheckedBiConsumer;
 import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedFunction;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.rest.RestStatus;
-
-import java.io.IOException;
-import java.util.Objects;
+import org.opensearch.core.xcontent.ToXContent;
 
 public class ValidationResult<C> {
 

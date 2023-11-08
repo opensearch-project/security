@@ -18,10 +18,10 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 
-import static org.junit.Assert.assertEquals;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
+import static org.junit.Assert.assertEquals;
 
 public class PasswordValidatorTest {
 

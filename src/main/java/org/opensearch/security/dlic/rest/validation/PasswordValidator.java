@@ -11,21 +11,23 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import com.google.common.collect.ImmutableList;
-import com.nulabinc.zxcvbn.Strength;
-import com.nulabinc.zxcvbn.Zxcvbn;
-import com.nulabinc.zxcvbn.matchers.Match;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.Strings;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+
+import com.google.common.collect.ImmutableList;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
+
+import com.nulabinc.zxcvbn.Strength;
+import com.nulabinc.zxcvbn.Zxcvbn;
+import com.nulabinc.zxcvbn.matchers.Match;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;

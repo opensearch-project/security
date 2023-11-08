@@ -31,7 +31,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.SortedSet;
-
 import javax.net.ServerSocketFactory;
 
 import org.junit.Test;
@@ -43,9 +42,9 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThrows;
 import static org.opensearch.test.framework.cluster.SocketUtils.PORT_RANGE_MAX;
 import static org.opensearch.test.framework.cluster.SocketUtils.PORT_RANGE_MIN;
+import static org.junit.Assert.assertThrows;
 
 /**
 * Unit tests for {@link SocketUtils}.

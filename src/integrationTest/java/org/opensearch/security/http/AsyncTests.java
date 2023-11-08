@@ -10,12 +10,20 @@
 
 package org.opensearch.security.http;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.security.IndexOperationsHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AsyncActions;
@@ -24,13 +32,6 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
-
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CompletableFuture;
 
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
