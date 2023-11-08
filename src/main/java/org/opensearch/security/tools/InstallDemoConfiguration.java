@@ -34,26 +34,31 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_P
 import static org.opensearch.security.user.UserService.generatePassword;
 
 public final class InstallDemoConfiguration {
-    static boolean assumeyes = false;
-    static boolean initsecurity = false;
-    static boolean cluster_mode = false;
-    static boolean skip_updates = true;
+    private static boolean assumeyes = false;
+    private static boolean initsecurity = false;
+    private static boolean cluster_mode = false;
+    private static boolean skip_updates = true;
+    private static String SCRIPT_DIR;
+    private static String BASE_DIR;
+    private static String OPENSEARCH_CONF_FILE;
+    private static String OPENSEARCH_BIN_DIR;
+    private static String OPENSEARCH_PLUGINS_DIR;
+    private static String OPENSEARCH_MODULES_DIR;
+    private static String OPENSEARCH_LIB_PATH;
+    private static String OPENSEARCH_INSTALL_TYPE;
+    private static String OPENSEARCH_CONF_DIR;
+    private static String OPENSEARCH_VERSION;
+    private static String SECURITY_VERSION;
 
-    static ExecutionEnvironment environment = ExecutionEnvironment.production;
-    static String SCRIPT_DIR;
-    static String BASE_DIR;
-    static String OPENSEARCH_CONF_FILE;
-    static String OPENSEARCH_BIN_DIR;
-    static String OPENSEARCH_PLUGINS_DIR;
-    static String OPENSEARCH_MODULES_DIR;
-    static String OPENSEARCH_LIB_PATH;
-    static String OPENSEARCH_INSTALL_TYPE;
-    static String OPENSEARCH_CONF_DIR;
-    static String OPENSEARCH_VERSION;
-    static String SECURITY_VERSION;
-    static String OS;
+    private static ExecutionEnvironment environment = ExecutionEnvironment.production;
 
-    private static final String FILE_EXTENSION = System.getProperty("os.name").toLowerCase().contains("win") ? ".bat" : ".sh";
+    private static final String OS = System.getProperty("os.name")
+        + " "
+        + System.getProperty("os.version")
+        + " "
+        + System.getProperty("os.arch");
+
+    private static final String FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
 
     private static final String SYSTEM_INDICES = ".plugins-ml-config, .plugins-ml-connector, .plugins-ml-model-group, .plugins-ml-model, "
         + ".plugins-ml-task, .plugins-ml-conversation-meta, .plugins-ml-conversation-interactions, .opendistro-alerting-config, .opendistro-alerting-alert*, "
@@ -209,9 +214,8 @@ public final class InstallDemoConfiguration {
     }
 
     private static String determineInstallType() {
-        String os = System.getProperty("os.name").toLowerCase();
         // windows (.bat execution)
-        if (os.contains("win")) {
+        if (OS.toLowerCase().contains("win")) {
             return ".zip";
         }
 
@@ -249,11 +253,6 @@ public final class InstallDemoConfiguration {
             SECURITY_VERSION = securityFiles[0].getName().replaceAll("opensearch-security-(.*).jar", "$1");
         }
 
-        // Detect OS information
-        String osName = System.getProperty("os.name");
-        String osVersion = System.getProperty("os.version");
-        String osArch = System.getProperty("os.arch");
-        OS = osName + " " + osVersion + " " + osArch;
     }
 
     private static void printVariables() {
@@ -497,7 +496,7 @@ public final class InstallDemoConfiguration {
 
             // Make securityadmin_demo script executable
             // not needed for windows
-            if (!System.getProperty("os.name").toLowerCase().contains("win")) {
+            if (!OS.toLowerCase().contains("win")) {
                 Path file = Paths.get(securityAdminDemoScriptPath);
                 Set<PosixFilePermission> perms = new HashSet<>();
                 // Add the execute permission for owner, group, and others
@@ -567,7 +566,7 @@ public final class InstallDemoConfiguration {
             + DemoCertificate.ROOT_CA.getFileName()
             + "\" -nhnv";
 
-        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+        if (OS.toLowerCase().contains("win")) {
             securityAdminCommands = new String[] { "@echo off", "call \"" + securityAdminExecutionPath };
         } else {
             securityAdminCommands = new String[] { "#!/bin/bash", "sudo" + " \"" + securityAdminExecutionPath };
