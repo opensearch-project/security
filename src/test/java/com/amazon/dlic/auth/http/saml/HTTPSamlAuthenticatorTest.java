@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -163,7 +164,7 @@ public class HTTPSamlAuthenticatorTest {
     }
 
     private String getResponse(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) throws Exception {
-        SecurityResponse response = sendToAuthenticator(samlAuthenticator, request).orElseThrow();
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, request).orElseThrow(NoSuchElementException::new);
         return response.getBody();
     }
 
@@ -438,7 +439,7 @@ public class HTTPSamlAuthenticatorTest {
             authenticateHeaders,
             "/opendistrosecurity/saml/acs/idpinitiated"
         );
-        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow(NoSuchElementException::new);
 
         Assert.assertEquals(RestStatus.UNAUTHORIZED.getStatus(), response.getStatus());
     }
@@ -463,7 +464,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow(NoSuchElementException::new);
 
         Assert.assertEquals(401, response.getStatus());
     }
@@ -485,7 +486,7 @@ public class HTTPSamlAuthenticatorTest {
         String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow();
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, tokenRestRequest).orElseThrow(NoSuchElementException::new);
 
         Assert.assertEquals(401, response.getStatus());
     }
@@ -714,7 +715,7 @@ public class HTTPSamlAuthenticatorTest {
 
     private AuthenticateHeaders getAutenticateHeaders(HTTPSamlAuthenticator samlAuthenticator) {
         RestRequest restRequest = new FakeRestRequest(ImmutableMap.of(), new HashMap<String, String>());
-        SecurityResponse response = sendToAuthenticator(samlAuthenticator, restRequest).orElseThrow();
+        SecurityResponse response = sendToAuthenticator(samlAuthenticator, restRequest).orElseThrow(NoSuchElementException::new);
 
         String wwwAuthenticateHeader = response.getHeaders().get("WWW-Authenticate");
 
