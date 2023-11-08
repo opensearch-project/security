@@ -2012,10 +2012,9 @@ public class SearchOperationTest {
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
-        auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
         auditLogsRule.assertAtLeastTransportMessages(1, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
-        auditLogsRule.assertAtLeastTransportMessages(1, missingPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
+        auditLogsRule.assertExactlyScanAll(1, missingPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
         auditLogsRule.assertAtLeastTransportMessages(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
     }
 
