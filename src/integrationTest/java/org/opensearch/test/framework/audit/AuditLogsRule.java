@@ -65,6 +65,13 @@ public class AuditLogsRule implements TestRule {
         assertExactly(1, predicate);
     }
 
+    public void assertExactlyScanAll(long expectedNumberOfAuditMessages, Predicate<AuditMessage> predicate) {
+        List<AuditMessage> auditMessages = new ArrayList<>(currentTestAuditMessages);
+        auditMessages.addAll(currentTransportTestAuditMessages);
+        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate), auditMessages);
+
+    }
+
     public void assertAuditLogsCount(int from, int to) {
         int actualCount = currentTestAuditMessages.size();
         String message = "Expected audit log count is between " + from + " and " + to + " but was " + actualCount;
