@@ -11,11 +11,8 @@
 
 package org.opensearch.security.tools;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.dlic.rest.validation.PasswordValidator;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -27,6 +24,10 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.dlic.rest.validation.PasswordValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
@@ -340,29 +341,33 @@ public final class InstallDemoConfiguration {
                 System.exit(-1);
             }
 
-            File tempFile = new File(INTERNAL_USERS_FILE_PATH + ".tmp");
-            BufferedReader reader = new BufferedReader(new FileReader(INTERNAL_USERS_FILE_PATH));
-            FileWriter writer = new FileWriter(tempFile);
+            Path tempFilePath = Paths.get(INTERNAL_USERS_FILE_PATH + ".tmp");
+            Path internalUsersPath = Paths.get(INTERNAL_USERS_FILE_PATH);
 
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
-                    line = line.replace(
-                        "\"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"",
-                        "\"" + hashedAdminPassword + "\""
-                    );
+            try (
+                BufferedReader reader = new BufferedReader(new FileReader(INTERNAL_USERS_FILE_PATH));
+                BufferedWriter writer = new BufferedWriter(new FileWriter(tempFilePath.toFile()))
+            ) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
+                        line = line.replace(
+                            "\"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"",
+                            "\"" + hashedAdminPassword + "\""
+                        );
+                    }
+                    writer.write(line + System.lineSeparator());
                 }
-                writer.write(line + System.lineSeparator());
             }
 
-            reader.close();
-            writer.close();
-
-            if (!tempFile.renameTo(new File(INTERNAL_USERS_FILE_PATH))) {
+            try {
+                Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
                 throw new IOException("Unable to update the internal users file with the hashed password.");
             }
 
         } catch (IOException e) {
+            System.out.println("Exception: " + e.getMessage());
             System.exit(-1);
         }
     }
@@ -491,14 +496,17 @@ public final class InstallDemoConfiguration {
             createSecurityAdminDemoScript(securityAdminScriptPath, securityAdminDemoScriptPath);
 
             // Make securityadmin_demo script executable
-            Path file = Paths.get(securityAdminDemoScriptPath);
-            Set<PosixFilePermission> perms = new HashSet<>();
-            // Add the execute permission for owner, group, and others
-            perms.add(PosixFilePermission.OWNER_READ);
-            perms.add(PosixFilePermission.OWNER_EXECUTE);
-            perms.add(PosixFilePermission.GROUP_EXECUTE);
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
-            Files.setPosixFilePermissions(file, perms);
+            // not needed for windows
+            if (!System.getProperty("os.name").toLowerCase().contains("win")) {
+                Path file = Paths.get(securityAdminDemoScriptPath);
+                Set<PosixFilePermission> perms = new HashSet<>();
+                // Add the execute permission for owner, group, and others
+                perms.add(PosixFilePermission.OWNER_READ);
+                perms.add(PosixFilePermission.OWNER_EXECUTE);
+                perms.add(PosixFilePermission.GROUP_EXECUTE);
+                perms.add(PosixFilePermission.OTHERS_EXECUTE);
+                Files.setPosixFilePermissions(file, perms);
+            }
 
             // Read the last line of the security-admin script
             String lastLine = "";
