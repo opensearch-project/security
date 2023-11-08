@@ -61,7 +61,7 @@ class SnapshotSteps {
 
     public void waitForSnapshotCreation(String repositoryName, String snapshotName) {
         GetSnapshotsRequest getSnapshotsRequest = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
-        Awaitility.await().pollDelay(10, TimeUnit.MICROSECONDS).pollInterval(1, TimeUnit.SECONDS).alias("wait for snapshot creation").ignoreExceptions().until(() -> {
+        Awaitility.await().pollDelay(250, TimeUnit.MILLISECONDS).pollInterval(2, TimeUnit.SECONDS).alias("wait for snapshot creation").ignoreExceptions().until(() -> {
             GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
             SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
             return SnapshotState.SUCCESS.equals(snapshotInfo.state());
