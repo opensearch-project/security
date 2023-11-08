@@ -101,21 +101,8 @@ public final class InstallDemoConfiguration {
                 case "-s":
                     skip_updates = false;
                     break;
-                case "-e":
-                    i++;
-                    try {
-                        environment = ExecutionEnvironment.valueOf(args[i]);
-                    } catch (IllegalArgumentException e) {
-                        System.out.println(
-                            "Invalid argument value for execution environment. "
-                                + "Please provide one of `"
-                                + ExecutionEnvironment.production
-                                + "` OR `"
-                                + ExecutionEnvironment.test
-                                + "`"
-                        );
-                        System.exit(-1);
-                    }
+                case "-t":
+                    environment = ExecutionEnvironment.test;
                     break;
                 case "-h":
                 case "-?":
@@ -134,6 +121,9 @@ public final class InstallDemoConfiguration {
         System.out.println("  -i initialize Security plugin with default configuration (default is to ask if -y is not given)");
         System.out.println("  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)");
         System.out.println("  -s skip updates if config is already applied to opensearch.yml");
+        System.out.println(
+            "  -t set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `production`)"
+        );
     }
 
     private static void gatherUserInputs() {
@@ -299,6 +289,7 @@ public final class InstallDemoConfiguration {
         String initialAdminPassword = System.getenv("initialAdminPassword");
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
         String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
+        boolean shouldValidatePassword = environment.equals(ExecutionEnvironment.production);
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -319,8 +310,9 @@ public final class InstallDemoConfiguration {
                 }
             }
 
-            // Validate custom password
-            if (!ADMIN_PASSWORD.isEmpty()
+            // If script execution environment is set to production, validate custom password, else if set to test, skip validation
+            if (shouldValidatePassword
+                && !ADMIN_PASSWORD.isEmpty()
                 && passwordValidator.validate("admin", ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
                 System.out.println("Password " + ADMIN_PASSWORD + " is weak. Please re-try with a stronger password.");
                 System.exit(-1);
@@ -330,6 +322,7 @@ public final class InstallDemoConfiguration {
             if (ADMIN_PASSWORD.isEmpty()) {
                 System.out.println("No custom admin password found. Generating a new password now.");
                 // generate a new random password
+                // We always validate a generated password
                 while (passwordValidator.validate("admin", ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
                     ADMIN_PASSWORD = generatePassword();
                 }
