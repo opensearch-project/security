@@ -11,6 +11,7 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 
@@ -60,7 +61,7 @@ class SnapshotSteps {
 
     public void waitForSnapshotCreation(String repositoryName, String snapshotName) {
         GetSnapshotsRequest getSnapshotsRequest = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
-        Awaitility.await().alias("wait for snapshot creation").ignoreExceptions().until(() -> {
+        Awaitility.await().pollDelay(10, TimeUnit.MICROSECONDS).pollInterval(1, TimeUnit.SECONDS).alias("wait for snapshot creation").ignoreExceptions().until(() -> {
             GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
             SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
             return SnapshotState.SUCCESS.equals(snapshotInfo.state());
