@@ -70,7 +70,6 @@ jobs:
   report-coverage:
     needs:
       - "test"
-      - "integration-tests"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
