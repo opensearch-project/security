@@ -69,7 +69,8 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         System.out.println(securityConfigAsYamlString);
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("wrong", "wrong")).getStatusCode());
+        final HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("wrong", "wrong"));
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
