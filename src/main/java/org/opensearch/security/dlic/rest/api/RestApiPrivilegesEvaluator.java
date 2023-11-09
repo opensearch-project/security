@@ -234,6 +234,7 @@ public class RestApiPrivilegesEvaluator {
             );
         }
 
+
         // Grant permission for Account endpoint.
         // Return null to grant access.
         if (endpoint == Endpoint.ACCOUNT) {
@@ -384,6 +385,7 @@ public class RestApiPrivilegesEvaluator {
                 // yes, calculate disabled end points. Since a user can have
                 // multiple roles, the endpoint
                 // needs to be disabled in all roles.
+
                 Map<Endpoint, List<Method>> disabledEndpointsForUser = getDisabledEndpointsForCurrentUser(user.getName(), userRoles);
 
                 if (isDebugEnabled) {
