@@ -40,7 +40,7 @@ public final class InstallDemoConfiguration {
     private static boolean assumeyes = false;
     private static boolean initsecurity = false;
     private static boolean cluster_mode = false;
-    private static boolean skip_updates = true;
+    private static int skip_updates = -1;
     private static String SCRIPT_DIR;
     private static String BASE_DIR;
     private static String OPENSEARCH_CONF_FILE;
@@ -119,7 +119,7 @@ public final class InstallDemoConfiguration {
                     cluster_mode = true;
                     break;
                 case "-s":
-                    skip_updates = false;
+                    skip_updates = 0;
                     break;
                 case "-t":
                     environment = ExecutionEnvironment.test;
@@ -147,6 +147,7 @@ public final class InstallDemoConfiguration {
         System.out.println(
             "  -t set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `demo`)"
         );
+        System.exit(0);
     }
 
     /**
@@ -296,7 +297,6 @@ public final class InstallDemoConfiguration {
         if (securityFiles != null && securityFiles.length > 0) {
             SECURITY_VERSION = securityFiles[0].getName().replaceAll("opensearch-security-(.*).jar", "$1");
         }
-
     }
 
     /**
@@ -324,7 +324,7 @@ public final class InstallDemoConfiguration {
                 while ((line = br.readLine()) != null) {
                     if (line.toLowerCase().contains("plugins.security")) {
                         System.out.println(OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                        System.exit(skip_updates ? 1 : 0);
+                        System.exit(skip_updates);
                     }
                 }
             } catch (IOException e) {
