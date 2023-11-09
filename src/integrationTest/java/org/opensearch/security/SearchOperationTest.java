@@ -1780,7 +1780,7 @@ public class SearchOperationTest {
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
         );
         auditLogsRule.assertExactly(
-            1,
+            2,
             userAuthenticated(LIMITED_WRITE_USER).withEffectiveUser(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
@@ -1830,7 +1830,7 @@ public class SearchOperationTest {
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(DELETE, "/_snapshot/test-snapshot-repository/delete-snapshot-positive")
         );
         auditLogsRule.assertExactly(
-            1,
+            2,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/delete-snapshot-positive")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
@@ -1862,7 +1862,7 @@ public class SearchOperationTest {
             userAuthenticated(LIMITED_READ_USER).withRestRequest(DELETE, "/_snapshot/test-snapshot-repository/delete-snapshot-negative")
         );
         auditLogsRule.assertExactly(
-            1,
+            2,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/delete-snapshot-negative")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
@@ -1941,7 +1941,7 @@ public class SearchOperationTest {
         auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
         auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(
-            1,
+            2,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/restore-snapshot-positive")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
@@ -2003,7 +2003,7 @@ public class SearchOperationTest {
         );
         auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(
-            1,
+            2,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(
                 GET,
                 "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index"
@@ -2068,7 +2068,7 @@ public class SearchOperationTest {
         );
         auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(
-            1,
+            2,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(
                 GET,
                 "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-operation"
