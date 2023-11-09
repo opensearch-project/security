@@ -327,9 +327,12 @@ public final class InstallDemoConfiguration {
                         System.exit(skip_updates ? 1 : 0);
                     }
                 }
-            } catch (IOException e) {}
+            } catch (IOException e) {
+                System.err.println("Error reading configuration file.");
+                System.exit(-1);
+            }
         } else {
-            System.out.println("OpenSearch configuration file does not exist. Quit.");
+            System.err.println("OpenSearch configuration file does not exist. Quit.");
             System.exit(-1);
         }
     }
@@ -386,41 +389,48 @@ public final class InstallDemoConfiguration {
             System.out.println("\t\tADMIN PASSWORD SET TO: " + ADMIN_PASSWORD);
             System.out.println("\t***************************************************");
 
-            String hashedAdminPassword = Hasher.hash(ADMIN_PASSWORD.toCharArray());
-
-            if (hashedAdminPassword.isEmpty()) {
-                System.out.println("Hash the admin password failure, see console for details");
-                System.exit(-1);
-            }
-
-            Path tempFilePath = Paths.get(INTERNAL_USERS_FILE_PATH + ".tmp");
-            Path internalUsersPath = Paths.get(INTERNAL_USERS_FILE_PATH);
-
-            try (
-                BufferedReader reader = new BufferedReader(new FileReader(INTERNAL_USERS_FILE_PATH));
-                BufferedWriter writer = new BufferedWriter(new FileWriter(tempFilePath.toFile()))
-            ) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
-                        line = line.replace(
-                            "\"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"",
-                            "\"" + hashedAdminPassword + "\""
-                        );
-                    }
-                    writer.write(line + System.lineSeparator());
-                }
-            }
-
-            try {
-                Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new IOException("Unable to update the internal users file with the hashed password.");
-            }
+            writePasswordToInternalUsersFile(ADMIN_PASSWORD, INTERNAL_USERS_FILE_PATH);
 
         } catch (IOException e) {
             System.out.println("Exception: " + e.getMessage());
             System.exit(-1);
+        }
+    }
+
+    /**
+     * Generate password hash and update it in the internal_users.yml file
+     * @param adminPassword the password to be hashed and updated
+     * @param internalUsersFile the file path string to internal_users.yml file
+     * @throws IOException while reading, writing to files
+     */
+    private static void writePasswordToInternalUsersFile(String adminPassword, String internalUsersFile) throws IOException {
+        String hashedAdminPassword = Hasher.hash(adminPassword.toCharArray());
+
+        if (hashedAdminPassword.isEmpty()) {
+            System.out.println("Hash the admin password failure, see console for details");
+            System.exit(-1);
+        }
+
+        Path tempFilePath = Paths.get(internalUsersFile + ".tmp");
+        Path internalUsersPath = Paths.get(internalUsersFile);
+
+        try (
+            BufferedReader reader = new BufferedReader(new FileReader(internalUsersFile));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFilePath.toFile()))
+        ) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
+                    line = line.replace(
+                        "\"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"",
+                        "\"" + hashedAdminPassword + "\""
+                    );
+                }
+                writer.write(line + System.lineSeparator());
+            }
+            Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IOException("Unable to update the internal users file with the hashed password.");
         }
     }
 
@@ -434,25 +444,10 @@ public final class InstallDemoConfiguration {
                 FileWriter fileWriter = new FileWriter(filePath);
                 fileWriter.write(cert.getContent());
                 fileWriter.close();
-                setFilePermissions(filePath);
             } catch (IOException e) {
-                System.err.println("Error writing certificate to file: " + cert.getFileName());
+                System.err.println("Error writing certificate file: " + cert.getFileName());
+                System.exit(-1);
             }
-        }
-    }
-
-    /**
-     * Set permission to given file
-     * @param filePath the path to the file whose permissions need to be set
-     */
-    private static void setFilePermissions(String filePath) {
-        try {
-            File file = new File(filePath);
-            if (!file.setReadable(true, false) || !file.setWritable(false, false) || !file.setExecutable(false, false)) {
-                throw new IOException("Failed to set file permissions for: " + filePath);
-            }
-        } catch (IOException e) {
-            System.err.println("Error setting file permissions for: " + filePath);
         }
     }
 
@@ -464,7 +459,10 @@ public final class InstallDemoConfiguration {
 
         try (FileWriter writer = new FileWriter(OPENSEARCH_CONF_FILE, true)) {
             writer.write(securityConfig);
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            System.err.println("Exception writing security configuration to opensearch.yml.");
+            System.exit(-1);
+        }
     }
 
     /**
@@ -851,5 +849,5 @@ enum DemoCertificate {
  */
 enum ExecutionEnvironment {
     demo, // default value
-    test; // to be used only for tests
+    test // to be used only for tests
 }
