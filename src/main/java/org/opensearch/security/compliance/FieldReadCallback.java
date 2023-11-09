@@ -35,8 +35,7 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
-
-import com.github.wnameless.json.flattener.JsonFlattener;
+import org.opensearch.security.support.JsonFlattener;
 
 //TODO  We need to deal with caching!!
 //Currently we disable caching (and realtime requests) when FLS or DLS is applied
