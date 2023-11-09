@@ -34,7 +34,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opensearch.action.index.IndexRequest;
@@ -49,7 +48,6 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-@Ignore("Waiting on backport for https://github.com/opensearch-project/security/pull/3418")
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ResourceFocusedTests {
