@@ -428,10 +428,10 @@ public final class InstallDemoConfiguration {
                 }
                 writer.write(line + System.lineSeparator());
             }
-            Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new IOException("Unable to update the internal users file with the hashed password.");
         }
+        Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
