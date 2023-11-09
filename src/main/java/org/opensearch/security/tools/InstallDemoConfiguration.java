@@ -33,6 +33,9 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_P
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
 import static org.opensearch.security.user.UserService.generatePassword;
 
+/**
+ * This standalone class installs demo security configuration
+ */
 public final class InstallDemoConfiguration {
     private static boolean assumeyes = false;
     private static boolean initsecurity = false;
@@ -43,14 +46,13 @@ public final class InstallDemoConfiguration {
     private static String OPENSEARCH_CONF_FILE;
     private static String OPENSEARCH_BIN_DIR;
     private static String OPENSEARCH_PLUGINS_DIR;
-    private static String OPENSEARCH_MODULES_DIR;
     private static String OPENSEARCH_LIB_PATH;
     private static String OPENSEARCH_INSTALL_TYPE;
     private static String OPENSEARCH_CONF_DIR;
     private static String OPENSEARCH_VERSION;
     private static String SECURITY_VERSION;
 
-    private static ExecutionEnvironment environment = ExecutionEnvironment.production;
+    private static ExecutionEnvironment environment = ExecutionEnvironment.demo;
 
     private static final String OS = System.getProperty("os.name")
         + " "
@@ -66,9 +68,14 @@ public final class InstallDemoConfiguration {
         + ".opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, "
         + ".opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*";
 
-    public static void main(String[] args) {
+    /**
+     * Main method that coordinates the execution of various security-related tasks.
+     *
+     * @param options the options passed to the script
+     */
+    public static void main(String[] options) {
         printScriptHeaders();
-        readArguments(args);
+        readOptions(options);
         gatherUserInputs();
         initializeVariables();
         printVariables();
@@ -76,9 +83,12 @@ public final class InstallDemoConfiguration {
         setAdminPassword();
         createDemoCertificates();
         writeSecurityConfigToOpenSearchYML();
-        runSecurityAdminCommands();
+        finishScriptExecution();
     }
 
+    /**
+     * Prints deprecation warning and other headers for the scrip
+     */
     private static void printScriptHeaders() {
         System.out.println("**************************************************************************");
         System.out.println("** This tool will be deprecated in the next major release of OpenSearch **");
@@ -89,12 +99,16 @@ public final class InstallDemoConfiguration {
         System.out.println("** Warning: Do not use on production or public reachable systems **");
     }
 
-    private static void readArguments(String[] args) {
+    /**
+     * Reads the options passed to the script
+     * @param options an array of strings containing options passed to the script
+     */
+    private static void readOptions(String[] options) {
         // set script execution dir
-        SCRIPT_DIR = args[0];
+        SCRIPT_DIR = options[0];
 
-        for (int i = 1; i < args.length; i++) {
-            switch (args[i]) {
+        for (int i = 1; i < options.length; i++) {
+            switch (options[i]) {
                 case "-y":
                     assumeyes = true;
                     break;
@@ -115,11 +129,14 @@ public final class InstallDemoConfiguration {
                     showHelp();
                     return;
                 default:
-                    System.out.println("Invalid option: " + args[i]);
+                    System.out.println("Invalid option: " + options[i]);
             }
         }
     }
 
+    /**
+     * Prints the help menu when -h option is passed
+     */
     private static void showHelp() {
         System.out.println("install_demo_configuration.sh [-y] [-i] [-c]");
         System.out.println("  -h show help");
@@ -128,13 +145,18 @@ public final class InstallDemoConfiguration {
         System.out.println("  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)");
         System.out.println("  -s skip updates if config is already applied to opensearch.yml");
         System.out.println(
-            "  -t set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `production`)"
+            "  -t set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `demo`)"
         );
     }
 
+    /**
+     * Prompt the user and collect user inputs
+     * Input collection will be skipped if -y option was passed
+     */
     private static void gatherUserInputs() {
-        try (Scanner scanner = new Scanner(System.in)) {
-            if (!assumeyes) {
+        if (!assumeyes) {
+            try (Scanner scanner = new Scanner(System.in)) {
+
                 if (!confirmAction(scanner, "Install demo certificates?")) {
                     System.exit(0);
                 }
@@ -152,18 +174,30 @@ public final class InstallDemoConfiguration {
         }
     }
 
+    /**
+     * Helper method to scan user inputs.
+     * @param scanner object to be used for scanning user input
+     * @param message prompt question
+     * @return true or false based on user input
+     */
     private static boolean confirmAction(Scanner scanner, String message) {
         System.out.print(message + " [y/N] ");
         String response = scanner.nextLine();
         return response.equalsIgnoreCase("yes") || response.equalsIgnoreCase("y");
     }
 
+    /**
+     * Initialize all class level variables required
+     */
     private static void initializeVariables() {
         setBaseDir();
         setOpenSearchVariables();
         setSecurityVariables();
     }
 
+    /**
+     * Sets the base directory to be used by the script
+     */
     private static void setBaseDir() {
         File baseDirFile = new File(SCRIPT_DIR).getParentFile().getParentFile().getParentFile();
         BASE_DIR = baseDirFile != null ? baseDirFile.getAbsolutePath() : null;
@@ -176,11 +210,14 @@ public final class InstallDemoConfiguration {
         BASE_DIR += File.separator;
     }
 
+    /**
+     * Sets the variables for items at OpenSearch level
+     */
     private static void setOpenSearchVariables() {
         OPENSEARCH_CONF_FILE = BASE_DIR + "config" + File.separator + "opensearch.yml";
         OPENSEARCH_BIN_DIR = BASE_DIR + "bin" + File.separator;
         OPENSEARCH_PLUGINS_DIR = BASE_DIR + "plugins" + File.separator;
-        OPENSEARCH_MODULES_DIR = BASE_DIR + "modules" + File.separator;
+        String OPENSEARCH_MODULES_DIR = BASE_DIR + "modules" + File.separator;
         OPENSEARCH_LIB_PATH = BASE_DIR + "lib" + File.separator;
         OPENSEARCH_INSTALL_TYPE = determineInstallType();
 
@@ -213,6 +250,10 @@ public final class InstallDemoConfiguration {
         OPENSEARCH_CONF_DIR = new File(OPENSEARCH_CONF_DIR).getAbsolutePath() + File.separator;
     }
 
+    /**
+     * Returns the installation type based on the underlying operating system
+     * @return will be one of `.zip`, `.tar.gz` or `rpm/deb`
+     */
     private static String determineInstallType() {
         // windows (.bat execution)
         if (OS.toLowerCase().contains("win")) {
@@ -230,6 +271,9 @@ public final class InstallDemoConfiguration {
         return ".tar.gz";
     }
 
+    /**
+     * Sets the path variables for items at OpenSearch security plugin level
+     */
     private static void setSecurityVariables() {
         if (!(new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").exists())) {
             System.out.println("OpenSearch Security plugin not installed. Quit.");
@@ -255,6 +299,9 @@ public final class InstallDemoConfiguration {
 
     }
 
+    /**
+     * Prints the initialized variables
+     */
     private static void printVariables() {
         System.out.println("OpenSearch install type: " + OPENSEARCH_INSTALL_TYPE + " on " + OS);
         System.out.println("OpenSearch config dir: " + OPENSEARCH_CONF_DIR);
@@ -266,6 +313,9 @@ public final class InstallDemoConfiguration {
         System.out.println("Detected OpenSearch Security Version: " + SECURITY_VERSION);
     }
 
+    /**
+     * Checks if security plugin is already configured. If so, the script execution will not continue.
+     */
     private static void checkIfSecurityPluginIsAlreadyConfigured() {
         // Check if the configuration file contains the 'plugins.security' string
         if (OPENSEARCH_CONF_FILE != null && new File(OPENSEARCH_CONF_FILE).exists()) {
@@ -284,12 +334,15 @@ public final class InstallDemoConfiguration {
         }
     }
 
+    /**
+     * Replaces the admin password in internal_users.yml with the custom or generated password
+     */
     private static void setAdminPassword() {
         String ADMIN_PASSWORD = "";
         String initialAdminPassword = System.getenv("initialAdminPassword");
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
         String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
-        boolean shouldValidatePassword = environment.equals(ExecutionEnvironment.production);
+        boolean shouldValidatePassword = environment.equals(ExecutionEnvironment.demo);
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -310,7 +363,7 @@ public final class InstallDemoConfiguration {
                 }
             }
 
-            // If script execution environment is set to production, validate custom password, else if set to test, skip validation
+            // If script execution environment is set to demo, validate custom password, else if set to test, skip validation
             if (shouldValidatePassword
                 && !ADMIN_PASSWORD.isEmpty()
                 && passwordValidator.validate("admin", ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
@@ -371,6 +424,9 @@ public final class InstallDemoConfiguration {
         }
     }
 
+    /**
+     * Creates demo super-admin, node and root certificates
+     */
     public static void createDemoCertificates() {
         for (DemoCertificate cert : DemoCertificate.values()) {
             String filePath = OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
@@ -385,6 +441,10 @@ public final class InstallDemoConfiguration {
         }
     }
 
+    /**
+     * Set permission to given file
+     * @param filePath the path to the file whose permissions need to be set
+     */
     private static void setFilePermissions(String filePath) {
         try {
             File file = new File(filePath);
@@ -393,10 +453,12 @@ public final class InstallDemoConfiguration {
             }
         } catch (IOException e) {
             System.err.println("Error setting file permissions for: " + filePath);
-
         }
     }
 
+    /**
+     * Update opensearch.yml with security configuration information
+     */
     private static void writeSecurityConfigToOpenSearchYML() {
         String securityConfig = buildSecurityConfigString();
 
@@ -405,6 +467,10 @@ public final class InstallDemoConfiguration {
         } catch (IOException e) {}
     }
 
+    /**
+     * Helper method to build security configuration to append to opensearch.yml
+     * @return the configuration string to be written to opensearch.yml
+     */
     private static String buildSecurityConfigString() {
         StringBuilder securityConfigLines = new StringBuilder();
 
@@ -448,6 +514,11 @@ public final class InstallDemoConfiguration {
         return securityConfigLines.toString();
     }
 
+    /**
+     * Helper method to check if network.host config is present
+     * @param filePath path to opensearch.yml
+     * @return true is present, false otherwise
+     */
     private static boolean isNetworkHostAlreadyPresent(String filePath) {
         try {
             String searchString = "^network.host";
@@ -457,6 +528,11 @@ public final class InstallDemoConfiguration {
         }
     }
 
+    /**
+     * Helper method to check if node.max_local_storage_nodes config is present
+     * @param filePath path to opensearch.yml
+     * @return true if present, false otherwise
+     */
     private static boolean isNodeMaxLocalStorageNodesAlreadyPresent(String filePath) {
         try {
             String searchString = "^node.max_local_storage_nodes";
@@ -466,6 +542,13 @@ public final class InstallDemoConfiguration {
         }
     }
 
+    /**
+     * Checks if given string is already present in the file
+     * @param filePath path to file in which given string should be searched
+     * @param searchString the string to be searched for
+     * @return true if string is present, false otherwise
+     * @throws IOException if there was exception reading the file
+     */
     private static boolean isStringAlreadyPresentInFile(String filePath, String searchString) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
@@ -478,7 +561,10 @@ public final class InstallDemoConfiguration {
         return false;
     }
 
-    private static void runSecurityAdminCommands() {
+    /**
+     * Prints end of script execution message and creates security admin demo file.
+     */
+    private static void finishScriptExecution() {
         System.out.println("### Success");
         System.out.println("### Execute this script now on all your nodes and then start all nodes");
 
@@ -548,6 +634,12 @@ public final class InstallDemoConfiguration {
         }
     }
 
+    /**
+     * Helper method to create security_admin_demo.(sh|bat)
+     * @param securityAdminScriptPath path to original script
+     * @param securityAdminDemoScriptPath path to security admin demo script
+     * @throws IOException if there was error reading/writing the file
+     */
     private static void createSecurityAdminDemoScript(String securityAdminScriptPath, String securityAdminDemoScriptPath)
         throws IOException {
         String[] securityAdminCommands;
@@ -581,6 +673,9 @@ public final class InstallDemoConfiguration {
     }
 }
 
+/**
+ * Enum for demo certificates
+ */
 enum DemoCertificate {
     ADMIN_CERT(
         "kirk.pem",
@@ -751,7 +846,10 @@ enum DemoCertificate {
     }
 }
 
+/**
+ * The environment in which the script is being executed
+ */
 enum ExecutionEnvironment {
-    production,
-    test;
+    demo, // default value
+    test; // to be used only for tests
 }
