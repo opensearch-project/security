@@ -61,11 +61,16 @@ class SnapshotSteps {
 
     public void waitForSnapshotCreation(String repositoryName, String snapshotName) {
         GetSnapshotsRequest getSnapshotsRequest = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
-        Awaitility.await().pollDelay(250, TimeUnit.MILLISECONDS).pollInterval(2, TimeUnit.SECONDS).alias("wait for snapshot creation").ignoreExceptions().until(() -> {
-            GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
-            SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
-            return SnapshotState.SUCCESS.equals(snapshotInfo.state());
-        });
+        Awaitility.await()
+            .pollDelay(250, TimeUnit.MILLISECONDS)
+            .pollInterval(2, TimeUnit.SECONDS)
+            .alias("wait for snapshot creation")
+            .ignoreExceptions()
+            .until(() -> {
+                GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
+                SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
+                return SnapshotState.SUCCESS.equals(snapshotInfo.state());
+            });
     }
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here

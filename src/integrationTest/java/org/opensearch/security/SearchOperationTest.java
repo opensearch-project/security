@@ -1781,7 +1781,8 @@ public class SearchOperationTest {
         );
         auditLogsRule.assertAtLeast(
             1,
-            userAuthenticated(LIMITED_WRITE_USER).withEffectiveUser(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
+            userAuthenticated(LIMITED_WRITE_USER).withEffectiveUser(LIMITED_WRITE_USER)
+                .withRestRequest(GET, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));

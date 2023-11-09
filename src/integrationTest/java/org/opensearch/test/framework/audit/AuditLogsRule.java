@@ -146,14 +146,22 @@ public class AuditLogsRule implements TestRule {
     }
 
     public void onAuditMessage(AuditMessage auditMessage) {
-        if(auditMessage.getAsMap().keySet().contains("audit_transport_headers")) {
+        if (auditMessage.getAsMap().keySet().contains("audit_transport_headers")) {
             if (log.isDebugEnabled()) {
-                log.debug("New transport audit message received '{}', total number of transport audit messages '{}'.", auditMessage, currentTransportTestAuditMessages.size());
+                log.debug(
+                    "New transport audit message received '{}', total number of transport audit messages '{}'.",
+                    auditMessage,
+                    currentTransportTestAuditMessages.size()
+                );
             }
             currentTransportTestAuditMessages.add(auditMessage);
         } else {
             if (log.isDebugEnabled()) {
-                log.debug("New audit message received '{}', total number of audit messages '{}'.", auditMessage, currentTestAuditMessages.size());
+                log.debug(
+                    "New audit message received '{}', total number of audit messages '{}'.",
+                    auditMessage,
+                    currentTestAuditMessages.size()
+                );
             }
             currentTestAuditMessages.add(auditMessage);
         }
