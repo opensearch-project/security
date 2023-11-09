@@ -1,0 +1,22 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
+  dynamic:
+    authc:
+      basic:
+        http_enabled: true
+        order: 0
+        http_authenticator:
+          type: "basic"
+          challenge: true
+          config: {}
+        authentication_backend:
+          type: "internal"
+          config: {}
+    on_behalf_of:
+      # The decoded signing key is: This is the jwt signing key for an on behalf of token authentication backend for testing of extensions
+      # The decoded encryption key is: encryptionKey
+      signing_key: "VGhpcyBpcyB0aGUgand0IHNpZ25pbmcga2V5IGZvciBhbiBvbiBiZWhhbGYgb2YgdG9rZW4gYXV0aGVudGljYXRpb24gYmFja2VuZCBmb3IgdGVzdGluZyBvZiBleHRlbnNpb25z"
+      encryption_key: "ZW5jcnlwdGlvbktleQ=="
