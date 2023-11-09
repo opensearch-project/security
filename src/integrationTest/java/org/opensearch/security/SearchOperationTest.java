@@ -495,10 +495,10 @@ public class SearchOperationTest {
         try {
             clusterClient.deleteRepository(new DeleteRepositoryRequest(TEST_SNAPSHOT_REPOSITORY_NAME)).actionGet();
         } catch (RepositoryMissingException e) {
-            log.info("Repository '{}' does not exist. This is expected in most of test cases", TEST_SNAPSHOT_REPOSITORY_NAME, e);
+            log.debug("Repository '{}' does not exist. This is expected in most of test cases", TEST_SNAPSHOT_REPOSITORY_NAME, e);
         }
         internalClient.close();
-        log.info("Cleaning data after test took {}", stopwatch.stop());
+        log.debug("Cleaning data after test took {}", stopwatch.stop());
     }
 
     @Test
@@ -1764,6 +1764,7 @@ public class SearchOperationTest {
     @Test // Bug which can be reproduced with the below test: https://github.com/opensearch-project/security/issues/2169
     public void shouldCreateSnapshot_positive() throws IOException {
         final String snapshotName = "snapshot-positive-test";
+        long snapshotGetCount;
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
             steps.createSnapshotRepository(TEST_SNAPSHOT_REPOSITORY_NAME, cluster.getSnapshotDirPath(), "fs");
@@ -1772,15 +1773,15 @@ public class SearchOperationTest {
 
             assertThat(response, notNullValue());
             assertThat(response.status(), equalTo(RestStatus.ACCEPTED));
-            steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
+            snapshotGetCount = steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
             assertThat(internalClient, clusterContainSuccessSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName));
         }
         auditLogsRule.assertExactly(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
         auditLogsRule.assertExactlyOne(
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
         );
-        auditLogsRule.assertAtLeast(
-            1,
+        auditLogsRule.assertExactly(
+            snapshotGetCount,
             userAuthenticated(LIMITED_WRITE_USER).withEffectiveUser(LIMITED_WRITE_USER)
                 .withRestRequest(GET, "/_snapshot/test-snapshot-repository/snapshot-positive-test")
         );
@@ -1811,12 +1812,13 @@ public class SearchOperationTest {
     @Test
     public void shouldDeleteSnapshot_positive() throws IOException {
         String snapshotName = "delete-snapshot-positive";
+        long snapshotGetCount;
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
             restHighLevelClient.snapshot();
             steps.createSnapshotRepository(TEST_SNAPSHOT_REPOSITORY_NAME, cluster.getSnapshotDirPath(), "fs");
             steps.createSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName, SONG_INDEX_NAME);
-            steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
+            snapshotGetCount = steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
 
             var response = steps.deleteSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
 
@@ -1830,8 +1832,8 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(DELETE, "/_snapshot/test-snapshot-repository/delete-snapshot-positive")
         );
-        auditLogsRule.assertAtLeast(
-            1,
+        auditLogsRule.assertExactly(
+            snapshotGetCount,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/delete-snapshot-positive")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
@@ -1843,11 +1845,12 @@ public class SearchOperationTest {
     @Test
     public void shouldDeleteSnapshot_negative() throws IOException {
         String snapshotName = "delete-snapshot-negative";
+        long snapshotGetCount;
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
             steps.createSnapshotRepository(TEST_SNAPSHOT_REPOSITORY_NAME, cluster.getSnapshotDirPath(), "fs");
             steps.createSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName, SONG_INDEX_NAME);
-            steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
+            snapshotGetCount = steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
         }
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
@@ -1862,8 +1865,8 @@ public class SearchOperationTest {
         auditLogsRule.assertExactlyOne(
             userAuthenticated(LIMITED_READ_USER).withRestRequest(DELETE, "/_snapshot/test-snapshot-repository/delete-snapshot-negative")
         );
-        auditLogsRule.assertAtLeast(
-            1,
+        auditLogsRule.assertExactly(
+            snapshotGetCount,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/delete-snapshot-negative")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
@@ -1875,6 +1878,7 @@ public class SearchOperationTest {
     @Test
     public void shouldRestoreSnapshot_positive() throws IOException {
         final String snapshotName = "restore-snapshot-positive";
+        long snapshotGetCount;
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
             SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
             // 1. create some documents
@@ -1894,7 +1898,7 @@ public class SearchOperationTest {
             steps.createSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName, WRITE_SONG_INDEX_NAME);
 
             // 4. wait till snapshot is ready
-            steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
+            snapshotGetCount = steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
 
             // 5. introduce some changes
             bulkRequest = new BulkRequest();
@@ -1941,8 +1945,8 @@ public class SearchOperationTest {
         );
         auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
         auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
-        auditLogsRule.assertAtLeast(
-            1,
+        auditLogsRule.assertExactly(
+            snapshotGetCount,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/restore-snapshot-positive")
         );
         auditLogsRule.assertExactly(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
@@ -1958,6 +1962,7 @@ public class SearchOperationTest {
     public void shouldRestoreSnapshot_failureForbiddenIndex() throws IOException {
         final String snapshotName = "restore-snapshot-negative-forbidden-index";
         String restoreToIndex = "forbidden_index";
+        long snapshotGetCount;
         Settings indexSettings = Settings.builder().put("index.number_of_shards", 1).put("index.number_of_replicas", 0).build();
         IndexOperationsHelper.createIndex(cluster, WRITE_SONG_INDEX_NAME, indexSettings);
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1977,7 +1982,7 @@ public class SearchOperationTest {
             steps.createSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName, WRITE_SONG_INDEX_NAME);
 
             // 4. wait till snapshot is ready
-            steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
+            snapshotGetCount = steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
 
             // 5. restore the snapshot
             assertThatThrownBy(
@@ -2003,8 +2008,8 @@ public class SearchOperationTest {
             )
         );
         auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
-        auditLogsRule.assertAtLeast(
-            1,
+        auditLogsRule.assertExactly(
+            snapshotGetCount,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(
                 GET,
                 "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index"
@@ -2022,6 +2027,7 @@ public class SearchOperationTest {
     @Test
     public void shouldRestoreSnapshot_failureOperationForbidden() throws IOException {
         String snapshotName = "restore-snapshot-negative-forbidden-operation";
+        long snapshotGetCount;
         Settings indexSettings = Settings.builder().put("index.number_of_shards", 1).put("index.number_of_replicas", 0).build();
         IndexOperationsHelper.createIndex(cluster, WRITE_SONG_INDEX_NAME, indexSettings);
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -2040,7 +2046,7 @@ public class SearchOperationTest {
             steps.createSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName, WRITE_SONG_INDEX_NAME);
 
             // 4. wait till snapshot is ready
-            steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
+            snapshotGetCount = steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
         }
         // 5. restore the snapshot
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
@@ -2068,8 +2074,8 @@ public class SearchOperationTest {
             )
         );
         auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
-        auditLogsRule.assertAtLeast(
-            1,
+        auditLogsRule.assertExactly(
+            snapshotGetCount,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(
                 GET,
                 "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-operation"

@@ -12,6 +12,7 @@ package org.opensearch.security;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.awaitility.Awaitility;
 
@@ -59,7 +60,8 @@ class SnapshotSteps {
         return snapshotClient.create(createSnapshotRequest, DEFAULT);
     }
 
-    public void waitForSnapshotCreation(String repositoryName, String snapshotName) {
+    public int waitForSnapshotCreation(String repositoryName, String snapshotName) {
+        AtomicInteger count = new AtomicInteger();
         GetSnapshotsRequest getSnapshotsRequest = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
         Awaitility.await()
             .pollDelay(250, TimeUnit.MILLISECONDS)
@@ -67,10 +69,12 @@ class SnapshotSteps {
             .alias("wait for snapshot creation")
             .ignoreExceptions()
             .until(() -> {
+                count.incrementAndGet();
                 GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
                 SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
                 return SnapshotState.SUCCESS.equals(snapshotInfo.state());
             });
+        return count.get();
     }
 
     // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
