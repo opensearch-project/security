@@ -142,7 +142,8 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
-        try {
+
+		try {
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
                     .asSecurityRequest(),

@@ -221,6 +221,7 @@ public class DisabledCategoriesTest {
 	     auditLog.logSucceededLogin("testuser.transport.succeededlogin", false, "testuser.transport.succeededlogin", new TransportRequest.Empty(), "test/action", new Task(0, "x", "ac", "", null, null));
 	 }
 
+
     protected void logRestFailedLogin(AuditLog auditLog) {
         auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest().asSecurityRequest());
 	}
