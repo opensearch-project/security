@@ -370,7 +370,6 @@ public class SecurityFilter implements ActionFilter {
                             String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
-
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
             }
         } catch (OpenSearchException e) {
