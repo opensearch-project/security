@@ -11,20 +11,14 @@
 
 package org.opensearch.security.configuration;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-
 import java.io.IOException;
 import java.nio.file.Path;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -36,8 +30,15 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.transport.SecurityInterceptorTests;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class ConfigurationRepositoryTest {
 

@@ -11,12 +11,6 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,12 +20,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.OctetSequenceKey;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class SelfRefreshingKeySetTest {
 
@@ -52,7 +48,8 @@ public class SelfRefreshingKeySetTest {
     }
 
     @Test
-    public void getKey__withNullOrInvaludKidShouldThrowBadCredentialsException() throws AuthenticatorUnavailableException, BadCredentialsException {
+    public void getKey__withNullOrInvaludKidShouldThrowBadCredentialsException() throws AuthenticatorUnavailableException,
+        BadCredentialsException {
 
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey(null));
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
