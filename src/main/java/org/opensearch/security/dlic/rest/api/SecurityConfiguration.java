@@ -11,11 +11,12 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-
 import java.util.Objects;
 import java.util.Optional;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public class SecurityConfiguration {
 

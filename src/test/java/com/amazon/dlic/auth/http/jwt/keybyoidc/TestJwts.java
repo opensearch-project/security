@@ -14,6 +14,8 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.util.Strings;
+
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -22,7 +24,6 @@ import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.apache.logging.log4j.util.Strings;
 
 import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
 import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;

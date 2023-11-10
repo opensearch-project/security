@@ -11,13 +11,14 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.securityconf.impl.CType;
-
 import java.util.List;
 import java.util.Map;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.securityconf.impl.CType;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

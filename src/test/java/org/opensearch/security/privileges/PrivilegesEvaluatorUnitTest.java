@@ -8,17 +8,17 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.List;
+
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.privileges.PrivilegesEvaluator.DNFOF_MATCHER;
 import static org.opensearch.security.privileges.PrivilegesEvaluator.isClusterPerm;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class PrivilegesEvaluatorUnitTest {
 

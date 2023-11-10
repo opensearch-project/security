@@ -11,10 +11,11 @@
 
 package org.opensearch.security.filter;
 
-import io.netty.handler.codec.http.HttpRequest;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+
+import io.netty.handler.codec.http.HttpRequest;
 
 /**
  * Generates wrapped versions of requests for use in the security plugin

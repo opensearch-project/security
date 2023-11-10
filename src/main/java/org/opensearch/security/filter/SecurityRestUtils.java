@@ -11,13 +11,13 @@
 
 package org.opensearch.security.filter;
 
-import static org.opensearch.security.filter.SecurityRestFilter.HEALTH_SUFFIX;
-import static org.opensearch.security.filter.SecurityRestFilter.PATTERN_PATH_PREFIX;
-import static org.opensearch.security.filter.SecurityRestFilter.WHO_AM_I_SUFFIX;
-
 import java.util.regex.Matcher;
 
 import org.opensearch.rest.RestRequest.Method;
+
+import static org.opensearch.security.filter.SecurityRestFilter.HEALTH_SUFFIX;
+import static org.opensearch.security.filter.SecurityRestFilter.PATTERN_PATH_PREFIX;
+import static org.opensearch.security.filter.SecurityRestFilter.WHO_AM_I_SUFFIX;
 
 public class SecurityRestUtils {
     public static String path(final String uri) {

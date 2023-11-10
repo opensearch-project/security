@@ -37,7 +37,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
@@ -46,6 +45,8 @@ import org.opensearch.security.securityconf.NodesDnModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.transport.TransportRequest;
+
+import org.greenrobot.eventbus.Subscribe;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
 

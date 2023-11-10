@@ -11,15 +11,16 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.util.Collections;
+
+import org.junit.Test;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.util.AuthTokenUtils;
 import org.opensearch.test.rest.FakeRestRequest;
-import org.junit.Test;
-
-import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

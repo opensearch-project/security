@@ -18,7 +18,6 @@ import java.security.KeyStore;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
-
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 
@@ -37,10 +36,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
+
+import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 
 public class KeySetRetrieverTest {
     protected static MockIpdServer mockIdpServer;

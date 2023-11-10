@@ -8,13 +8,13 @@
 
 package org.opensearch.security.ssl.http.netty;
 
+import org.opensearch.security.filter.NettyAttribute;
+
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.HttpContentDecompressor;
 
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
-
-import org.opensearch.security.filter.NettyAttribute;
 
 public class Netty4ConditionalDecompressor extends HttpContentDecompressor {
 

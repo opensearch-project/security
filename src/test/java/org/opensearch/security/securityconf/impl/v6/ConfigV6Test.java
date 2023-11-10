@@ -11,8 +11,8 @@
 
 package org.opensearch.security.securityconf.impl.v6;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -105,5 +105,15 @@ public class ConfigV6Test {
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
         assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV6.Kibana.class));
+    }
+
+    @Test
+    public void testOnBehalfOfSettings() {
+        ConfigV6.OnBehalfOfSettings oboSettings;
+
+        oboSettings = new ConfigV6.OnBehalfOfSettings();
+        Assert.assertEquals(oboSettings.getOboEnabled(), Boolean.FALSE);
+        Assert.assertNull(oboSettings.getSigningKey());
+        Assert.assertNull(oboSettings.getEncryptionKey());
     }
 }
