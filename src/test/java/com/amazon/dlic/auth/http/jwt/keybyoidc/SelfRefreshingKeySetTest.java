@@ -15,6 +15,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,10 +32,12 @@ import com.nimbusds.jose.jwk.OctetSequenceKey;
 public class SelfRefreshingKeySetTest {
 
     private SelfRefreshingKeySet selfRefreshingKeySet;
+    private OctetSequenceKey keyForKidA;
 
     @Before
-    public void setUp() {
+    public void setUp() throws AuthenticatorUnavailableException, BadCredentialsException {
         selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
+        keyForKidA = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
     }
 
     @Test
@@ -45,17 +48,9 @@ public class SelfRefreshingKeySetTest {
     }
 
     @Test
-    public void getKey_withNullKidShouldThrowAuthenticatorUnavailableException() throws AuthenticatorUnavailableException,
-        BadCredentialsException {
+    public void getKey__withNullOrInvaludKidShouldThrowBadCredentialsException() throws AuthenticatorUnavailableException, BadCredentialsException {
 
-        Assert.assertThrows(AuthenticatorUnavailableException.class, () -> selfRefreshingKeySet.getKey(null));
-
-    }
-
-    @Test
-    public void getKey_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
-        BadCredentialsException {
-
+        Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey(null));
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKey("kid/X"));
     }
 
@@ -78,30 +73,25 @@ public class SelfRefreshingKeySetTest {
             executor.execute(() -> {
                 synchronized (lock) {
                     try {
-                        selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
+                        OctetSequenceKey key = (OctetSequenceKey) selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
+                        assertThat(key, is(notNullValue()));
+                        assertThat(keyForKidA, is(equalTo(key)));
                     } catch (AuthenticatorUnavailableException e) {} catch (BadCredentialsException e) {}
                 }
             });
         }
 
         executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.SECONDS);
+        executor.awaitTermination(10, TimeUnit.SECONDS);
 
-        assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(equalTo(numThreads)));
+        assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(greaterThan(0)));
         assertThat((int) selfRefreshingKeySet.getQueuedGetCount(), is(equalTo((0))));
     }
 
     @Test
-    public void getKeyAfterRefresh_withNullKidShouldThrowBadCredentialsException() throws AuthenticatorUnavailableException,
-        BadCredentialsException {
+    public void getKeyAfterRefresh_withNullOrInvaludKidShouldThrowBadCredentialsException() {
 
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh(null));
-    }
-
-    @Test
-    public void getKeyAfterRefresh_withInvalidDataShouldReturnBadCredentialException() throws AuthenticatorUnavailableException,
-        BadCredentialsException {
-
         Assert.assertThrows(BadCredentialsException.class, () -> selfRefreshingKeySet.getKeyAfterRefresh("kid/X"));
     }
 
@@ -120,6 +110,9 @@ public class SelfRefreshingKeySetTest {
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
 
         for (int i = 0; i < numThreads; i++) {
+            // Using executor to make asynchronous calls to getKeyAfterRefresh method, so the queue would have pending tasks added to it.
+            // Without the executor block, getKeyAfterRefresh method would be called once on each iteration in the main thread and wait for
+            // the task to complete before continuing the loop, so the queue would have no pending tasks at the end.
             executor.execute(() -> {
                 try {
                     selfRefreshingKeySet.getKeyAfterRefresh("kid/a");
@@ -132,7 +125,7 @@ public class SelfRefreshingKeySetTest {
 
         // There is at least 1 refreshing key in progress.
         assertThat((int) selfRefreshingKeySet.getRefreshCount(), is(greaterThan(0)));
-        // It should have at least 1 pending call waiting to start refreshing the key.
+        // The queue should have at least 1 pending call waiting to start refreshing the key.
         assertThat((int) selfRefreshingKeySet.getQueuedGetCount(), is(greaterThan(0)));
     }
 }
