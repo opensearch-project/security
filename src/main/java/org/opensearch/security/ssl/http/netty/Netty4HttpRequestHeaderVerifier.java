@@ -109,9 +109,9 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
 
             requestChannel.getQueuedResponse().ifPresent(response -> ctx.channel().attr(EARLY_RESPONSE).set(response));
 
-            boolean shouldDecompress = !shouldSkipAuthentication && requestChannel.getQueuedResponse().isEmpty();
+            boolean shouldDecompress = !shouldSkipAuthentication && !(requestChannel.getQueuedResponse().isPresent());
 
-            if (requestChannel.getQueuedResponse().isEmpty() || shouldSkipAuthentication) {
+            if (!(requestChannel.getQueuedResponse().isPresent()) || shouldSkipAuthentication) {
                 // Only allow decompression on authenticated requests that also aren't one of those ^
                 ctx.channel().attr(SHOULD_DECOMPRESS).set(Boolean.valueOf(shouldDecompress));
                 ctx.channel().attr(IS_AUTHENTICATED).set(Boolean.TRUE);

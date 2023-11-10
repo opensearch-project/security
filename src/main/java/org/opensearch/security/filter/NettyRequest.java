@@ -25,6 +25,8 @@ import io.netty.handler.ssl.SslHandler;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest.Method;
 
+import com.google.common.collect.ImmutableList;
+
 import io.netty.handler.codec.http.HttpRequest;
 import org.opensearch.rest.RestUtils;
 
@@ -44,7 +46,7 @@ public class NettyRequest implements SecurityRequest {
     @Override
     public Map<String, List<String>> getHeaders() {
         final Map<String, List<String>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        underlyingRequest.headers().forEach(h -> headers.put(h.getKey(), List.of(h.getValue())));
+        underlyingRequest.headers().forEach(h -> headers.put(h.getKey(), ImmutableList.of(h.getValue())));
         return headers;
     }
 
