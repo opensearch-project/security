@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -156,7 +157,7 @@ public final class InstallDemoConfiguration {
      */
     private static void gatherUserInputs() {
         if (!assumeyes) {
-            try (Scanner scanner = new Scanner(System.in)) {
+            try (Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8)) {
 
                 if (!confirmAction(scanner, "Install demo certificates?")) {
                     System.exit(0);
@@ -319,7 +320,7 @@ public final class InstallDemoConfiguration {
     private static void checkIfSecurityPluginIsAlreadyConfigured() {
         // Check if the configuration file contains the 'plugins.security' string
         if (OPENSEARCH_CONF_FILE != null && new File(OPENSEARCH_CONF_FILE).exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(OPENSEARCH_CONF_FILE))) {
+            try (BufferedReader br = new BufferedReader(new FileReader(OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     if (line.toLowerCase().contains("plugins.security")) {
@@ -360,7 +361,7 @@ public final class InstallDemoConfiguration {
             } else {
                 File adminPasswordFile = new File(ADMIN_PASSWORD_FILE_PATH);
                 if (adminPasswordFile.exists() && adminPasswordFile.length() > 0) {
-                    try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH))) {
+                    try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH, StandardCharsets.UTF_8))) {
                         ADMIN_PASSWORD = br.readLine();
                     }
                 }
@@ -415,8 +416,8 @@ public final class InstallDemoConfiguration {
         Path internalUsersPath = Paths.get(internalUsersFile);
 
         try (
-            BufferedReader reader = new BufferedReader(new FileReader(internalUsersFile));
-            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFilePath.toFile()))
+            BufferedReader reader = new BufferedReader(new FileReader(internalUsersFile, StandardCharsets.UTF_8));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFilePath.toFile(), StandardCharsets.UTF_8))
         ) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -441,7 +442,7 @@ public final class InstallDemoConfiguration {
         for (DemoCertificate cert : DemoCertificate.values()) {
             String filePath = OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
             try {
-                FileWriter fileWriter = new FileWriter(filePath);
+                FileWriter fileWriter = new FileWriter(filePath, StandardCharsets.UTF_8);
                 fileWriter.write(cert.getContent());
                 fileWriter.close();
             } catch (IOException e) {
@@ -457,7 +458,7 @@ public final class InstallDemoConfiguration {
     private static void writeSecurityConfigToOpenSearchYML() {
         String securityConfig = buildSecurityConfigString();
 
-        try (FileWriter writer = new FileWriter(OPENSEARCH_CONF_FILE, true)) {
+        try (FileWriter writer = new FileWriter(OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
             writer.write(securityConfig);
         } catch (IOException e) {
             System.err.println("Exception writing security configuration to opensearch.yml.");
@@ -548,7 +549,7 @@ public final class InstallDemoConfiguration {
      * @throws IOException if there was exception reading the file
      */
     private static boolean isStringAlreadyPresentInFile(String filePath, String searchString) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.matches(searchString)) {
@@ -593,7 +594,7 @@ public final class InstallDemoConfiguration {
 
             // Read the last line of the security-admin script
             String lastLine = "";
-            try (BufferedReader reader = new BufferedReader(new FileReader(securityAdminDemoScriptPath))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(securityAdminDemoScriptPath, StandardCharsets.UTF_8))) {
                 String currentLine;
                 while ((currentLine = reader.readLine()) != null) {
                     lastLine = currentLine;
@@ -663,7 +664,7 @@ public final class InstallDemoConfiguration {
         }
 
         // Write securityadmin_demo script
-        FileWriter writer = new FileWriter(securityAdminDemoScriptPath);
+        FileWriter writer = new FileWriter(securityAdminDemoScriptPath, StandardCharsets.UTF_8);
         for (String command : securityAdminCommands) {
             writer.write(command + "\n");
         }
