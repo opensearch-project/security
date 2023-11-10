@@ -39,6 +39,7 @@ import static org.opensearch.security.user.UserService.generatePassword;
  */
 public final class InstallDemoConfiguration {
     private static boolean assumeyes = false;
+    private static boolean installDemoCertificates = false;
     private static boolean initsecurity = false;
     private static boolean cluster_mode = false;
     private static int skip_updates = -1;
@@ -173,6 +174,9 @@ public final class InstallDemoConfiguration {
                     cluster_mode = confirmAction(scanner, "Enable cluster mode?");
                 }
             }
+        } else {
+            initsecurity = true;
+            cluster_mode = true;
         }
     }
 
