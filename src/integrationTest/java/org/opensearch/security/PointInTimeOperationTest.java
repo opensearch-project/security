@@ -411,24 +411,16 @@ public class PointInTimeOperationTest {
     * Deletes all PITs.
     */
 
-    // && <- remove when fixed
     public void cleanUpPits() throws IOException {
-        // && attempt to connect as admin
+
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
 
-            // && probably implement check here?
-
-            // && get all point in time searches & log them for debug
-            System.out.println("TEEeEEeEeeeeeeeeeessssssstttttt");
-            // && this fixes it?
-            GetAllPitNodesResponse GetAllPitNodesResponse = restHighLevelClient.getAllPits(DEFAULT);
-            System.out.println(GetAllPitNodesResponse);
-            // && investigate why this fixes listAllPits_positive test
+            restHighLevelClient.getAllPits(DEFAULT);
 
             try {
-                // && deletes all PITs in the cluster
+
                 restHighLevelClient.deleteAllPits(DEFAULT);
-                // && handle error (don't change)
+
             } catch (OpenSearchStatusException ex) {
                 if (ex.status() != RestStatus.NOT_FOUND) {
                     throw ex;
