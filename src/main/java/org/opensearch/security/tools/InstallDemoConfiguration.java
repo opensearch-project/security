@@ -89,7 +89,7 @@ public final class InstallDemoConfiguration {
     }
 
     /**
-     * Prints deprecation warning and other headers for the scrip
+     * Prints deprecation warning and other headers for the script
      */
     private static void printScriptHeaders() {
         System.out.println("**************************************************************************");
@@ -169,7 +169,7 @@ public final class InstallDemoConfiguration {
                 }
 
                 if (!cluster_mode) {
-                    System.out.println("Cluster mode requires maybe additional setup of:");
+                    System.out.println("Cluster mode requires additional setup of:");
                     System.out.println("  - Virtual memory (vm.max_map_count)\n");
                     cluster_mode = confirmAction(scanner, "Enable cluster mode?");
                 }
