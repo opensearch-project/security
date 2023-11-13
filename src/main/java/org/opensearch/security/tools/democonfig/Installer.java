@@ -26,7 +26,7 @@ import java.util.Set;
 /**
  * This class installs demo configuration for security plugin
  */
-public class InstallDemoConfiguration {
+public class Installer {
 
     static boolean assumeyes = false;
     static boolean initsecurity = false;
@@ -55,11 +55,11 @@ public class InstallDemoConfiguration {
         + ".opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, "
         + ".opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*";
 
-    static SecurityConfigurator securityConfigurator;
+    static SecuritySettingsConfigurer securitySettingsConfigurer;
     static CertificateGenerator certificateGenerator;
 
     public static void main(String[] options) {
-        securityConfigurator = new SecurityConfigurator();
+        securitySettingsConfigurer = new SecuritySettingsConfigurer();
         certificateGenerator = new CertificateGenerator();
 
         printScriptHeaders();
@@ -67,7 +67,7 @@ public class InstallDemoConfiguration {
         gatherUserInputs();
         initializeVariables();
         printVariables();
-        securityConfigurator.configureSecurity();
+        securitySettingsConfigurer.configureSecuritySettings();
         certificateGenerator.createDemoCertificates();
         finishScriptExecution();
     }
@@ -319,7 +319,7 @@ public class InstallDemoConfiguration {
                 + FILE_EXTENSION;
             String securityAdminDemoScriptPath = OPENSEARCH_CONF_DIR + "securityadmin_demo" + FILE_EXTENSION;
 
-            securityConfigurator.createSecurityAdminDemoScript(securityAdminScriptPath, securityAdminDemoScriptPath);
+            securitySettingsConfigurer.createSecurityAdminDemoScript(securityAdminScriptPath, securityAdminDemoScriptPath);
 
             // Make securityadmin_demo script executable
             // not needed for windows

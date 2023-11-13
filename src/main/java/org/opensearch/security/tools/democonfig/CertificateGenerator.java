@@ -19,13 +19,13 @@ import java.nio.charset.StandardCharsets;
 /**
  * This class creates demo certificate files
  */
-public class CertificateGenerator extends InstallDemoConfiguration {
+public class CertificateGenerator extends Installer {
 
     /**
      * Creates demo super-admin, node and root certificates
      */
     public void createDemoCertificates() {
-        for (DemoCertificate cert : DemoCertificate.values()) {
+        for (Certificates cert : Certificates.values()) {
             String filePath = OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
             writeCertificateToFile(filePath, cert.getContent());
         }

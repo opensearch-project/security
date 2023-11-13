@@ -11,4 +11,4 @@ if defined OPENSEARCH_JAVA_HOME (
   exit /b 1
 )
 
-%BIN_PATH% -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "%DIR%\..\*;%DIR%\..\..\..\lib\*;%DIR%\..\deps\*" org.opensearch.security.tools.democonfig.InstallDemoConfiguration %DIR% %* 2> nul
+%BIN_PATH% -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "%DIR%\..\*;%DIR%\..\..\..\lib\*;%DIR%\..\deps\*" org.opensearch.security.tools.democonfig.Installer %DIR% %* 2> nul

@@ -34,7 +34,7 @@ import static org.opensearch.security.user.UserService.generatePassword;
 /**
  * This class updates the security related configuration, as needed.
  */
-public class SecurityConfigurator extends InstallDemoConfiguration {
+public class SecuritySettingsConfigurer extends Installer {
 
     /**
      * Configures security related changes to the opensearch configuration
@@ -42,16 +42,16 @@ public class SecurityConfigurator extends InstallDemoConfiguration {
      * 2. Sets the custom admin password (Generates one if none is provided)
      * 3. Write the security config to opensearch.yml
      */
-    public void configureSecurity() {
+    public void configureSecuritySettings() {
         checkIfSecurityPluginIsAlreadyConfigured();
-        setAdminPassword();
+        updateAdminPassword();
         writeSecurityConfigToOpenSearchYML();
     }
 
     /**
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
-    private static void setAdminPassword() {
+    private static void updateAdminPassword() {
         String ADMIN_PASSWORD = "";
         String initialAdminPassword = System.getenv("initialAdminPassword");
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
@@ -291,13 +291,13 @@ public class SecurityConfigurator extends InstallDemoConfiguration {
             + OPENSEARCH_CONF_DIR
             + "opensearch-security\" -icl -key \""
             + OPENSEARCH_CONF_DIR
-            + DemoCertificate.ADMIN_CERT_KEY.getFileName()
+            + Certificates.ADMIN_CERT_KEY.getFileName()
             + "\" -cert \""
             + OPENSEARCH_CONF_DIR
-            + DemoCertificate.ADMIN_CERT.getFileName()
+            + Certificates.ADMIN_CERT.getFileName()
             + "\" -cacert \""
             + OPENSEARCH_CONF_DIR
-            + DemoCertificate.ROOT_CA.getFileName()
+            + Certificates.ROOT_CA.getFileName()
             + "\" -nhnv";
 
         if (OS.toLowerCase().contains("win")) {

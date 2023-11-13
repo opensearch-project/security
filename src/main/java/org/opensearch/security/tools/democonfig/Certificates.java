@@ -3,7 +3,7 @@ package org.opensearch.security.tools.democonfig;
 /**
  * Enum for demo certificates
  */
-public enum DemoCertificate {
+public enum Certificates {
     ADMIN_CERT(
         "kirk.pem",
         "-----BEGIN CERTIFICATE-----\n"
@@ -159,7 +159,7 @@ public enum DemoCertificate {
     private final String fileName;
     private final String content;
 
-    DemoCertificate(String fileName, String content) {
+    Certificates(String fileName, String content) {
         this.fileName = fileName;
         this.content = content;
     }
