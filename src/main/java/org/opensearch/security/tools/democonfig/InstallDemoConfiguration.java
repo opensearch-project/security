@@ -81,8 +81,8 @@ public class InstallDemoConfiguration {
         System.out.println("** https://github.com/opensearch-project/security/issues/1755           **");
         System.out.println("**************************************************************************");
         System.out.println("\n");
-        System.out.println("OpenSearch Security Demo Installer");
-        System.out.println("** Warning: Do not use on production or public reachable systems **");
+        System.out.println("### OpenSearch Security Demo Installer");
+        System.out.println("### ** Warning: Do not use on production or public reachable systems **");
     }
 
     /**
