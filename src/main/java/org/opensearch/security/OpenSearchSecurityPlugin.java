@@ -310,7 +310,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         if (SSLConfig.isSslOnlyMode()) {
-            this.sslCertReloadEnabled = false;
             log.warn("OpenSearch Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
         }
@@ -588,6 +587,25 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 log.debug("Added {} rest handler(s)", handlers.size());
+            } else {
+                handlers.addAll(
+                    SecurityRestApiActions.getHandler(
+                        settings,
+                        configPath,
+                        restController,
+                        localClient,
+                        adminDns,
+                        cr,
+                        cs,
+                        principalExtractor,
+                        evaluator,
+                        threadPool,
+                        auditLog,
+                        userService,
+                        sks,
+                        sslCertReloadEnabled
+                    )
+                );
             }
         }
 
@@ -962,6 +980,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     ) {
 
         SSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        this.threadPool = threadPool;
         if (SSLConfig.isSslOnlyMode()) {
             return super.createComponents(
                 localClient,
@@ -1160,6 +1179,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         settings.addAll(super.getSettings());
 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
         settings.add(SecuritySettings.SSL_DUAL_MODE_SETTING);
@@ -1819,9 +1839,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true, Property.NodeScope, Property.Filtered)
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered)
-            );
+            // settings.add(
+            // Setting.boolSetting(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered)
+            // );
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG,

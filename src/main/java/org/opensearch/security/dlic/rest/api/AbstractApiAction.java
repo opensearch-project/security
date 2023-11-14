@@ -114,7 +114,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
-        builder.withAccessHandler(request -> securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint))
+        builder.withAccessHandler(
+            request -> (isClusterInSSLOnlyMode()
+                || securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint))
+        )
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
             .add(Method.POST, methodNotImplementedHandler)
             .add(Method.PATCH, methodNotImplementedHandler)
@@ -546,6 +549,26 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         // not 400
         consumeParameters(request);
 
+        if (isClusterInSSLOnlyMode()) {
+            return new RestChannelConsumer() {
+                @Override
+                public void accept(RestChannel channel) throws Exception {
+                    try {
+                        requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
+                        final var requestHandler = requestHandlers.getOrDefault(request.method(), methodNotImplementedHandler);
+                        requestHandler.handle(channel, request, client);
+                    } catch (Exception e) {
+                        LOGGER.error("Error processing request {}", request, e);
+                        try {
+                            channel.sendResponse(new BytesRestResponse(channel, e));
+                        } catch (IOException ioe) {
+                            throw ExceptionsHelper.convertToOpenSearchException(e);
+                        }
+                    }
+                }
+            };
+        }
+
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
             return channel -> internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
@@ -608,6 +631,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     @Override
     public String getName() {
         return getClass().getSimpleName();
+    }
+
+    protected boolean isClusterInSSLOnlyMode() {
+        return securityApiDependencies.settings().getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false);
     }
 
 }

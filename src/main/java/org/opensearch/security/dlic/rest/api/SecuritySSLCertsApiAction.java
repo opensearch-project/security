@@ -121,9 +121,11 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
 
     boolean accessHandler(final RestRequest request) {
         if (request.method() == Method.GET) {
-            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
+            return isClusterInSSLOnlyMode()
+                || securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
         } else if (request.method() == Method.PUT) {
-            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, RELOAD_CERTS_ACTION);
+            return isClusterInSSLOnlyMode()
+                || securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, RELOAD_CERTS_ACTION);
         } else {
             return false;
         }

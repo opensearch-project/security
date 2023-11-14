@@ -134,6 +134,14 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
+    public void testCertsInfoSSLModeOnly() throws Exception {
+        setupWithSSLOnlyMode();
+        HttpResponse response = rh.executeGetRequest(certsInfoEndpoint());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertEquals(EXPECTED_CERTIFICATES_BY_TYPE, response.getBody());
+    }
+
+    @Test
     public void testReloadCertsNotAvailableByDefault() throws Exception {
         setupWithRestRoles();
 
@@ -165,6 +173,28 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(certsReloadEndpoint("cccc"), "{}", restApiReloadCertsAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
+    }
+
+    @Test
+    public void testReloadCertsWrongUriSSLModeOnly() throws Exception {
+        setupWithSSLOnlyMode(reloadEnabled());
+        HttpResponse response = rh.executePutRequest(certsReloadEndpoint("aaaaa"), "{}");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    public void testReloadCertsSSLModeOnlyWithoutReloadEnable() throws Exception {
+        setupWithSSLOnlyMode();
+        HttpResponse response = rh.executePutRequest(certsReloadEndpoint("transport"), "{}");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    public void testReloadCertsSSLModeOnlyWithReloadEnable() throws Exception {
+        setupWithSSLOnlyMode(reloadEnabled());
+        HttpResponse response = rh.executePutRequest(certsReloadEndpoint("transport"), "{}");
+        System.out.println(response);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
     }
 
     private void sendAdminCert() {
