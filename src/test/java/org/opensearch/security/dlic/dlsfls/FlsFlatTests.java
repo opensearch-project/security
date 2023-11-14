@@ -11,13 +11,7 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-
-import org.apache.http.Header;
+import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 

@@ -13,7 +13,7 @@ package org.opensearch.security.multitenancy.test;
 
 import java.util.Map;
 
-import org.apache.http.Header;
+import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Assert;

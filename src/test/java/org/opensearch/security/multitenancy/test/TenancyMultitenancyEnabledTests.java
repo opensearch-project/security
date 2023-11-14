@@ -11,7 +11,7 @@
 
 package org.opensearch.security.multitenancy.test;
 
-import org.apache.http.Header;
+import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Test;

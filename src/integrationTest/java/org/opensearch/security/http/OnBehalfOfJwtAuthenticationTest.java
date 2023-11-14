@@ -25,7 +25,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
-import org.apache.http.Header;
+import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Before;
