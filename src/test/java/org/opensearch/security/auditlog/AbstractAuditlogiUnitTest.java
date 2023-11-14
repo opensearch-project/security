@@ -95,7 +95,8 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         validateJson(msg.toPrettyString());
     }
 
-    protected void validateJson(final String json) throws Exception { // this function can throw either IllegalArgumentException, JsonMappingException
+    protected void validateJson(final String json) throws Exception { // this function can throw either IllegalArgumentException,
+                                                                      // JsonMappingException
         if (json == null || json.isEmpty()) {
             throw new IllegalArgumentException("json is either null or empty");
         }
