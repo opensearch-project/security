@@ -12,10 +12,9 @@ public class JsonFlattener {
 
     public static Map<String, Object> flattenAsMap(String jsonString) {
         try {
-            final byte[] bytes = jsonString.getBytes("utf-8");
             final TypeReference<Map<String, Object>> typeReference = new TypeReference<>() {
             };
-            final Map<String, Object> jsonMap = DefaultObjectMapper.objectMapper.readValue(bytes, typeReference);
+            final Map<String, Object> jsonMap = DefaultObjectMapper.objectMapper.readValue(jsonString, typeReference);
             final Map<String, Object> flattenMap = new LinkedHashMap<>();
             flattenEntries("", jsonMap.entrySet(), flattenMap);
             return flattenMap;
@@ -34,6 +33,7 @@ public class JsonFlattener {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static void flattenElement(String prefix, final Object source, final Map<String, Object> result) {
         if (source instanceof Iterable) {
             flattenCollection(prefix, (Iterable<Object>) source, result);
