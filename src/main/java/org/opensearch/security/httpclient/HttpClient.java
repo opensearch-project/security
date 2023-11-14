@@ -13,7 +13,12 @@ package org.opensearch.security.httpclient;
 
 import java.io.Closeable;
 import java.io.IOException;
+<<<<<<< HEAD
 import java.net.Socket;
+=======
+import java.net.URI;
+import java.net.URISyntaxException;
+>>>>>>> ee66199d (Allow adding URL to the cluster (#3574))
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -30,6 +35,7 @@ import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
+<<<<<<< HEAD
 import com.google.common.collect.Lists;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
@@ -43,9 +49,27 @@ import org.apache.http.ssl.PrivateKeyDetails;
 import org.apache.http.ssl.PrivateKeyStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
+=======
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.function.Factory;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
+import org.apache.hc.core5.ssl.PrivateKeyDetails;
+import org.apache.hc.core5.ssl.PrivateKeyStrategy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
+>>>>>>> ee66199d (Allow adding URL to the cluster (#3574))
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -55,6 +79,8 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.xcontent.XContentType;
+
+import com.google.common.collect.Lists;
 
 public class HttpClient implements Closeable {
 
@@ -170,14 +196,17 @@ public class HttpClient implements Closeable {
         this.supportedCipherSuites = supportedCipherSuites;
         this.keystoreAlias = keystoreAlias;
 
+<<<<<<< HEAD
         HttpHost[] hosts = Arrays.stream(servers)
             .map(s -> s.split(":"))
             .map(s -> new HttpHost(s[0], Integer.parseInt(s[1]), ssl ? "https" : "http"))
             .collect(Collectors.toList())
             .toArray(new HttpHost[0]);
 
+=======
+        HttpHost[] hosts = createHosts(servers);
+>>>>>>> ee66199d (Allow adding URL to the cluster (#3574))
         RestClientBuilder builder = RestClient.builder(hosts);
-        // builder.setMaxRetryTimeoutMillis(10000);
 
         builder.setFailureListener(new RestClient.FailureListener() {
             @Override
@@ -200,6 +229,24 @@ public class HttpClient implements Closeable {
         });
 
         rclient = new RestHighLevelClient(builder);
+    }
+
+    private HttpHost[] createHosts(String[] servers) {
+        return Arrays.stream(servers).map(server -> {
+            try {
+                server = addSchemeBasedOnSSL(server);
+                URI uri = new URI(server);
+                return new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
+            } catch (URISyntaxException e) {
+                return null;
+            }
+        }).filter(Objects::nonNull).collect(Collectors.toList()).toArray(HttpHost[]::new);
+    }
+
+    private String addSchemeBasedOnSSL(String server) {
+        server = server.replaceAll("https://|http://", "");
+        String protocol = ssl ? "https://" : "http://";
+        return protocol.concat(server);
     }
 
     public boolean index(final String content, final String index, final String type, final boolean refresh) {
