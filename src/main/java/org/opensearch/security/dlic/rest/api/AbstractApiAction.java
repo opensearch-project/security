@@ -493,6 +493,33 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                     .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)),
                 new ConfigUpdatingActionListener<>(new String[] { id }, client, actionListener)
             );
+            try {
+
+                System.out.println("SAVE AND PDATE CONFIG");
+                System.out.println("SAVE AND PDATE CONFIG");
+                System.out.println("SAVE AND PDATE CONFIG");
+                System.out.println("SAVE AND PDATE CONFIG");
+                System.out.println(client);
+                System.out.println("SAVE AND PDATE GETCENTRIES VALUES");
+                System.out.println("SAVE AND PDATE GETCENTRIES VALUES");
+                System.out.println("SAVE AND PDATE GETCENTRIES VALUES");
+                System.out.println("SAVE AND PDATE GETCENTRIES VALUES");
+
+                System.out.println(configuration.getCEntries().values());
+                System.out.println("ACTION LISTENER");
+                System.out.println("ACTION LISTENER");
+                System.out.println("ACTION LISTENER");
+                System.out.println(actionListener);
+                System.out.println("ID");
+                System.out.println("ID");
+                System.out.println("ID");
+                System.out.println("ID");
+                System.out.println(id);
+
+                System.out.println(indexName);
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
