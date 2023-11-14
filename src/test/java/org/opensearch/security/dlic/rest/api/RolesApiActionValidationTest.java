@@ -12,9 +12,11 @@
 package org.opensearch.security.dlic.rest.api;
 
 import org.junit.Test;
-import org.mockito.Mockito;
+
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

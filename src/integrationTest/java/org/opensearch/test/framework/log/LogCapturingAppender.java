@@ -9,6 +9,15 @@
 */
 package org.opensearch.test.framework.log;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.Queues;
 import org.apache.logging.log4j.core.Appender;
@@ -21,15 +30,6 @@ import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import static org.opensearch.test.framework.log.LogCapturingAppender.PLUGIN_NAME;
 

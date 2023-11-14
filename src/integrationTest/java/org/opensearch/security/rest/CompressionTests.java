@@ -10,8 +10,14 @@
 
 package org.opensearch.security.rest;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPOutputStream;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpStatus;
@@ -26,13 +32,6 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPOutputStream;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;

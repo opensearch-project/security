@@ -20,6 +20,12 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.opensearch.common.settings.Settings;
+
+import com.amazon.dlic.auth.ldap.util.ConfigConstants;
+import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
 import org.ldaptive.ActivePassiveConnectionStrategy;
 import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.CompareRequest;
@@ -55,12 +61,6 @@ import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.ldaptive.ssl.CredentialConfig;
 import org.ldaptive.ssl.CredentialConfigFactory;
 import org.ldaptive.ssl.SslConfig;
-
-import com.amazon.dlic.auth.ldap.util.ConfigConstants;
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
-
-import org.opensearch.common.settings.Settings;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
 

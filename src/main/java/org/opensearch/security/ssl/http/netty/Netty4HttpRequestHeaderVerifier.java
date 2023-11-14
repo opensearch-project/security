@@ -8,15 +8,10 @@
 
 package org.opensearch.security.ssl.http.netty;
 
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultHttpRequest;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.util.ReferenceCountUtil;
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-
-import io.netty.channel.ChannelHandler.Sharable;
-import io.netty.channel.ChannelHandlerContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -25,17 +20,22 @@ import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.filter.SecurityRestUtils;
-import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.security.ssl.transport.SSLConfig;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.threadpool.ThreadPool;
+
+import io.netty.channel.ChannelHandler.Sharable;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.util.ReferenceCountUtil;
 
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
-import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
 import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
+import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
 
 @Sharable
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {

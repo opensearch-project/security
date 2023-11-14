@@ -18,15 +18,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
-
 import javax.net.ssl.SSLEngine;
 
-import io.netty.handler.ssl.SslHandler;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.rest.RestUtils;
 
 import io.netty.handler.codec.http.HttpRequest;
-import org.opensearch.rest.RestUtils;
+import io.netty.handler.ssl.SslHandler;
 
 /**
  * Wraps the functionality of HttpRequest for use in the security plugin

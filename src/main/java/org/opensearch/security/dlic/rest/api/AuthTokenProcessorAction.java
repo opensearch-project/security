@@ -11,14 +11,14 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.util.Collections;
-import java.util.List;
 
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;

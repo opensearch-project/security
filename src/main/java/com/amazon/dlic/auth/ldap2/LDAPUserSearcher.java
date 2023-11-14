@@ -21,16 +21,16 @@ import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.ldaptive.Connection;
-import org.ldaptive.LdapEntry;
-import org.ldaptive.SearchFilter;
-import org.ldaptive.SearchScope;
+
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.util.Utils;
-
-import org.opensearch.common.settings.Settings;
+import org.ldaptive.Connection;
+import org.ldaptive.LdapEntry;
+import org.ldaptive.SearchFilter;
+import org.ldaptive.SearchScope;
 
 public class LDAPUserSearcher {
     protected static final Logger log = LogManager.getLogger(LDAPUserSearcher.class);

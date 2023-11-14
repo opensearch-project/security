@@ -25,6 +25,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.io.CharStreams;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.network.SocketUtils;
+
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
 import com.unboundid.ldap.listener.InMemoryListenerConfig;
@@ -36,12 +43,6 @@ import com.unboundid.ldif.LDIFReader;
 import com.unboundid.util.ssl.KeyStoreKeyManager;
 import com.unboundid.util.ssl.SSLUtil;
 import com.unboundid.util.ssl.TrustStoreTrustManager;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.network.SocketUtils;
 
 final class LdapServer {
     private final static Logger LOG = LogManager.getLogger(LdapServer.class);

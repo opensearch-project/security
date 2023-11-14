@@ -9,13 +9,14 @@
 */
 package org.opensearch.security.bwc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.opensearch.common.Randomness;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.opensearch.common.Randomness;
 
 public class Song {
 

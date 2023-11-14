@@ -11,12 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import static org.opensearch.rest.RestRequest.Method.GET;
-import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +18,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
@@ -40,9 +38,11 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
 

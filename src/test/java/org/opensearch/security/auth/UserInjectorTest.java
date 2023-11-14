@@ -17,7 +17,6 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -28,6 +27,8 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
+
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

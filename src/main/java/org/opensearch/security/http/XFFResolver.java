@@ -30,15 +30,16 @@ import java.net.InetSocketAddress;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
+
+import org.greenrobot.eventbus.Subscribe;
 
 public class XFFResolver {
 

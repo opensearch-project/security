@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.BeforeClass;
@@ -38,6 +36,9 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.log.LogsRule;
+
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;

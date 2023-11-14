@@ -24,14 +24,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
 import com.google.common.collect.Lists;
-import io.netty.util.internal.PlatformDependent;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.junit.Assert;
@@ -63,6 +61,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
+
+import io.netty.util.internal.PlatformDependent;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;

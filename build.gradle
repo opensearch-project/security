@@ -66,7 +66,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.5.0"
     id "org.gradle.test-retry" version "1.5.6"
     id 'eclipse'
-    id "com.github.spotbugs" version "5.2.1"
+    id "com.github.spotbugs" version "5.2.3"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -480,7 +480,6 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
-            force "org.apache.bcel:bcel:6.7.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.5"
             force "com.google.guava:guava:${guava_version}"
@@ -492,7 +491,7 @@ configurations {
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.23.0"
-            force "org.checkerframework:checker-qual:3.39.0"
+            force "org.checkerframework:checker-qual:3.40.0"
         }
     }
 
@@ -573,7 +572,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.6.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.37'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.37.1'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
@@ -610,7 +609,7 @@ dependencies {
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.1'
     runtimeOnly 'org.ow2.asm:asm:9.6'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.1'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.2'
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.0'
@@ -639,7 +638,7 @@ dependencies {
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.21'
+    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.22'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
@@ -649,7 +648,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.39.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.40.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
@@ -681,8 +680,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.7'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation 'org.springframework:spring-beans:5.3.30'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
         testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"
@@ -716,7 +715,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.14.0'
+    integrationTestImplementation 'commons-io:commons-io:2.15.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
@@ -728,12 +727,12 @@ dependencies {
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
-    integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.13"
+    integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.18.1') {
         exclude group: 'com.google.guava'
     }
 }

@@ -15,6 +15,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.opensearch.action.admin.indices.close.CloseIndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.core.rest.RestStatus;

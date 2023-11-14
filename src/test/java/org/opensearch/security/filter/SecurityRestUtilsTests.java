@@ -1,11 +1,13 @@
 package org.opensearch.security.filter;
 
+import org.junit.Test;
+
+import org.opensearch.http.netty4.Netty4HttpChannel;
+
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
-import org.junit.Test;
-import org.opensearch.http.netty4.Netty4HttpChannel;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

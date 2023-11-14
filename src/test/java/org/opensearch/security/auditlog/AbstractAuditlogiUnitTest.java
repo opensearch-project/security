@@ -11,7 +11,11 @@
 
 package org.opensearch.security.auditlog;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -21,9 +25,6 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
-
-import java.util.Arrays;
-import java.util.Collection;
 
 import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
 
