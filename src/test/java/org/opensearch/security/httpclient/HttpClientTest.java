@@ -30,7 +30,10 @@ public class HttpClientTest extends SingleClusterTest {
     @Test
     public void testPlainConnection() throws Exception {
 
-        final Settings settings = Settings.builder().put("plugins.security.ssl.http.enabled", false).build();
+        final Settings settings = Settings.builder()
+            .put("plugins.security.ssl.http.enabled", false)
+            .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_valid.yml"))
+            .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
 
@@ -84,6 +87,7 @@ public class HttpClientTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
             .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+            .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_valid.yml"))
             .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
@@ -123,6 +127,7 @@ public class HttpClientTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
             .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+            .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_valid.yml"))
             .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
