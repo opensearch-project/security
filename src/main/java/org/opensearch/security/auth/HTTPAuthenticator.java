@@ -30,11 +30,13 @@
 
 package org.opensearch.security.auth;
 
+import java.util.Optional;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 /**
@@ -72,19 +74,18 @@ public interface HTTPAuthenticator {
      * If the authentication flow needs another roundtrip with the request originator do not mark it as complete.
      * @throws OpenSearchSecurityException
      */
-    AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException;
-    
+    AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) throws OpenSearchSecurityException;
+
     /**
      * If the {@code extractCredentials()} call was not successful or the authentication flow needs another roundtrip this method
      * will be called. If the custom HTTP authenticator does not support this method is a no-op and false should be returned.
      * 
      * If the custom HTTP authenticator does support re-request authentication or supports authentication flows with multiple roundtrips
-     * then the response should be sent (through the channel) and true must be returned.
-     * 
-     * @param channel The rest channel to sent back the response via {@code channel.sendResponse()}
+     * then the response will be returned which can then be sent via response channel.
+     *
+     * @param request The request to reauthenticate or not
      * @param credentials The credentials from the prior authentication attempt
-     * @return false  if re-request is not supported/necessary, true otherwise. 
-     * If true is returned {@code channel.sendResponse()} must be called so that the request completes.
+     * @return Optional response if is not supported/necessary, response object otherwise.
      */
-    boolean reRequestAuthentication(final RestChannel channel, AuthCredentials credentials);
+    Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials credentials);
 }

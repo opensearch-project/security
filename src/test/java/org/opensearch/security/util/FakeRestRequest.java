@@ -22,6 +22,8 @@ import java.util.Map;
 
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequestFactory;
 
 public class FakeRestRequest extends RestRequest {
 
@@ -118,4 +120,7 @@ public class FakeRestRequest extends RestRequest {
         return ret;
     }
 
+    public SecurityRequestChannel asSecurityRequest() {
+        return SecurityRequestFactory.from(this, null);
+    }
 }
