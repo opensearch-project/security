@@ -1,12 +1,13 @@
 package org.opensearch.security.support;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.opensearch.core.common.Strings;
-import org.opensearch.security.DefaultObjectMapper;
-
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import org.opensearch.core.common.Strings;
+import org.opensearch.security.DefaultObjectMapper;
 
 public class JsonFlattener {
 
