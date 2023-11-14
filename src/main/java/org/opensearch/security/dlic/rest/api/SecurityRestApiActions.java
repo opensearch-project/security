@@ -26,6 +26,7 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -63,6 +64,17 @@ public class SecurityRestApiActions {
             auditLog,
             settings
         );
+        if (settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false)) {
+            return List.of(
+                new SecuritySSLCertsApiAction(
+                    clusterService,
+                    threadPool,
+                    securityKeyStore,
+                    certificatesReloadEnabled,
+                    securityApiDependencies
+                )
+            );
+        }
         return List.of(
             new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies),
             new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),

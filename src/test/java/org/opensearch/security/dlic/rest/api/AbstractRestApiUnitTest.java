@@ -33,6 +33,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_ONLY;
 
 public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
@@ -95,6 +96,24 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         rh.keystore = "restapi/kirk-keystore.jks";
 
         AuditTestUtils.updateAuditConfig(rh, nodeOverride != null ? nodeOverride : Settings.EMPTY);
+    }
+
+    protected final void setupWithSSLOnlyMode() throws Exception {
+        setupWithSSLOnlyMode(null);
+    }
+
+    protected final void setupWithSSLOnlyMode(Settings nodeOverride) throws Exception {
+        Settings.Builder builder = Settings.builder();
+        builder.put(SECURITY_SSL_ONLY, true)
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
+        if (null != nodeOverride) {
+            builder.put(nodeOverride);
+        }
+        setupSslOnlyMode(builder.build());
+        rh = restHelper();
+        rh.keystore = "restapi/kirk-keystore.jks";
     }
 
     protected Settings rolesSettings() {
