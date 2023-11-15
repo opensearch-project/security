@@ -20,7 +20,6 @@ import org.opensearch.rest.RestResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 
 public class SecurityResponseTests {
 
@@ -30,6 +29,6 @@ public class SecurityResponseTests {
 
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
-        assertThat(restResponse.contentType(), equalTo(APPLICATION_JSON));
+        assertThat(restResponse.contentType(), equalTo(XContentType.JSON.mediaType()));
     }
 }
