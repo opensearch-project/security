@@ -422,7 +422,6 @@ public class RestHelper {
                 .orElseThrow(() -> new RuntimeException("No content type found"));
 
             if (contentType.equals("application/json")) {
-                assertThat("Response body should not have been empty", body, emptyOrNullString());
                 assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo("{"));
             } else {
                 assertThat(
