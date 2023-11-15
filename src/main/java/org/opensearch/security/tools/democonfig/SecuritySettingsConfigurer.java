@@ -51,7 +51,7 @@ public class SecuritySettingsConfigurer extends Installer {
     /**
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
-    private static void updateAdminPassword() {
+    static void updateAdminPassword() {
         String ADMIN_PASSWORD = "";
         String initialAdminPassword = System.getenv("initialAdminPassword");
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
@@ -114,7 +114,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * @param internalUsersFile the file path string to internal_users.yml file
      * @throws IOException while reading, writing to files
      */
-    private static void writePasswordToInternalUsersFile(String adminPassword, String internalUsersFile) throws IOException {
+    static void writePasswordToInternalUsersFile(String adminPassword, String internalUsersFile) throws IOException {
         String hashedAdminPassword = Hasher.hash(adminPassword.toCharArray());
 
         if (hashedAdminPassword.isEmpty()) {
@@ -148,7 +148,7 @@ public class SecuritySettingsConfigurer extends Installer {
     /**
      * Checks if security plugin is already configured. If so, the script execution will not continue.
      */
-    private static void checkIfSecurityPluginIsAlreadyConfigured() {
+    static void checkIfSecurityPluginIsAlreadyConfigured() {
         // Check if the configuration file contains the 'plugins.security' string
         if (OPENSEARCH_CONF_FILE != null && new File(OPENSEARCH_CONF_FILE).exists()) {
             try (BufferedReader br = new BufferedReader(new FileReader(OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
@@ -172,7 +172,7 @@ public class SecuritySettingsConfigurer extends Installer {
     /**
      * Update opensearch.yml with security configuration information
      */
-    private static void writeSecurityConfigToOpenSearchYML() {
+    static void writeSecurityConfigToOpenSearchYML() {
         String securityConfig = buildSecurityConfigString();
 
         try (FileWriter writer = new FileWriter(OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
@@ -187,7 +187,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * Helper method to build security configuration to append to opensearch.yml
      * @return the configuration string to be written to opensearch.yml
      */
-    private static String buildSecurityConfigString() {
+    static String buildSecurityConfigString() {
         StringBuilder securityConfigLines = new StringBuilder();
 
         securityConfigLines.append("\n")
@@ -235,7 +235,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * @param filePath path to opensearch.yml
      * @return true is present, false otherwise
      */
-    private static boolean isNetworkHostAlreadyPresent(String filePath) {
+    static boolean isNetworkHostAlreadyPresent(String filePath) {
         try {
             String searchString = "^network.host";
             return isStringAlreadyPresentInFile(filePath, searchString);
@@ -249,7 +249,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * @param filePath path to opensearch.yml
      * @return true if present, false otherwise
      */
-    private static boolean isNodeMaxLocalStorageNodesAlreadyPresent(String filePath) {
+    static boolean isNodeMaxLocalStorageNodesAlreadyPresent(String filePath) {
         try {
             String searchString = "^node.max_local_storage_nodes";
             return isStringAlreadyPresentInFile(filePath, searchString);
@@ -265,7 +265,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * @return true if string is present, false otherwise
      * @throws IOException if there was exception reading the file
      */
-    private static boolean isStringAlreadyPresentInFile(String filePath, String searchString) throws IOException {
+    static boolean isStringAlreadyPresentInFile(String filePath, String searchString) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {

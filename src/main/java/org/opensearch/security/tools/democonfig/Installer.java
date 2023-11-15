@@ -75,7 +75,7 @@ public class Installer {
     /**
      * Prints deprecation warning and other headers for the script
      */
-    private static void printScriptHeaders() {
+    static void printScriptHeaders() {
         System.out.println("**************************************************************************");
         System.out.println("** This tool will be deprecated in the next major release of OpenSearch **");
         System.out.println("** https://github.com/opensearch-project/security/issues/1755           **");
@@ -89,7 +89,7 @@ public class Installer {
      * Reads the options passed to the script
      * @param options an array of strings containing options passed to the script
      */
-    private static void readOptions(String[] options) {
+    static void readOptions(String[] options) {
         // set script execution dir
         SCRIPT_DIR = options[0];
 
@@ -123,7 +123,7 @@ public class Installer {
     /**
      * Prints the help menu when -h option is passed
      */
-    private static void showHelp() {
+    static void showHelp() {
         System.out.println("install_demo_configuration.sh [-y] [-i] [-c]");
         System.out.println("  -h show help");
         System.out.println("  -y confirm all installation dialogues automatically");
@@ -140,7 +140,7 @@ public class Installer {
      * Prompt the user and collect user inputs
      * Input collection will be skipped if -y option was passed
      */
-    private static void gatherUserInputs() {
+    static void gatherUserInputs() {
         if (!assumeyes) {
             try (Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8)) {
 
@@ -170,7 +170,7 @@ public class Installer {
      * @param message prompt question
      * @return true or false based on user input
      */
-    private static boolean confirmAction(Scanner scanner, String message) {
+    static boolean confirmAction(Scanner scanner, String message) {
         System.out.print(message + " [y/N] ");
         String response = scanner.nextLine();
         return response.equalsIgnoreCase("yes") || response.equalsIgnoreCase("y");
@@ -179,7 +179,7 @@ public class Installer {
     /**
      * Initialize all class level variables required
      */
-    private static void initializeVariables() {
+    static void initializeVariables() {
         setBaseDir();
         setOpenSearchVariables();
         setSecurityVariables();
@@ -188,7 +188,7 @@ public class Installer {
     /**
      * Sets the base directory to be used by the script
      */
-    private static void setBaseDir() {
+    static void setBaseDir() {
         File baseDirFile = new File(SCRIPT_DIR).getParentFile().getParentFile().getParentFile();
         BASE_DIR = baseDirFile != null ? baseDirFile.getAbsolutePath() : null;
 
@@ -203,7 +203,7 @@ public class Installer {
     /**
      * Sets the variables for items at OpenSearch level
      */
-    private static void setOpenSearchVariables() {
+    static void setOpenSearchVariables() {
         OPENSEARCH_CONF_FILE = BASE_DIR + "config" + File.separator + "opensearch.yml";
         OPENSEARCH_BIN_DIR = BASE_DIR + "bin" + File.separator;
         OPENSEARCH_PLUGINS_DIR = BASE_DIR + "plugins" + File.separator;
@@ -244,7 +244,7 @@ public class Installer {
      * Returns the installation type based on the underlying operating system
      * @return will be one of `.zip`, `.tar.gz` or `rpm/deb`
      */
-    private static String determineInstallType() {
+    static String determineInstallType() {
         // windows (.bat execution)
         if (OS.toLowerCase().contains("win")) {
             return ".zip";
@@ -264,7 +264,7 @@ public class Installer {
     /**
      * Sets the path variables for items at OpenSearch security plugin level
      */
-    private static void setSecurityVariables() {
+    static void setSecurityVariables() {
         if (!(new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").exists())) {
             System.out.println("OpenSearch Security plugin not installed. Quit.");
             System.exit(-1);
@@ -291,7 +291,7 @@ public class Installer {
     /**
      * Prints the initialized variables
      */
-    private static void printVariables() {
+    static void printVariables() {
         System.out.println("OpenSearch install type: " + OPENSEARCH_INSTALL_TYPE + " on " + OS);
         System.out.println("OpenSearch config dir: " + OPENSEARCH_CONF_DIR);
         System.out.println("OpenSearch config file: " + OPENSEARCH_CONF_FILE);
@@ -305,7 +305,7 @@ public class Installer {
     /**
      * Prints end of script execution message and creates security admin demo file.
      */
-    private static void finishScriptExecution() {
+    static void finishScriptExecution() {
         System.out.println("### Success");
         System.out.println("### Execute this script now on all your nodes and then start all nodes");
 

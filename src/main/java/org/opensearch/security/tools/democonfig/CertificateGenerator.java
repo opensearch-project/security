@@ -36,7 +36,7 @@ public class CertificateGenerator extends Installer {
      * @param filePath the file which needs to be written
      * @param content the content which needs to be written to this file
      */
-    private static void writeCertificateToFile(String filePath, String content) {
+    static void writeCertificateToFile(String filePath, String content) {
         try {
             FileWriter fileWriter = new FileWriter(filePath, StandardCharsets.UTF_8);
             fileWriter.write(content);
