@@ -19,12 +19,14 @@ fi
 BIN_PATH="java"
 
 # now set the path to java: first OPENSEARCH_JAVA_HOME, then JAVA_HOME
-if [ ! -z "$OPENSEARCH_JAVA_HOME" ]; then
+if [ -n "$OPENSEARCH_JAVA_HOME" ]; then
     BIN_PATH="$OPENSEARCH_JAVA_HOME/bin/java"
-elif [ ! -z "$JAVA_HOME" ]; then
+elif [ -n "$JAVA_HOME" ]; then
     BIN_PATH="$JAVA_HOME/bin/java"
 else
-    echo "WARNING: nor OPENSEARCH_JAVA_HOME nor JAVA_HOME is set, will use $(which $BIN_PATH)"
+    echo "Unable to find java runtime"
+    echo "OPENSEARCH_JAVA_HOME or JAVA_HOME must be defined"
+    exit 1
 fi
 
 "$BIN_PATH" $JAVA_OPTS -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" org.opensearch.security.tools.democonfig.Installer "$DIR" "$@" 2>/dev/null
