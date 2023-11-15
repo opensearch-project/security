@@ -73,6 +73,7 @@ jobs:
       - "integration-tests"
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
         with:
           path: downloaded-artifacts
@@ -101,7 +102,6 @@ jobs:
           with: |
             token: ${{ secrets.CODECOV_TOKEN }}
             fail_ci_if_error: true
-            directory: downloaded-artifacts
             verbose: true
 
 
