@@ -56,7 +56,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
-import org.opensearch.action.admin.indices.shrink.ResizeRequest;
 import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
@@ -778,18 +777,6 @@ public class IndexResolverReplacer {
                 return false;
             }
             ((CreateIndexRequest) request).index(newIndices.length != 1 ? null : newIndices[0]);
-        } else if (request instanceof ResizeRequest) {
-            // clone or shrink operations
-            String[] newIndicesSource = provider.provide(((ResizeRequest) request).indices(), request, true);
-            String[] newIndicesTarget = provider.provide(((ResizeRequest) request).getTargetIndexRequest().indices(), request, true);
-            List<String> newIndices = new ArrayList<>(newIndicesSource.length + newIndicesTarget.length);
-            Collections.addAll(newIndices, newIndicesSource);
-            Collections.addAll(newIndices, newIndicesTarget);
-
-            // TODO check if this can be removed, return value is ignored in case of copy operation
-            if (checkIndices(request, newIndices.toArray(new String[0]), true, allowEmptyIndices) == false) {
-                return false;
-            }
         } else if (request instanceof CreateDataStreamAction.Request) {
             provider.provide(((CreateDataStreamAction.Request) request).indices(), request, false);
         } else if (request instanceof ReindexRequest) {
