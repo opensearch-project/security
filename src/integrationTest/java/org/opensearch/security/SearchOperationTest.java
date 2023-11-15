@@ -122,6 +122,7 @@ import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.Al
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.core.rest.RestStatus.ACCEPTED;
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -2363,6 +2364,10 @@ public class SearchOperationTest {
 
             assertThat(response, isSuccessfulResizeResponse(targetIndexName));
             assertThat(cluster, indexExists(targetIndexName));
+
+            // can't clone the same index twice, target already exists
+            ResizeRequest repeatResizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+            assertThatThrownBy(() -> restHighLevelClient.indices().clone(repeatResizeRequest, DEFAULT), statusException(BAD_REQUEST));
         }
     }
 
