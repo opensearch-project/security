@@ -70,6 +70,14 @@ public final class SearchRequestFactory {
         return searchRequest;
     }
 
+    public static SearchRequest searchRequestWithSort(String indexName) {
+        SearchRequest searchRequest = new SearchRequest(indexName);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.sort(new FieldSortBuilder("_id").order(SortOrder.ASC));
+        searchRequest.source(searchSourceBuilder);
+        return searchRequest;
+    }
+
     public static SearchRequest searchAll(String... indexNames) {
         SearchRequest searchRequest = new SearchRequest(indexNames);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
