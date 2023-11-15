@@ -77,8 +77,10 @@ public class SecurityResponse {
         List<String> header = headers.get(name);
         if (header == null) {
             header = new ArrayList<>();
+            System.out.println("Adding attribute header of " + value);
             headers.put(name, header);
         }
+        System.out.println("Adding header of " + value);
         header.add(value);
     }
 
