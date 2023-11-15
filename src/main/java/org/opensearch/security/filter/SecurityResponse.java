@@ -13,6 +13,7 @@ package org.opensearch.security.filter;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.http.HttpHeaders;
 
@@ -54,9 +55,19 @@ public class SecurityResponse {
     }
 
     public RestResponse asRestResponse() {
-        final RestResponse restResponse = new BytesRestResponse(RestStatus.fromCode(getStatus()), getBody());
+        String contentType = getHeaders().get(HttpHeaders.CONTENT_TYPE);
+        RestResponse restResponse;
+        if (contentType != null) {
+            restResponse = new BytesRestResponse(RestStatus.fromCode(getStatus()), contentType, getBody());
+        } else {
+            restResponse = new BytesRestResponse(RestStatus.fromCode(getStatus()), getBody());
+        }
         if (getHeaders() != null) {
-            getHeaders().forEach(restResponse::addHeader);
+            getHeaders().entrySet()
+                .stream()
+                .filter(e -> !e.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+                .forEach(restResponse::addHeader);
         }
         return restResponse;
     }
