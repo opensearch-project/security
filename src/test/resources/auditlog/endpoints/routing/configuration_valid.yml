@@ -15,7 +15,23 @@ plugins.security:
       endpoint2:
         type: external_opensearch
         config:
-          http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']
+          http_endpoints: [
+            'localhost',
+            'localhost:9200',
+            'localhost:9201',
+            'localhost:9202',
+            'localhost:9202/opensearch',
+            '127.0.0.1',
+            '127.0.0.1:9200',
+            '127.0.0.1:9200/opensearch',
+            'my-opensearch-cluster.company.com:9200',
+            'my-opensearch-cluster.company.com:9200/opensearch',
+            'http://my-opensearch-cluster.company.com',
+            'https://my-opensearch-cluster.company.com:9200',
+            'https://my-opensearch-cluster.company.com:9200/opensearch',
+            '[::1]:9200',
+            '[::1]:9200/opensearch',
+          ]
           index: auditlog
           username: auditloguser
           password: auditlogpassword
