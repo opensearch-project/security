@@ -55,7 +55,10 @@ public class SecurityResponse {
     }
 
     public RestResponse asRestResponse() {
-        String contentType = getHeaders().get(HttpHeaders.CONTENT_TYPE);
+        String contentType = null;
+        if (getHeaders() != null) {
+            contentType = getHeaders().get(HttpHeaders.CONTENT_TYPE);
+        }
         RestResponse restResponse;
         if (contentType != null) {
             restResponse = new BytesRestResponse(RestStatus.fromCode(getStatus()), contentType, getBody());
