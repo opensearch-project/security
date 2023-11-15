@@ -34,6 +34,8 @@ grant {
   permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
   permission javax.security.auth.AuthPermission "doAs";
   permission javax.security.auth.kerberos.ServicePermission "*","accept";
+
+  //SAML and internal plugin policy
   permission java.util.PropertyPermission "*","read,write";
 
   //Enable when we switch to UnboundID LDAP SDK
@@ -74,8 +76,6 @@ grant {
   //Enable this permission to debug unauthorized de-serialization attempt
   //permission java.io.SerializablePermission "enableSubstitution";
 
-  //SAML policy
-  permission java.util.PropertyPermission "*", "read,write";
 };
 
 grant codeBase "${codebase.netty-common}" {
