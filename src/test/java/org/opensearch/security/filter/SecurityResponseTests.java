@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -45,8 +46,8 @@ public class SecurityResponseTests {
     @Test
     public void testSecurityResponseMultipleContentTypesUsesPassed() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, null, "foo bar", XContentType.JSON.mediaType());
-        response.addHeader(HttpHeaders.CONTENT_TYPE, "plain/text");
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of("plain/text")));
+        response.addHeader(HttpHeaders.CONTENT_TYPE, BytesRestResponse.TEXT_CONTENT_TYPE);
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of(BytesRestResponse.TEXT_CONTENT_TYPE)));
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.contentType(), equalTo(XContentType.JSON.mediaType()));
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
@@ -59,8 +60,8 @@ public class SecurityResponseTests {
     public void testSecurityResponseDefaultContentTypeIsJson() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, null, "foo bar");
         final RestResponse restResponse = response.asRestResponse();
-        assertThat(restResponse.contentType(), equalTo(XContentType.JSON.mediaType()));
-        assertThat(restResponse.status(), equalTo(RestStatus.OK)); // This fails because it is a text/plain but we should pick one default type and stick to it IMO
+        assertThat(restResponse.contentType(), equalTo(BytesRestResponse.TEXT_CONTENT_TYPE));
+        assertThat(restResponse.status(), equalTo(RestStatus.OK));
     }
 
     /**
@@ -71,7 +72,7 @@ public class SecurityResponseTests {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, null, "foo bar");
         response.addHeader(HttpHeaders.CONTENT_TYPE, XContentType.JSON.mediaType());
         final RestResponse restResponse = response.asRestResponse();
-        assertThat(restResponse.contentType(), equalTo("text/plain; charset=UTF-8"));
+        assertThat(restResponse.contentType(), equalTo(BytesRestResponse.TEXT_CONTENT_TYPE));
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
     }
 
@@ -81,10 +82,10 @@ public class SecurityResponseTests {
     @Test
     public void testSecurityResponseAddMultipleContentTypeHeaders() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, null, "foo bar", XContentType.JSON.mediaType());
-        response.addHeader(HttpHeaders.CONTENT_TYPE, "plain/text");
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of("plain/text")));
+        response.addHeader(HttpHeaders.CONTENT_TYPE, BytesRestResponse.TEXT_CONTENT_TYPE);
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of(BytesRestResponse.TEXT_CONTENT_TYPE)));
         response.addHeader(HttpHeaders.CONTENT_TYPE, "newContentType");
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of("plain/text", "newContentType")));
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of(BytesRestResponse.TEXT_CONTENT_TYPE, "newContentType")));
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
     }
@@ -108,7 +109,7 @@ public class SecurityResponseTests {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, Map.of("Content-Type", "testType"), "foo bar");
         assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of("testType")));
         final RestResponse restResponse = response.asRestResponse();
-        assertThat(restResponse.contentType(), equalTo(XContentType.JSON.mediaType()));
+        assertThat(restResponse.contentType(), equalTo(BytesRestResponse.TEXT_CONTENT_TYPE));
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
     }
 
@@ -132,7 +133,7 @@ public class SecurityResponseTests {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, "foo bar");
         response.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         final RestResponse restResponse = response.asRestResponse();
-        assertThat(restResponse.contentType(), equalTo("text/plain; charset=UTF-8"));
+        assertThat(restResponse.contentType(), equalTo(BytesRestResponse.TEXT_CONTENT_TYPE));
         assertThat(restResponse.status(), equalTo(RestStatus.UNAUTHORIZED));
     }
 
@@ -144,7 +145,7 @@ public class SecurityResponseTests {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, "foo bar");
         response.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         final RestResponse restResponse = response.asRestResponse();
-        assertThat(restResponse.contentType(), equalTo("text/plain; charset=UTF-8"));
+        assertThat(restResponse.contentType(), equalTo(BytesRestResponse.TEXT_CONTENT_TYPE));
         assertThat(restResponse.status(), equalTo(RestStatus.FORBIDDEN));
     }
 }
