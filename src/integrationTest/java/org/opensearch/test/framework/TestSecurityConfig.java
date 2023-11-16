@@ -283,7 +283,7 @@ public class TestSecurityConfig {
             // We scope the role names by user to keep tests free of potential side effects
             String roleNamePrefix = "user_" + this.getName() + "__";
             this.roles.addAll(
-                    Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
+                Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
             );
             return this;
         }
