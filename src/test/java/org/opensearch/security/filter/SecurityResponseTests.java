@@ -53,7 +53,7 @@ public class SecurityResponseTests {
     }
 
     /**
-     * This test should check whether specifying no content type correctly uses JSON
+     * This test should check whether specifying no content type correctly uses plain text
      */
     @Test
     public void testSecurityResponseDefaultContentTypeIsJson() {
