@@ -56,4 +56,8 @@ public class ClusterMatchers {
     public static Matcher<LocalCluster> indexSettingsContainValues(String expectedIndexName, Settings expectedSettings) {
         return new IndexSettingsContainValuesMatcher(expectedIndexName, expectedSettings);
     }
+
+    public static Matcher<LocalCluster> indexStateIsEqualTo(String expectedIndexName, IndexMetadata.State expectedState) {
+        return new IndexStateIsEqualToMatcher(expectedIndexName, expectedState);
+    }
 }

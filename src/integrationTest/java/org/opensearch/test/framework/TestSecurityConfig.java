@@ -76,6 +76,10 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 */
 public class TestSecurityConfig {
 
+    public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(
+            new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
+    );
+
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
     private Config config = new Config();
@@ -256,13 +260,14 @@ public class TestSecurityConfig {
     public static class User implements UserCredentialsHolder, ToXContentObject {
 
         public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(
-            new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
+                new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
         );
 
         String name;
         private String password;
         List<Role> roles = new ArrayList<>();
-        private Map<String, Object> attributes = new HashMap<>();
+        List<String> backendRoles = new ArrayList<>();
+        private Map<String, String> attributes = new HashMap<>();
 
         public User(String name) {
             this.name = name;
@@ -278,12 +283,17 @@ public class TestSecurityConfig {
             // We scope the role names by user to keep tests free of potential side effects
             String roleNamePrefix = "user_" + this.getName() + "__";
             this.roles.addAll(
-                Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
+                    Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet())
             );
             return this;
         }
 
-        public User attr(String key, Object value) {
+        public User backendRoles(String... backendRoles) {
+            this.backendRoles.addAll(Arrays.asList(backendRoles));
+            return this;
+        }
+
+        public User attr(String key, String value) {
             this.attributes.put(key, value);
             return this;
         }
@@ -314,6 +324,10 @@ public class TestSecurityConfig {
 
             if (!roleNames.isEmpty()) {
                 xContentBuilder.field("opendistro_security_roles", roleNames);
+            }
+
+            if (!backendRoles.isEmpty()) {
+                xContentBuilder.field("backend_roles", backendRoles);
             }
 
             if (attributes != null && attributes.size() != 0) {
