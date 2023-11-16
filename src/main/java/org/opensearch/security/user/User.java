@@ -77,7 +77,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         name = in.readString();
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
-        attributes =    attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
+        attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         openDistroSecurityRoles.addAll(in.readList(StreamInput::readString));
     }
     
@@ -162,7 +162,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addAttributes(final Map<String,String> attributes) {
