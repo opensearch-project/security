@@ -56,7 +56,7 @@ public class SecuritySettingsConfigurer extends Installer {
         String initialAdminPassword = System.getenv("initialAdminPassword");
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
         String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
-        boolean shouldValidatePassword = environment.equals(ExecutionEnvironment.demo);
+        boolean shouldValidatePassword = environment.equals(ExecutionEnvironment.DEMO);
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -73,6 +73,9 @@ public class SecuritySettingsConfigurer extends Installer {
                 if (adminPasswordFile.exists() && adminPasswordFile.length() > 0) {
                     try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH, StandardCharsets.UTF_8))) {
                         ADMIN_PASSWORD = br.readLine();
+                    } catch (IOException e) {
+                        System.out.println("Error reading admin password from initialAdminPassword.txt.");
+                        System.exit(-1);
                     }
                 }
             }

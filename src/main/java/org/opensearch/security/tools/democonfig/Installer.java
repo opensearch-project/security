@@ -43,7 +43,7 @@ public class Installer {
     static String OPENSEARCH_VERSION;
     static String SECURITY_VERSION;
 
-    static ExecutionEnvironment environment = ExecutionEnvironment.demo;
+    static ExecutionEnvironment environment = ExecutionEnvironment.DEMO;
 
     static final String OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
 
@@ -73,14 +73,9 @@ public class Installer {
     }
 
     /**
-     * Prints deprecation warning and other headers for the script
+     * Prints headers that indicate the start of script execution
      */
     static void printScriptHeaders() {
-        System.out.println("**************************************************************************");
-        System.out.println("** This tool will be deprecated in the next major release of OpenSearch **");
-        System.out.println("** https://github.com/opensearch-project/security/issues/1755           **");
-        System.out.println("**************************************************************************");
-        System.out.println("\n");
         System.out.println("### OpenSearch Security Demo Installer");
         System.out.println("### ** Warning: Do not use on production or public reachable systems **");
     }
@@ -108,7 +103,7 @@ public class Installer {
                     skip_updates = 0;
                     break;
                 case "-t":
-                    environment = ExecutionEnvironment.test;
+                    environment = ExecutionEnvironment.TEST;
                     break;
                 case "-h":
                 case "-?":
@@ -207,7 +202,6 @@ public class Installer {
         OPENSEARCH_CONF_FILE = BASE_DIR + "config" + File.separator + "opensearch.yml";
         OPENSEARCH_BIN_DIR = BASE_DIR + "bin" + File.separator;
         OPENSEARCH_PLUGINS_DIR = BASE_DIR + "plugins" + File.separator;
-        String OPENSEARCH_MODULES_DIR = BASE_DIR + "modules" + File.separator;
         OPENSEARCH_LIB_PATH = BASE_DIR + "lib" + File.separator;
         OPENSEARCH_INSTALL_TYPE = determineInstallType();
 
@@ -224,11 +218,6 @@ public class Installer {
         if (!(new File(OPENSEARCH_PLUGINS_DIR).exists())) {
             System.out.println("Unable to determine OpenSearch plugins directory. Quit.");
             System.exit(-1);
-        }
-
-        if (!(new File(OPENSEARCH_MODULES_DIR).exists())) {
-            System.out.println("Unable to determine OpenSearch modules directory. Quit.");
-            // System.exit(-1);
         }
 
         if (!(new File(OPENSEARCH_LIB_PATH).exists())) {

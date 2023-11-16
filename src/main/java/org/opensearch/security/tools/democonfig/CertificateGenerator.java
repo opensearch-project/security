@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 public class CertificateGenerator extends Installer {
 
     /**
-     * Creates demo super-admin, node and root certificates
+     * Creates demo super-admin, node and root certificates by iterating through Certificates enum
      */
     public void createDemoCertificates() {
         for (Certificates cert : Certificates.values()) {
