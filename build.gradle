@@ -386,7 +386,7 @@ checkstyle {
 }
 
 tasks.withType(Checkstyle) {
-    dependsOn(':licenseHeaders')
+    dependsOn(':precommit')
     reports {
         ignoreFailures = false
     }
