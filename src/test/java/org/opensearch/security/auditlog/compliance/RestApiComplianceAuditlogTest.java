@@ -55,7 +55,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -122,7 +122,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -147,7 +147,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_EXTERNAL_CONFIG"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -208,7 +208,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertFalse(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertFalse(auditLogImpl.contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
