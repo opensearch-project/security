@@ -601,8 +601,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         evaluator,
                         threadPool,
                         auditLog,
-                        userService,
                         sks,
+                        userService,
                         sslCertReloadEnabled
                     )
                 );

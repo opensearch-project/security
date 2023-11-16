@@ -193,7 +193,6 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
     public void testReloadCertsSSLModeOnlyWithReloadEnable() throws Exception {
         setupWithSSLOnlyMode(reloadEnabled());
         HttpResponse response = rh.executePutRequest(certsReloadEndpoint("transport"), "{}");
-        System.out.println(response);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
     }
 
