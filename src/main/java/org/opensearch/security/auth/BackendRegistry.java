@@ -509,11 +509,7 @@ public class BackendRegistry {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 request.queueForSending(
-                    new SecurityResponse(
-                        SC_FORBIDDEN,
-                        null,
-                        "Cannot authenticate user because admin user is not permitted to login via HTTP"
-                    )
+                    new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP")
                 );
                 return false;
             }
@@ -581,7 +577,7 @@ public class BackendRegistry {
             notifyIpAuthFailureListeners(request, authCredenetials);
 
             request.queueForSending(
-                challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"))
+                challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"))
             );
             return false;
         }
