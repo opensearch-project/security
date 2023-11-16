@@ -91,7 +91,6 @@ import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
@@ -422,12 +421,12 @@ public class RestHelper {
                 .orElseThrow(() -> new RuntimeException("No content type found. Headers:\n" + getHeaders() + "\n\nBody:\n" + body));
 
             if (contentType.equals("application/json")) {
-                assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo("{"));
+                assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
             } else {
                 assertThat(
                     "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
                     body.charAt(0),
-                    not(equalTo("{"))
+                    not(equalTo('{'))
                 );
             }
         }
