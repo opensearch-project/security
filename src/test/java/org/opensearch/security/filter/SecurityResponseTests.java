@@ -13,9 +13,9 @@ package org.opensearch.security.filter;
 
 import java.util.List;
 import java.util.Map;
+
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.http.HttpStatus;
-import org.apache.http.protocol.HTTP;
 import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentType;
@@ -27,7 +27,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class SecurityResponseTests {
-
 
     /**
      * This test should check whether a basic constructor with the JSON content type is successfully converted to RestResponse
@@ -118,7 +117,12 @@ public class SecurityResponseTests {
      */
     @Test
     public void testSecurityResponseContentTypeInConstructorHeaderConflicts() {
-        final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, Map.of("Content-Type", "testType"), "foo bar", XContentType.JSON.mediaType());
+        final SecurityResponse response = new SecurityResponse(
+            HttpStatus.SC_OK,
+            Map.of("Content-Type", "testType"),
+            "foo bar",
+            XContentType.JSON.mediaType()
+        );
         assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of("testType")));
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.contentType(), equalTo(XContentType.JSON.mediaType()));
@@ -129,7 +133,7 @@ public class SecurityResponseTests {
      * This test should check whether unauthorized requests are converted properly
      */
     @Test
-    public void testSecurityResponseUnauthorizedRequestWithPlainTextContentType(){
+    public void testSecurityResponseUnauthorizedRequestWithPlainTextContentType() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, "foo bar");
         response.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         final RestResponse restResponse = response.asRestResponse();
@@ -141,7 +145,7 @@ public class SecurityResponseTests {
      * This test should check whether forbidden requests are converted properly
      */
     @Test
-    public void testSecurityResponseForbiddenRequestWithPlainTextContentType(){
+    public void testSecurityResponseForbiddenRequestWithPlainTextContentType() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, "foo bar");
         response.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         final RestResponse restResponse = response.asRestResponse();
