@@ -56,7 +56,7 @@ public class SecurityResponseTests {
      * This test should check whether specifying no content type correctly uses plain text
      */
     @Test
-    public void testSecurityResponseDefaultContentTypeIsJson() {
+    public void testSecurityResponseDefaultContentTypeIsText() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, null, "foo bar");
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.contentType(), equalTo(BytesRestResponse.TEXT_CONTENT_TYPE));
