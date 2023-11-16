@@ -14,7 +14,7 @@ package org.opensearch.security.filter;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 
