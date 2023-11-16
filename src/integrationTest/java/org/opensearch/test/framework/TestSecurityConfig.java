@@ -260,7 +260,7 @@ public class TestSecurityConfig {
     public static class User implements UserCredentialsHolder, ToXContentObject {
 
         public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(
-                new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
+            new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
         );
 
         String name;

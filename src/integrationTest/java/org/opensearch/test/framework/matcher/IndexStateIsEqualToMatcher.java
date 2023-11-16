@@ -56,3 +56,4 @@ class IndexStateIsEqualToMatcher extends TypeSafeDiagnosingMatcher<LocalCluster>
 				.appendValue(expectedState.name());
 	}
 }
+
