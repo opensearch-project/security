@@ -416,10 +416,10 @@ public class RestHelper {
         private void verifyBodyContentType() {
             final String contentType = this.getHeaders()
                 .stream()
-                .filter(h -> h.getName() == HttpHeaders.CONTENT_TYPE)
+                .filter(h -> HttpHeaders.CONTENT_TYPE.equalsIgnoreCase(h.getName()))
                 .map(Header::getValue)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No content type found"));
+                .orElseThrow(() -> new RuntimeException("No content type found. Headers:\n" + getHeaders() + "\n\nBody:\n" + body));
 
             if (contentType.equals("application/json")) {
                 assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo("{"));
