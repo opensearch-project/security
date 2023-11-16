@@ -84,34 +84,28 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         rh.keystore = keystore;
     }
 
-    protected boolean validateMsgs(final Collection<AuditMessage> msgs) {
-        boolean valid = true;
+    protected void validateMsgs(final Collection<AuditMessage> msgs) throws Exception {
         for (AuditMessage msg : msgs) {
-            valid = validateMsg(msg) && valid;
+            validateMsg(msg);
         }
-        return valid;
+
     }
 
-    protected boolean validateMsg(final AuditMessage msg) {
-        return validateJson(msg.toJson()) && validateJson(msg.toPrettyString());
+    protected void validateMsg(final AuditMessage msg) throws Exception {
+        validateJson(msg.toJson());
+        validateJson(msg.toPrettyString());
     }
 
-    protected boolean validateJson(final String json) {
-
+    protected void validateJson(final String json) throws Exception { // this function can throw either IllegalArgumentException,
+                                                                      // JsonMappingException
         if (json == null || json.isEmpty()) {
-            return false;
+            throw new IllegalArgumentException("json is either null or empty");
         }
 
-        try {
-            JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
+        JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
 
-            if (node.get("audit_request_body") != null) {
-                DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
-            }
-
-            return true;
-        } catch (Exception e) {
-            return false;
+        if (node.get("audit_request_body") != null) {
+            DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
         }
     }
 
