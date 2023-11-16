@@ -203,7 +203,7 @@ public class BackendRegistry {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getRemoteAddress().orElse(null));
             }
 
-            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, new Exception("Authentication finally failed")));
+            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"));
             return false;
         }
 
@@ -225,7 +225,7 @@ public class BackendRegistry {
 
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
-            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, new Exception("OpenSearch Security not initialized.")));
+            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, "OpenSearch Security not initialized."));
             return false;
         }
 
@@ -355,11 +355,7 @@ public class BackendRegistry {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 request.queueForSending(
-                    new SecurityResponse(
-                        SC_FORBIDDEN,
-                        null,
-                        "Cannot authenticate user because admin user is not permitted to login via HTTP"
-                    )
+                    new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP")
                 );
                 return false;
             }
@@ -430,7 +426,7 @@ public class BackendRegistry {
             notifyIpAuthFailureListeners(request, authCredentials);
 
             request.queueForSending(
-                challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"))
+                challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"))
             );
             return false;
         }

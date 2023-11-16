@@ -233,7 +233,7 @@ public class SecurityRestFilter {
                 }
                 log.debug(err);
 
-                request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
+                request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, err));
                 return;
             }
         }
@@ -276,7 +276,7 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
-            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, new Exception("No ssl info")));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, e));
             return;
         }
 
