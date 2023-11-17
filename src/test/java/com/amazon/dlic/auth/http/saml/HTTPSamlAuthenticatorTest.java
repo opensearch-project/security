@@ -887,7 +887,7 @@ public class HTTPSamlAuthenticatorTest {
         RestRequest restRequest = new FakeRestRequest(ImmutableMap.of(), new HashMap<String, String>());
         SecurityResponse response = sendToAuthenticator(samlAuthenticator, restRequest).orElseThrow();
 
-        String wwwAuthenticateHeader = response.getHeaders().get("WWW-Authenticate");
+        String wwwAuthenticateHeader = response.getHeaders().get("WWW-Authenticate").get(0);
 
         Assert.assertNotNull(wwwAuthenticateHeader);
 
