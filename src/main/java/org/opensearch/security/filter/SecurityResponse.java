@@ -36,7 +36,6 @@ public class SecurityResponse {
 
     public SecurityResponse(final int status, final Exception e) {
         this.status = status;
-        populateHeaders(CONTENT_TYPE_APP_JSON);
         this.body = generateFailureMessage(e);
         this.contentType = XContentType.JSON.mediaType();
     }

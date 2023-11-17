@@ -386,6 +386,7 @@ checkstyle {
 }
 
 tasks.withType(Checkstyle) {
+    dependsOn(':precommit')
     reports {
         ignoreFailures = false
     }
