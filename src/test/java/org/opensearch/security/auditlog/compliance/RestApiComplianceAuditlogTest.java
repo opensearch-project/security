@@ -46,8 +46,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
-        setup(additionalSettings);
-        Thread.sleep(100);
+        setupAndReturnAuditMessages(additionalSettings);
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
             HttpResponse response = rh.executePutRequest(
@@ -76,8 +75,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
-        setup(additionalSettings);
-        Thread.sleep(100);
+        setupAndReturnAuditMessages(additionalSettings);
         String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
 
         rh.enableHTTPClientSSL = true;
@@ -107,8 +105,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
-        setup(additionalSettings);
-        Thread.sleep(100);
+        setupAndReturnAuditMessages(additionalSettings);
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
@@ -137,13 +134,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
-        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
-            try {
-                setup(additionalSettings);
-            } catch (Exception ignore) {
-                fail("Received unexpected exception during setup");
-            }
-        }, 4);
+        final List<AuditMessage> messages = setupAndReturnAuditMessages(additionalSettings);
 
         validateMsgs(messages);
         String allMessages = messages.stream().map(AuditMessage::toString).collect(Collectors.joining(","));
@@ -165,8 +156,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
             .build();
 
-        setup(additionalSettings);
-        Thread.sleep(100);
+        setupAndReturnAuditMessages(additionalSettings);
 
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
@@ -197,8 +187,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
-        setup(additionalSettings);
-        Thread.sleep(100);
+        setupAndReturnAuditMessages(additionalSettings);
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
@@ -225,8 +214,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
             .build();
-        setup(settings);
-        Thread.sleep(100);
+        setupAndReturnAuditMessages(settings);
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
@@ -251,5 +239,20 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         });
 
         Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(message3.toString()).matches());
+    }
+
+    private List<AuditMessage> setupAndReturnAuditMessages(Settings settings) {
+        int expectedMessageCount = settings.getAsBoolean(
+            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
+            false
+        ) ? 4 : 1;
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            try {
+                setup(settings);
+            } catch (Exception ignore) {
+                fail("Received unexpected exception during setup");
+            }
+        }, expectedMessageCount);
+        return messages;
     }
 }
