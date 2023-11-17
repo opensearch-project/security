@@ -40,7 +40,7 @@ public class BasicAuthTests {
     static final User TEST_USER = new User("test_user").password("s3cret");
 
     public static final String CUSTOM_ATTRIBUTE_NAME = "superhero";
-    static final User SUPER_USER = new User("super-user").password("super-password").attr(CUSTOM_ATTRIBUTE_NAME, true);
+    static final User SUPER_USER = new User("super-user").password("super-password").attr(CUSTOM_ATTRIBUTE_NAME, "true");
     public static final String NOT_EXISTING_USER = "not-existing-user";
     public static final String INVALID_PASSWORD = "secret-password";
 

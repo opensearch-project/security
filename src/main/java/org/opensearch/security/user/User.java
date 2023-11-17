@@ -66,10 +66,10 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     /**
      * roles == backend_roles
      */
-    private final Set<String> roles = new HashSet<String>();
-    private final Set<String> openDistroSecurityRoles = new HashSet<String>();
+    private final Set<String> roles = Collections.synchronizedSet(new HashSet<String>());
+    private final Set<String> openDistroSecurityRoles = Collections.synchronizedSet(new HashSet<String>());
     private String requestedTenant;
-    private Map<String, String> attributes = new HashMap<>();
+    private Map<String, String> attributes = Collections.synchronizedMap(new HashMap<>());
     private boolean isInjected = false;
 
     public User(final StreamInput in) throws IOException {
@@ -77,7 +77,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         name = in.readString();
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
-        attributes = in.readMap(StreamInput::readString, StreamInput::readString);
+        attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         openDistroSecurityRoles.addAll(in.readList(StreamInput::readString));
     }
     
@@ -162,7 +162,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addAttributes(final Map<String,String> attributes) {
@@ -254,7 +254,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      */
     public synchronized final Map<String, String> getCustomAttributesMap() {
         if(attributes == null) {
-            attributes = new HashMap<>();
+            attributes = Collections.synchronizedMap(new HashMap<>());
         }
         return attributes;
     }
@@ -266,6 +266,6 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
     
     public final Set<String> getSecurityRoles() {
-        return this.openDistroSecurityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.openDistroSecurityRoles);
+        return this.openDistroSecurityRoles == null ? Collections.synchronizedSet(Collections.emptySet()) : Collections.unmodifiableSet(this.openDistroSecurityRoles);
     }
 }
