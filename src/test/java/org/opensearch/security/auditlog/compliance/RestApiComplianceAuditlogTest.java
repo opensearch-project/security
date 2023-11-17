@@ -56,7 +56,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 encodeBasicHeader("admin", "admin")
             );
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-            sleepOrFail();
         }, 1);
         validateMsgs(messages);
 
@@ -89,7 +88,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-            sleepOrFail();
         }, 1);
         validateMsgs(messages);
         assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
@@ -119,7 +117,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-            sleepOrFail();
         }, 1);
         validateMsgs(messages);
         assertThat(messages.get(0).toString(), containsString("audit_request_effective_user"));
@@ -143,7 +140,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try {
                 setup(additionalSettings);
-                Thread.sleep(100);
             } catch (Exception ignore) {
                 fail("Received unexpected exception during setup");
             }
@@ -180,7 +176,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 encodeBasicHeader("admin", "admin")
             );
             Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
-            sleepOrFail();
         }, 1);
         validateMsgs(messages);
         assertThat(messages.get(0).toString(), containsString("audit_request_effective_user"));
@@ -214,7 +209,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
             String auditLogImpl = TestAuditlogImpl.sb.toString();
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-            sleepOrFail();
             Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         }, 1);
         validateMsgs(messages);
@@ -239,7 +233,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         // read internal users and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.doThenWaitForMessages(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers");
-            sleepOrFail();
             Assert.assertEquals(1, TestAuditlogImpl.messages.size());
             Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
         }, 1);
@@ -247,7 +240,6 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         // read internal user worf and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.doThenWaitForMessages(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers/worf");
-            sleepOrFail();
             Assert.assertEquals(1, TestAuditlogImpl.messages.size());
             Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
         }, 1);
@@ -259,13 +251,5 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             Assert.assertEquals(1, TestAuditlogImpl.messages.size());
             Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
         }, 1);
-    }
-
-    private static void sleepOrFail() {
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            fail("Received unexpected exception");
-        }
     }
 }
