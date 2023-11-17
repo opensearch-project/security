@@ -217,9 +217,8 @@ public class SecuritySettingsConfigurer extends Installer {
         securityConfigLines.append("plugins.security.check_snapshot_restore_write_privileges:  true\n");
         securityConfigLines.append("plugins.security.restapi.roles_enabled:  [\"all_access\", \"security_rest_api_access\"]\n");
 
-        securityConfigLines.append("plugins.security.system_indices.enabled: true\n" + "plugins.security.system_indices.indices: [")
-            .append(SYSTEM_INDICES)
-            .append("]\n");
+        securityConfigLines.append("plugins.security.system_indices.enabled: true\n");
+        securityConfigLines.append("plugins.security.system_indices.indices: [").append(SYSTEM_INDICES).append("]\n");
 
         if (!isNetworkHostAlreadyPresent(OPENSEARCH_CONF_FILE)) {
             if (cluster_mode) {
