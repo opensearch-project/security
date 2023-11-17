@@ -12,6 +12,7 @@
 package org.opensearch.security.auditlog.compliance;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
@@ -24,6 +25,8 @@ import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.fail;
 
 public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
@@ -44,7 +47,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .build();
 
         setup(additionalSettings);
-        Thread.sleep(1000);
+        Thread.sleep(100);
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
             HttpResponse response = rh.executePutRequest(
@@ -53,14 +56,11 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 encodeBasicHeader("admin", "admin")
             );
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("UPDATE"));
+            sleepOrFail();
         }, 1);
         validateMsgs(messages);
+
+        assertThat(messages.get(0).toString(), containsString("UPDATE"));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .build();
 
         setup(additionalSettings);
-        Thread.sleep(1000);
+        Thread.sleep(100);
         String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
 
         rh.enableHTTPClientSSL = true;
@@ -89,14 +89,10 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
+            sleepOrFail();
         }, 1);
         validateMsgs(messages);
+        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
     }
 
     @Test
@@ -114,7 +110,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .build();
 
         setup(additionalSettings);
-        Thread.sleep(1000);
+        Thread.sleep(100);
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
@@ -123,15 +119,11 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
+            sleepOrFail();
         }, 1);
         validateMsgs(messages);
+        assertThat(messages.get(0).toString(), containsString("audit_request_effective_user"));
+        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_READ"));
     }
 
     @Test
@@ -151,17 +143,17 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try {
                 setup(additionalSettings);
-                Thread.sleep(1500);
+                Thread.sleep(100);
             } catch (Exception ignore) {
                 fail("Received unexpected exception during setup");
             }
-
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_EXTERNAL_CONFIG"));
         }, 4);
 
         validateMsgs(messages);
+        String allMessages = messages.stream().map(AuditMessage::toString).collect(Collectors.joining(","));
+        assertThat(allMessages, containsString("audit_request_effective_user"));
+        assertThat(allMessages, containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
+        assertThat(allMessages, containsString("COMPLIANCE_EXTERNAL_CONFIG"));
     }
 
     @Test
@@ -178,7 +170,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .build();
 
         setup(additionalSettings);
-        Thread.sleep(1000);
+        Thread.sleep(100);
 
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
@@ -188,15 +180,11 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 encodeBasicHeader("admin", "admin")
             );
             Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
-            Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
+            sleepOrFail();
         }, 1);
         validateMsgs(messages);
+        assertThat(messages.get(0).toString(), containsString("audit_request_effective_user"));
+        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
     }
 
     @Test
@@ -215,7 +203,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .build();
 
         setup(additionalSettings);
-        Thread.sleep(1000);
+        Thread.sleep(100);
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
@@ -226,14 +214,11 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
             String auditLogImpl = TestAuditlogImpl.sb.toString();
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
+            sleepOrFail();
             Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         }, 1);
         validateMsgs(messages);
+        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_READ"));
     }
 
     @Test
@@ -247,18 +232,14 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
             .build();
         setup(settings);
-        Thread.sleep(1000);
+        Thread.sleep(100);
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
         // read internal users and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.doThenWaitForMessages(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers");
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
+            sleepOrFail();
             Assert.assertEquals(1, TestAuditlogImpl.messages.size());
             Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
         }, 1);
@@ -266,11 +247,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         // read internal user worf and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.doThenWaitForMessages(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers/worf");
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
+            sleepOrFail();
             Assert.assertEquals(1, TestAuditlogImpl.messages.size());
             Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
         }, 1);
@@ -278,13 +255,17 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         // create internal user and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.doThenWaitForMessages(() -> {
             rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"password\":\"some new user password\"}");
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                fail("Received unexpected exception");
-            }
+
             Assert.assertEquals(1, TestAuditlogImpl.messages.size());
             Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
         }, 1);
+    }
+
+    private static void sleepOrFail() {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            fail("Received unexpected exception");
+        }
     }
 }
