@@ -48,7 +48,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
         Thread.sleep(100);
-        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
             HttpResponse response = rh.executePutRequest(
                 "_opendistro/_security/api/internalusers/compuser?pretty",
@@ -56,10 +56,10 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 encodeBasicHeader("admin", "admin")
             );
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        }, 1);
-        validateMsgs(messages);
+        });
+        validateMsgs(List.of(message));
 
-        assertThat(messages.get(0).toString(), containsString("UPDATE"));
+        assertThat(message.toString(), containsString("UPDATE"));
     }
 
     @Test
@@ -85,12 +85,12 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        }, 1);
-        validateMsgs(messages);
-        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
+        });
+        validateMsgs(List.of(message));
+        assertThat(message.toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
     }
 
     @Test
@@ -114,13 +114,13 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
-        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        }, 1);
-        validateMsgs(messages);
-        assertThat(messages.get(0).toString(), containsString("audit_request_effective_user"));
-        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_READ"));
+        });
+        validateMsgs(List.of(message));
+        assertThat(message.toString(), containsString("audit_request_effective_user"));
+        assertThat(message.toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_READ"));
     }
 
     @Test
@@ -168,7 +168,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
         Thread.sleep(100);
 
-        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
             HttpResponse response = rh.executePutRequest(
                 "_opendistro/_security/api/internalusers/compuser?pretty",
@@ -176,10 +176,10 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 encodeBasicHeader("admin", "admin")
             );
             Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
-        }, 1);
-        validateMsgs(messages);
-        assertThat(messages.get(0).toString(), containsString("audit_request_effective_user"));
-        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
+        });
+        validateMsgs(List.of(message));
+        assertThat(message.toString(), containsString("audit_request_effective_user"));
+        assertThat(message.toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
     }
 
     @Test
@@ -205,14 +205,14 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
             String auditLogImpl = TestAuditlogImpl.sb.toString();
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
             Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
-        }, 1);
-        validateMsgs(messages);
-        assertThat(messages.get(0).toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_READ"));
+        });
+        validateMsgs(List.of(message));
+        assertThat(message.toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_READ"));
     }
 
     @Test
@@ -231,25 +231,25 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "kirk-keystore.jks";
 
         // read internal users and verify no BCrypt hash is present in audit logs
-        TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers");
-            Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-            Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
-        }, 1);
+        });
+
+        Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(message1.toString()).matches());
 
         // read internal user worf and verify no BCrypt hash is present in audit logs
-        TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message2 = TestAuditlogImpl.doThenWaitForMessage(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers/worf");
-            Assert.assertEquals(1, TestAuditlogImpl.messages.size());
             Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
-        }, 1);
+        });
+
+        Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(message2.toString()).matches());
 
         // create internal user and verify no BCrypt hash is present in audit logs
-        TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final AuditMessage message3 = TestAuditlogImpl.doThenWaitForMessage(() -> {
             rh.executePutRequest("/_opendistro/_security/api/internalusers/test", "{ \"password\":\"some new user password\"}");
+        });
 
-            Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-            Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
-        }, 1);
+        Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(message3.toString()).matches());
     }
 }
