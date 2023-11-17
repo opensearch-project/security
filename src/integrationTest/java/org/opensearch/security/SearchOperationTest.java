@@ -1869,7 +1869,7 @@ public class SearchOperationTest {
                 "/_snapshot/test-snapshot-repository/restore-snapshot-positive/_restore"
             )
         );
-        auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
+        auditLogsRule.assertExactly(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
         auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(
             snapshotGetCount,
