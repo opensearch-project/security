@@ -420,7 +420,7 @@ public class RestHelper {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No content type found. Headers:\n" + getHeaders() + "\n\nBody:\n" + body));
 
-            if (contentType.equals("application/json")) {
+            if (contentType.contains("application/json")) {
                 assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
             } else {
                 assertThat(

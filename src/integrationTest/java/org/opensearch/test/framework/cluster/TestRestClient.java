@@ -296,16 +296,14 @@ public class TestRestClient implements AutoCloseable {
 
         private void verifyContentType() {
             final String contentType = this.getHeader(HttpHeaders.CONTENT_TYPE).getValue();
-            if (contentType.equals("application/json")) {
+            if (contentType.contains("application/json")) {
                 assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
             } else {
-                if (body.length() != 0) {
-                    assertThat(
-                        "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
-                        body.charAt(0),
-                        not(equalTo('{'))
-                    );
-                }
+                assertThat(
+                    "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
+                    body.charAt(0),
+                    not(equalTo('{'))
+                );
             }
 
         }
