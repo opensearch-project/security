@@ -326,7 +326,6 @@ public class JsonFlattenerTest {
             "\t},\n" + //
             "\t\"string\": \"Hello World\"\n" + //
             "}");
-        System.out.println(flattenedMap4.values());
         assertThat(
             flattenedMap4.keySet(),
             containsInAnyOrder(
