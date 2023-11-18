@@ -386,6 +386,7 @@ checkstyle {
 }
 
 tasks.withType(Checkstyle) {
+    dependsOn(':precommit')
     reports {
         ignoreFailures = false
     }
@@ -487,6 +488,9 @@ configurations {
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
+            // for spotless transitive dependency CVE
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.29.0"
+
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
@@ -557,6 +561,8 @@ task integrationTest(type: Test) {
     }
 }
 
+tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
+
 //run the integrationTest task before the check task
 check.dependsOn integrationTest
 
@@ -572,7 +578,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.6.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.37'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.37.1'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
@@ -680,8 +686,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.7'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation 'org.springframework:spring-beans:5.3.30'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
         testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"
@@ -732,7 +738,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.18.1') {
         exclude group: 'com.google.guava'
     }
 }

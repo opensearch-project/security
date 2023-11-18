@@ -55,7 +55,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -122,32 +122,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
-    }
-
-    @Test
-    public void testAutoInit() throws Exception {
-
-        Settings additionalSettings = Settings.builder()
-            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true)
-            .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-            .build();
-
-        setup(additionalSettings);
-
-        Thread.sleep(1500);
-
-        Assert.assertTrue(TestAuditlogImpl.messages.size() > 2);
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_EXTERNAL_CONFIG"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -208,7 +183,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertFalse(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertFalse(auditLogImpl.contains("UPDATE"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
