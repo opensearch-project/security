@@ -1,6 +1,13 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ */
 package org.opensearch.security.rest;
-
-
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -8,17 +15,17 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Test;
+
 import org.opensearch.security.dlic.rest.api.AbstractRestApiUnitTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.test.framework.AsyncActions;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class TenantAsyncActionTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
@@ -56,6 +63,6 @@ public class TenantAsyncActionTest extends AbstractRestApiUnitTest {
         assertThat(numCreatedResponses.get(), equalTo(1)); // should only be one 201
 
         RestHelper.HttpResponse getResponse = rh.executeGetRequest(TENANTS_ENDPOINT); // make sure the one 201 works
-        assertThat(getResponse.findValueInJson("tenant1" + ".description"), equalTo("create new tenant"));
+        assertThat(getResponse.findValueInJson("tenant1.description"), equalTo("create new tenant"));
     }
 }
