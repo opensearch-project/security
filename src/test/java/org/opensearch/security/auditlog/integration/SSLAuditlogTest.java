@@ -11,7 +11,7 @@
 
 package org.opensearch.security.auditlog.integration;
 
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
