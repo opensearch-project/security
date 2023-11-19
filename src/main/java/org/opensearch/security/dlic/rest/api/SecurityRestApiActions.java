@@ -11,10 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -28,6 +24,10 @@ import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
+
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 

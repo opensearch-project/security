@@ -21,7 +21,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.rest.BaseRestHandler;
@@ -29,6 +28,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.identity.SecurityTokenManager;
 
 import static org.opensearch.rest.RestRequest.Method.POST;

@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auth.AuthenticationBackend;
@@ -43,8 +44,6 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
-
-import org.greenrobot.eventbus.Subscribe;
 
 public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
 

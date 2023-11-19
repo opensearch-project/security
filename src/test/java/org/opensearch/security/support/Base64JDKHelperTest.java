@@ -11,6 +11,10 @@
 
 package org.opensearch.security.support;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.hamcrest.Matchers.containsString;
+
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -18,10 +22,9 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.google.common.io.BaseEncoding;
 import org.junit.Assert;
 import org.junit.Test;
-
+import org.ldaptive.LdapEntry;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.security.auth.UserInjector;
@@ -29,11 +32,7 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
-import org.ldaptive.LdapEntry;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThrows;
+import com.google.common.io.BaseEncoding;
 
 public class Base64JDKHelperTest {
     private static final class NotSafeSerializable implements Serializable {

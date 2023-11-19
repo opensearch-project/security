@@ -11,12 +11,14 @@
 
 package com.amazon.dlic.auth.ldap2;
 
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
@@ -25,8 +27,6 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-
-import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 
 public class LdapBackendIntegTest2 extends SingleClusterTest {
 

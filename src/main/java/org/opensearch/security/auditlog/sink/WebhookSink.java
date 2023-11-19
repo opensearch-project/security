@@ -21,6 +21,7 @@ import java.security.KeyStore;
 import java.security.PrivilegedAction;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.SSLContext;
 
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -41,7 +42,6 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
 import org.apache.http.HttpStatus;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.auditlog.impl.AuditMessage;

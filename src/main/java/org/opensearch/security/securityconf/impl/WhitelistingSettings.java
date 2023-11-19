@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.http.HttpStatus;
-
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 

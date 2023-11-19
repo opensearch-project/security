@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.http.HttpStatus;
-
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.filter.SecurityRequest;

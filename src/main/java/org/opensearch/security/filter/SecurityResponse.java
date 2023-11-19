@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.http.HttpHeaders;
-
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;

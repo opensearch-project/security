@@ -9,8 +9,6 @@
 */
 package org.opensearch.test.framework.testplugins;
 
-import java.io.IOException;
-
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
@@ -19,6 +17,8 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+
+import java.io.IOException;
 
 public class AbstractRestHandler extends BaseRestHandler {
 

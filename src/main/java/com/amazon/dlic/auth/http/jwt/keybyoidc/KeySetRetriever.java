@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.concurrent.TimeUnit;
 
+import com.nimbusds.jose.jwk.JWKSet;
+import joptsimple.internal.Strings;
 import org.apache.hc.client5.http.cache.HttpCacheContext;
 import org.apache.hc.client5.http.cache.HttpCacheStorage;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -32,12 +34,10 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.security.DefaultObjectMapper;
-
 import com.amazon.dlic.auth.http.jwt.oidc.json.OpenIdProviderConfiguration;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfig;
-import com.nimbusds.jose.jwk.JWKSet;
-import joptsimple.internal.Strings;
+
+import org.opensearch.security.DefaultObjectMapper;
 
 public class KeySetRetriever implements KeySetProvider {
     private final static Logger log = LogManager.getLogger(KeySetRetriever.class);

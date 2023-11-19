@@ -11,10 +11,7 @@
 
 package org.opensearch.test.framework.testplugins.dummy;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
-
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -22,6 +19,8 @@ import org.opensearch.rest.action.RestStatusToXContentListener;
 import org.opensearch.test.framework.testplugins.AbstractRestHandler;
 import org.opensearch.test.framework.testplugins.dummy.dummyaction.DummyAction;
 import org.opensearch.test.framework.testplugins.dummy.dummyaction.DummyRequest;
+
+import java.util.List;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;

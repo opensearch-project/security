@@ -21,8 +21,10 @@ import java.lang.reflect.Method;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,8 +44,6 @@ import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.netty4.Netty4TcpChannel;
-
-import io.netty.handler.ssl.SslHandler;
 
 public class SecuritySSLRequestHandler<T extends TransportRequest> implements TransportRequestHandler<T> {
 

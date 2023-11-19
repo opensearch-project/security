@@ -11,9 +11,8 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import org.junit.Test;
-
 import com.nimbusds.jose.JWSAlgorithm;
+import org.junit.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

@@ -11,12 +11,11 @@
 
 package org.opensearch.security.support;
 
-import java.net.InetSocketAddress;
-
 import org.junit.Assert;
 import org.junit.Test;
-
 import org.opensearch.OpenSearchException;
+
+import java.net.InetSocketAddress;
 
 public class StreamableRegistryTest {
 

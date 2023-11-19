@@ -21,7 +21,7 @@ import java.util.concurrent.Future;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.Header;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
@@ -37,7 +37,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.user.UserService;
-
 import org.passay.CharacterCharacteristicsRule;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
@@ -47,10 +46,10 @@ import org.passay.PasswordData;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotEquals;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
-import static org.junit.Assert.assertNotEquals;
 
 public class UserApiTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;

@@ -12,7 +12,8 @@ package org.opensearch.security.transport;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mock;
 import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -25,9 +26,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
-
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mock;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;

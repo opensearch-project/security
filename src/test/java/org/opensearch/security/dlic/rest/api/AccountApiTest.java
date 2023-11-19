@@ -12,7 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import org.apache.hc.core5.http.Header;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -21,12 +21,12 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class AccountApiTest extends AbstractRestApiUnitTest {
     private final String BASE_ENDPOINT;
