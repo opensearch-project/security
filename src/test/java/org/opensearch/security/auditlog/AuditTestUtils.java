@@ -15,7 +15,7 @@ import java.nio.file.Path;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;

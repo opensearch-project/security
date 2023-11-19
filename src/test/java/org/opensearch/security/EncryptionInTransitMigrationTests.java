@@ -10,7 +10,7 @@
  */
 package org.opensearch.security;
 
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
