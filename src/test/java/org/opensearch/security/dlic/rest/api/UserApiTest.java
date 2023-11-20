@@ -20,9 +20,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.Header;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;

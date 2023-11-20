@@ -14,8 +14,8 @@ package org.opensearch.security.dlic.dlsfls;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.Header;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;

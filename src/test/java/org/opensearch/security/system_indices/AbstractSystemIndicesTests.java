@@ -14,7 +14,7 @@ package org.opensearch.security.system_indices;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hc.core5.http.Header;
+import org.apache.http.Header;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 
