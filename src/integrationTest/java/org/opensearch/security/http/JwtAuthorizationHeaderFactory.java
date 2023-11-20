@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.Header;
 
 import io.jsonwebtoken.Jwts;

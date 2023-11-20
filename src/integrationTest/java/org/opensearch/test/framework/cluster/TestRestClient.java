@@ -62,7 +62,7 @@ import org.apache.hc.client5.http.routing.HttpRoutePlanner;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.message.BasicHeader;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.http.Header;
 import org.apache.logging.log4j.LogManager;

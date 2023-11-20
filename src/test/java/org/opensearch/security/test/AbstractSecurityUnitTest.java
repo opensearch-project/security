@@ -50,7 +50,7 @@ import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;

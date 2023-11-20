@@ -22,7 +22,7 @@ import javax.crypto.SecretKey;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.Header;
 import org.junit.Before;
 import org.junit.ClassRule;
