@@ -121,6 +121,7 @@
     <module name="IllegalImport"> <!-- defaults to sun.* packages -->
       <property name="severity" value="error"/>
       <property name="illegalPkgs" value="org.apache.cxf.rs.security.jose"/>
+      <property name="illegalClasses" value="org.apache.hc.core5.http.HttpStatus"/>
     </module>
     <module name="RedundantImport">
       <property name="severity" value="error"/>
