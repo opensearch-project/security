@@ -11,7 +11,6 @@
 
 package org.opensearch.security.filter;
 
-import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpHeaders;
@@ -22,6 +21,9 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.RestStatus;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -46,7 +48,7 @@ public class SecurityResponseTests {
     public void testSecurityResponseMultipleContentTypesUsesPassed() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, null, "foo bar", XContentType.JSON.mediaType());
         response.addHeader(HttpHeaders.CONTENT_TYPE, BytesRestResponse.TEXT_CONTENT_TYPE);
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of(BytesRestResponse.TEXT_CONTENT_TYPE)));
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(ImmutableList.of(BytesRestResponse.TEXT_CONTENT_TYPE)));
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.contentType(), equalTo(XContentType.JSON.mediaType()));
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
@@ -82,9 +84,9 @@ public class SecurityResponseTests {
     public void testSecurityResponseAddMultipleContentTypeHeaders() {
         final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, null, "foo bar", XContentType.JSON.mediaType());
         response.addHeader(HttpHeaders.CONTENT_TYPE, BytesRestResponse.TEXT_CONTENT_TYPE);
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of(BytesRestResponse.TEXT_CONTENT_TYPE)));
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(ImmutableList.of(BytesRestResponse.TEXT_CONTENT_TYPE)));
         response.addHeader(HttpHeaders.CONTENT_TYPE, "newContentType");
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of(BytesRestResponse.TEXT_CONTENT_TYPE, "newContentType")));
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(ImmutableList.of(BytesRestResponse.TEXT_CONTENT_TYPE, "newContentType")));
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
     }
@@ -105,8 +107,8 @@ public class SecurityResponseTests {
      */
     @Test
     public void testSecurityResponseContentTypeInConstructorHeader() {
-        final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, Map.of("Content-Type", "testType"), "foo bar");
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of("testType")));
+        final SecurityResponse response = new SecurityResponse(HttpStatus.SC_OK, ImmutableMap.of("Content-Type", "testType"), "foo bar");
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(ImmutableList.of("testType")));
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.contentType(), equalTo(BytesRestResponse.TEXT_CONTENT_TYPE));
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
@@ -119,11 +121,11 @@ public class SecurityResponseTests {
     public void testSecurityResponseContentTypeInConstructorHeaderConflicts() {
         final SecurityResponse response = new SecurityResponse(
             HttpStatus.SC_OK,
-            Map.of("Content-Type", "testType"),
+            ImmutableMap.of("Content-Type", "testType"),
             "foo bar",
             XContentType.JSON.mediaType()
         );
-        assertThat(response.getHeaders().get("Content-Type"), equalTo(List.of("testType")));
+        assertThat(response.getHeaders().get("Content-Type"), equalTo(ImmutableList.of("testType")));
         final RestResponse restResponse = response.asRestResponse();
         assertThat(restResponse.contentType(), equalTo(XContentType.JSON.mediaType()));
         assertThat(restResponse.status(), equalTo(RestStatus.OK));
