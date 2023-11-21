@@ -21,6 +21,8 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.util.FakeRestRequest;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +79,7 @@ public class SecurityRestFilterUnitTests {
 
         FakeRestRequest fakeRequest = new FakeRestRequest.Builder().withPath("/test")
             .withMethod(RestRequest.Method.POST)
-            .withHeaders(Map.of("Content-Type", "application/json"))
+            .withHeaders(ImmutableMap.of("Content-Type", "application/json"))
             .build();
 
         wrappedRestHandler.handleRequest(fakeRequest, mock(RestChannel.class), mock(NodeClient.class));
@@ -99,7 +101,7 @@ public class SecurityRestFilterUnitTests {
 
         FakeRestRequest fakeRequest = new FakeRestRequest.Builder().withPath("/test")
             .withMethod(RestRequest.Method.POST)
-            .withHeaders(Map.of("Content-Type", "application/json"))
+            .withHeaders(ImmutableMap.of("Content-Type", "application/json"))
             .build();
 
         wrappedRestHandler.handleRequest(fakeRequest, mock(RestChannel.class), mock(NodeClient.class));
