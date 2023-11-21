@@ -182,7 +182,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, exception));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
         
@@ -191,7 +191,7 @@ public class SecurityRestFilter {
             log.error(exception.toString());
             auditLog.logBadHeaders(requestChannel);
 
-            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, exception));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, exception.toString()));
             return;
         }
 
@@ -211,7 +211,7 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
-            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, new Exception("No ssl info")));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, null));
             return;
         }
 
