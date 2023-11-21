@@ -247,7 +247,7 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
     }
 
-     @Test
+    @Test
     public void testMaskedMGet() throws Exception {
 
         setup();
@@ -256,7 +256,8 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_mget", "{\"docs\":[{\"_id\":\"0\"}]}", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            (res = rh.executeGetRequest("/deals/_mget", "{\"docs\":[{\"_id\":\"0\"}]}", encodeBasicHeader("admin", "admin")))
+                .getStatusCode()
         );
         Assert.assertTrue(res.getBody().contains("\"found\":true"));
         Assert.assertTrue(res.getBody().contains("cust1"));
@@ -267,7 +268,8 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_mget", "{\"docs\":[{\"_id\":\"0\"}]}", encodeBasicHeader("user_masked", "password"))).getStatusCode()
+            (res = rh.executeGetRequest("/deals/_mget", "{\"docs\":[{\"_id\":\"0\"}]}", encodeBasicHeader("user_masked", "password")))
+                .getStatusCode()
         );
         Assert.assertTrue(res.getBody().contains("\"found\":true"));
         Assert.assertTrue(res.getBody().contains("cust1"));

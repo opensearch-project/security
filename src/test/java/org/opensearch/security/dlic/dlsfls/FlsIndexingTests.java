@@ -187,7 +187,7 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
         assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(true));
         assertThat(getResponse.getBody().contains("\"phone-some\":1002"), equalTo(true));
         assertThat(getResponse.getBody().contains("\"phone-one\":1003"), equalTo(false));
-        
+
         getResponse = rh.executeGetRequest("/yellow-pages/_doc/1", asPhoneOneIncludeUser);
         assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(false));
@@ -208,7 +208,7 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
         assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(true));
         assertThat(getResponse.getBody().contains("\"phone-some\":1002"), equalTo(true));
         assertThat(getResponse.getBody().contains("\"phone-one\":1003"), equalTo(false));
-        
+
         getResponse = rh.executeGetRequest("/yellow-pages/_mget", "{\"docs\":[{\"_id\":\"1\"}]}", asPhoneOneIncludeUser);
         assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(false));
