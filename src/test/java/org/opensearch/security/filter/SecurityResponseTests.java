@@ -19,9 +19,9 @@ import org.apache.http.HttpStatus;
 import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestResponse;
+import org.opensearch.rest.RestStatus;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
