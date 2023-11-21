@@ -55,6 +55,7 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
     private Header asPhoneOneUser = encodeBasicHeader("user_aaa", "password");
     private Header asPhoneSomeUser = encodeBasicHeader("user_bbb", "password");
     private Header asPhoneAllUser = encodeBasicHeader("user_ccc", "password");
+    private Header asPhoneOneIncludeUser = encodeBasicHeader("user_ddd", "password");
 
     private final String searchQuery = "/*/_search?filter_path=hits.hits&pretty";
 
@@ -171,5 +172,47 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
         assertThat(phoneAllFilteredResponse.getBody(), containsString("3003"));
         assertThat(phoneAllFilteredResponse.getBody(), containsString("3002"));
         assertThat(phoneAllFilteredResponse.getBody(), not(containsString("3001")));
+    }
+
+    @Test
+    public void testGetDocumentWithFLSRestrictions() throws Exception {
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_fls_indexing.yml").setSecurityRolesMapping("roles_mapping_fls_indexing.yml")
+        );
+
+        HttpResponse getResponse;
+
+        getResponse = rh.executeGetRequest("/yellow-pages/_doc/1", asPhoneOneUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"phone-some\":1002"), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"phone-one\":1003"), equalTo(false));
+        
+        getResponse = rh.executeGetRequest("/yellow-pages/_doc/1", asPhoneOneIncludeUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(false));
+        assertThat(getResponse.getBody().contains("\"phone-some\":1002"), equalTo(false));
+        assertThat(getResponse.getBody().contains("\"phone-one\":1003"), equalTo(true));
+    }
+
+    @Test
+    public void testMultiGetDocumentWithFLSRestrictions() throws Exception {
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_fls_indexing.yml").setSecurityRolesMapping("roles_mapping_fls_indexing.yml")
+        );
+
+        HttpResponse getResponse;
+
+        getResponse = rh.executeGetRequest("/yellow-pages/_mget", "{\"docs\":[{\"_id\":\"1\"}]}", asPhoneOneUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"phone-some\":1002"), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"phone-one\":1003"), equalTo(false));
+        
+        getResponse = rh.executeGetRequest("/yellow-pages/_mget", "{\"docs\":[{\"_id\":\"1\"}]}", asPhoneOneIncludeUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"phone-all\":1001"), equalTo(false));
+        assertThat(getResponse.getBody().contains("\"phone-some\":1002"), equalTo(false));
+        assertThat(getResponse.getBody().contains("\"phone-one\":1003"), equalTo(true));
     }
 }

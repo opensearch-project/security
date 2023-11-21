@@ -14,6 +14,8 @@ all_indices_no_phone:
     allowed_actions:
     - "ALL"
 some_indices_no_phone:
+  cluster_permissions:
+  - "*"
   index_permissions:
   - index_patterns:
     - "*pages*"
@@ -26,11 +28,27 @@ some_indices_no_phone:
     allowed_actions:
     - "read"
 once_indices_no_phone:
+  cluster_permissions:
+  - "*"
   index_permissions:
   - index_patterns:
     - "yellow-pages"
     fls:
     - "~phone-one"
+    allowed_actions:
+    - "ALL"
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "read"
+once_indices_phone:
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "yellow-pages"
+    fls:
+    - "phone-one"
     allowed_actions:
     - "ALL"
   - index_patterns:

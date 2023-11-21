@@ -1,0 +1,30 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+test_role_bool:
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "terms"
+    dls: "{\"bool\":{\"must\":{\"match\":{\"foo\":\"bar\"}}}}"
+    allowed_actions:
+    - "ALL"
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "read"
+test_role_terms:
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "terms"
+    dls: "{\"term\":{\"foo\":\"bar\"}}"
+    allowed_actions:
+    - "ALL"
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "read"

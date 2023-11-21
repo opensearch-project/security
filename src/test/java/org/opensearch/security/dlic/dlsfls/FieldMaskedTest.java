@@ -247,4 +247,34 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
     }
 
+     @Test
+    public void testMaskedMGet() throws Exception {
+
+        setup();
+
+        HttpResponse res;
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_mget", "{\"docs\":[{\"_id\":\"0\"}]}", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"found\":true"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertFalse(res.getBody().contains("cust2"));
+        Assert.assertTrue(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_mget", "{\"docs\":[{\"_id\":\"0\"}]}", encodeBasicHeader("user_masked", "password"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"found\":true"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertFalse(res.getBody().contains("cust2"));
+        Assert.assertFalse(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertTrue(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+    }
+
 }

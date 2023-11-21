@@ -11,7 +11,11 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Header;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -21,6 +25,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class DlsTest extends AbstractDlsFlsTest {
@@ -50,6 +55,9 @@ public class DlsTest extends AbstractDlsFlsTest {
         tc.search(new SearchRequest().indices("deals")).actionGet();
         tc.search(new SearchRequest().indices("terms")).actionGet();
     }
+
+    final Header boolUser = encodeBasicHeader("bool_user", "password");
+    final Header termsUser = encodeBasicHeader("terms_user", "password");
 
     @Test
     public void testDlsAggregations() throws Exception {
@@ -593,5 +601,66 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"C\""));
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"D\""));
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"E\""));
+    }
+
+    @Test
+    public void testGetDocumentWithDLSRestrictions() throws Exception {
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_dls.yml").setSecurityRolesMapping("roles_mapping_dls.yml")
+        );
+
+        HttpResponse getResponse;
+
+        getResponse = rh.executeGetRequest("/terms/_doc/0", boolUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"foo\": \"bar\""), equalTo(true));
+
+        getResponse = rh.executeGetRequest("/terms/_doc/1", boolUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
+        
+        getResponse = rh.executeGetRequest("/terms/_doc/0", termsUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"foo\": \"bar\""), equalTo(true));
+
+        getResponse = rh.executeGetRequest("/terms/_doc/1", termsUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
+    }
+
+    @Test
+    public void testMultiGetDocumentWithDLSRestrictions() throws Exception {
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_dls.yml").setSecurityRolesMapping("roles_mapping_dls.yml")
+        );
+
+        HttpResponse getResponse;
+
+        getResponse = rh.executeGetRequest("/terms/_mget", "{\"docs\":[{\"_id\":\"0\"},{\"_id\":\"1\"}]}", boolUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"foo\": \"bar\""), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"foo\": \"baz\""), equalTo(false));
+        
+        getResponse = rh.executeGetRequest("/terms/_mget", "{\"docs\":[{\"_id\":\"0\"},{\"_id\":\"1\"}]}", termsUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"foo\": \"bar\""), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"foo\": \"baz\""), equalTo(false));
+    }
+
+    @Test
+    public void testSearchDocumentWithDLSRestrictions() throws Exception {
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_dls.yml").setSecurityRolesMapping("roles_mapping_dls.yml")
+        );
+
+        HttpResponse getResponse;
+
+        getResponse = rh.executeGetRequest("/terms/_search", "{\"query\":{\"match_all\":{}}}", boolUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"foo\": \"bar\""), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"foo\": \"baz\""), equalTo(false));
+        
+        getResponse = rh.executeGetRequest("/terms/_search", "{\"query\":{\"match_all\":{}}}", termsUser);
+        assertThat(getResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(getResponse.getBody().contains("\"foo\": \"bar\""), equalTo(true));
+        assertThat(getResponse.getBody().contains("\"foo\": \"baz\""), equalTo(false));
     }
 }
