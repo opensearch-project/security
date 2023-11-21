@@ -90,6 +90,10 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+
 public class RestHelper {
 
     protected final Logger log = LogManager.getLogger(RestHelper.class);
@@ -402,6 +406,29 @@ public class RestHelper {
             this.statusCode = inner.getCode();
             this.statusReason = inner.getReasonPhrase();
             this.protocolVersion = inner.getVersion();
+
+            if (this.body.length() != 0) {
+                verifyBodyContentType();
+            }
+        }
+
+        private void verifyBodyContentType() {
+            final String contentType = this.getHeaders()
+                .stream()
+                .filter(h -> HttpHeaders.CONTENT_TYPE.equalsIgnoreCase(h.getName()))
+                .map(Header::getValue)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No content type found. Headers:\n" + getHeaders() + "\n\nBody:\n" + body));
+
+            if (contentType.contains("application/json")) {
+                assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
+            } else {
+                assertThat(
+                    "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
+                    body.charAt(0),
+                    not(equalTo('{'))
+                );
+            }
         }
 
         public String getContentType() {
