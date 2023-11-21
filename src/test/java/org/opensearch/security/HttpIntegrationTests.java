@@ -31,9 +31,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;

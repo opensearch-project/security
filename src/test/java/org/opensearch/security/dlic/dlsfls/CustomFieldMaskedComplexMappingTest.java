@@ -13,7 +13,7 @@ package org.opensearch.security.dlic.dlsfls;
 
 import java.nio.charset.StandardCharsets;
 
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
