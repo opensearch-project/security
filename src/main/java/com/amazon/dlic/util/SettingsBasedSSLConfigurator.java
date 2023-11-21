@@ -47,8 +47,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
 
 public class SettingsBasedSSLConfigurator {
     private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);
@@ -324,17 +324,17 @@ public class SettingsBasedSSLConfigurator {
         try {
             trustStore = PemKeyReader.loadKeyStore(
                 PemKeyReader.resolve(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                    SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
                     settings,
                     configPath,
                     !isTrustAllEnabled()
                 ),
-                SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
-                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
+                SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings),
+                settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE)
             );
         } catch (Exception e) {
             throw new SSLConfigException(
-                "Error loading trust store from " + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH),
+                "Error loading trust store from " + settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH),
                 e
             );
         }
@@ -346,22 +346,22 @@ public class SettingsBasedSSLConfigurator {
         try {
             keyStore = PemKeyReader.loadKeyStore(
                 PemKeyReader.resolve(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                    SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
                     settings,
                     configPath,
                     enableSslClientAuth
                 ),
-                SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
-                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE)
+                SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_TYPE)
             );
         } catch (Exception e) {
             throw new SSLConfigException(
-                "Error loading key store from " + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH),
+                "Error loading key store from " + settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH),
                 e
             );
         }
 
-        String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD);
+        String keyStorePassword = SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD);
         effectiveKeyPassword = keyStorePassword == null || keyStorePassword.isEmpty() ? null : keyStorePassword.toCharArray();
         effectiveKeyAlias = getSetting(CERT_ALIAS);
 

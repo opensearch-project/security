@@ -31,8 +31,8 @@ import org.opensearch.security.support.PemKeyReader;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
-import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
 
 public final class ExternalOpenSearchSink extends AuditLogSink {
 
@@ -171,23 +171,23 @@ public final class ExternalOpenSearchSink extends AuditLogSink {
 
             } else {
                 final KeyStore trustStore = PemKeyReader.loadKeyStore(
-                    PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, true),
-                    SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
-                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
+                    PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, settings, configPath, true),
+                    SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings),
+                    settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE)
                 );
 
                 // for client authentication
                 final KeyStore keyStore = PemKeyReader.loadKeyStore(
                     PemKeyReader.resolve(
-                        SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                        SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
                         settings,
                         configPath,
                         enableSslClientAuth
                     ),
-                    SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
-                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE)
+                    SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                    settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_TYPE)
                 );
-                final String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(
+                final String keyStorePassword = SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.getSetting(
                     settings,
                     SSLConfigConstants.DEFAULT_STORE_PASSWORD
                 );
