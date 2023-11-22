@@ -13,6 +13,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.Arrays;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -38,9 +39,9 @@ public class JwtVerifier {
     private final KeyProvider keyProvider;
     private final int clockSkewToleranceSeconds;
     private final String requiredIssuer;
-    private final String requiredAudience;
+    private final Object[] requiredAudience;
 
-    public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, String requiredAudience) {
+    public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, Object[] requiredAudience) {
         this.keyProvider = keyProvider;
         this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
         this.requiredIssuer = requiredIssuer;
@@ -130,8 +131,10 @@ public class JwtVerifier {
         String audience = claims.getAudience().stream().findFirst().orElse("");
         String issuer = claims.getIssuer();
 
-        if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience)) {
-            throw new BadJWTException("Invalid audience");
+        if (requiredAudience.length >0) {
+            if (!Arrays.asList(requiredAudience).contains(audience)) {
+                throw new BadJWTException("Invalid audience");
+            }
         }
 
         if (!Strings.isNullOrEmpty(requiredIssuer) && !requiredIssuer.equals(issuer)) {

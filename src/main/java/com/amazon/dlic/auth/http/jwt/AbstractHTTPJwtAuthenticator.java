@@ -59,7 +59,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String jwtUrlParameter;
     private final String subjectKey;
     private final String rolesKey;
-    private final String requiredAudience;
+    private final Object[] requiredAudience;
     private final String requiredIssuer;
 
     public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
@@ -72,7 +72,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
-        requiredAudience = settings.get("required_audience");
+        requiredAudience = settings.getAsList("required_audience").toArray();
         requiredIssuer = settings.get("required_issuer");
 
         try {
@@ -246,7 +246,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         );
     }
 
-    public String getRequiredAudience() {
+    public Object[] getRequiredAudience() {
         return requiredAudience;
     }
 
