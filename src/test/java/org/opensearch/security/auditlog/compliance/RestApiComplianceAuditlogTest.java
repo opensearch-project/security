@@ -20,14 +20,16 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.equalTo;
 
 public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -242,17 +244,35 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     }
 
     private List<AuditMessage> setupAndReturnAuditMessages(Settings settings) {
-        int expectedMessageCount = settings.getAsBoolean(
+        // When OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED is set to true, there is:
+        // - 1 message with COMPLIANCE_INTERNAL_CONFIG_WRITE as category.
+        // - 1 message with COMPLIANCE_EXTERNAL_CONFIG as category for each node.
+        int numNodes = ClusterConfiguration.DEFAULT.getNodes();
+        boolean externalConfigEnabled = settings.getAsBoolean(
             ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
             false
-        ) ? 4 : 1;
+        );
+        int expectedMessageCount = externalConfigEnabled ? (numNodes + 1) : 1;
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try {
                 setup(settings);
-            } catch (Exception ignore) {
-                fail("Received unexpected exception during setup");
+            } catch (final Exception ex) {
+                throw new RuntimeException(ex);
             }
         }, expectedMessageCount);
+        int complianceInternalConfigWriteCount = 0;
+        int complianceExternalConfigCount = 0;
+        for (AuditMessage message : messages) {
+            if (AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE.equals(message.getCategory())) {
+                complianceInternalConfigWriteCount++;
+            } else if (AuditCategory.COMPLIANCE_EXTERNAL_CONFIG.equals(message.getCategory())) {
+                complianceExternalConfigCount++;
+            }
+        }
+        assertThat(complianceInternalConfigWriteCount, equalTo(1));
+        if (externalConfigEnabled) {
+            assertThat(complianceExternalConfigCount, equalTo(numNodes));
+        }
         return messages;
     }
 }
