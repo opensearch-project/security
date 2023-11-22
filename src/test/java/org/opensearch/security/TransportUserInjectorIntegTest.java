@@ -14,6 +14,7 @@ package org.opensearch.security;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.google.common.collect.Lists;
@@ -26,7 +27,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -47,9 +50,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 public class TransportUserInjectorIntegTest extends SingleClusterTest {
 
+    public static final String TEST_INJECTED_USER = "test_injected_user";
+
     public static class UserInjectorPlugin extends Plugin implements ActionPlugin {
         Settings settings;
-        public static String injectedUser = null;
 
         public UserInjectorPlugin(final Settings settings, final Path configPath) {
             this.settings = settings;
@@ -69,9 +73,16 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier
         ) {
-            if (injectedUser != null) threadPool.getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUser);
+            if (!Strings.isNullOrEmpty(settings.get(TEST_INJECTED_USER))) threadPool.getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, settings.get(TEST_INJECTED_USER));
             return new ArrayList<>();
+        }
+
+        @Override
+        public List<Setting<?>> getSettings() {
+            List<Setting<?>> settings = new ArrayList<Setting<?>>();
+            settings.add(Setting.simpleString(TEST_INJECTED_USER, Setting.Property.NodeScope, Setting.Property.Filtered));
+            return settings;
         }
     }
 
@@ -79,7 +90,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
     public void testSecurityUserInjection() throws Exception {
         final Settings clusterNodeSettings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true).build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
+        final Settings.Builder tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
             .put(minimumSecuritySettings(Settings.EMPTY).get(0))
             .put("cluster.name", clusterInfo.clustername)
             .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -89,14 +100,13 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             .put("discovery.initial_state_timeout", "8s")
             .put("plugins.security.allow_default_init_securityindex", "true")
             .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
-            .build();
+            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort);
 
         // 1. without user injection
         try (
             Node node = new PluginAwareNode(
                 false,
-                tcSettings,
+                tcSettings.build(),
                 Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
@@ -106,12 +116,11 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
         }
 
         // 2. with invalid backend roles
-        UserInjectorPlugin.injectedUser = "ttt|kkk";
         Exception exception = null;
         try (
             Node node = new PluginAwareNode(
                 false,
-                tcSettings,
+                tcSettings.put(TEST_INJECTED_USER, "ttt|kkk").build(),
                 Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
@@ -126,11 +135,10 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
         }
 
         // 3. with valid backend roles for injected user
-        UserInjectorPlugin.injectedUser = "injectedadmin|injecttest";
         try (
             Node node = new PluginAwareNode(
                 false,
-                tcSettings,
+                tcSettings.put(TEST_INJECTED_USER, "injectedadmin|injecttest").build(),
                 Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
@@ -146,7 +154,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
             .build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
+        final Settings.Builder tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
             .put(minimumSecuritySettings(Settings.EMPTY).get(0))
             .put("cluster.name", clusterInfo.clustername)
             .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -156,14 +164,13 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             .put("discovery.initial_state_timeout", "8s")
             .put("plugins.security.allow_default_init_securityindex", "true")
             .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
-            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
-            .build();
+            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort);
 
         // 1. without user injection
         try (
             Node node = new PluginAwareNode(
                 false,
-                tcSettings,
+                tcSettings.build(),
                 Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
@@ -173,11 +180,10 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
         }
 
         // with invalid backend roles
-        UserInjectorPlugin.injectedUser = "ttt|kkk";
         try (
             Node node = new PluginAwareNode(
                 false,
-                tcSettings,
+                tcSettings.put(TEST_INJECTED_USER, "ttt|kkk").build(),
                 Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, UserInjectorPlugin.class)
             ).start()
         ) {
