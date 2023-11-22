@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -225,10 +226,14 @@ public class SlowIntegrationTests extends SingleClusterTest {
             .build();
         try {
             setup(Settings.EMPTY, null, settings, false);
+            clusterHelper.nodeClient()
+                .admin()
+                .indices()
+                .create(new CreateIndexRequest("test-index").timeout(TimeValue.timeValueSeconds(10)))
+                .actionGet();
+            clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(5), ClusterConfiguration.DEFAULT.getNodes());
             Assert.fail("Expected IOException here due to red cluster state");
         } catch (IOException e) {
-            // Index request has a default timeout of 1 minute, adding buffer between nodes initialization and cluster health check
-            Thread.sleep(1000 * 80);
             // Ideally, we would want to remove this cluster setting, but default settings cannot be removed. So overriding with a reserved
             // IP address
             clusterHelper.nodeClient()
