@@ -14,7 +14,7 @@ package org.opensearch.security.auditlog.compliance;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 

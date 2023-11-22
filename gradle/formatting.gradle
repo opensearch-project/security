@@ -17,6 +17,10 @@ allprojects {
 			eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
 			trimTrailingWhitespace()
 			endWithNewline();
+			custom 'Replace illegal HttpStatus import w/ correct one', {
+				// e.g., replace org.apache.hc.core5.http.HttpStatus with org.apache.http.HttpStatus
+				it.replaceAll('org.apache.hc.core5.http.HttpStatus', 'org.apache.http.HttpStatus')
+			}
 
 			// See DEVELOPER_GUIDE.md for details of when to enable this.
 			if (System.getProperty('spotless.paddedcell') != null) {
