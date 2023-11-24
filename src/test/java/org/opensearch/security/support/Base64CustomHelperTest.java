@@ -11,10 +11,15 @@
 
 package org.opensearch.security.support;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
+import java.io.Serializable;
+import java.net.InetSocketAddress;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.junit.Assert;
 import org.junit.Test;
-import org.ldaptive.LdapEntry;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.core.common.io.stream.StreamOutput;
@@ -23,11 +28,8 @@ import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import java.io.Serializable;
-import java.net.InetSocketAddress;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.amazon.dlic.auth.ldap.LdapUser;
+import org.ldaptive.LdapEntry;
 
 import static org.opensearch.security.support.Base64CustomHelper.deserializeObject;
 import static org.opensearch.security.support.Base64CustomHelper.serializeObject;

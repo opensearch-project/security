@@ -30,9 +30,9 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
 
 public class RolesInjectorTest {
 

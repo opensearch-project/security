@@ -11,23 +11,25 @@
 
 package org.opensearch.security.support;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
+import java.io.IOException;
+import java.io.Serializable;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.io.BaseEncoding;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.Nullable;
-import org.opensearch.core.common.io.stream.BytesStreamInput;
 import org.opensearch.common.io.stream.BytesStreamOutput;
+import org.opensearch.core.common.Strings;
+import org.opensearch.core.common.io.stream.BytesStreamInput;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.Writeable;
-import org.opensearch.core.common.Strings;
 import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.user.User;
 
-import java.io.IOException;
-import java.io.Serializable;
+import com.amazon.dlic.auth.ldap.LdapUser;
 
 import static org.opensearch.security.support.SafeSerializationUtils.prohibitUnsafeClasses;
 

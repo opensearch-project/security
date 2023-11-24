@@ -12,15 +12,14 @@ package org.opensearch.security;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import javax.net.ssl.SSLHandshakeException;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;

@@ -17,11 +17,11 @@
 
 package org.opensearch.security.auth.limiting;
 
+import java.net.InetAddress;
+
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-
-import java.net.InetAddress;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

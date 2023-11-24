@@ -31,13 +31,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.client.node.NodeClient;
@@ -66,6 +64,8 @@ import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
+
+import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
@@ -245,7 +245,7 @@ public class SecurityRestFilter {
                 }
                 log.debug(err);
 
-                request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, null, err));
+                request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, err));
                 return;
             }
         }
@@ -288,7 +288,7 @@ public class SecurityRestFilter {
         } catch (SSLPeerUnverifiedException e) {
             log.error("No ssl info", e);
             auditLog.logSSLException(requestChannel, e);
-            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, new Exception("No ssl info")));
+            requestChannel.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, e));
             return;
         }
 

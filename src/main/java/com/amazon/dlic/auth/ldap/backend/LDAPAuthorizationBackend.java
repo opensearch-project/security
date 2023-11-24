@@ -35,14 +35,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
 import com.google.common.collect.HashMultimap;
-import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
+import org.opensearch.security.auth.AuthorizationBackend;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.PemKeyReader;
+import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.User;
+
+import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.util.ConfigConstants;
+import com.amazon.dlic.auth.ldap.util.LdapHelper;
+import com.amazon.dlic.auth.ldap.util.Utils;
+import io.netty.util.internal.PlatformDependent;
 import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
@@ -66,22 +81,6 @@ import org.ldaptive.ssl.CredentialConfig;
 import org.ldaptive.ssl.CredentialConfigFactory;
 import org.ldaptive.ssl.SslConfig;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
-
-import com.amazon.dlic.auth.ldap.LdapUser;
-import com.amazon.dlic.auth.ldap.util.ConfigConstants;
-import com.amazon.dlic.auth.ldap.util.LdapHelper;
-import com.amazon.dlic.auth.ldap.util.Utils;
-
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.Strings;
-import org.opensearch.security.auth.AuthorizationBackend;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.PemKeyReader;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;

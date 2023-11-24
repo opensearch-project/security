@@ -26,11 +26,11 @@
 
 package org.opensearch.node;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.plugins.Plugin;
-
 import java.util.Collection;
 import java.util.Collections;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.plugins.Plugin;
 
 public class PluginAwareNode extends Node {
 

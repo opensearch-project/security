@@ -6,6 +6,13 @@ allprojects {
 			// non-standard places
 			target '**/*.java'
 
+			importOrder(
+				'java|javax',
+				'com.carrotsearch|com.google|com.fasterxml|org.apache|org.awaitility|org.hamcrest|org.junit|org.bouncycastle',
+				'org.opensearch',
+				'',
+				'\\#java|\\#org.apache|\\#org.hamcrest|\\#org.opensearch|\\#'
+			)
 			removeUnusedImports()
 			eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
 			trimTrailingWhitespace()
