@@ -30,11 +30,13 @@ import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 
 import org.mockito.ArgumentMatchers;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -98,7 +100,7 @@ public class SecuritySSLRequestHandlerTests {
     }
 
     @Test
-    public void testUseJDKSerializationHeaderIsSetAfterGetInnerChannel() throws Exception {
+    public void testUseJDKSerializationHeaderIsSetWithWrapperChannel() throws Exception {
         TransportRequest transportRequest = mock(TransportRequest.class);
         TransportChannel transportChannel = mock(TransportChannel.class);
         TransportChannel wrappedChannel = new WrappedTransportChannel(transportChannel);
@@ -119,6 +121,26 @@ public class SecuritySSLRequestHandlerTests {
         when(transportChannel.getVersion()).thenReturn(Version.V_3_0_0);
         Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
         Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+    }
+
+    @Test
+    public void testUseJDKSerializationHeaderIsSetAfterGetInnerChannel() throws Exception {
+        TransportRequest transportRequest = mock(TransportRequest.class);
+        TransportChannel transportChannel = mock(TransportChannel.class);
+        WrappedTransportChannel wrappedChannel = mock(WrappedTransportChannel.class);
+        Task task = mock(Task.class);
+        when(wrappedChannel.getInnerChannel()).thenReturn(transportChannel);
+        when(wrappedChannel.getChannelType()).thenReturn("other");
+        doNothing().when(transportChannel).sendResponse(ArgumentMatchers.any(Exception.class));
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_10_0);
+
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
+        Assert.assertTrue(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        InOrder inOrder = inOrder(wrappedChannel, transportChannel);
+
+        inOrder.verify(wrappedChannel).getInnerChannel();
+        inOrder.verify(transportChannel).getVersion();
     }
 
     public class WrappedTransportChannel implements TransportChannel {
