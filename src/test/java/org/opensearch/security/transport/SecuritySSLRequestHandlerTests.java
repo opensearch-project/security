@@ -9,12 +9,15 @@
  */
 package org.opensearch.security.transport;
 
+import java.io.IOException;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -92,5 +95,62 @@ public class SecuritySSLRequestHandlerTests {
         when(transportChannel.getVersion()).thenReturn(Version.V_3_0_0);
         Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
         Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+    }
+
+    @Test
+    public void testUseJDKSerializationHeaderIsSetAfterGetInnerChannel() throws Exception {
+        TransportRequest transportRequest = mock(TransportRequest.class);
+        TransportChannel transportChannel = mock(TransportChannel.class);
+        TransportChannel wrappedChannel = new WrappedTransportChannel(transportChannel);
+        Task task = mock(Task.class);
+        doNothing().when(transportChannel).sendResponse(ArgumentMatchers.any(Exception.class));
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_10_0);
+        when(transportChannel.getChannelType()).thenReturn("other");
+
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
+        Assert.assertTrue(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        threadPool.getThreadContext().stashContext();
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_11_0);
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
+        Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        threadPool.getThreadContext().stashContext();
+        when(transportChannel.getVersion()).thenReturn(Version.V_3_0_0);
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
+        Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+    }
+
+    public class WrappedTransportChannel implements TransportChannel {
+
+        private TransportChannel inner;
+
+        public WrappedTransportChannel(TransportChannel inner) {
+            this.inner = inner;
+        }
+
+        @Override
+        public String getProfileName() {
+            return "WrappedTransportChannelProfileName";
+        }
+
+        public TransportChannel getInnerChannel() {
+            return this.inner;
+        }
+
+        @Override
+        public void sendResponse(TransportResponse response) throws IOException {
+            inner.sendResponse(response);
+        }
+
+        @Override
+        public void sendResponse(Exception e) throws IOException {
+
+        }
+
+        @Override
+        public String getChannelType() {
+            return "WrappedTransportChannelType";
+        }
     }
 }
