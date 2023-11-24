@@ -86,6 +86,11 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
 
         ThreadContext threadContext = getThreadContext();
 
+        String channelType = channel.getChannelType();
+        if (!channelType.equals("direct") && !channelType.equals("transport")) {
+            channel = getInnerChannel(channel);
+        }
+
         threadContext.putTransient(
             ConfigConstants.USE_JDK_SERIALIZATION,
             channel.getVersion().before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION)
@@ -95,11 +100,6 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
             final Exception exception = ExceptionUtils.createBadHeaderException();
             channel.sendResponse(exception);
             throw exception;
-        }
-
-        String channelType = channel.getChannelType();
-        if (!channelType.equals("direct") && !channelType.equals("transport")) {
-            channel = getInnerChannel(channel);
         }
 
         if (!"transport".equals(channel.getChannelType())) { // netty4
