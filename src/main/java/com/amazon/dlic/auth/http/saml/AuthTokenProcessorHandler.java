@@ -237,7 +237,7 @@ class AuthTokenProcessorHandler {
 
             String responseBodyString = DefaultObjectMapper.objectMapper.writeValueAsString(responseBody);
 
-            return Optional.of(new SecurityResponse(HttpStatus.SC_OK, SecurityResponse.CONTENT_TYPE_APP_JSON, responseBodyString));
+            return Optional.of(new SecurityResponse(HttpStatus.SC_OK, null, responseBodyString, XContentType.JSON.mediaType()));
         } catch (JsonProcessingException e) {
             log.warn("Error while parsing JSON for /_opendistro/_security/api/authtoken", e);
             return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, null, "JSON could not be parsed"));

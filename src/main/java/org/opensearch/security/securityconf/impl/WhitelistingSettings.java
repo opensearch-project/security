@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import org.apache.http.HttpStatus;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
@@ -117,7 +118,7 @@ public class WhitelistingSettings {
         // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
         if (this.enabled && !requestIsWhitelisted(request)) {
             return Optional.of(
-                new SecurityResponse(HttpStatus.SC_FORBIDDEN, SecurityResponse.CONTENT_TYPE_APP_JSON, generateFailureMessage(request))
+                new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, generateFailureMessage(request), XContentType.JSON.mediaType())
             );
         }
         return Optional.empty();

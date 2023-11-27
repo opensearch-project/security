@@ -74,6 +74,8 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
 import org.opensearch.security.ssl.transport.*;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -83,7 +85,6 @@ import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportInterceptor;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SecuritySSLTransportInterceptor;
 
@@ -93,12 +94,13 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(System.getProperty("opensearch.unsafe.use_netty_default_allocator"), false);
     public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
     protected final Logger log = LogManager.getLogger(this.getClass());
-    protected static final String CLIENT_TYPE = "client.type";
+    public static final String CLIENT_TYPE = "client.type";
     protected final boolean client;
     protected final boolean httpSSLEnabled;
     protected final boolean transportSSLEnabled;
     protected final boolean extendedKeyUsageEnabled;
     protected final Settings settings;
+    protected volatile SecurityRestFilter securityRestHandler;
     protected final SharedGroupFactory sharedGroupFactory;
     protected final SecurityKeyStore sks;
     protected PrincipalExtractor principalExtractor;
@@ -225,12 +227,27 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
         
         if (!client && httpSSLEnabled) {
-            
-            final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
-            final SecuritySSLNettyHttpServerTransport sgsnht =
-                    new SecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool,
-                            sks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings,
-                            sharedGroupFactory);
+
+            final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(
+                threadPool.getThreadContext(),
+                dispatcher,
+                settings,
+                configPath,
+                NOOP_SSL_EXCEPTION_HANDLER
+            );
+            final SecuritySSLNettyHttpServerTransport sgsnht = new SecuritySSLNettyHttpServerTransport(
+                settings,
+                networkService,
+                bigArrays,
+                threadPool,
+                sks,
+                xContentRegistry,
+                validatingDispatcher,
+                NOOP_SSL_EXCEPTION_HANDLER,
+                clusterSettings,
+                sharedGroupFactory,
+                securityRestHandler
+            );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
             

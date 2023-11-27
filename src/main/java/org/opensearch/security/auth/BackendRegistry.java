@@ -63,6 +63,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
@@ -187,6 +188,8 @@ public class BackendRegistry {
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.restAuthDomains = Collections.emptySortedSet();
+        this.ipAuthFailureListeners = Collections.emptyList();
 
 
         this.ttlInMin = settings.getAsInt(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60);
@@ -353,7 +356,6 @@ public class BackendRegistry {
     /**
      *
      * @param request
-     * @param channel
      * @return The authenticated user, null means another roundtrip
      * @throws OpenSearchSecurityException
      */
@@ -372,11 +374,13 @@ public class BackendRegistry {
             return false;
         }
 
-        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+        ThreadContext threadContext = this.threadPool.getThreadContext();
 
-        if(adminDns.isAdminDN(sslPrincipal)) {
-            //PKI authenticated REST call
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
+        final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+
+        if (adminDns.isAdminDN(sslPrincipal)) {
+            // PKI authenticated REST call
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
@@ -505,11 +509,7 @@ public class BackendRegistry {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 request.queueForSending(
-                    new SecurityResponse(
-                        SC_FORBIDDEN,
-                        null,
-                        "Cannot authenticate user because admin user is not permitted to login via HTTP"
-                    )
+                    new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP")
                 );
                 return false;
             }
@@ -577,7 +577,7 @@ public class BackendRegistry {
             notifyIpAuthFailureListeners(request, authCredenetials);
 
             request.queueForSending(
-                challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, null, "Authentication finally failed"))
+                challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"))
             );
             return false;
         }

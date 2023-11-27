@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.TransportUserInjectorIntegTest.UserInjectorPlugin;
 import org.opensearch.index.reindex.ReindexPlugin;
 import org.opensearch.join.ParentJoinPlugin;
 import org.opensearch.percolator.PercolatorPlugin;
@@ -45,7 +46,6 @@ import org.opensearch.script.mustache.MustachePlugin;
 import org.opensearch.search.aggregations.matrix.MatrixAggregationPlugin;
 import org.opensearch.transport.Netty4Plugin;
 
-import org.opensearch.security.test.plugin.UserInjectorPlugin;
 import com.google.common.collect.Lists;
 
 public enum ClusterConfiguration {
