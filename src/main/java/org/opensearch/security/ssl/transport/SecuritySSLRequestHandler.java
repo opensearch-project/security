@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Set;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.logging.log4j.LogManager;
@@ -55,6 +56,8 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
     private final SslExceptionHandler errorHandler;
     private final SSLConfig SSLConfig;
 
+    private static final Set<String> DEFAULT_CHANNEL_TYPES = Set.of("direct", "transport");
+
     public SecuritySSLRequestHandler(
         String action,
         TransportRequestHandler<T> actualHandler,
@@ -87,7 +90,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
         ThreadContext threadContext = getThreadContext();
 
         String channelType = channel.getChannelType();
-        if (!channelType.equals("direct") && !channelType.equals("transport")) {
+        if (!DEFAULT_CHANNEL_TYPES.contains(channelType)) {
             channel = getInnerChannel(channel);
         }
 
