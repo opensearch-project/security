@@ -45,7 +45,7 @@ public class Installer {
 
     static ExecutionEnvironment environment = ExecutionEnvironment.DEMO;
 
-    static final String OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
+    static String OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
 
     static final String FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
 
@@ -55,11 +55,11 @@ public class Installer {
         + ".opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, "
         + ".opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*";
 
-    static SecuritySettingsConfigurer securitySettingsConfigurer;
     static CertificateGenerator certificateGenerator;
 
+    static File RPM_DEB_OPENSEARCH_FILE = new File("/usr/share/opensearch");
+
     public static void main(String[] options) {
-        securitySettingsConfigurer = new SecuritySettingsConfigurer();
         certificateGenerator = new CertificateGenerator();
 
         printScriptHeaders();
@@ -67,7 +67,7 @@ public class Installer {
         gatherUserInputs();
         initializeVariables();
         printVariables();
-        securitySettingsConfigurer.configureSecuritySettings();
+        SecuritySettingsConfigurer.configureSecuritySettings();
         certificateGenerator.createDemoCertificates();
         finishScriptExecution();
     }
@@ -205,23 +205,28 @@ public class Installer {
         OPENSEARCH_LIB_PATH = BASE_DIR + "lib" + File.separator;
         OPENSEARCH_INSTALL_TYPE = determineInstallType();
 
+        boolean shouldExit = false;
         if (!(new File(OPENSEARCH_CONF_FILE).exists())) {
-            System.out.println("Unable to determine OpenSearch config directory. Quit.");
-            System.exit(-1);
+            System.out.println("Unable to determine OpenSearch config file. Quit.");
+            shouldExit = true;
         }
 
         if (!(new File(OPENSEARCH_BIN_DIR).exists())) {
             System.out.println("Unable to determine OpenSearch bin directory. Quit.");
-            System.exit(-1);
+            shouldExit = true;
         }
 
         if (!(new File(OPENSEARCH_PLUGINS_DIR).exists())) {
             System.out.println("Unable to determine OpenSearch plugins directory. Quit.");
-            System.exit(-1);
+            shouldExit = true;
         }
 
         if (!(new File(OPENSEARCH_LIB_PATH).exists())) {
             System.out.println("Unable to determine OpenSearch lib directory. Quit.");
+            shouldExit = true;
+        }
+
+        if (shouldExit) {
             System.exit(-1);
         }
 
@@ -240,7 +245,7 @@ public class Installer {
         }
 
         // other OS (.sh execution)
-        if (new File("/usr/share/opensearch").equals(new File(BASE_DIR))) {
+        if (RPM_DEB_OPENSEARCH_FILE.exists() && RPM_DEB_OPENSEARCH_FILE.equals(new File(BASE_DIR))) {
             OPENSEARCH_CONF_FILE = "/usr/share/opensearch/config/opensearch.yml";
             if (!new File(OPENSEARCH_CONF_FILE).exists()) {
                 OPENSEARCH_CONF_FILE = "/etc/opensearch/opensearch.yml";
@@ -308,7 +313,7 @@ public class Installer {
                 + FILE_EXTENSION;
             String securityAdminDemoScriptPath = OPENSEARCH_CONF_DIR + "securityadmin_demo" + FILE_EXTENSION;
 
-            securitySettingsConfigurer.createSecurityAdminDemoScript(securityAdminScriptPath, securityAdminDemoScriptPath);
+            SecuritySettingsConfigurer.createSecurityAdminDemoScript(securityAdminScriptPath, securityAdminDemoScriptPath);
 
             // Make securityadmin_demo script executable
             // not needed for windows
@@ -356,11 +361,37 @@ public class Installer {
                 System.out.println("### To use the Security Plugin ConfigurationGUI");
             }
 
-            System.out.println("### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.");
+            System.out.println(
+                "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/"
+                    + SecuritySettingsConfigurer.ADMIN_PASSWORD
+                    + "."
+            );
             System.out.println("### (Ignore the SSL certificate warning because we installed self-signed demo certificates)");
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    /**
+     * FOR TESTS ONLY
+     * Resets the class-level variables to their original values
+     * Is needed for tests since the variables are declared static
+     */
+    static void resetState() {
+        assumeyes = false;
+        initsecurity = false;
+        cluster_mode = false;
+        environment = ExecutionEnvironment.DEMO;
+        SCRIPT_DIR = null;
+        BASE_DIR = null;
+        OPENSEARCH_CONF_FILE = null;
+        OPENSEARCH_BIN_DIR = null;
+        OPENSEARCH_PLUGINS_DIR = null;
+        OPENSEARCH_LIB_PATH = null;
+        OPENSEARCH_INSTALL_TYPE = null;
+        OPENSEARCH_CONF_DIR = null;
+        OPENSEARCH_VERSION = null;
+        SECURITY_VERSION = null;
     }
 }

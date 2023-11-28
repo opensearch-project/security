@@ -36,13 +36,15 @@ import static org.opensearch.security.user.UserService.generatePassword;
  */
 public class SecuritySettingsConfigurer extends Installer {
 
+    static String ADMIN_PASSWORD = "";
+
     /**
      * Configures security related changes to the opensearch configuration
      * 1. Checks if plugins is already configuration. If yes, exit
      * 2. Sets the custom admin password (Generates one if none is provided)
      * 3. Write the security config to opensearch.yml
      */
-    public void configureSecuritySettings() {
+    public static void configureSecuritySettings() {
         checkIfSecurityPluginIsAlreadyConfigured();
         updateAdminPassword();
         writeSecurityConfigToOpenSearchYML();
@@ -52,7 +54,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
     static void updateAdminPassword() {
-        String ADMIN_PASSWORD = "";
+
         String initialAdminPassword = System.getenv("initialAdminPassword");
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
         String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
@@ -196,14 +198,26 @@ public class SecuritySettingsConfigurer extends Installer {
         securityConfigLines.append("\n")
             .append("######## Start OpenSearch Security Demo Configuration ########\n")
             .append("# WARNING: revise all the lines below before you go into production\n")
-            .append("plugins.security.ssl.transport.pemcert_filepath: esnode.pem\n")
-            .append("plugins.security.ssl.transport.pemkey_filepath: esnode-key.pem\n")
-            .append("plugins.security.ssl.transport.pemtrustedcas_filepath: root-ca.pem\n")
+            .append("plugins.security.ssl.transport.pemcert_filepath: ")
+            .append(Certificates.NODE_CERT.getFileName())
+            .append("\n")
+            .append("plugins.security.ssl.transport.pemkey_filepath: ")
+            .append(Certificates.NODE_KEY.getFileName())
+            .append("\n")
+            .append("plugins.security.ssl.transport.pemtrustedcas_filepath: ")
+            .append(Certificates.ROOT_CA.getFileName())
+            .append("\n")
             .append("plugins.security.ssl.transport.enforce_hostname_verification: false\n")
             .append("plugins.security.ssl.http.enabled: true\n")
-            .append("plugins.security.ssl.http.pemcert_filepath: esnode.pem\n")
-            .append("plugins.security.ssl.http.pemkey_filepath: esnode-key.pem\n")
-            .append("plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem\n")
+            .append("plugins.security.ssl.http.pemcert_filepath: ")
+            .append(Certificates.NODE_CERT.getFileName())
+            .append("\n")
+            .append("plugins.security.ssl.http.pemkey_filepath: ")
+            .append(Certificates.NODE_KEY.getFileName())
+            .append("\n")
+            .append("plugins.security.ssl.http.pemtrustedcas_filepath: ")
+            .append(Certificates.ROOT_CA.getFileName())
+            .append("\n")
             .append("plugins.security.allow_unsafe_democertificates: true\n");
 
         if (initsecurity) {
@@ -290,9 +304,18 @@ public class SecuritySettingsConfigurer extends Installer {
      * @param securityAdminDemoScriptPath path to security admin demo script
      * @throws IOException if there was error reading/writing the file
      */
-    void createSecurityAdminDemoScript(String securityAdminScriptPath, String securityAdminDemoScriptPath) throws IOException {
-        String[] securityAdminCommands;
+    static void createSecurityAdminDemoScript(String securityAdminScriptPath, String securityAdminDemoScriptPath) throws IOException {
+        String[] securityAdminCommands = getSecurityAdminCommands(securityAdminScriptPath);
 
+        // Write securityadmin_demo script
+        FileWriter writer = new FileWriter(securityAdminDemoScriptPath, StandardCharsets.UTF_8);
+        for (String command : securityAdminCommands) {
+            writer.write(command + "\n");
+        }
+        writer.close();
+    }
+
+    static String[] getSecurityAdminCommands(String securityAdminScriptPath) {
         String securityAdminExecutionPath = securityAdminScriptPath
             + "\" -cd \""
             + OPENSEARCH_CONF_DIR
@@ -308,16 +331,9 @@ public class SecuritySettingsConfigurer extends Installer {
             + "\" -nhnv";
 
         if (OS.toLowerCase().contains("win")) {
-            securityAdminCommands = new String[] { "@echo off", "call \"" + securityAdminExecutionPath };
-        } else {
-            securityAdminCommands = new String[] { "#!/bin/bash", "sudo" + " \"" + securityAdminExecutionPath };
+            return new String[] { "@echo off", "call \"" + securityAdminExecutionPath };
         }
 
-        // Write securityadmin_demo script
-        FileWriter writer = new FileWriter(securityAdminDemoScriptPath, StandardCharsets.UTF_8);
-        for (String command : securityAdminCommands) {
-            writer.write(command + "\n");
-        }
-        writer.close();
+        return new String[] { "#!/bin/bash", "sudo" + " \"" + securityAdminExecutionPath };
     }
 }
