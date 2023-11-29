@@ -54,6 +54,7 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6.Authc;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6.AuthcDomain;
@@ -205,6 +206,11 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     @Override
     public Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries() {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
+    }
+
+    @Override
+    public List<DashboardSignInOption> getDashboardSignInOptions() {
+        return config.dynamic.kibana.dashboardSignInOptions;
     }
 
     @Override
