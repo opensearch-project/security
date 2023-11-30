@@ -205,33 +205,40 @@ public class Installer {
         OPENSEARCH_LIB_PATH = BASE_DIR + "lib" + File.separator;
         OPENSEARCH_INSTALL_TYPE = determineInstallType();
 
-        boolean shouldExit = false;
-        if (!(new File(OPENSEARCH_CONF_FILE).exists())) {
-            System.out.println("Unable to determine OpenSearch config file. Quit.");
-            shouldExit = true;
-        }
+        Set<String> errorMessages = validatePaths();
 
-        if (!(new File(OPENSEARCH_BIN_DIR).exists())) {
-            System.out.println("Unable to determine OpenSearch bin directory. Quit.");
-            shouldExit = true;
-        }
-
-        if (!(new File(OPENSEARCH_PLUGINS_DIR).exists())) {
-            System.out.println("Unable to determine OpenSearch plugins directory. Quit.");
-            shouldExit = true;
-        }
-
-        if (!(new File(OPENSEARCH_LIB_PATH).exists())) {
-            System.out.println("Unable to determine OpenSearch lib directory. Quit.");
-            shouldExit = true;
-        }
-
-        if (shouldExit) {
+        if (!errorMessages.isEmpty()) {
+            errorMessages.forEach(System.out::println);
             System.exit(-1);
         }
 
         OPENSEARCH_CONF_DIR = new File(OPENSEARCH_CONF_FILE).getParent();
         OPENSEARCH_CONF_DIR = new File(OPENSEARCH_CONF_DIR).getAbsolutePath() + File.separator;
+    }
+
+    /**
+     * Helper method
+     * Returns a set of error messages for the paths that didn't contain files/directories
+     * @return a set containing error messages if any, empty otherwise
+     */
+    private static Set<String> validatePaths() {
+        Set<String> errorMessages = new HashSet<>();
+        if (!(new File(OPENSEARCH_CONF_FILE).exists())) {
+            errorMessages.add("Unable to determine OpenSearch config file. Quit.");
+        }
+
+        if (!(new File(OPENSEARCH_BIN_DIR).exists())) {
+            errorMessages.add("Unable to determine OpenSearch bin directory. Quit.");
+        }
+
+        if (!(new File(OPENSEARCH_PLUGINS_DIR).exists())) {
+            errorMessages.add("Unable to determine OpenSearch plugins directory. Quit.");
+        }
+
+        if (!(new File(OPENSEARCH_LIB_PATH).exists())) {
+            errorMessages.add("Unable to determine OpenSearch lib directory. Quit.");
+        }
+        return errorMessages;
     }
 
     /**
