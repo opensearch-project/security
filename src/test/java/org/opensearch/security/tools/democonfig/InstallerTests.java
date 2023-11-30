@@ -92,8 +92,10 @@ public class InstallerTests {
     public void testPrintScriptHeaders() {
         printScriptHeaders();
 
-        String expectedOutput = "### OpenSearch Security Demo Installer\n"
-            + "### ** Warning: Do not use on production or public reachable systems **\n";
+        String expectedOutput = "### OpenSearch Security Demo Installer"
+            + System.lineSeparator()
+            + "### ** Warning: Do not use on production or public reachable systems **"
+            + System.lineSeparator();
         assertThat(expectedOutput, equalTo(outContent.toString()));
     }
 
@@ -144,13 +146,14 @@ public class InstallerTests {
         assertThat(cluster_mode, is(false));
 
         // set initsecurity and cluster_mode to no
-        readInputStream("y\nn\nn\n"); // pass all 3 inputs as y
+        readInputStream("y" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator()); // pass all 3 inputs as
+                                                                                                                     // y
         gatherUserInputs();
 
         assertThat(outContent.toString(), containsString("Install demo certificates?"));
         assertThat(outContent.toString(), containsString("Initialize Security Modules?"));
         assertThat(outContent.toString(), containsString("Cluster mode requires additional setup of:"));
-        assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)\n"));
+        assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator()));
         assertThat(outContent.toString(), containsString("Enable cluster mode?"));
 
         assertThat(initsecurity, is(false));
@@ -159,13 +162,14 @@ public class InstallerTests {
         outContent.reset();
 
         // set initsecurity and cluster_mode to no
-        readInputStream("y\ny\ny\n"); // pass all 3 inputs as y
+        readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
+                                                                                                                     // y
         gatherUserInputs();
 
         assertThat(outContent.toString(), containsString("Install demo certificates?"));
         assertThat(outContent.toString(), containsString("Initialize Security Modules?"));
         assertThat(outContent.toString(), containsString("Cluster mode requires additional setup of:"));
-        assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)\n"));
+        assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator()));
         assertThat(outContent.toString(), containsString("Enable cluster mode?"));
 
         assertThat(initsecurity, is(true));
@@ -177,13 +181,13 @@ public class InstallerTests {
         try {
             System.setSecurityManager(new NoExitSecurityManager());
 
-            readInputStream("n\nn\nn\n");
+            readInputStream("n" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator());
             gatherUserInputs();
 
             assertThat(outContent.toString(), containsString("Install demo certificates?"));
             assertThat(outContent.toString(), not(containsString("Initialize Security Modules?")));
             assertThat(outContent.toString(), not(containsString("Cluster mode requires additional setup of:")));
-            assertThat(outContent.toString(), not(containsString("  - Virtual memory (vm.max_map_count)\n")));
+            assertThat(outContent.toString(), not(containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator())));
             assertThat(outContent.toString(), not(containsString("Enable cluster mode?")));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(0) blocked to allow print statement testing."));
@@ -200,7 +204,8 @@ public class InstallerTests {
         assertThat(initsecurity, is(true));
         assertThat(cluster_mode, is(true));
 
-        readInputStream("y\ny\ny\n"); // pass all 3 inputs as y
+        readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
+                                                                                                                     // y
         gatherUserInputs();
 
         assertThat(outContent.toString(), containsString("Install demo certificates?"));
@@ -369,14 +374,22 @@ public class InstallerTests {
 
         printVariables();
 
-        String expectedOutput = "OpenSearch install type: installType on OS\n"
-            + "OpenSearch config dir: confDir\n"
-            + "OpenSearch config file: confFile\n"
-            + "OpenSearch bin dir: /bin\n"
-            + "OpenSearch plugins dir: /plugins\n"
-            + "OpenSearch lib dir: /lib\n"
-            + "Detected OpenSearch Version: osVersion\n"
-            + "Detected OpenSearch Security Version: version\n";
+        String expectedOutput = "OpenSearch install type: installType on OS"
+            + System.lineSeparator()
+            + "OpenSearch config dir: confDir"
+            + System.lineSeparator()
+            + "OpenSearch config file: confFile"
+            + System.lineSeparator()
+            + "OpenSearch bin dir: /bin"
+            + System.lineSeparator()
+            + "OpenSearch plugins dir: /plugins"
+            + System.lineSeparator()
+            + "OpenSearch lib dir: /lib"
+            + System.lineSeparator()
+            + "Detected OpenSearch Version: osVersion"
+            + System.lineSeparator()
+            + "Detected OpenSearch Security Version: version"
+            + System.lineSeparator();
 
         assertEquals(expectedOutput, outContent.toString());
     }
@@ -400,19 +413,27 @@ public class InstallerTests {
 
         String lastLine = SecuritySettingsConfigurer.getSecurityAdminCommands(securityAdminScriptPath)[1];
         // Verify the expected output
-        String expectedOutput = "### Success\n"
-            + "### Execute this script now on all your nodes and then start all nodes\n"
-            + "### After the whole cluster is up execute: \n"
+        String expectedOutput = "### Success"
+            + System.lineSeparator()
+            + "### Execute this script now on all your nodes and then start all nodes"
+            + System.lineSeparator()
+            + "### After the whole cluster is up execute: "
+            + System.lineSeparator()
             + lastLine
-            + "\n"
+            + ""
+            + System.lineSeparator()
             + "### or run ."
             + File.separator
-            + "securityadmin_demo.sh\n"
-            + "### After that you can also use the Security Plugin ConfigurationGUI\n"
+            + "securityadmin_demo.sh"
+            + System.lineSeparator()
+            + "### After that you can also use the Security Plugin ConfigurationGUI"
+            + System.lineSeparator()
             + "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/"
             + SecuritySettingsConfigurer.ADMIN_PASSWORD
-            + ".\n"
-            + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)\n";
+            + "."
+            + System.lineSeparator()
+            + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
+            + System.lineSeparator();
 
         assertEquals(expectedOutput, outContent.toString());
 
@@ -438,10 +459,14 @@ public class InstallerTests {
         setWritePermissions(securityAdminDemoScriptPath);
 
         String lastLine = SecuritySettingsConfigurer.getSecurityAdminCommands(securityAdminScriptPath)[1];
-        String expectedOutput = "### Success\n"
-            + "### Execute this script now on all your nodes and then start all nodes\n"
-            + "### OpenSearch Security will be automatically initialized.\n"
-            + "### If you like to change the runtime configuration \n"
+        String expectedOutput = "### Success"
+            + System.lineSeparator()
+            + "### Execute this script now on all your nodes and then start all nodes"
+            + System.lineSeparator()
+            + "### OpenSearch Security will be automatically initialized."
+            + System.lineSeparator()
+            + "### If you like to change the runtime configuration "
+            + System.lineSeparator()
             + "### change the files in .."
             + File.separator
             + ".."
@@ -450,17 +475,23 @@ public class InstallerTests {
             + File.separator
             + "config"
             + File.separator
-            + "opensearch-security and execute: \n"
+            + "opensearch-security and execute: "
+            + System.lineSeparator()
             + lastLine
-            + "\n"
+            + ""
+            + System.lineSeparator()
             + "### or run ."
             + File.separator
-            + "securityadmin_demo.sh\n"
-            + "### To use the Security Plugin ConfigurationGUI\n"
+            + "securityadmin_demo.sh"
+            + System.lineSeparator()
+            + "### To use the Security Plugin ConfigurationGUI"
+            + System.lineSeparator()
             + "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/"
             + SecuritySettingsConfigurer.ADMIN_PASSWORD
-            + ".\n"
-            + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)\n";
+            + "."
+            + System.lineSeparator()
+            + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
+            + System.lineSeparator();
 
         assertEquals(expectedOutput, outContent.toString());
 
