@@ -188,40 +188,61 @@ public class SecuritySettingsConfigurerTests {
     public void testBuildSecurityConfigString() {
         String actual = SecuritySettingsConfigurer.buildSecurityConfigString();
 
-        String expected = "\n"
-            + "######## Start OpenSearch Security Demo Configuration ########\n"
-            + "# WARNING: revise all the lines below before you go into production\n"
-            + "plugins.security.ssl.transport.pemcert_filepath: esnode.pem\n"
-            + "plugins.security.ssl.transport.pemkey_filepath: esnode-key.pem\n"
-            + "plugins.security.ssl.transport.pemtrustedcas_filepath: root-ca.pem\n"
-            + "plugins.security.ssl.transport.enforce_hostname_verification: false\n"
-            + "plugins.security.ssl.http.enabled: true\n"
-            + "plugins.security.ssl.http.pemcert_filepath: esnode.pem\n"
-            + "plugins.security.ssl.http.pemkey_filepath: esnode-key.pem\n"
-            + "plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem\n"
-            + "plugins.security.allow_unsafe_democertificates: true\n"
-            + "plugins.security.authcz.admin_dn:\n"
-            + "  - CN=kirk,OU=client,O=client,L=test, C=de\n"
-            + "\n"
-            + "plugins.security.audit.type:  internal_opensearch\n"
-            + "plugins.security.enable_snapshot_restore_privilege:  true\n"
-            + "plugins.security.check_snapshot_restore_write_privileges:  true\n"
-            + "plugins.security.restapi.roles_enabled:  [\"all_access\", \"security_rest_api_access\"]\n"
-            + "plugins.security.system_indices.enabled: true\n"
-            + "plugins.security.system_indices.indices: [.plugins-ml-config, .plugins-ml-connector, .plugins-ml-model-group, .plugins-ml-model, .plugins-ml-task, .plugins-ml-conversation-meta, .plugins-ml-conversation-interactions, .opendistro-alerting-config, .opendistro-alerting-alert*, .opendistro-anomaly-results*, .opendistro-anomaly-detector*, .opendistro-anomaly-checkpoints, .opendistro-anomaly-detection-state, .opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, .opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*]\n"
-            + "node.max_local_storage_nodes: 3\n"
-            + "######## End OpenSearch Security Demo Configuration ########\n";
+        String expected = System.lineSeparator()
+            + "######## Start OpenSearch Security Demo Configuration ########"
+            + System.lineSeparator()
+            + "# WARNING: revise all the lines below before you go into production"
+            + System.lineSeparator()
+            + "plugins.security.ssl.transport.pemcert_filepath: esnode.pem"
+            + System.lineSeparator()
+            + "plugins.security.ssl.transport.pemkey_filepath: esnode-key.pem"
+            + System.lineSeparator()
+            + "plugins.security.ssl.transport.pemtrustedcas_filepath: root-ca.pem"
+            + System.lineSeparator()
+            + "plugins.security.ssl.transport.enforce_hostname_verification: false"
+            + System.lineSeparator()
+            + "plugins.security.ssl.http.enabled: true"
+            + System.lineSeparator()
+            + "plugins.security.ssl.http.pemcert_filepath: esnode.pem"
+            + System.lineSeparator()
+            + "plugins.security.ssl.http.pemkey_filepath: esnode-key.pem"
+            + System.lineSeparator()
+            + "plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem"
+            + System.lineSeparator()
+            + "plugins.security.allow_unsafe_democertificates: true"
+            + System.lineSeparator()
+            + "plugins.security.authcz.admin_dn:"
+            + System.lineSeparator()
+            + "  - CN=kirk,OU=client,O=client,L=test, C=de"
+            + System.lineSeparator()
+            + System.lineSeparator()
+            + "plugins.security.audit.type:  internal_opensearch"
+            + System.lineSeparator()
+            + "plugins.security.enable_snapshot_restore_privilege:  true"
+            + System.lineSeparator()
+            + "plugins.security.check_snapshot_restore_write_privileges:  true"
+            + System.lineSeparator()
+            + "plugins.security.restapi.roles_enabled:  [\"all_access\", \"security_rest_api_access\"]"
+            + System.lineSeparator()
+            + "plugins.security.system_indices.enabled: true"
+            + System.lineSeparator()
+            + "plugins.security.system_indices.indices: [.plugins-ml-config, .plugins-ml-connector, .plugins-ml-model-group, .plugins-ml-model, .plugins-ml-task, .plugins-ml-conversation-meta, .plugins-ml-conversation-interactions, .opendistro-alerting-config, .opendistro-alerting-alert*, .opendistro-anomaly-results*, .opendistro-anomaly-detector*, .opendistro-anomaly-checkpoints, .opendistro-anomaly-detection-state, .opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, .opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*]"
+            + System.lineSeparator()
+            + "node.max_local_storage_nodes: 3"
+            + System.lineSeparator()
+            + "######## End OpenSearch Security Demo Configuration ########"
+            + System.lineSeparator();
         assertThat(actual, is(equalTo(expected)));
 
         Installer.initsecurity = true;
         actual = SecuritySettingsConfigurer.buildSecurityConfigString();
-        assertThat(actual, containsString("plugins.security.allow_default_init_securityindex: true\n"));
+        assertThat(actual, containsString("plugins.security.allow_default_init_securityindex: true" + System.lineSeparator()));
 
         Installer.cluster_mode = true;
         actual = SecuritySettingsConfigurer.buildSecurityConfigString();
-        assertThat(actual, containsString("network.host: 0.0.0.0\n"));
-        assertThat(actual, containsString("node.name: smoketestnode\n"));
-        assertThat(actual, containsString("cluster.initial_cluster_manager_nodes: smoketestnode\n"));
+        assertThat(actual, containsString("network.host: 0.0.0.0" + System.lineSeparator()));
+        assertThat(actual, containsString("node.name: smoketestnode" + System.lineSeparator()));
+        assertThat(actual, containsString("cluster.initial_cluster_manager_nodes: smoketestnode" + System.lineSeparator()));
     }
 
     @Test

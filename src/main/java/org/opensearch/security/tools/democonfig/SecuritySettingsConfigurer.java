@@ -194,58 +194,68 @@ public class SecuritySettingsConfigurer extends Installer {
     static String buildSecurityConfigString() {
         StringBuilder securityConfigLines = new StringBuilder();
 
-        securityConfigLines.append("\n")
-            .append("######## Start OpenSearch Security Demo Configuration ########\n")
-            .append("# WARNING: revise all the lines below before you go into production\n")
+        securityConfigLines.append("" + System.lineSeparator())
+            .append("######## Start OpenSearch Security Demo Configuration ########" + System.lineSeparator())
+            .append("# WARNING: revise all the lines below before you go into production" + System.lineSeparator())
             .append("plugins.security.ssl.transport.pemcert_filepath: ")
             .append(Certificates.NODE_CERT.getFileName())
-            .append("\n")
+            .append("" + System.lineSeparator())
             .append("plugins.security.ssl.transport.pemkey_filepath: ")
             .append(Certificates.NODE_KEY.getFileName())
-            .append("\n")
+            .append("" + System.lineSeparator())
             .append("plugins.security.ssl.transport.pemtrustedcas_filepath: ")
             .append(Certificates.ROOT_CA.getFileName())
-            .append("\n")
-            .append("plugins.security.ssl.transport.enforce_hostname_verification: false\n")
-            .append("plugins.security.ssl.http.enabled: true\n")
+            .append("" + System.lineSeparator())
+            .append("plugins.security.ssl.transport.enforce_hostname_verification: false" + System.lineSeparator())
+            .append("plugins.security.ssl.http.enabled: true" + System.lineSeparator())
             .append("plugins.security.ssl.http.pemcert_filepath: ")
             .append(Certificates.NODE_CERT.getFileName())
-            .append("\n")
+            .append("" + System.lineSeparator())
             .append("plugins.security.ssl.http.pemkey_filepath: ")
             .append(Certificates.NODE_KEY.getFileName())
-            .append("\n")
+            .append("" + System.lineSeparator())
             .append("plugins.security.ssl.http.pemtrustedcas_filepath: ")
             .append(Certificates.ROOT_CA.getFileName())
-            .append("\n")
-            .append("plugins.security.allow_unsafe_democertificates: true\n");
+            .append("" + System.lineSeparator())
+            .append("plugins.security.allow_unsafe_democertificates: true" + System.lineSeparator());
 
         if (initsecurity) {
-            securityConfigLines.append("plugins.security.allow_default_init_securityindex: true\n");
+            securityConfigLines.append("plugins.security.allow_default_init_securityindex: true" + System.lineSeparator());
         }
 
-        securityConfigLines.append("plugins.security.authcz.admin_dn:\n  - CN=kirk,OU=client,O=client,L=test, C=de\n\n");
+        securityConfigLines.append(
+            "plugins.security.authcz.admin_dn:"
+                + System.lineSeparator()
+                + "  - CN=kirk,OU=client,O=client,L=test, C=de"
+                + System.lineSeparator()
+                + System.lineSeparator()
+        );
 
-        securityConfigLines.append("plugins.security.audit.type:  internal_opensearch\n");
-        securityConfigLines.append("plugins.security.enable_snapshot_restore_privilege:  true\n");
-        securityConfigLines.append("plugins.security.check_snapshot_restore_write_privileges:  true\n");
-        securityConfigLines.append("plugins.security.restapi.roles_enabled:  [\"all_access\", \"security_rest_api_access\"]\n");
+        securityConfigLines.append("plugins.security.audit.type:  internal_opensearch" + System.lineSeparator());
+        securityConfigLines.append("plugins.security.enable_snapshot_restore_privilege:  true" + System.lineSeparator());
+        securityConfigLines.append("plugins.security.check_snapshot_restore_write_privileges:  true" + System.lineSeparator());
+        securityConfigLines.append(
+            "plugins.security.restapi.roles_enabled:  [\"all_access\", \"security_rest_api_access\"]" + System.lineSeparator()
+        );
 
-        securityConfigLines.append("plugins.security.system_indices.enabled: true\n");
-        securityConfigLines.append("plugins.security.system_indices.indices: [").append(SYSTEM_INDICES).append("]\n");
+        securityConfigLines.append("plugins.security.system_indices.enabled: true" + System.lineSeparator());
+        securityConfigLines.append("plugins.security.system_indices.indices: [")
+            .append(SYSTEM_INDICES)
+            .append("]" + System.lineSeparator());
 
         if (!isNetworkHostAlreadyPresent(OPENSEARCH_CONF_FILE)) {
             if (cluster_mode) {
-                securityConfigLines.append("network.host: 0.0.0.0\n");
-                securityConfigLines.append("node.name: smoketestnode\n");
-                securityConfigLines.append("cluster.initial_cluster_manager_nodes: smoketestnode\n");
+                securityConfigLines.append("network.host: 0.0.0.0" + System.lineSeparator());
+                securityConfigLines.append("node.name: smoketestnode" + System.lineSeparator());
+                securityConfigLines.append("cluster.initial_cluster_manager_nodes: smoketestnode" + System.lineSeparator());
             }
         }
 
         if (!isNodeMaxLocalStorageNodesAlreadyPresent(OPENSEARCH_CONF_FILE)) {
-            securityConfigLines.append("node.max_local_storage_nodes: 3\n");
+            securityConfigLines.append("node.max_local_storage_nodes: 3" + System.lineSeparator());
         }
 
-        securityConfigLines.append("######## End OpenSearch Security Demo Configuration ########\n");
+        securityConfigLines.append("######## End OpenSearch Security Demo Configuration ########" + System.lineSeparator());
 
         return securityConfigLines.toString();
     }
@@ -309,7 +319,7 @@ public class SecuritySettingsConfigurer extends Installer {
         // Write securityadmin_demo script
         FileWriter writer = new FileWriter(securityAdminDemoScriptPath, StandardCharsets.UTF_8);
         for (String command : securityAdminCommands) {
-            writer.write(command + "\n");
+            writer.write(command + "" + System.lineSeparator());
         }
         writer.close();
     }

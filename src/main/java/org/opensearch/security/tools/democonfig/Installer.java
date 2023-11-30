@@ -149,7 +149,7 @@ public class Installer {
 
                 if (!cluster_mode) {
                     System.out.println("Cluster mode requires additional setup of:");
-                    System.out.println("  - Virtual memory (vm.max_map_count)\n");
+                    System.out.println("  - Virtual memory (vm.max_map_count)" + System.lineSeparator());
                     cluster_mode = confirmAction(scanner, "Enable cluster mode?");
                 }
             }
