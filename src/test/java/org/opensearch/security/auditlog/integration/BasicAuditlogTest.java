@@ -16,8 +16,8 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -149,7 +149,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
             Assert.assertEquals(AuditCategory.SSL_EXCEPTION, message.getCategory());
             Assert.assertTrue(message.getExceptionStackTrace().contains("not an SSL/TLS record"));
         });
-        Assert.assertTrue(validateMsgs(messages));
+        validateMsgs(messages);
     }
 
     @Test
@@ -182,7 +182,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
             TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID),
             TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID)
         );
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -211,7 +211,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("\"audit_request_effective_user\" : \"admin\""));
         Assert.assertTrue(auditLogImpl.contains("REST"));
         Assert.assertFalse(auditLogImpl.toLowerCase().contains("authorization"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -317,7 +317,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testUnknownAuthorization() throws Exception {
@@ -329,7 +329,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testUnauthenticated() throws Exception {
@@ -345,7 +345,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("/_search"));
         Assert.assertTrue(auditLogImpl.contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertFalse(auditLogImpl.contains("AUTHENTICATED"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
 
     }
 
@@ -353,7 +353,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertEquals(0, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testSecurityIndexAttempt() throws Exception {
@@ -366,7 +366,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(2, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testBadHeader() throws Exception {
@@ -381,7 +381,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("BAD_HEADERS"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("_opendistro_security_bad"));
         Assert.assertEquals(TestAuditlogImpl.sb.toString(), 1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testMissingPriv() throws Exception {
@@ -395,7 +395,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testMsearch() throws Exception {
@@ -419,7 +419,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("audit_trace_task_id"));
         Assert.assertEquals(auditLogImpl, 4, TestAuditlogImpl.messages.size());
         Assert.assertFalse(auditLogImpl.toLowerCase().contains("authorization"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testBulkAuth() throws Exception {
@@ -458,7 +458,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("audit_trace_task_id"));
         // may vary because we log shardrequests which are not predictable here
         Assert.assertTrue(TestAuditlogImpl.messages.size() >= 17);
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testBulkNonAuth() throws Exception {
@@ -496,7 +496,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("IndexRequest"));
         // may vary because we log shardrequests which are not predictable here
         Assert.assertTrue(TestAuditlogImpl.messages.size() >= 7);
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testUpdateSettings() throws Exception {
@@ -521,7 +521,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains(expectedRequestBodyLog));
         // may vary because we log may hit cluster manager directly or not
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 1);
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -620,7 +620,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("starfleet"));
         Assert.assertTrue(auditLogImpl.contains("sf"));
         Assert.assertEquals(2, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -682,7 +682,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("InternalScrollSearchRequest"));
         Assert.assertTrue(auditLogImpl.contains("MISSING_PRIVILEGES"));
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 2);
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -718,7 +718,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("audit_trace_resolved_indices"));
         Assert.assertTrue(auditLogImpl.contains("vulcangov"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
         TestAuditlogImpl.clear();
     }
 
@@ -747,7 +747,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("BAD_HEADERS"));
         Assert.assertTrue(auditLogImpl.contains("xxx"));
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
         TestAuditlogImpl.clear();
     }
 
@@ -780,7 +780,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditLogImpl.contains("indices:admin/close"));
         Assert.assertTrue(auditLogImpl.contains("indices:admin/delete"));
         Assert.assertTrue(auditLogImpl, TestAuditlogImpl.messages.size() >= 2);
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
