@@ -54,7 +54,6 @@ public class SecuritySettingsConfigurer extends Installer {
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
     static void updateAdminPassword() {
-
         String initialAdminPassword = System.getenv("initialAdminPassword");
         String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
         String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
@@ -108,7 +107,7 @@ public class SecuritySettingsConfigurer extends Installer {
             writePasswordToInternalUsersFile(ADMIN_PASSWORD, INTERNAL_USERS_FILE_PATH);
 
         } catch (IOException e) {
-            System.out.println("Exception: " + e.getMessage());
+            System.out.println("Exception updating the admin password : " + e.getMessage());
             System.exit(-1);
         }
     }
@@ -258,7 +257,7 @@ public class SecuritySettingsConfigurer extends Installer {
      */
     static boolean isNetworkHostAlreadyPresent(String filePath) {
         try {
-            String searchString = "^network.host";
+            String searchString = "network.host:";
             return isStringAlreadyPresentInFile(filePath, searchString);
         } catch (IOException e) {
             return false;
@@ -272,7 +271,7 @@ public class SecuritySettingsConfigurer extends Installer {
      */
     static boolean isNodeMaxLocalStorageNodesAlreadyPresent(String filePath) {
         try {
-            String searchString = "^node.max_local_storage_nodes";
+            String searchString = "node.max_local_storage_nodes:";
             return isStringAlreadyPresentInFile(filePath, searchString);
         } catch (IOException e) {
             return false;
@@ -290,7 +289,7 @@ public class SecuritySettingsConfigurer extends Installer {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.matches(searchString)) {
+                if (line.startsWith(searchString)) {
                     return true;
                 }
             }
