@@ -12,8 +12,15 @@
 package org.opensearch.security.tools.democonfig;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.FileInputStream;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.Date;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,10 +29,8 @@ import org.junit.Test;
 import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_DIR;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
@@ -57,16 +62,7 @@ public class CertificateGeneratorTests {
             assertThat(certFile.exists(), is(equalTo(true)));
             assertThat(certFile.canRead(), is(equalTo(true)));
 
-            String fileContents = null;
-            try {
-                fileContents = new String(Files.readAllBytes(Path.of(certFilePath)));
-            } catch (Exception e) {
-                fail("Expected the test to pass.");
-            }
-
-            assertThat(fileContents.isEmpty(), not(true));
-            assertThat(fileContents, containsString("---BEGIN"));
-            assertThat(fileContents, containsString("---END"));
+            checkCertificateValidity(certFilePath);
         }
     }
 
@@ -82,5 +78,36 @@ public class CertificateGeneratorTests {
         } finally {
             System.setSecurityManager(null);
         }
+    }
+
+    private static void checkCertificateValidity(String certPath) {
+        try (FileInputStream certInputStream = new FileInputStream(certPath)) {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            Certificate certificate = cf.generateCertificate(certInputStream);
+
+            if (certificate instanceof X509Certificate) {
+                X509Certificate x509Certificate = (X509Certificate) certificate;
+                x509Certificate.checkValidity();
+
+                Date expiryDate = x509Certificate.getNotAfter();
+                Instant expiry = expiryDate.toInstant();
+
+                assertThat(isExpiryAtLeastAYearLater(expiry), is(equalTo(true)));
+                assertThat(x509Certificate.getSigAlgName(), is(equalTo("SHA256withRSA")));
+            } else {
+                fail("Certificate is invalid. Expected X.509 certificate.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error checking certificate validity: " + e.getMessage());
+        }
+    }
+
+    private static boolean isExpiryAtLeastAYearLater(Instant expiry) {
+        Instant currentInstant = Instant.now();
+        LocalDate expiryDate = LocalDate.ofInstant(expiry, TimeZone.getTimeZone("EDT").toZoneId());
+        LocalDate currentDate = LocalDate.ofInstant(currentInstant, TimeZone.getTimeZone("EDT").toZoneId());
+
+        Period gap = Period.between(currentDate, expiryDate);
+        return gap.getYears() >= 1;
     }
 }

@@ -44,6 +44,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_P
 import static org.opensearch.security.tools.democonfig.Installer.FILE_EXTENSION;
 import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_DIR;
 import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_FILE;
+import static org.opensearch.security.tools.democonfig.Installer.resetState;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.getSecurityAdminCommands;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isStringAlreadyPresentInFile;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.writeSecurityConfigToOpenSearchYML;
@@ -76,6 +77,7 @@ public class SecuritySettingsConfigurerTests {
         deleteDirectoryRecursive(OPENSEARCH_CONF_DIR);
         Installer.environment = ExecutionEnvironment.DEMO;
         unsetEnv(adminPasswordKey);
+        resetState();
     }
 
     @Test
