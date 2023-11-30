@@ -28,7 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.test.SingleClusterTest;
+import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -64,11 +64,14 @@ import static org.opensearch.security.tools.democonfig.Installer.setBaseDir;
 import static org.opensearch.security.tools.democonfig.Installer.setOpenSearchVariables;
 import static org.opensearch.security.tools.democonfig.Installer.setSecurityVariables;
 import static org.opensearch.security.tools.democonfig.Installer.skip_updates;
+import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
+import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
+import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
-public class InstallerTests extends SingleClusterTest {
+public class InstallerTests {
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
     private final InputStream originalIn = System.in;
@@ -489,50 +492,12 @@ public class InstallerTests extends SingleClusterTest {
 
     public void tearDownSecurityDirectories() {
         // Clean up testing directories or files
-        deleteFile(OPENSEARCH_PLUGINS_DIR + "opensearch-security" + File.separator + "opensearch-security-version.jar");
-        deleteFile(OPENSEARCH_LIB_PATH + "opensearch-osVersion.jar");
-        deleteDirectory(OPENSEARCH_PLUGINS_DIR + "opensearch-security");
-        deleteDirectory(OPENSEARCH_PLUGINS_DIR);
-        deleteDirectory(OPENSEARCH_LIB_PATH);
-        deleteFile(OPENSEARCH_CONF_DIR + File.separator + "securityadmin_demo.sh");
-        deleteDirectory(OPENSEARCH_CONF_DIR);
+        deleteDirectoryRecursive(OPENSEARCH_PLUGINS_DIR);
+        deleteDirectoryRecursive(OPENSEARCH_LIB_PATH);
+        deleteDirectoryRecursive(OPENSEARCH_CONF_DIR);
     }
 
-    private void createDirectory(String path) {
-        File directory = new File(path);
-        if (!directory.exists() && !directory.mkdirs()) {
-            throw new RuntimeException("Failed to create directory: " + path);
-        }
-    }
-
-    private void createFile(String path) {
-        try {
-            File file = new File(path);
-            if (!file.exists() && !file.createNewFile()) {
-                throw new RuntimeException("Failed to create file: " + path);
-            }
-        } catch (Exception e) {
-            // without this the catch, we would need to throw exception,
-            // which would then require modifying caller method signature
-            throw new RuntimeException("Failed to create file: " + path, e);
-        }
-    }
-
-    private void deleteDirectory(String path) {
-        File directory = new File(path);
-        if (directory.exists() && !directory.delete()) {
-            throw new RuntimeException("Failed to delete directory: " + path);
-        }
-    }
-
-    private void deleteFile(String path) {
-        File file = new File(path);
-        if (file.exists() && !file.delete()) {
-            throw new RuntimeException("Failed to delete file: " + path);
-        }
-    }
-
-    private void setWritePermissions(String filePath) {
+    static void setWritePermissions(String filePath) {
         if (!OS.toLowerCase().contains("win")) {
             Path file = Paths.get(filePath);
             Set<PosixFilePermission> perms = new HashSet<>();
@@ -542,21 +507,6 @@ public class InstallerTests extends SingleClusterTest {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        }
-    }
-
-}
-
-class NoExitSecurityManager extends SecurityManager {
-    @Override
-    public void checkPermission(java.security.Permission perm) {
-        // Allow everything except System.exit code 0 &b -1
-        if (perm instanceof java.lang.RuntimePermission && ("exitVM.0".equals(perm.getName()) || "exitVM.-1".equals(perm.getName()))) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("System.exit(");
-            sb.append(perm.getName().contains("0") ? 0 : -1);
-            sb.append(") blocked to allow print statement testing.");
-            throw new SecurityException(sb.toString());
         }
     }
 }
