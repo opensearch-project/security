@@ -25,6 +25,12 @@ else
     DIR="$( cd "$( dirname "$(realpath "$SCRIPT_PATH")" )" && pwd -P)"
 fi
 
+
+if [ -z "$OPENSEARCH_HOME" ]; then
+  # move to opensearch root folder and set the variable
+  OPENSEARCH_HOME=`cd "$DIR/../../.."; pwd`
+fi
+
 # now set the path to java: OPENSEARCH_JAVA_HOME -> JAVA_HOME -> bundled JRE -> bundled JDK
 if [ -n "$OPENSEARCH_JAVA_HOME" ]; then
   JAVA="$OPENSEARCH_JAVA_HOME/bin/java"
@@ -50,9 +56,12 @@ else
   fi
 fi
 
+echo $JAVA
+echo $JAVA_TYPE
+
 if [ ! -x "$JAVA" ]; then
     echo "could not find java in $JAVA_TYPE at $JAVA" >&2
     exit 1
 fi
 
-"$JAVA" "$JAVA_OPTS" -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" org.opensearch.security.tools.democonfig.Installer "$DIR" "$@" 2>/dev/null
+"$JAVA" -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" org.opensearch.security.tools.democonfig.Installer "$DIR" "$@" 2>/dev/null
