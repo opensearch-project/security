@@ -424,7 +424,8 @@ public class InstallerTests {
             + System.lineSeparator()
             + "### or run ."
             + File.separator
-            + "securityadmin_demo.sh"
+            + "securityadmin_demo"
+            + FILE_EXTENSION
             + System.lineSeparator()
             + "### After that you can also use the Security Plugin ConfigurationGUI"
             + System.lineSeparator()
@@ -478,11 +479,11 @@ public class InstallerTests {
             + "opensearch-security and execute: "
             + System.lineSeparator()
             + lastLine
-            + ""
             + System.lineSeparator()
             + "### or run ."
             + File.separator
-            + "securityadmin_demo.sh"
+            + "securityadmin_demo"
+            + FILE_EXTENSION
             + System.lineSeparator()
             + "### To use the Security Plugin ConfigurationGUI"
             + System.lineSeparator()
