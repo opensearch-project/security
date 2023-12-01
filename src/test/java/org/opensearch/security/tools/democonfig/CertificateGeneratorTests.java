@@ -11,14 +11,20 @@
 
 package org.opensearch.security.tools.democonfig;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Base64;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -62,6 +68,10 @@ public class CertificateGeneratorTests {
             assertThat(certFile.exists(), is(equalTo(true)));
             assertThat(certFile.canRead(), is(equalTo(true)));
 
+            if (certFilePath.endsWith("-key.pem")) {
+                checkPrivateKeyValidity(certFilePath);
+                return;
+            }
             checkCertificateValidity(certFilePath);
         }
     }
@@ -109,5 +119,33 @@ public class CertificateGeneratorTests {
 
         Period gap = Period.between(currentDate, expiryDate);
         return gap.getYears() >= 1;
+    }
+
+    private void checkPrivateKeyValidity(String keyPath) {
+        try {
+            String pemContent = readPEMFile(keyPath);
+
+            String base64Data = pemContent.replaceAll("-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
+
+            byte[] keyBytes = Base64.getDecoder().decode(base64Data);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            PrivateKey key = kf.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+            assertThat(key.getFormat(), is(equalTo("PKCS#8")));
+            assertThat(key.getAlgorithm(), is(equalTo("RSA")));
+            assertThat(key.isDestroyed(), is(equalTo(false)));
+        } catch (Exception e) {
+            fail("Error checking key validity: " + e.getMessage());
+        }
+    }
+
+    private static String readPEMFile(String pemFilePath) throws Exception {
+        StringBuilder pemContent = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new FileReader(pemFilePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                pemContent.append(line).append("\n");
+            }
+        }
+        return pemContent.toString();
     }
 }
