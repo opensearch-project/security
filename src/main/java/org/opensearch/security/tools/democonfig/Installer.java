@@ -390,6 +390,7 @@ public class Installer {
         initsecurity = false;
         cluster_mode = false;
         environment = ExecutionEnvironment.DEMO;
+        OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
         SCRIPT_DIR = null;
         BASE_DIR = null;
         OPENSEARCH_CONF_FILE = null;
