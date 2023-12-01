@@ -49,9 +49,6 @@ public class DemoConfigHelperUtil {
             }
             // Delete the empty directory after all its content is deleted
             directory.delete();
-            System.out.println("Deleted directory: " + directory.getAbsolutePath());
-        } else {
-            System.out.println("No directory found at: " + directory.getAbsolutePath());
         }
     }
 }
