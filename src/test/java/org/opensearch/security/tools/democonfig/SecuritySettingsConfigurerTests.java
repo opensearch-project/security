@@ -11,6 +11,7 @@
 
 package org.opensearch.security.tools.democonfig;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline extension key-word is used in file ext variable
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;

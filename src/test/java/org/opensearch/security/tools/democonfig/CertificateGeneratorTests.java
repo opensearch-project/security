@@ -98,7 +98,7 @@ public class CertificateGeneratorTests {
                 fail("Certificate is invalid. Expected X.509 certificate.");
             }
         } catch (Exception e) {
-            System.out.println("Error checking certificate validity: " + e.getMessage());
+            fail("Error checking certificate validity: " + e.getMessage());
         }
     }
 
