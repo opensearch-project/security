@@ -56,6 +56,9 @@ else
   fi
 fi
 
+echo $JAVA
+echo $JAVA_TYPE
+
 if [ ! -x "$JAVA" ]; then
     echo "could not find java in $JAVA_TYPE at $JAVA" >&2
     exit 1
