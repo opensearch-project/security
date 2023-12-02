@@ -185,7 +185,7 @@ public class ConfigV7 {
                 + opendistro_role
                 + ", index="
                 + index
-                + ", dashboardSignInOptions="
+                + ", dashboard_signin_options="
                 + dashboardSignInOptions
                 + "]";
         }

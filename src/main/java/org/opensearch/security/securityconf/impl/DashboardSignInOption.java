@@ -2,9 +2,8 @@ package org.opensearch.security.securityconf.impl;
 
 public enum DashboardSignInOption {
     BASIC("basic"),
-    LDAP("ldap"),
     SAML("saml"),
-    OPEN_ID("openid"),
+    OPENID("openid"),
     ANONYMOUS("anonymous");
 
     private String option;

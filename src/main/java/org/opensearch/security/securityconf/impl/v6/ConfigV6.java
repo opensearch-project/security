@@ -114,7 +114,7 @@ public class ConfigV6 {
                 + index
                 + ", do_not_fail_on_forbidden="
                 + do_not_fail_on_forbidden
-                + ", dashboardSignInOptions="
+                + ", dashboard_signin_options="
                 + dashboardSignInOptions
                 + "]";
         }
