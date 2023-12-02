@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,6 +34,7 @@ import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.ConfigConstants;
@@ -49,6 +51,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     public static final String DEFAULT_TENANT_JSON_PROPERTY = "default_tenant";
     public static final String PRIVATE_TENANT_ENABLED_JSON_PROPERTY = "private_tenant_enabled";
     public static final String MULTITENANCY_ENABLED_JSON_PROPERTY = "multitenancy_enabled";
+    public static final String DASHBOARD_SIGNIN_OPTIONS = "dashboard_signin_options";
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/tenancy/config"), new Route(PUT, "/tenancy/config"))
@@ -119,7 +122,9 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                             PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
                             DataType.BOOLEAN,
                             MULTITENANCY_ENABLED_JSON_PROPERTY,
-                            DataType.BOOLEAN
+                            DataType.BOOLEAN,
+                            DASHBOARD_SIGNIN_OPTIONS,
+                            DataType.ARRAY
                         );
                     }
                 });
@@ -132,6 +137,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             .field(DEFAULT_TENANT_JSON_PROPERTY, config.dynamic.kibana.default_tenant)
             .field(PRIVATE_TENANT_ENABLED_JSON_PROPERTY, config.dynamic.kibana.private_tenant_enabled)
             .field(MULTITENANCY_ENABLED_JSON_PROPERTY, config.dynamic.kibana.multitenancy_enabled)
+            .field(DASHBOARD_SIGNIN_OPTIONS, config.dynamic.kibana.dashboardSignInOptions)
             .endObject();
     }
 
@@ -177,6 +183,19 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         if (Objects.nonNull(jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY))) {
             config.dynamic.kibana.multitenancy_enabled = jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY).asBoolean();
         }
+        if (Objects.nonNull(jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS))
+            && jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS).size() > 0) {
+            JsonNode newOptions = jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS);
+            List<DashboardSignInOption> options = new ArrayList<>();
+            for (int i = 0; i < newOptions.size(); i++) {
+                try {
+                    String option = newOptions.get(i).asText();
+                    options.add(DashboardSignInOption.valueOf(option));
+                } catch (Exception e) {}
+            }
+            config.dynamic.kibana.dashboardSignInOptions = options;
+        }
+
         final String defaultTenant = Optional.ofNullable(config.dynamic.kibana.default_tenant).map(String::toLowerCase).orElse("");
 
         if (!config.dynamic.kibana.private_tenant_enabled && ConfigConstants.TENANCY_PRIVATE_TENANT_NAME.equals(defaultTenant)) {
