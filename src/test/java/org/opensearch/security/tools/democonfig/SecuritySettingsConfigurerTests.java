@@ -31,17 +31,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.dlic.rest.validation.PasswordValidator;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
 import static org.opensearch.security.tools.democonfig.Installer.FILE_EXTENSION;
 import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_DIR;
 import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_FILE;
@@ -52,7 +47,6 @@ import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigure
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
-import static org.opensearch.security.user.UserService.generatePassword;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -83,7 +77,7 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testUpdateAdminPasswordWithCustomPassword() throws NoSuchFieldException, IllegalAccessException {
-        String customPassword = generateStrongPassword();
+        String customPassword = "myStrongPassword123"; // generateStrongPassword();
         setEnv(adminPasswordKey, customPassword);
 
         SecuritySettingsConfigurer.updateAdminPassword();
@@ -95,7 +89,7 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testUpdateAdminPasswordWithFilePassword() throws IOException {
-        String customPassword = generateStrongPassword();
+        String customPassword = "myStrongPassword123";
         String initialAdminPasswordTxt = System.getProperty("user.dir")
             + File.separator
             + "test-conf"
@@ -330,19 +324,5 @@ public class SecuritySettingsConfigurerTests {
         createDirectory(securityConfDir);
         createFile(securityConfDir + "internal_users.yml");
         createFile(OPENSEARCH_CONF_FILE);
-    }
-
-    private String generateStrongPassword() {
-        String password = "";
-        final PasswordValidator passwordValidator = PasswordValidator.of(
-            Settings.builder()
-                .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
-                .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 8)
-                .build()
-        );
-        while (passwordValidator.validate("admin", password) != RequestContentValidator.ValidationError.NONE) {
-            password = generatePassword();
-        }
-        return password;
     }
 }
