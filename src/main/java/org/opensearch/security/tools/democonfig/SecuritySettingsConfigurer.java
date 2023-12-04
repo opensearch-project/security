@@ -21,11 +21,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.tools.Hasher;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
@@ -36,6 +41,7 @@ import static org.opensearch.security.user.UserService.generatePassword;
  */
 public class SecuritySettingsConfigurer extends Installer {
 
+    private static final List<String> REST_ENABLED_ROLES_LIST = List.of("all_access", "security_rest_api_access");
     static String ADMIN_PASSWORD = "";
 
     /**
@@ -177,87 +183,72 @@ public class SecuritySettingsConfigurer extends Installer {
      * Update opensearch.yml with security configuration information
      */
     static void writeSecurityConfigToOpenSearchYML() {
-        String securityConfig = buildSecurityConfigString();
+        String configHeader = System.lineSeparator() + System.lineSeparator() +
+                "######## Start OpenSearch Security Demo Configuration ########" + System.lineSeparator()
+                + "# WARNING: revise all the lines below before you go into production" + System.lineSeparator();
+        String configFooter = "######## End OpenSearch Security Demo Configuration ########" + System.lineSeparator();
+
+        Map<String, Object> securityConfigAsMap = buildSecurityConfigMap();
+
 
         try (FileWriter writer = new FileWriter(OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
-            writer.write(securityConfig);
+            writer.write(configHeader);
+            Yaml yaml = new Yaml();
+            DumperOptions options = new DumperOptions();
+            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+            String yamlString = yaml.dump(securityConfigAsMap);
+            writer.write(yamlString);
+            writer.write(configFooter);
         } catch (IOException e) {
-            System.err.println("Exception writing security configuration to opensearch.yml.");
+            System.err.println("Exception writing security configuration to opensearch.yml : " + e.getMessage());
             System.exit(-1);
         }
     }
 
     /**
      * Helper method to build security configuration to append to opensearch.yml
-     * @return the configuration string to be written to opensearch.yml
+     * @return the configuration map to be written to opensearch.yml
      */
-    static String buildSecurityConfigString() {
-        StringBuilder securityConfigLines = new StringBuilder();
+    private static Map<String, Object> buildSecurityConfigMap() {
+        Map<String, Object> configMap = new LinkedHashMap<>();
 
-        securityConfigLines.append("" + System.lineSeparator())
-            .append("######## Start OpenSearch Security Demo Configuration ########" + System.lineSeparator())
-            .append("# WARNING: revise all the lines below before you go into production" + System.lineSeparator())
-            .append("plugins.security.ssl.transport.pemcert_filepath: ")
-            .append(Certificates.NODE_CERT.getFileName())
-            .append("" + System.lineSeparator())
-            .append("plugins.security.ssl.transport.pemkey_filepath: ")
-            .append(Certificates.NODE_KEY.getFileName())
-            .append("" + System.lineSeparator())
-            .append("plugins.security.ssl.transport.pemtrustedcas_filepath: ")
-            .append(Certificates.ROOT_CA.getFileName())
-            .append("" + System.lineSeparator())
-            .append("plugins.security.ssl.transport.enforce_hostname_verification: false" + System.lineSeparator())
-            .append("plugins.security.ssl.http.enabled: true" + System.lineSeparator())
-            .append("plugins.security.ssl.http.pemcert_filepath: ")
-            .append(Certificates.NODE_CERT.getFileName())
-            .append("" + System.lineSeparator())
-            .append("plugins.security.ssl.http.pemkey_filepath: ")
-            .append(Certificates.NODE_KEY.getFileName())
-            .append("" + System.lineSeparator())
-            .append("plugins.security.ssl.http.pemtrustedcas_filepath: ")
-            .append(Certificates.ROOT_CA.getFileName())
-            .append("" + System.lineSeparator())
-            .append("plugins.security.allow_unsafe_democertificates: true" + System.lineSeparator());
+        configMap.put("plugins.security.ssl.transport.pemcert_filepath", Certificates.NODE_CERT.getFileName());
+        configMap.put("plugins.security.ssl.transport.pemkey_filepath", Certificates.NODE_KEY.getFileName());
+        configMap.put("plugins.security.ssl.transport.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
+        configMap.put("plugins.security.ssl.transport.enforce_hostname_verification", false);
+        configMap.put("plugins.security.ssl.http.enabled", true);
+        configMap.put("plugins.security.ssl.http.pemcert_filepath", Certificates.NODE_CERT.getFileName());
+        configMap.put("plugins.security.ssl.http.pemkey_filepath", Certificates.NODE_KEY.getFileName());
+        configMap.put("plugins.security.ssl.http.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
+        configMap.put("plugins.security.allow_unsafe_democertificates", true);
 
         if (initsecurity) {
-            securityConfigLines.append("plugins.security.allow_default_init_securityindex: true" + System.lineSeparator());
+            configMap.put("plugins.security.allow_default_init_securityindex", true);
         }
 
-        securityConfigLines.append(
-            "plugins.security.authcz.admin_dn:"
-                + System.lineSeparator()
-                + "  - CN=kirk,OU=client,O=client,L=test, C=de"
-                + System.lineSeparator()
-                + System.lineSeparator()
-        );
+        configMap.put("plugins.security.authcz.admin_dn", List.of("CN=kirk,OU=client,O=client,L=test,C=de"));
 
-        securityConfigLines.append("plugins.security.audit.type:  internal_opensearch" + System.lineSeparator());
-        securityConfigLines.append("plugins.security.enable_snapshot_restore_privilege:  true" + System.lineSeparator());
-        securityConfigLines.append("plugins.security.check_snapshot_restore_write_privileges:  true" + System.lineSeparator());
-        securityConfigLines.append(
-            "plugins.security.restapi.roles_enabled:  [\"all_access\", \"security_rest_api_access\"]" + System.lineSeparator()
-        );
+        configMap.put("plugins.security.audit.type", "internal_opensearch");
+        configMap.put("plugins.security.enable_snapshot_restore_privilege", true);
+        configMap.put("plugins.security.check_snapshot_restore_write_privileges", true);
+        configMap.put("plugins.security.restapi.roles_enabled", REST_ENABLED_ROLES_LIST);
 
-        securityConfigLines.append("plugins.security.system_indices.enabled: true" + System.lineSeparator());
-        securityConfigLines.append("plugins.security.system_indices.indices: [")
-            .append(SYSTEM_INDICES)
-            .append("]" + System.lineSeparator());
+        configMap.put("plugins.security.system_indices.enabled", true);
+        configMap.put("plugins.security.system_indices.indices", SYSTEM_INDICES);
 
         if (!isNetworkHostAlreadyPresent(OPENSEARCH_CONF_FILE)) {
             if (cluster_mode) {
-                securityConfigLines.append("network.host: 0.0.0.0" + System.lineSeparator());
-                securityConfigLines.append("node.name: smoketestnode" + System.lineSeparator());
-                securityConfigLines.append("cluster.initial_cluster_manager_nodes: smoketestnode" + System.lineSeparator());
+                configMap.put("network.host", "0.0.0.0");
+                configMap.put("node.name", "smoketestnode");
+                configMap.put("cluster.initial_cluster_manager_nodes", "smoketestnode");
             }
         }
 
         if (!isNodeMaxLocalStorageNodesAlreadyPresent(OPENSEARCH_CONF_FILE)) {
-            securityConfigLines.append("node.max_local_storage_nodes: 3" + System.lineSeparator());
+            configMap.put("node.max_local_storage_nodes", 3);
         }
 
-        securityConfigLines.append("######## End OpenSearch Security Demo Configuration ########" + System.lineSeparator());
-
-        return securityConfigLines.toString();
+        return configMap;
     }
 
     /**
@@ -319,7 +310,7 @@ public class SecuritySettingsConfigurer extends Installer {
         // Write securityadmin_demo script
         FileWriter writer = new FileWriter(securityAdminDemoScriptPath, StandardCharsets.UTF_8);
         for (String command : securityAdminCommands) {
-            writer.write(command + "" + System.lineSeparator());
+            writer.write(command + System.lineSeparator());
         }
         writer.close();
     }
