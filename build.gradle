@@ -169,7 +169,7 @@ dependencies {
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'commons-cli:commons-cli:1.3.1'
     implementation 'org.bouncycastle:bcprov-jdk15to18:1.75'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
     implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
@@ -222,7 +222,7 @@ dependencies {
     integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
     integrationTestImplementation "com.google.guava:guava:32.1.1-jre"
     integrationTestImplementation "org.apache.commons:commons-lang3:3.4"
-    integrationTestImplementation 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
+    integrationTestImplementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
     integrationTestImplementation 'io.jsonwebtoken:jjwt-api:0.10.8'
     integrationTestImplementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
