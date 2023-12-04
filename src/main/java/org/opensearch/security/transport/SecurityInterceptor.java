@@ -72,6 +72,7 @@ import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
+import static org.opensearch.security.support.Base64Helper.shouldUseJDKSerialization;
 
 public class SecurityInterceptor {
 
@@ -148,7 +149,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final boolean useJDKSerialization = connection.getVersion().before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION);
+        final boolean useJDKSerialization = shouldUseJDKSerialization(connection.getVersion());
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -226,13 +227,13 @@ public class SecurityInterceptor {
                 );
             }
 
-            if (useJDKSerialization) {
-                Map<String, String> jdkSerializedHeaders = new HashMap<>();
+            if (!useJDKSerialization) {
+                Map<String, String> customSerializedHeaders = new HashMap<>();
                 HeaderHelper.getAllSerializedHeaderNames()
                     .stream()
                     .filter(k -> headerMap.get(k) != null)
-                    .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
-                headerMap.putAll(jdkSerializedHeaders);
+                    .forEach(k -> customSerializedHeaders.put(k, Base64Helper.ensureCustomSerialized(headerMap.get(k))));
+                headerMap.putAll(customSerializedHeaders);
             }
 
             getThreadContext().putHeader(headerMap);

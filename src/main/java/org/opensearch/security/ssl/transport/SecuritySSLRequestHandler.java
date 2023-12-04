@@ -46,6 +46,8 @@ import org.opensearch.transport.netty4.Netty4TcpChannel;
 
 import io.netty.handler.ssl.SslHandler;
 
+import static org.opensearch.security.support.Base64Helper.shouldUseJDKSerialization;
+
 public class SecuritySSLRequestHandler<T extends TransportRequest> implements TransportRequestHandler<T> {
 
     private final String action;
@@ -94,10 +96,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
             channel = getInnerChannel(channel);
         }
 
-        threadContext.putTransient(
-            ConfigConstants.USE_JDK_SERIALIZATION,
-            channel.getVersion().before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION)
-        );
+        threadContext.putTransient(ConfigConstants.USE_JDK_SERIALIZATION, shouldUseJDKSerialization(channel.getVersion()));
 
         if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final Exception exception = ExceptionUtils.createBadHeaderException();

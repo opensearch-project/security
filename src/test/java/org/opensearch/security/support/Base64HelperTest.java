@@ -38,6 +38,11 @@ public class Base64HelperTest {
         String test = "string";
         Assert.assertEquals(test, ds(test));
         Assert.assertEquals(test, dsJDK(test));
+
+        // verify that default methods use JDK serialization
+        Assert.assertEquals(serializeObject(test), serializeObject(test, true));
+        String serialized = serializeObject(test);
+        Assert.assertEquals(deserializeObject(serialized), deserializeObject(serialized, true));
     }
 
     @Test
@@ -47,5 +52,14 @@ public class Base64HelperTest {
         String customSerialized = Base64Helper.serializeObject(test, false);
         Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(jdkSerialized));
         Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(customSerialized));
+    }
+
+    @Test
+    public void testEnsureCustomSerialized() {
+        String test = "string";
+        String jdkSerialized = Base64Helper.serializeObject(test, true);
+        String customSerialized = Base64Helper.serializeObject(test, false);
+        Assert.assertEquals(customSerialized, Base64Helper.ensureCustomSerialized(jdkSerialized));
+        Assert.assertEquals(customSerialized, Base64Helper.ensureCustomSerialized(customSerialized));
     }
 }

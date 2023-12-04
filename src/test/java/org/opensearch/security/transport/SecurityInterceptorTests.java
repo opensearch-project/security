@@ -21,6 +21,7 @@ import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.extensions.ExtensionsManager;
@@ -108,8 +109,7 @@ public class SecurityInterceptorTests {
         );
     }
 
-    private void testSendRequestDecorate(Version remoteNodeVersion) {
-        boolean useJDKSerialization = remoteNodeVersion.before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION);
+    private void testSendRequestDecorate(DiscoveryNode localNode, DiscoveryNode otherNode, boolean shouldUseJDKSerialization) {
         ClusterName clusterName = ClusterName.DEFAULT;
         when(clusterService.getClusterName()).thenReturn(clusterName);
 
@@ -143,17 +143,7 @@ public class SecurityInterceptorTests {
         @SuppressWarnings("unchecked")
         TransportResponseHandler<TransportResponse> handler = mock(TransportResponseHandler.class);
 
-        InetAddress localAddress = null;
-        try {
-            localAddress = InetAddress.getByName("0.0.0.0");
-        } catch (final UnknownHostException uhe) {
-            throw new RuntimeException(uhe);
-        }
-
-        DiscoveryNode localNode = new DiscoveryNode("local-node", new TransportAddress(localAddress, 1234), Version.CURRENT);
         Connection connection1 = transportService.getConnection(localNode);
-
-        DiscoveryNode otherNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 4321), remoteNodeVersion);
         Connection connection2 = transportService.getConnection(otherNode);
 
         // from thread context inside sendRequestDecorate
@@ -189,7 +179,7 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
+                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, shouldUseJDKSerialization));
             }
         };
         // isSameNodeRequest = false
@@ -201,17 +191,49 @@ public class SecurityInterceptorTests {
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
     }
 
+    /**
+     * Tests the scenario when remote node is on same OS version
+     */
     @Test
     public void testSendRequestDecorate() {
-        testSendRequestDecorate(Version.CURRENT);
+        DiscoveryNode localNode = new DiscoveryNode("local-node", new TransportAddress(getLocalAddress(), 1234), Version.CURRENT);
+        DiscoveryNode otherNode = new DiscoveryNode("other-node", new TransportAddress(getLocalAddress(), 3456), Version.CURRENT);
+        testSendRequestDecorate(localNode, otherNode, true);
     }
 
     /**
-     * Tests the scenario when remote node does not implement custom serialization protocol and uses JDK serialization
+     * Tests the scenarios for mixed node versions
      */
     @Test
-    public void testSendRequestDecorateWhenRemoteNodeUsesJDKSerde() {
-        testSendRequestDecorate(Version.V_2_0_0);
+    public void testSendRequestDecorateWithMixedNodeVersions() {
+
+        // local on latest version, remote on 2.11.0 - should use custom
+
+        try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
+            DiscoveryNode localNode = new DiscoveryNode("local-node", new TransportAddress(getLocalAddress(), 1234), Version.CURRENT);
+            DiscoveryNode otherNode = new DiscoveryNode(
+                "other-node",
+                new TransportAddress(getLocalAddress(), 3456),
+                ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION
+            );
+            testSendRequestDecorate(localNode, otherNode, false);
+        }
+
+        // remote node is on a version > 2.11.1 while local node is on version 2.11.1 - should use JDK
+        try (ThreadContext.StoredContext ignore = threadPool.getThreadContext().stashContext()) {
+            DiscoveryNode localNode = new DiscoveryNode("local-node", new TransportAddress(getLocalAddress(), 1234), Version.CURRENT);
+            DiscoveryNode otherNode = new DiscoveryNode("other-node", new TransportAddress(getLocalAddress(), 3456), Version.V_2_11_1);
+            testSendRequestDecorate(localNode, otherNode, true);
+        }
+
+    }
+
+    private static InetAddress getLocalAddress() {
+        try {
+            return InetAddress.getByName("0.0.0.0");
+        } catch (final UnknownHostException uhe) {
+            throw new RuntimeException(uhe);
+        }
     }
 
 }
