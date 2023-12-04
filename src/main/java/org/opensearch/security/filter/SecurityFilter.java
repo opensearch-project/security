@@ -102,7 +102,7 @@ public class SecurityFilter implements ActionFilter {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
-    private DlsFlsRequestValve dlsFlsValve;
+    private final DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final ClusterService cs;
@@ -184,7 +184,7 @@ public class SecurityFilter implements ActionFilter {
             }
 
             if (threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION) == null) {
-                threadContext.putTransient(ConfigConstants.USE_JDK_SERIALIZATION, false);
+                threadContext.putTransient(ConfigConstants.USE_JDK_SERIALIZATION, true);
             }
 
             final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
@@ -255,7 +255,7 @@ public class SecurityFilter implements ActionFilter {
                 );
 
                 threadContext.putHeader(
-                    "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
+                    "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID(),
                     Thread.currentThread().getName()
                         + " FILTER -> "
                         + "Node "
@@ -481,11 +481,7 @@ public class SecurityFilter implements ActionFilter {
     }
 
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
-        if (user != null && adminDns.isAdmin(user)) {
-            return true;
-        }
-
-        return false;
+        return user != null && adminDns.isAdmin(user);
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
