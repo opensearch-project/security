@@ -76,7 +76,7 @@ ext {
 configurations.all {
     resolutionStrategy {
         force 'commons-codec:commons-codec:1.14'
-        force 'org.apache.santuario:xmlsec:2.2.3'
+        force 'org.apache.santuario:xmlsec:2.2.4'
         force 'org.cryptacular:cryptacular:1.2.4'
         force 'net.minidev:json-smart:2.4.10'
         force 'commons-cli:commons-cli:1.3.1'
