@@ -579,7 +579,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.6.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.37.1'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.37.2'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
