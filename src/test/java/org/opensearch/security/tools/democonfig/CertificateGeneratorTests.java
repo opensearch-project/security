@@ -37,33 +37,37 @@ import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_DIR;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.fail;
 
 public class CertificateGeneratorTests {
 
+    private static Installer installer;
+
     @Before
     public void setUp() {
-        OPENSEARCH_CONF_DIR = System.getProperty("user.dir") + File.separator + "test-conf";
-        createDirectory(OPENSEARCH_CONF_DIR);
+        installer = Installer.getInstance();
+        installer.OPENSEARCH_CONF_DIR = System.getProperty("user.dir") + File.separator + "test-conf";
+        createDirectory(installer.OPENSEARCH_CONF_DIR);
     }
 
     @After
     public void tearDown() {
-        deleteDirectoryRecursive(OPENSEARCH_CONF_DIR);
+
+        deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
+        Installer.resetInstance();
     }
 
     @Test
     public void testCreateDemoCertificates() {
-        CertificateGenerator certificateGenerator = new CertificateGenerator();
+        CertificateGenerator certificateGenerator = new CertificateGenerator(installer);
         Certificates[] certificatesArray = Certificates.values();
 
         certificateGenerator.createDemoCertificates();
 
         for (Certificates cert : certificatesArray) {
-            String certFilePath = OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
+            String certFilePath = installer.OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
             File certFile = new File(certFilePath);
             assertThat(certFile.exists(), is(equalTo(true)));
             assertThat(certFile.canRead(), is(equalTo(true)));
@@ -78,8 +82,8 @@ public class CertificateGeneratorTests {
 
     @Test
     public void testCreateDemoCertificates_invalidPath() {
-        OPENSEARCH_CONF_DIR = "invalidPath";
-        CertificateGenerator certificateGenerator = new CertificateGenerator();
+        installer.OPENSEARCH_CONF_DIR = "invalidPath";
+        CertificateGenerator certificateGenerator = new CertificateGenerator(installer);
         try {
             System.setSecurityManager(new NoExitSecurityManager());
             certificateGenerator.createDemoCertificates();

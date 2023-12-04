@@ -29,6 +29,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.tools.Hasher;
+
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -39,10 +40,40 @@ import static org.opensearch.security.user.UserService.generatePassword;
 /**
  * This class updates the security related configuration, as needed.
  */
-public class SecuritySettingsConfigurer extends Installer {
+public class SecuritySettingsConfigurer {
 
-    private static final List<String> REST_ENABLED_ROLES_LIST = List.of("all_access", "security_rest_api_access");
+    static final List<String> REST_ENABLED_ROLES = List.of("all_access", "security_rest_api_access");
+    static final List<String> SYSTEM_INDICES = List.of(
+        ".plugins-ml-config",
+        ".plugins-ml-connector",
+        ".plugins-ml-model-group",
+        ".plugins-ml-model",
+        ".plugins-ml-task",
+        ".plugins-ml-conversation-meta",
+        ".plugins-ml-conversation-interactions",
+        ".opendistro-alerting-config",
+        ".opendistro-alerting-alert*",
+        ".opendistro-anomaly-results*",
+        ".opendistro-anomaly-detector*",
+        ".opendistro-anomaly-checkpoints",
+        ".opendistro-anomaly-detection-state",
+        ".opendistro-reports-*",
+        ".opensearch-notifications-*",
+        ".opensearch-notebooks",
+        ".opensearch-observability",
+        ".ql-datasources",
+        ".opendistro-asynchronous-search-response*",
+        ".replication-metadata-store",
+        ".opensearch-knn-models",
+        ".geospatial-ip2geo-data*"
+    );
     static String ADMIN_PASSWORD = "";
+
+    private final Installer installer;
+
+    public SecuritySettingsConfigurer(Installer installer) {
+        this.installer = installer;
+    }
 
     /**
      * Configures security related changes to the opensearch configuration
@@ -50,7 +81,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * 2. Sets the custom admin password (Generates one if none is provided)
      * 3. Write the security config to opensearch.yml
      */
-    public static void configureSecuritySettings() {
+    public void configureSecuritySettings() {
         checkIfSecurityPluginIsAlreadyConfigured();
         updateAdminPassword();
         writeSecurityConfigToOpenSearchYML();
@@ -59,11 +90,14 @@ public class SecuritySettingsConfigurer extends Installer {
     /**
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
-    static void updateAdminPassword() {
+    void updateAdminPassword() {
         String initialAdminPassword = System.getenv().get("initialAdminPassword");
-        String ADMIN_PASSWORD_FILE_PATH = OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
-        String INTERNAL_USERS_FILE_PATH = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
-        boolean shouldValidatePassword = environment.equals(ExecutionEnvironment.DEMO);
+        String ADMIN_PASSWORD_FILE_PATH = this.installer.OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
+        String INTERNAL_USERS_FILE_PATH = this.installer.OPENSEARCH_CONF_DIR
+            + "opensearch-security"
+            + File.separator
+            + "internal_users.yml";
+        boolean shouldValidatePassword = this.installer.environment.equals(ExecutionEnvironment.DEMO);
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -124,7 +158,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * @param internalUsersFile the file path string to internal_users.yml file
      * @throws IOException while reading, writing to files
      */
-    static void writePasswordToInternalUsersFile(String adminPassword, String internalUsersFile) throws IOException {
+    void writePasswordToInternalUsersFile(String adminPassword, String internalUsersFile) throws IOException {
         String hashedAdminPassword = Hasher.hash(adminPassword.toCharArray());
 
         if (hashedAdminPassword.isEmpty()) {
@@ -158,15 +192,15 @@ public class SecuritySettingsConfigurer extends Installer {
     /**
      * Checks if security plugin is already configured. If so, the script execution will not continue.
      */
-    static void checkIfSecurityPluginIsAlreadyConfigured() {
+    void checkIfSecurityPluginIsAlreadyConfigured() {
         // Check if the configuration file contains the 'plugins.security' string
-        if (OPENSEARCH_CONF_FILE != null && new File(OPENSEARCH_CONF_FILE).exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
+        if (this.installer.OPENSEARCH_CONF_FILE != null && new File(this.installer.OPENSEARCH_CONF_FILE).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(this.installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     if (line.toLowerCase().contains("plugins.security")) {
-                        System.out.println(OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                        System.exit(skip_updates);
+                        System.out.println(this.installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
+                        System.exit(this.installer.skip_updates);
                     }
                 }
             } catch (IOException e) {
@@ -182,16 +216,18 @@ public class SecuritySettingsConfigurer extends Installer {
     /**
      * Update opensearch.yml with security configuration information
      */
-    static void writeSecurityConfigToOpenSearchYML() {
-        String configHeader = System.lineSeparator() + System.lineSeparator() +
-                "######## Start OpenSearch Security Demo Configuration ########" + System.lineSeparator()
-                + "# WARNING: revise all the lines below before you go into production" + System.lineSeparator();
+    void writeSecurityConfigToOpenSearchYML() {
+        String configHeader = System.lineSeparator()
+            + System.lineSeparator()
+            + "######## Start OpenSearch Security Demo Configuration ########"
+            + System.lineSeparator()
+            + "# WARNING: revise all the lines below before you go into production"
+            + System.lineSeparator();
         String configFooter = "######## End OpenSearch Security Demo Configuration ########" + System.lineSeparator();
 
         Map<String, Object> securityConfigAsMap = buildSecurityConfigMap();
 
-
-        try (FileWriter writer = new FileWriter(OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
+        try (FileWriter writer = new FileWriter(this.installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
             writer.write(configHeader);
             Yaml yaml = new Yaml();
             DumperOptions options = new DumperOptions();
@@ -209,7 +245,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * Helper method to build security configuration to append to opensearch.yml
      * @return the configuration map to be written to opensearch.yml
      */
-    private static Map<String, Object> buildSecurityConfigMap() {
+    Map<String, Object> buildSecurityConfigMap() {
         Map<String, Object> configMap = new LinkedHashMap<>();
 
         configMap.put("plugins.security.ssl.transport.pemcert_filepath", Certificates.NODE_CERT.getFileName());
@@ -222,7 +258,7 @@ public class SecuritySettingsConfigurer extends Installer {
         configMap.put("plugins.security.ssl.http.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
         configMap.put("plugins.security.allow_unsafe_democertificates", true);
 
-        if (initsecurity) {
+        if (this.installer.initsecurity) {
             configMap.put("plugins.security.allow_default_init_securityindex", true);
         }
 
@@ -231,20 +267,20 @@ public class SecuritySettingsConfigurer extends Installer {
         configMap.put("plugins.security.audit.type", "internal_opensearch");
         configMap.put("plugins.security.enable_snapshot_restore_privilege", true);
         configMap.put("plugins.security.check_snapshot_restore_write_privileges", true);
-        configMap.put("plugins.security.restapi.roles_enabled", REST_ENABLED_ROLES_LIST);
+        configMap.put("plugins.security.restapi.roles_enabled", REST_ENABLED_ROLES);
 
         configMap.put("plugins.security.system_indices.enabled", true);
         configMap.put("plugins.security.system_indices.indices", SYSTEM_INDICES);
 
-        if (!isNetworkHostAlreadyPresent(OPENSEARCH_CONF_FILE)) {
-            if (cluster_mode) {
+        if (!isNetworkHostAlreadyPresent(this.installer.OPENSEARCH_CONF_FILE)) {
+            if (this.installer.cluster_mode) {
                 configMap.put("network.host", "0.0.0.0");
                 configMap.put("node.name", "smoketestnode");
                 configMap.put("cluster.initial_cluster_manager_nodes", "smoketestnode");
             }
         }
 
-        if (!isNodeMaxLocalStorageNodesAlreadyPresent(OPENSEARCH_CONF_FILE)) {
+        if (!isNodeMaxLocalStorageNodesAlreadyPresent(this.installer.OPENSEARCH_CONF_FILE)) {
             configMap.put("node.max_local_storage_nodes", 3);
         }
 
@@ -304,7 +340,7 @@ public class SecuritySettingsConfigurer extends Installer {
      * @param securityAdminDemoScriptPath path to security admin demo script
      * @throws IOException if there was error reading/writing the file
      */
-    static void createSecurityAdminDemoScript(String securityAdminScriptPath, String securityAdminDemoScriptPath) throws IOException {
+    void createSecurityAdminDemoScript(String securityAdminScriptPath, String securityAdminDemoScriptPath) throws IOException {
         String[] securityAdminCommands = getSecurityAdminCommands(securityAdminScriptPath);
 
         // Write securityadmin_demo script
@@ -315,22 +351,22 @@ public class SecuritySettingsConfigurer extends Installer {
         writer.close();
     }
 
-    static String[] getSecurityAdminCommands(String securityAdminScriptPath) {
+    String[] getSecurityAdminCommands(String securityAdminScriptPath) {
         String securityAdminExecutionPath = securityAdminScriptPath
             + "\" -cd \""
-            + OPENSEARCH_CONF_DIR
+            + this.installer.OPENSEARCH_CONF_DIR
             + "opensearch-security\" -icl -key \""
-            + OPENSEARCH_CONF_DIR
+            + this.installer.OPENSEARCH_CONF_DIR
             + Certificates.ADMIN_CERT_KEY.getFileName()
             + "\" -cert \""
-            + OPENSEARCH_CONF_DIR
+            + this.installer.OPENSEARCH_CONF_DIR
             + Certificates.ADMIN_CERT.getFileName()
             + "\" -cacert \""
-            + OPENSEARCH_CONF_DIR
+            + this.installer.OPENSEARCH_CONF_DIR
             + Certificates.ROOT_CA.getFileName()
             + "\" -nhnv";
 
-        if (OS.toLowerCase().contains("win")) {
+        if (this.installer.OS.toLowerCase().contains("win")) {
             return new String[] { "@echo off", "call \"" + securityAdminExecutionPath };
         }
 

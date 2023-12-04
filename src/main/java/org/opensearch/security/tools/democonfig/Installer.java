@@ -28,48 +28,63 @@ import java.util.Set;
  */
 public class Installer {
 
-    static boolean assumeyes = false;
-    static boolean initsecurity = false;
-    static boolean cluster_mode = false;
-    static int skip_updates = -1;
-    static String SCRIPT_DIR;
-    static String BASE_DIR;
-    static String OPENSEARCH_CONF_FILE;
-    static String OPENSEARCH_BIN_DIR;
-    static String OPENSEARCH_PLUGINS_DIR;
-    static String OPENSEARCH_LIB_PATH;
-    static String OPENSEARCH_INSTALL_TYPE;
-    static String OPENSEARCH_CONF_DIR;
-    static String OPENSEARCH_VERSION;
-    static String SECURITY_VERSION;
+    private static Installer instance;
 
-    static ExecutionEnvironment environment = ExecutionEnvironment.DEMO;
+    private static SecuritySettingsConfigurer securitySettingsConfigurer;
 
-    static String OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
+    private static CertificateGenerator certificateGenerator;
 
-    static final String FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
+    boolean assumeyes = false;
+    boolean initsecurity = false;
+    boolean cluster_mode = false;
+    int skip_updates = -1;
+    String SCRIPT_DIR;
+    String BASE_DIR;
+    String OPENSEARCH_CONF_FILE;
+    String OPENSEARCH_BIN_DIR;
+    String OPENSEARCH_PLUGINS_DIR;
+    String OPENSEARCH_LIB_PATH;
+    String OPENSEARCH_INSTALL_TYPE;
+    String OPENSEARCH_CONF_DIR;
+    String OPENSEARCH_VERSION;
+    String SECURITY_VERSION;
 
-    static final String SYSTEM_INDICES = ".plugins-ml-config, .plugins-ml-connector, .plugins-ml-model-group, .plugins-ml-model, "
-        + ".plugins-ml-task, .plugins-ml-conversation-meta, .plugins-ml-conversation-interactions, .opendistro-alerting-config, .opendistro-alerting-alert*, "
-        + ".opendistro-anomaly-results*, .opendistro-anomaly-detector*, .opendistro-anomaly-checkpoints, .opendistro-anomaly-detection-state, "
-        + ".opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, "
-        + ".opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*";
+    ExecutionEnvironment environment = ExecutionEnvironment.DEMO;
 
-    static CertificateGenerator certificateGenerator;
+    String OS;
 
-    static File RPM_DEB_OPENSEARCH_FILE = new File("/usr/share/opensearch");
+    final String FILE_EXTENSION;
 
-    public static void main(String[] options) {
-        certificateGenerator = new CertificateGenerator();
+    static File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
 
-        printScriptHeaders();
+    private Installer() {
+        this.OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
+        FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
+    }
+
+    public static Installer getInstance() {
+        if (instance == null) {
+            instance = new Installer();
+            securitySettingsConfigurer = new SecuritySettingsConfigurer(instance);
+            certificateGenerator = new CertificateGenerator(instance);
+        }
+        return instance;
+    }
+
+    public void installDemoConfiguration(String[] options) {
         readOptions(options);
+        printScriptHeaders();
         gatherUserInputs();
         initializeVariables();
         printVariables();
-        SecuritySettingsConfigurer.configureSecuritySettings();
+        securitySettingsConfigurer.configureSecuritySettings();
         certificateGenerator.createDemoCertificates();
         finishScriptExecution();
+    }
+
+    public static void main(String[] options) {
+        Installer installer = Installer.getInstance();
+        installer.installDemoConfiguration(options);
     }
 
     /**
@@ -84,7 +99,7 @@ public class Installer {
      * Reads the options passed to the script
      * @param options an array of strings containing options passed to the script
      */
-    static void readOptions(String[] options) {
+    void readOptions(String[] options) {
         // set script execution dir
         SCRIPT_DIR = options[0];
 
@@ -118,7 +133,7 @@ public class Installer {
     /**
      * Prints the help menu when -h option is passed
      */
-    static void showHelp() {
+    void showHelp() {
         System.out.println("install_demo_configuration.sh [-y] [-i] [-c]");
         System.out.println("  -h show help");
         System.out.println("  -y confirm all installation dialogues automatically");
@@ -135,7 +150,7 @@ public class Installer {
      * Prompt the user and collect user inputs
      * Input collection will be skipped if -y option was passed
      */
-    static void gatherUserInputs() {
+    void gatherUserInputs() {
         if (!assumeyes) {
             try (Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8)) {
 
@@ -165,7 +180,7 @@ public class Installer {
      * @param message prompt question
      * @return true or false based on user input
      */
-    static boolean confirmAction(Scanner scanner, String message) {
+    boolean confirmAction(Scanner scanner, String message) {
         System.out.print(message + " [y/N] ");
         String response = scanner.nextLine();
         return response.equalsIgnoreCase("yes") || response.equalsIgnoreCase("y");
@@ -174,7 +189,7 @@ public class Installer {
     /**
      * Initialize all class level variables required
      */
-    static void initializeVariables() {
+    void initializeVariables() {
         setBaseDir();
         setOpenSearchVariables();
         setSecurityVariables();
@@ -183,7 +198,7 @@ public class Installer {
     /**
      * Sets the base directory to be used by the script
      */
-    static void setBaseDir() {
+    void setBaseDir() {
         File baseDirFile = new File(SCRIPT_DIR).getParentFile().getParentFile().getParentFile();
         BASE_DIR = baseDirFile != null ? baseDirFile.getAbsolutePath() : null;
 
@@ -198,7 +213,7 @@ public class Installer {
     /**
      * Sets the variables for items at OpenSearch level
      */
-    static void setOpenSearchVariables() {
+    void setOpenSearchVariables() {
         OPENSEARCH_CONF_FILE = BASE_DIR + "config" + File.separator + "opensearch.yml";
         OPENSEARCH_BIN_DIR = BASE_DIR + "bin" + File.separator;
         OPENSEARCH_PLUGINS_DIR = BASE_DIR + "plugins" + File.separator;
@@ -221,7 +236,7 @@ public class Installer {
      * Returns a set of error messages for the paths that didn't contain files/directories
      * @return a set containing error messages if any, empty otherwise
      */
-    private static Set<String> validatePaths() {
+    private Set<String> validatePaths() {
         Set<String> errorMessages = new HashSet<>();
         if (!(new File(OPENSEARCH_CONF_FILE).exists())) {
             errorMessages.add("Unable to determine OpenSearch config file. Quit.");
@@ -245,14 +260,14 @@ public class Installer {
      * Returns the installation type based on the underlying operating system
      * @return will be one of `.zip`, `.tar.gz` or `rpm/deb`
      */
-    static String determineInstallType() {
+    String determineInstallType() {
         // windows (.bat execution)
         if (OS.toLowerCase().contains("win")) {
             return ".zip";
         }
 
         // other OS (.sh execution)
-        if (RPM_DEB_OPENSEARCH_FILE.exists() && RPM_DEB_OPENSEARCH_FILE.equals(new File(BASE_DIR))) {
+        if (RPM_DEB_OPENSEARCH_HOME.exists() && RPM_DEB_OPENSEARCH_HOME.equals(new File(BASE_DIR))) {
             OPENSEARCH_CONF_FILE = "/usr/share/opensearch/config/opensearch.yml";
             if (!new File(OPENSEARCH_CONF_FILE).exists()) {
                 OPENSEARCH_CONF_FILE = "/etc/opensearch/opensearch.yml";
@@ -265,7 +280,7 @@ public class Installer {
     /**
      * Sets the path variables for items at OpenSearch security plugin level
      */
-    static void setSecurityVariables() {
+    void setSecurityVariables() {
         if (!(new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").exists())) {
             System.out.println("OpenSearch Security plugin not installed. Quit.");
             System.exit(-1);
@@ -292,7 +307,7 @@ public class Installer {
     /**
      * Prints the initialized variables
      */
-    static void printVariables() {
+    void printVariables() {
         System.out.println("OpenSearch install type: " + OPENSEARCH_INSTALL_TYPE + " on " + OS);
         System.out.println("OpenSearch config dir: " + OPENSEARCH_CONF_DIR);
         System.out.println("OpenSearch config file: " + OPENSEARCH_CONF_FILE);
@@ -306,7 +321,7 @@ public class Installer {
     /**
      * Prints end of script execution message and creates security admin demo file.
      */
-    static void finishScriptExecution() {
+    void finishScriptExecution() {
         System.out.println("### Success");
         System.out.println("### Execute this script now on all your nodes and then start all nodes");
 
@@ -320,7 +335,7 @@ public class Installer {
                 + FILE_EXTENSION;
             String securityAdminDemoScriptPath = OPENSEARCH_CONF_DIR + "securityadmin_demo" + FILE_EXTENSION;
 
-            SecuritySettingsConfigurer.createSecurityAdminDemoScript(securityAdminScriptPath, securityAdminDemoScriptPath);
+            securitySettingsConfigurer.createSecurityAdminDemoScript(securityAdminScriptPath, securityAdminDemoScriptPath);
 
             // Make securityadmin_demo script executable
             // not needed for windows
@@ -380,26 +395,7 @@ public class Installer {
         }
     }
 
-    /**
-     * FOR TESTS ONLY
-     * Resets the class-level variables to their original values
-     * Is needed for tests since the variables are declared static
-     */
-    static void resetState() {
-        assumeyes = false;
-        initsecurity = false;
-        cluster_mode = false;
-        environment = ExecutionEnvironment.DEMO;
-        OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
-        SCRIPT_DIR = null;
-        BASE_DIR = null;
-        OPENSEARCH_CONF_FILE = null;
-        OPENSEARCH_BIN_DIR = null;
-        OPENSEARCH_PLUGINS_DIR = null;
-        OPENSEARCH_LIB_PATH = null;
-        OPENSEARCH_INSTALL_TYPE = null;
-        OPENSEARCH_CONF_DIR = null;
-        OPENSEARCH_VERSION = null;
-        SECURITY_VERSION = null;
+    public static void resetInstance() {
+        instance = null;
     }
 }
