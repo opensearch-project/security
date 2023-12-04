@@ -24,6 +24,7 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.After;
@@ -37,13 +38,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.tools.democonfig.Installer.FILE_EXTENSION;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_DIR;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_FILE;
-import static org.opensearch.security.tools.democonfig.Installer.resetState;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.getSecurityAdminCommands;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isStringAlreadyPresentInFile;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.writeSecurityConfigToOpenSearchYML;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
@@ -59,9 +56,15 @@ public class SecuritySettingsConfigurerTests {
 
     private final String adminPasswordKey = "initialAdminPassword";
 
+    private static SecuritySettingsConfigurer securitySettingsConfigurer;
+
+    private static Installer installer;
+
     @Before
     public void setUp() {
         System.setOut(new PrintStream(outContent));
+        installer = Installer.getInstance();
+        securitySettingsConfigurer = new SecuritySettingsConfigurer(installer);
         setUpConf();
     }
 
@@ -69,10 +72,10 @@ public class SecuritySettingsConfigurerTests {
     public void tearDown() throws NoSuchFieldException, IllegalAccessException {
         System.setOut(originalOut);
         System.setIn(originalIn);
-        deleteDirectoryRecursive(OPENSEARCH_CONF_DIR);
-        Installer.environment = ExecutionEnvironment.DEMO;
+        deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
+        installer.environment = ExecutionEnvironment.DEMO;
         unsetEnv(adminPasswordKey);
-        resetState();
+        Installer.resetInstance();
     }
 
     @Test
@@ -80,7 +83,7 @@ public class SecuritySettingsConfigurerTests {
         String customPassword = "myStrongPassword123"; // generateStrongPassword();
         setEnv(adminPasswordKey, customPassword);
 
-        SecuritySettingsConfigurer.updateAdminPassword();
+        securitySettingsConfigurer.updateAdminPassword();
 
         assertThat(customPassword, is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
 
@@ -104,7 +107,7 @@ public class SecuritySettingsConfigurerTests {
             throw new IOException("Unable to update the internal users file with the hashed password.");
         }
 
-        SecuritySettingsConfigurer.updateAdminPassword();
+        securitySettingsConfigurer.updateAdminPassword();
 
         assertEquals(customPassword, SecuritySettingsConfigurer.ADMIN_PASSWORD);
         assertThat(outContent.toString(), containsString("ADMIN PASSWORD SET TO: " + customPassword));
@@ -117,7 +120,7 @@ public class SecuritySettingsConfigurerTests {
         try {
             System.setSecurityManager(new NoExitSecurityManager());
 
-            SecuritySettingsConfigurer.updateAdminPassword();
+            securitySettingsConfigurer.updateAdminPassword();
 
             assertThat(outContent.toString(), containsString("Password weakpassword is weak. Please re-try with a stronger password."));
 
@@ -131,8 +134,8 @@ public class SecuritySettingsConfigurerTests {
     @Test
     public void testUpdateAdminPasswordWithWeakPassword_skipPasswordValidation() throws NoSuchFieldException, IllegalAccessException {
         setEnv(adminPasswordKey, "weakpassword");
-        Installer.environment = ExecutionEnvironment.TEST;
-        SecuritySettingsConfigurer.updateAdminPassword();
+        installer.environment = ExecutionEnvironment.TEST;
+        securitySettingsConfigurer.updateAdminPassword();
 
         assertThat("weakpassword", is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
         assertThat(outContent.toString(), containsString("ADMIN PASSWORD SET TO: weakpassword"));
@@ -140,12 +143,12 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testSecurityPluginAlreadyConfigured() {
-        writeSecurityConfigToOpenSearchYML();
+        securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-            String expectedMessage = OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.";
+            String expectedMessage = installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.";
 
-            SecuritySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
+            securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
             assertThat(outContent.toString(), containsString(expectedMessage));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
@@ -157,7 +160,7 @@ public class SecuritySettingsConfigurerTests {
     @Test
     public void testSecurityPluginNotConfigured() {
         try {
-            SecuritySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
+            securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
         } catch (Exception e) {
             fail("Expected checkIfSecurityPluginIsAlreadyConfigured to succeed without any errors.");
         }
@@ -165,12 +168,12 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testConfigFileDoesNotExist() {
-        OPENSEARCH_CONF_FILE = "path/to/nonexistentfile";
+        installer.OPENSEARCH_CONF_FILE = "path/to/nonexistentfile";
         try {
             System.setSecurityManager(new NoExitSecurityManager());
             String expectedMessage = "OpenSearch configuration file does not exist. Quit.";
 
-            SecuritySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
+            securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
             assertThat(outContent.toString(), containsString(expectedMessage));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
@@ -178,68 +181,41 @@ public class SecuritySettingsConfigurerTests {
             System.setSecurityManager(null);
         }
         // reset the file pointer
-        OPENSEARCH_CONF_FILE = OPENSEARCH_CONF_DIR + "opensearch.yml";
+        installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
     }
 
     @Test
-    public void testBuildSecurityConfigString() {
-        String actual = SecuritySettingsConfigurer.buildSecurityConfigString();
+    public void testBuildSecurityConfigMap() {
+        Map<String, Object> actual = securitySettingsConfigurer.buildSecurityConfigMap();
 
-        String expected = System.lineSeparator()
-            + "######## Start OpenSearch Security Demo Configuration ########"
-            + System.lineSeparator()
-            + "# WARNING: revise all the lines below before you go into production"
-            + System.lineSeparator()
-            + "plugins.security.ssl.transport.pemcert_filepath: esnode.pem"
-            + System.lineSeparator()
-            + "plugins.security.ssl.transport.pemkey_filepath: esnode-key.pem"
-            + System.lineSeparator()
-            + "plugins.security.ssl.transport.pemtrustedcas_filepath: root-ca.pem"
-            + System.lineSeparator()
-            + "plugins.security.ssl.transport.enforce_hostname_verification: false"
-            + System.lineSeparator()
-            + "plugins.security.ssl.http.enabled: true"
-            + System.lineSeparator()
-            + "plugins.security.ssl.http.pemcert_filepath: esnode.pem"
-            + System.lineSeparator()
-            + "plugins.security.ssl.http.pemkey_filepath: esnode-key.pem"
-            + System.lineSeparator()
-            + "plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem"
-            + System.lineSeparator()
-            + "plugins.security.allow_unsafe_democertificates: true"
-            + System.lineSeparator()
-            + "plugins.security.authcz.admin_dn:"
-            + System.lineSeparator()
-            + "  - CN=kirk,OU=client,O=client,L=test, C=de"
-            + System.lineSeparator()
-            + System.lineSeparator()
-            + "plugins.security.audit.type:  internal_opensearch"
-            + System.lineSeparator()
-            + "plugins.security.enable_snapshot_restore_privilege:  true"
-            + System.lineSeparator()
-            + "plugins.security.check_snapshot_restore_write_privileges:  true"
-            + System.lineSeparator()
-            + "plugins.security.restapi.roles_enabled:  [\"all_access\", \"security_rest_api_access\"]"
-            + System.lineSeparator()
-            + "plugins.security.system_indices.enabled: true"
-            + System.lineSeparator()
-            + "plugins.security.system_indices.indices: [.plugins-ml-config, .plugins-ml-connector, .plugins-ml-model-group, .plugins-ml-model, .plugins-ml-task, .plugins-ml-conversation-meta, .plugins-ml-conversation-interactions, .opendistro-alerting-config, .opendistro-alerting-alert*, .opendistro-anomaly-results*, .opendistro-anomaly-detector*, .opendistro-anomaly-checkpoints, .opendistro-anomaly-detection-state, .opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, .opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*]"
-            + System.lineSeparator()
-            + "node.max_local_storage_nodes: 3"
-            + System.lineSeparator()
-            + "######## End OpenSearch Security Demo Configuration ########"
-            + System.lineSeparator();
-        assertThat(actual, is(equalTo(expected)));
+        assertThat(actual.size(), is(17));
+        assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), is(equalTo(Certificates.NODE_CERT.getFileName())));
+        assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), is(equalTo(Certificates.NODE_KEY.getFileName())));
+        assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), is(equalTo(Certificates.ROOT_CA.getFileName())));
+        assertThat(actual.get("plugins.security.ssl.transport.enforce_hostname_verification"), is(equalTo(false)));
+        assertThat(actual.get("plugins.security.ssl.http.enabled"), is(equalTo(true)));
+        assertThat(actual.get("plugins.security.ssl.http.pemcert_filepath"), is(equalTo(Certificates.NODE_CERT.getFileName())));
+        assertThat(actual.get("plugins.security.ssl.http.pemkey_filepath"), is(equalTo(Certificates.NODE_KEY.getFileName())));
+        assertThat(actual.get("plugins.security.ssl.http.pemtrustedcas_filepath"), is(equalTo(Certificates.ROOT_CA.getFileName())));
+        assertThat(actual.get("plugins.security.allow_unsafe_democertificates"), is(equalTo(true)));
+        assertThat(actual.get("plugins.security.authcz.admin_dn"), is(equalTo(List.of("CN=kirk,OU=client,O=client,L=test,C=de"))));
+        assertThat(actual.get("plugins.security.audit.type"), is(equalTo("internal_opensearch")));
+        assertThat(actual.get("plugins.security.enable_snapshot_restore_privilege"), is(equalTo(true)));
+        assertThat(actual.get("plugins.security.check_snapshot_restore_write_privileges"), is(equalTo(true)));
+        assertThat(actual.get("plugins.security.restapi.roles_enabled"), is(equalTo(REST_ENABLED_ROLES)));
+        assertThat(actual.get("plugins.security.system_indices.enabled"), is(equalTo(true)));
+        assertThat(actual.get("plugins.security.system_indices.indices"), is(equalTo(SYSTEM_INDICES)));
+        assertThat(actual.get("node.max_local_storage_nodes"), is(equalTo(3)));
 
-        Installer.initsecurity = true;
-        actual = SecuritySettingsConfigurer.buildSecurityConfigString();
-        assertThat(actual, containsString("plugins.security.allow_default_init_securityindex: true" + System.lineSeparator()));
+        installer.initsecurity = true;
+        actual = securitySettingsConfigurer.buildSecurityConfigMap();
+        assertThat(actual.get("plugins.security.allow_default_init_securityindex"), is(equalTo(true)));
 
-        Installer.cluster_mode = true;
-        actual = SecuritySettingsConfigurer.buildSecurityConfigString();
-        assertThat(actual, containsString("network.host: 0.0.0.0" + System.lineSeparator()));
-        assertThat(actual, containsString("node.name: smoketestnode" + System.lineSeparator()));
-        assertThat(actual, containsString("cluster.initial_cluster_manager_nodes: smoketestnode" + System.lineSeparator()));
+        installer.cluster_mode = true;
+        actual = securitySettingsConfigurer.buildSecurityConfigMap();
+        assertThat(actual.get("network.host"), is(equalTo("0.0.0.0")));
+        assertThat(actual.get("node.name"), is(equalTo("smoketestnode")));
+        assertThat(actual.get("cluster.initial_cluster_manager_nodes"), is(equalTo("smoketestnode")));
     }
 
     @Test
@@ -247,27 +223,27 @@ public class SecuritySettingsConfigurerTests {
         String str1 = "network.host";
         String str2 = "some.random.config";
 
-        Installer.initsecurity = true;
-        writeSecurityConfigToOpenSearchYML();
+        installer.initsecurity = true;
+        securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isStringAlreadyPresentInFile(OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
-        assertThat(isStringAlreadyPresentInFile(OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
+        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
 
-        Installer.cluster_mode = true;
-        writeSecurityConfigToOpenSearchYML();
+        installer.cluster_mode = true;
+        securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isStringAlreadyPresentInFile(OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
-        assertThat(isStringAlreadyPresentInFile(OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
+        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
     }
 
     @Test
     public void testCreateSecurityAdminDemoScriptAndGetSecurityAdminCommands() throws IOException {
-        String demoPath = OPENSEARCH_CONF_DIR + "securityadmin_demo" + FILE_EXTENSION;
-        SecuritySettingsConfigurer.createSecurityAdminDemoScript("scriptPath", demoPath);
+        String demoPath = installer.OPENSEARCH_CONF_DIR + "securityadmin_demo" + installer.FILE_EXTENSION;
+        securitySettingsConfigurer.createSecurityAdminDemoScript("scriptPath", demoPath);
 
         assertThat(new File(demoPath).exists(), is(equalTo(true)));
 
-        String[] commands = getSecurityAdminCommands("scriptPath");
+        String[] commands = securitySettingsConfigurer.getSecurityAdminCommands("scriptPath");
 
         try (BufferedReader reader = new BufferedReader(new FileReader(demoPath, StandardCharsets.UTF_8))) {
             assertThat(reader.readLine(), is(commands[0]));
@@ -279,7 +255,7 @@ public class SecuritySettingsConfigurerTests {
     public void testCreateSecurityAdminDemoScript_invalidPath() {
         String demoPath = null;
         try {
-            SecuritySettingsConfigurer.createSecurityAdminDemoScript("scriptPath", demoPath);
+            securitySettingsConfigurer.createSecurityAdminDemoScript("scriptPath", demoPath);
             fail("Expected to throw Exception");
         } catch (IOException | NullPointerException e) {
             // expected
@@ -318,11 +294,11 @@ public class SecuritySettingsConfigurerTests {
     }
 
     void setUpConf() {
-        OPENSEARCH_CONF_DIR = System.getProperty("user.dir") + File.separator + "test-conf" + File.separator;
-        OPENSEARCH_CONF_FILE = OPENSEARCH_CONF_DIR + "opensearch.yml";
-        String securityConfDir = OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator;
+        installer.OPENSEARCH_CONF_DIR = System.getProperty("user.dir") + File.separator + "test-conf" + File.separator;
+        installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
+        String securityConfDir = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator;
         createDirectory(securityConfDir);
         createFile(securityConfDir + "internal_users.yml");
-        createFile(OPENSEARCH_CONF_FILE);
+        createFile(installer.OPENSEARCH_CONF_FILE);
     }
 }

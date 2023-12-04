@@ -36,35 +36,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.security.tools.democonfig.Installer.BASE_DIR;
-import static org.opensearch.security.tools.democonfig.Installer.FILE_EXTENSION;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_BIN_DIR;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_DIR;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_CONF_FILE;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_INSTALL_TYPE;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_LIB_PATH;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_PLUGINS_DIR;
-import static org.opensearch.security.tools.democonfig.Installer.OPENSEARCH_VERSION;
-import static org.opensearch.security.tools.democonfig.Installer.OS;
-import static org.opensearch.security.tools.democonfig.Installer.RPM_DEB_OPENSEARCH_FILE;
-import static org.opensearch.security.tools.democonfig.Installer.SCRIPT_DIR;
-import static org.opensearch.security.tools.democonfig.Installer.SECURITY_VERSION;
-import static org.opensearch.security.tools.democonfig.Installer.assumeyes;
-import static org.opensearch.security.tools.democonfig.Installer.cluster_mode;
-import static org.opensearch.security.tools.democonfig.Installer.determineInstallType;
-import static org.opensearch.security.tools.democonfig.Installer.environment;
-import static org.opensearch.security.tools.democonfig.Installer.finishScriptExecution;
-import static org.opensearch.security.tools.democonfig.Installer.gatherUserInputs;
-import static org.opensearch.security.tools.democonfig.Installer.initializeVariables;
-import static org.opensearch.security.tools.democonfig.Installer.initsecurity;
+import static org.opensearch.security.tools.democonfig.Installer.RPM_DEB_OPENSEARCH_HOME;
 import static org.opensearch.security.tools.democonfig.Installer.printScriptHeaders;
-import static org.opensearch.security.tools.democonfig.Installer.printVariables;
-import static org.opensearch.security.tools.democonfig.Installer.readOptions;
-import static org.opensearch.security.tools.democonfig.Installer.resetState;
-import static org.opensearch.security.tools.democonfig.Installer.setBaseDir;
-import static org.opensearch.security.tools.democonfig.Installer.setOpenSearchVariables;
-import static org.opensearch.security.tools.democonfig.Installer.setSecurityVariables;
-import static org.opensearch.security.tools.democonfig.Installer.skip_updates;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
@@ -77,16 +50,19 @@ public class InstallerTests {
     private final PrintStream originalOut = System.out;
     private final InputStream originalIn = System.in;
 
+    private static Installer installer;
+
     @Before
     public void setUpStreams() {
         System.setOut(new PrintStream(outContent));
-        resetState();
+        installer = Installer.getInstance();
     }
 
     @After
     public void restoreStreams() {
         System.setOut(originalOut);
         System.setIn(originalIn);
+        Installer.resetInstance();
     }
 
     @Test
@@ -104,14 +80,14 @@ public class InstallerTests {
     public void testReadOptions_withoutHelpOption() {
         // All options except Help `-h`
         String[] validOptions = { "/scriptDir", "-y", "-i", "-c", "-s", "-t" };
-        readOptions(validOptions);
+        installer.readOptions(validOptions);
 
-        assertEquals("/scriptDir", SCRIPT_DIR);
-        assertThat(assumeyes, is(true));
-        assertThat(initsecurity, is(true));
-        assertThat(cluster_mode, is(true));
-        assertEquals(0, skip_updates);
-        assertEquals(ExecutionEnvironment.TEST, environment);
+        assertEquals("/scriptDir", installer.SCRIPT_DIR);
+        assertThat(installer.assumeyes, is(true));
+        assertThat(installer.initsecurity, is(true));
+        assertThat(installer.cluster_mode, is(true));
+        assertEquals(0, installer.skip_updates);
+        assertEquals(ExecutionEnvironment.TEST, installer.environment);
     }
 
     @Test
@@ -120,7 +96,7 @@ public class InstallerTests {
             System.setSecurityManager(new NoExitSecurityManager());
 
             String[] helpOption = { "/scriptDir", "-h" };
-            readOptions(helpOption);
+            installer.readOptions(helpOption);
 
             assertThat(outContent.toString(), containsString("install_demo_configuration.sh [-y] [-i] [-c]"));
             assertThat(outContent.toString(), containsString("-h show help"));
@@ -141,15 +117,15 @@ public class InstallerTests {
     public void testGatherUserInputs_withoutAssumeYes() {
         // -i & -c option is not passed
         String[] validOptions = { "/scriptDir" };
-        readOptions(validOptions);
-        assertThat(assumeyes, is(false));
-        assertThat(initsecurity, is(false));
-        assertThat(cluster_mode, is(false));
+        installer.readOptions(validOptions);
+        assertThat(installer.assumeyes, is(false));
+        assertThat(installer.initsecurity, is(false));
+        assertThat(installer.cluster_mode, is(false));
 
         // set initsecurity and cluster_mode to no
         readInputStream("y" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator()); // pass all 3 inputs as
                                                                                                                      // y
-        gatherUserInputs();
+        installer.gatherUserInputs();
 
         assertThat(outContent.toString(), containsString("Install demo certificates?"));
         assertThat(outContent.toString(), containsString("Initialize Security Modules?"));
@@ -157,15 +133,15 @@ public class InstallerTests {
         assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator()));
         assertThat(outContent.toString(), containsString("Enable cluster mode?"));
 
-        assertThat(initsecurity, is(false));
-        assertThat(cluster_mode, is(false));
+        assertThat(installer.initsecurity, is(false));
+        assertThat(installer.cluster_mode, is(false));
 
         outContent.reset();
 
         // set initsecurity and cluster_mode to no
         readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
                                                                                                                      // y
-        gatherUserInputs();
+        installer.gatherUserInputs();
 
         assertThat(outContent.toString(), containsString("Install demo certificates?"));
         assertThat(outContent.toString(), containsString("Initialize Security Modules?"));
@@ -173,8 +149,8 @@ public class InstallerTests {
         assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator()));
         assertThat(outContent.toString(), containsString("Enable cluster mode?"));
 
-        assertThat(initsecurity, is(true));
-        assertThat(cluster_mode, is(true));
+        assertThat(installer.initsecurity, is(true));
+        assertThat(installer.cluster_mode, is(true));
 
         outContent.reset();
 
@@ -183,7 +159,7 @@ public class InstallerTests {
             System.setSecurityManager(new NoExitSecurityManager());
 
             readInputStream("n" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator());
-            gatherUserInputs();
+            installer.gatherUserInputs();
 
             assertThat(outContent.toString(), containsString("Install demo certificates?"));
             assertThat(outContent.toString(), not(containsString("Initialize Security Modules?")));
@@ -200,51 +176,49 @@ public class InstallerTests {
 
         // pass initsecurity and cluster_mode options
         String[] validOptionsIC = { "/scriptDir", "-i", "-c" };
-        readOptions(validOptionsIC);
-        assertThat(assumeyes, is(false));
-        assertThat(initsecurity, is(true));
-        assertThat(cluster_mode, is(true));
+        installer.readOptions(validOptionsIC);
+        assertThat(installer.assumeyes, is(false));
+        assertThat(installer.initsecurity, is(true));
+        assertThat(installer.cluster_mode, is(true));
 
         readInputStream("y" + System.lineSeparator() + "y" + System.lineSeparator() + "y" + System.lineSeparator()); // pass all 3 inputs as
                                                                                                                      // y
-        gatherUserInputs();
+        installer.gatherUserInputs();
 
         assertThat(outContent.toString(), containsString("Install demo certificates?"));
         assertThat(outContent.toString(), not(containsString("Initialize Security Modules?")));
         assertThat(outContent.toString(), not(containsString("Enable cluster mode?")));
 
-        assertThat(initsecurity, is(true));
-        assertThat(cluster_mode, is(true));
+        assertThat(installer.initsecurity, is(true));
+        assertThat(installer.cluster_mode, is(true));
     }
 
     @Test
     public void testGatherInputs_withAssumeYes() {
         String[] validOptionsYes = { "/scriptDir", "-y" };
-        readOptions(validOptionsYes);
-        assertThat(assumeyes, is(true));
+        installer.readOptions(validOptionsYes);
+        assertThat(installer.assumeyes, is(true));
 
-        gatherUserInputs();
+        installer.gatherUserInputs();
 
-        assertThat(initsecurity, is(true));
-        assertThat(cluster_mode, is(true));
+        assertThat(installer.initsecurity, is(true));
+        assertThat(installer.cluster_mode, is(true));
     }
 
     @Test
     public void testInitializeVariables_setBaseDir_invalidPath() {
         String[] invalidScriptDirPath = { "/scriptDir", "-y" };
-        readOptions(invalidScriptDirPath);
+        installer.readOptions(invalidScriptDirPath);
 
-        assertThrows("Expected NullPointerException to be thrown", NullPointerException.class, Installer::initializeVariables);
-
-        resetState();
+        assertThrows("Expected NullPointerException to be thrown", NullPointerException.class, installer::initializeVariables);
 
         String[] invalidScriptDirPath2 = { "/opensearch/plugins/opensearch-security/tools", "-y" };
-        readOptions(invalidScriptDirPath2);
+        installer.readOptions(invalidScriptDirPath2);
 
         try {
             System.setSecurityManager(new NoExitSecurityManager());
 
-            initializeVariables();
+            installer.initializeVariables();
             assertThat(outContent.toString(), containsString("DEBUG: basedir does not exist"));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
@@ -258,13 +232,13 @@ public class InstallerTests {
         String currentDir = System.getProperty("user.dir");
 
         String[] validBaseDir = { currentDir, "-y" };
-        readOptions(validBaseDir);
+        installer.readOptions(validBaseDir);
 
-        setBaseDir();
+        installer.setBaseDir();
 
         String expectedBaseDirValue = new File(currentDir).getParentFile().getParentFile().getParentFile().getAbsolutePath()
             + File.separator;
-        assertThat(BASE_DIR, equalTo(expectedBaseDirValue));
+        assertThat(installer.BASE_DIR, equalTo(expectedBaseDirValue));
     }
 
     @Test
@@ -272,13 +246,13 @@ public class InstallerTests {
         String currentDir = System.getProperty("user.dir");
 
         String[] validBaseDir = { currentDir, "-y" };
-        readOptions(validBaseDir);
+        installer.readOptions(validBaseDir);
 
         try {
             System.setSecurityManager(new NoExitSecurityManager());
 
-            setBaseDir();
-            setOpenSearchVariables();
+            installer.setBaseDir();
+            installer.setOpenSearchVariables();
 
             assertThat(outContent.toString(), containsString("Unable to determine OpenSearch config file. Quit."));
             assertThat(outContent.toString(), containsString("Unable to determine OpenSearch bin directory. Quit."));
@@ -297,42 +271,42 @@ public class InstallerTests {
         String expectedOpensearchBinDirPath = expectedBaseDirValue + "bin" + File.separator;
         String expectedOpensearchPluginDirPath = expectedBaseDirValue + "plugins" + File.separator;
         String expectedOpensearchLibDirPath = expectedBaseDirValue + "lib" + File.separator;
-        String expectedOpensearchInstallType = determineInstallType();
+        String expectedOpensearchInstallType = installer.determineInstallType();
 
-        assertThat(OPENSEARCH_CONF_FILE, equalTo(expectedOpensearchConfFilePath));
-        assertThat(OPENSEARCH_BIN_DIR, equalTo(expectedOpensearchBinDirPath));
-        assertThat(OPENSEARCH_PLUGINS_DIR, equalTo(expectedOpensearchPluginDirPath));
-        assertThat(OPENSEARCH_LIB_PATH, equalTo(expectedOpensearchLibDirPath));
-        assertThat(OPENSEARCH_INSTALL_TYPE, equalTo(expectedOpensearchInstallType));
+        assertThat(installer.OPENSEARCH_CONF_FILE, equalTo(expectedOpensearchConfFilePath));
+        assertThat(installer.OPENSEARCH_BIN_DIR, equalTo(expectedOpensearchBinDirPath));
+        assertThat(installer.OPENSEARCH_PLUGINS_DIR, equalTo(expectedOpensearchPluginDirPath));
+        assertThat(installer.OPENSEARCH_LIB_PATH, equalTo(expectedOpensearchLibDirPath));
+        assertThat(installer.OPENSEARCH_INSTALL_TYPE, equalTo(expectedOpensearchInstallType));
 
     }
 
     @Test
     public void testDetermineInstallType_windows() {
-        OS = "Windows";
+        installer.OS = "Windows";
 
-        String installType = determineInstallType();
+        String installType = installer.determineInstallType();
 
         assertEquals(".zip", installType);
     }
 
     @Test
     public void testDetermineInstallType_rpm_deb() {
-        OS = "Linux";
+        installer.OS = "Linux";
         String dir = System.getProperty("user.dir");
-        BASE_DIR = dir;
-        RPM_DEB_OPENSEARCH_FILE = new File(dir);
+        installer.BASE_DIR = dir;
+        RPM_DEB_OPENSEARCH_HOME = new File(dir);
 
-        String installType = determineInstallType();
+        String installType = installer.determineInstallType();
 
         assertEquals("rpm/deb", installType);
     }
 
     @Test
     public void testDetermineInstallType_default() {
-        OS = "Anything else";
-        BASE_DIR = "/random-dir";
-        String installType = determineInstallType();
+        installer.OS = "Anything else";
+        installer.BASE_DIR = "/random-dir";
+        String installType = installer.determineInstallType();
 
         assertEquals(".tar.gz", installType);
     }
@@ -340,10 +314,10 @@ public class InstallerTests {
     @Test
     public void testSetSecurityVariables() {
         setUpSecurityDirectories();
-        setSecurityVariables();
+        installer.setSecurityVariables();
 
-        assertThat(OPENSEARCH_VERSION, is(equalTo("osVersion")));
-        assertThat(SECURITY_VERSION, is(equalTo("version")));
+        assertThat(installer.OPENSEARCH_VERSION, is(equalTo("osVersion")));
+        assertThat(installer.SECURITY_VERSION, is(equalTo("version")));
         tearDownSecurityDirectories();
     }
 
@@ -352,7 +326,7 @@ public class InstallerTests {
         try {
             System.setSecurityManager(new NoExitSecurityManager());
 
-            setSecurityVariables();
+            installer.setSecurityVariables();
             fail("Expected System.exit(-1) to be called");
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
@@ -363,17 +337,17 @@ public class InstallerTests {
 
     @Test
     public void testPrintVariables() {
-        OPENSEARCH_INSTALL_TYPE = "installType";
-        OS = "OS";
-        OPENSEARCH_CONF_DIR = "confDir";
-        OPENSEARCH_CONF_FILE = "confFile";
-        OPENSEARCH_BIN_DIR = "/bin";
-        OPENSEARCH_PLUGINS_DIR = "/plugins";
-        OPENSEARCH_LIB_PATH = "/lib";
-        OPENSEARCH_VERSION = "osVersion";
-        SECURITY_VERSION = "version";
+        installer.OPENSEARCH_INSTALL_TYPE = "installType";
+        installer.OS = "OS";
+        installer.OPENSEARCH_CONF_DIR = "confDir";
+        installer.OPENSEARCH_CONF_FILE = "confFile";
+        installer.OPENSEARCH_BIN_DIR = "/bin";
+        installer.OPENSEARCH_PLUGINS_DIR = "/plugins";
+        installer.OPENSEARCH_LIB_PATH = "/lib";
+        installer.OPENSEARCH_VERSION = "osVersion";
+        installer.SECURITY_VERSION = "version";
 
-        printVariables();
+        installer.printVariables();
 
         String expectedOutput = "OpenSearch install type: installType on OS"
             + System.lineSeparator()
@@ -400,20 +374,21 @@ public class InstallerTests {
         setUpSecurityDirectories();
         SecuritySettingsConfigurer.ADMIN_PASSWORD = "ble";
 
-        finishScriptExecution();
+        installer.finishScriptExecution();
 
-        String securityAdminScriptPath = OPENSEARCH_PLUGINS_DIR
+        String securityAdminScriptPath = installer.OPENSEARCH_PLUGINS_DIR
             + "opensearch-security"
             + File.separator
             + "tools"
             + File.separator
             + "securityadmin"
-            + FILE_EXTENSION;
-        String securityAdminDemoScriptPath = OPENSEARCH_CONF_DIR + "securityadmin_demo" + FILE_EXTENSION;
+            + installer.FILE_EXTENSION;
+        String securityAdminDemoScriptPath = installer.OPENSEARCH_CONF_DIR + "securityadmin_demo" + installer.FILE_EXTENSION;
         setWritePermissions(securityAdminDemoScriptPath);
 
-        String lastLine = SecuritySettingsConfigurer.getSecurityAdminCommands(securityAdminScriptPath)[1];
-        // Verify the expected output
+        SecuritySettingsConfigurer securitySettingsConfigurer = new SecuritySettingsConfigurer(installer);
+        String lastLine = securitySettingsConfigurer.getSecurityAdminCommands(securityAdminScriptPath)[1];
+
         String expectedOutput = "### Success"
             + System.lineSeparator()
             + "### Execute this script now on all your nodes and then start all nodes"
@@ -421,12 +396,11 @@ public class InstallerTests {
             + "### After the whole cluster is up execute: "
             + System.lineSeparator()
             + lastLine
-            + ""
             + System.lineSeparator()
             + "### or run ."
             + File.separator
             + "securityadmin_demo"
-            + FILE_EXTENSION
+            + installer.FILE_EXTENSION
             + System.lineSeparator()
             + "### After that you can also use the Security Plugin ConfigurationGUI"
             + System.lineSeparator()
@@ -445,22 +419,24 @@ public class InstallerTests {
     @Test
     public void testFinishScriptExecution_withInitSecurityEnabled() {
         setUpSecurityDirectories();
-        initsecurity = true;
+        installer.initsecurity = true;
         SecuritySettingsConfigurer.ADMIN_PASSWORD = "ble";
 
-        finishScriptExecution();
+        installer.finishScriptExecution();
 
-        String securityAdminScriptPath = OPENSEARCH_PLUGINS_DIR
+        String securityAdminScriptPath = installer.OPENSEARCH_PLUGINS_DIR
             + "opensearch-security"
             + File.separator
             + "tools"
             + File.separator
             + "securityadmin"
-            + FILE_EXTENSION;
-        String securityAdminDemoScriptPath = OPENSEARCH_CONF_DIR + "securityadmin_demo" + FILE_EXTENSION;
+            + installer.FILE_EXTENSION;
+        String securityAdminDemoScriptPath = installer.OPENSEARCH_CONF_DIR + "securityadmin_demo" + installer.FILE_EXTENSION;
         setWritePermissions(securityAdminDemoScriptPath);
 
-        String lastLine = SecuritySettingsConfigurer.getSecurityAdminCommands(securityAdminScriptPath)[1];
+        SecuritySettingsConfigurer securitySettingsConfigurer = new SecuritySettingsConfigurer(installer);
+        String lastLine = securitySettingsConfigurer.getSecurityAdminCommands(securityAdminScriptPath)[1];
+
         String expectedOutput = "### Success"
             + System.lineSeparator()
             + "### Execute this script now on all your nodes and then start all nodes"
@@ -484,7 +460,7 @@ public class InstallerTests {
             + "### or run ."
             + File.separator
             + "securityadmin_demo"
-            + FILE_EXTENSION
+            + installer.FILE_EXTENSION
             + System.lineSeparator()
             + "### To use the Security Plugin ConfigurationGUI"
             + System.lineSeparator()
@@ -508,30 +484,30 @@ public class InstallerTests {
         String currentDir = System.getProperty("user.dir");
 
         String[] validBaseDir = { currentDir, "-y" };
-        readOptions(validBaseDir);
-        setBaseDir();
-        OPENSEARCH_PLUGINS_DIR = BASE_DIR + "plugins" + File.separator;
-        OPENSEARCH_LIB_PATH = BASE_DIR + "lib" + File.separator;
-        OPENSEARCH_CONF_DIR = BASE_DIR + "test-conf" + File.separator;
+        installer.readOptions(validBaseDir);
+        installer.setBaseDir();
+        installer.OPENSEARCH_PLUGINS_DIR = installer.BASE_DIR + "plugins" + File.separator;
+        installer.OPENSEARCH_LIB_PATH = installer.BASE_DIR + "lib" + File.separator;
+        installer.OPENSEARCH_CONF_DIR = installer.BASE_DIR + "test-conf" + File.separator;
 
-        createDirectory(OPENSEARCH_PLUGINS_DIR);
-        createDirectory(OPENSEARCH_LIB_PATH);
-        createDirectory(OPENSEARCH_CONF_DIR);
-        createDirectory(OPENSEARCH_PLUGINS_DIR + "opensearch-security");
-        createFile(OPENSEARCH_LIB_PATH + "opensearch-osVersion.jar");
-        createFile(OPENSEARCH_PLUGINS_DIR + "opensearch-security" + File.separator + "opensearch-security-version.jar");
-        createFile(OPENSEARCH_CONF_DIR + File.separator + "securityadmin_demo.sh");
+        createDirectory(installer.OPENSEARCH_PLUGINS_DIR);
+        createDirectory(installer.OPENSEARCH_LIB_PATH);
+        createDirectory(installer.OPENSEARCH_CONF_DIR);
+        createDirectory(installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security");
+        createFile(installer.OPENSEARCH_LIB_PATH + "opensearch-osVersion.jar");
+        createFile(installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security" + File.separator + "opensearch-security-version.jar");
+        createFile(installer.OPENSEARCH_CONF_DIR + File.separator + "securityadmin_demo.sh");
     }
 
     public void tearDownSecurityDirectories() {
         // Clean up testing directories or files
-        deleteDirectoryRecursive(OPENSEARCH_PLUGINS_DIR);
-        deleteDirectoryRecursive(OPENSEARCH_LIB_PATH);
-        deleteDirectoryRecursive(OPENSEARCH_CONF_DIR);
+        deleteDirectoryRecursive(installer.OPENSEARCH_PLUGINS_DIR);
+        deleteDirectoryRecursive(installer.OPENSEARCH_LIB_PATH);
+        deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
     }
 
     static void setWritePermissions(String filePath) {
-        if (!OS.toLowerCase().contains("win")) {
+        if (!installer.OS.toLowerCase().contains("win")) {
             Path file = Paths.get(filePath);
             Set<PosixFilePermission> perms = new HashSet<>();
             perms.add(PosixFilePermission.OWNER_WRITE);
