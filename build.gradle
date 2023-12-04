@@ -62,7 +62,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.23.0'
+    id 'com.diffplug.spotless' version '6.23.3'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.5.0"
     id "org.gradle.test-retry" version "1.5.7"
