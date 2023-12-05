@@ -32,6 +32,7 @@ buildscript {
         jjwt_version = '0.12.3'
         guava_version = '32.1.3-jre'
         jaxb_version = '2.3.9'
+        spring_version = '5.3.31'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -61,12 +62,12 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless' version '6.23.3'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.5.0"
-    id "org.gradle.test-retry" version "1.5.5"
+    id "org.gradle.test-retry" version "1.5.7"
     id 'eclipse'
-    id "com.github.spotbugs" version "5.2.3"
+    id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -491,6 +492,9 @@ configurations {
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
+            // for spotless transitive dependency CVE
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.29.0"
+
             // For integrationTest
             force "org.apache.httpcomponents:httpclient-cache:4.5.13"
             force "org.apache.httpcomponents:httpclient:4.5.13"
@@ -565,7 +569,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.6.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.37'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.37.2'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
@@ -666,9 +670,9 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
-    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.6'
-    testImplementation 'org.springframework:spring-beans:5.3.30'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
+    testImplementation "org.springframework:spring-beans:${spring_version}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
@@ -678,8 +682,8 @@ dependencies {
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
-    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
-    testRuntimeOnly ('org.springframework:spring-core:5.3.30') {
+    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.4'
+    testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.11'
@@ -703,7 +707,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.14.0'
+    integrationTestImplementation 'commons-io:commons-io:2.15.1'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
