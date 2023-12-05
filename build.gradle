@@ -62,12 +62,12 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.23.0'
+    id 'com.diffplug.spotless' version '6.23.3'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.5.0"
-    id "org.gradle.test-retry" version "1.5.6"
+    id "org.gradle.test-retry" version "1.5.7"
     id 'eclipse'
-    id "com.github.spotbugs" version "5.2.4"
+    id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -581,19 +581,12 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.6.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.37.1'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.37.2'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
-    // JSON flattener
-    implementation ("com.github.wnameless.json:json-base:2.4.3") {
-        exclude group: "org.glassfish", module: "jakarta.json"
-        exclude group: "com.google.code.gson", module: "gson"
-        exclude group: "org.json", module: "json"
-    }
-    implementation 'com.github.wnameless.json:json-flattener:0.16.6'
     // JSON patch
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.14'
     implementation 'org.apache.commons:commons-collections4:4.4'
@@ -724,7 +717,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.15.0'
+    integrationTestImplementation 'commons-io:commons-io:2.15.1'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
