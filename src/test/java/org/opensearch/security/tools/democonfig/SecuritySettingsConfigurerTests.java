@@ -93,12 +93,7 @@ public class SecuritySettingsConfigurerTests {
     @Test
     public void testUpdateAdminPasswordWithFilePassword() throws IOException {
         String customPassword = "myStrongPassword123";
-        String initialAdminPasswordTxt = System.getProperty("user.dir")
-            + File.separator
-            + "test-conf"
-            + File.separator
-            + adminPasswordKey
-            + ".txt";
+        String initialAdminPasswordTxt = installer.OPENSEARCH_CONF_DIR + adminPasswordKey + ".txt";
         createFile(initialAdminPasswordTxt);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(initialAdminPasswordTxt, StandardCharsets.UTF_8))) {
@@ -111,6 +106,21 @@ public class SecuritySettingsConfigurerTests {
 
         assertEquals(customPassword, SecuritySettingsConfigurer.ADMIN_PASSWORD);
         assertThat(outContent.toString(), containsString("ADMIN PASSWORD SET TO: " + customPassword));
+    }
+
+    @Test
+    public void testUpdateAdminPassword_noPasswordSupplied() {
+        deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR); // to ensure no flakiness
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+
+            securitySettingsConfigurer.updateAdminPassword();
+            assertThat(outContent.toString(), containsString("No custom admin password found. Please provide a password."));
+        } catch (SecurityException e) {
+            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
+        } finally {
+            System.setSecurityManager(null);
+        }
     }
 
     @Test
