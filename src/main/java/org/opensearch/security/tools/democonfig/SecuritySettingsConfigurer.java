@@ -35,7 +35,6 @@ import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
-import static org.opensearch.security.user.UserService.generatePassword;
 
 /**
  * This class updates the security related configuration, as needed.
@@ -129,14 +128,10 @@ public class SecuritySettingsConfigurer {
                 System.exit(-1);
             }
 
-            // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We proceed with generating a new one.
+            // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We exit the setup.
             if (ADMIN_PASSWORD.isEmpty()) {
-                System.out.println("No custom admin password found. Generating a new password now.");
-                // generate a new random password
-                // We always validate a generated password
-                while (passwordValidator.validate("admin", ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
-                    ADMIN_PASSWORD = generatePassword();
-                }
+                System.out.println("No custom admin password found. Please provide a password.");
+                System.exit(-1);
             }
 
             // print the password to the logs
