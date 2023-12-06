@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.fail;
 
 public class SelfRefreshingKeySetTest {
 
@@ -80,7 +81,9 @@ public class SelfRefreshingKeySetTest {
 
                     assertThat(key, is(notNullValue()));
                     assertThat(keyToCompare, is(equalTo(key.getKeyValue().decodeToString())));
-                } catch (AuthenticatorUnavailableException e) {} catch (BadCredentialsException e) {}
+                } catch (AuthenticatorUnavailableException | BadCredentialsException e) {
+                    fail("No exception was expected but found: " + e.getMessage());
+                }
             });
         }
 
