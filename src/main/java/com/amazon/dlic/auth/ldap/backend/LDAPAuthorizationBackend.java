@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
@@ -694,6 +695,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         String originalUserName;
         LdapEntry entry = null;
         String dn = null;
+        String excludeRoles = settings.get("exclude_roles", null);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
@@ -962,10 +964,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : nestedReturn) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (!Strings.isNullOrEmpty(role)) {
+                    if ((Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role))
+                        || (!Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role) && !Pattern.matches(excludeRoles, role))) {
                         user.addRole(role);
                     } else {
-                        log.warn("No or empty attribute '{}' for entry {}", roleName, roleLdapName);
+                        log.warn("Role not allowed or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
                     }
                 }
 
@@ -974,7 +977,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (!Strings.isNullOrEmpty(role)) {
+                    if ((Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role))
+                        || (!Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role) && !Pattern.matches(excludeRoles, role))) {
                         user.addRole(role);
                     } else {
                         log.warn("No or empty attribute '{}' for entry {}", roleName, roleLdapName);
