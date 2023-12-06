@@ -17,6 +17,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -25,6 +26,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_MESSAGE;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -51,6 +53,19 @@ public class DashboardsInfoTest {
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
             assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
             assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
+        }
+    }
+
+    @Test
+    public void testDashboardsInfoContainsSignInOptions() throws Exception {
+
+        try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
+            TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
+            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+            assertThat(
+                response.getTextArrayFromJsonBody("/dashboard_signin_options").contains(DashboardSignInOption.BASIC.toString()),
+                is(true)
+            );
         }
     }
 }
