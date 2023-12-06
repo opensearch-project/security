@@ -108,6 +108,7 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.field("multitenancy_enabled", evaluator.multitenancyEnabled());
                     builder.field("private_tenant_enabled", evaluator.privateTenantEnabled());
                     builder.field("default_tenant", evaluator.dashboardsDefaultTenant());
+                    builder.field("dashboard_signin_options", evaluator.getDashboardSignInOptions());
                     builder.field(
                         "password_validation_error_message",
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, DEFAULT_PASSWORD_MESSAGE)

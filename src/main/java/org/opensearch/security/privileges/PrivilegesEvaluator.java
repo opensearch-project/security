@@ -89,6 +89,7 @@ import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -617,6 +618,10 @@ public class PrivilegesEvaluator {
 
     public String dashboardsOpenSearchRole() {
         return dcm.getDashboardsOpenSearchRole();
+    }
+
+    public List<DashboardSignInOption> getDashboardSignInOptions() {
+        return dcm.getDashboardSignInOptions();
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {

@@ -169,6 +169,7 @@ public class ConfigV7 {
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
         public String index = ".kibana";
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public List<DashboardSignInOption> dashboardSignInOptions = Arrays.asList(DashboardSignInOption.BASIC);
 
         @Override

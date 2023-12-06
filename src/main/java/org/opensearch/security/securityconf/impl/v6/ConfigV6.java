@@ -100,6 +100,7 @@ public class ConfigV6 {
         public String opendistro_role = null;
         public String index = ".kibana";
         public boolean do_not_fail_on_forbidden;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public List<DashboardSignInOption> dashboardSignInOptions = Arrays.asList(DashboardSignInOption.BASIC);
 
         @Override
