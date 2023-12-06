@@ -33,10 +33,9 @@ import org.opensearch.index.mapper.Uid;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.JsonFlattener;
 import org.opensearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
-
-import com.github.wnameless.json.flattener.JsonFlattener;
 
 //TODO  We need to deal with caching!!
 //Currently we disable caching (and realtime requests) when FLS or DLS is applied
@@ -106,7 +105,7 @@ public final class FieldReadCallback {
                     fieldValue = Utils.jsonMapToByteArray(filteredSource);
                 }
 
-                Map<String, Object> filteredSource = new JsonFlattener(new String(fieldValue, StandardCharsets.UTF_8)).flattenAsMap();
+                Map<String, Object> filteredSource = JsonFlattener.flattenAsMap(new String(fieldValue, StandardCharsets.UTF_8));
                 for (String k : filteredSource.keySet()) {
                     if (!recordField(k, filteredSource.get(k) instanceof String)) {
                         continue;
