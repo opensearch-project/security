@@ -125,8 +125,10 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
 
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
-        backendRegistry.get().invalidateCache();
+        if (dynamicConfigFactory.isBootstrapped()) {
+            configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
+            backendRegistry.get().invalidateCache();
+        }
         return new ConfigUpdateNodeResponse(clusterService.localNode(), request.request.getConfigTypes(), null);
     }
 
