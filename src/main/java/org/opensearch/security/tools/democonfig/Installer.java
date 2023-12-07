@@ -288,11 +288,11 @@ public class Installer {
 
         // Extract OpenSearch version and Security version
         File[] opensearchLibFiles = new File(OPENSEARCH_LIB_PATH).listFiles(
-            pathname -> pathname.getName().startsWith("opensearch-") && pathname.getName().endsWith(".jar")
+            pathname -> pathname.getName().matches("opensearch-core-(.*).jar")
         );
 
         if (opensearchLibFiles != null && opensearchLibFiles.length > 0) {
-            OPENSEARCH_VERSION = opensearchLibFiles[0].getName().replaceAll("opensearch-(.*).jar", "$1");
+            OPENSEARCH_VERSION = opensearchLibFiles[0].getName().replaceAll("opensearch-core-(.*).jar", "$1");
         }
 
         File[] securityFiles = new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").listFiles(
