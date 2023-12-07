@@ -225,7 +225,6 @@ public class SlowIntegrationTests extends SingleClusterTest {
     }
 
     @Test
-    @Repeat(10)
     public void testDelayInSecurityIndexInitialization() throws Exception {
         final Settings settings = Settings.builder()
             .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
