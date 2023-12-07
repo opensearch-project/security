@@ -31,7 +31,6 @@ import java.io.IOException;
 import com.google.common.collect.Lists;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -50,14 +49,9 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.opensearch.security.util.Repeat;
-import org.opensearch.security.util.RepeatRule;
 import org.opensearch.transport.Netty4ModulePlugin;
 
 public class SlowIntegrationTests extends SingleClusterTest {
-
-    @Rule
-    public RepeatRule repeatRule = new RepeatRule();
 
     @Test
     public void testCustomInterclusterRequestEvaluator() throws Exception {
