@@ -229,7 +229,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         if (obj == null) {
             return false;
         }
-        if (!(User.class.isAssignableFrom(getClass()) && User.class.isAssignableFrom(obj.getClass()))) {
+        if (!(obj instanceof User)) {
             return false;
         }
         final User other = (User) obj;
