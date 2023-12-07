@@ -494,7 +494,7 @@ public class InstallerTests {
         createDirectory(installer.OPENSEARCH_LIB_PATH);
         createDirectory(installer.OPENSEARCH_CONF_DIR);
         createDirectory(installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security");
-        createFile(installer.OPENSEARCH_LIB_PATH + "opensearch-osVersion.jar");
+        createFile(installer.OPENSEARCH_LIB_PATH + "opensearch-core-osVersion.jar");
         createFile(installer.OPENSEARCH_PLUGINS_DIR + "opensearch-security" + File.separator + "opensearch-security-version.jar");
         createFile(installer.OPENSEARCH_CONF_DIR + File.separator + "securityadmin_demo.sh");
     }
