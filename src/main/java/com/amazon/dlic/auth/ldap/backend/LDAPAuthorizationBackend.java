@@ -1010,8 +1010,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     }
 
     private static boolean filterRole(String excludeRoles, String role) {
-        //default behavior, no filtering
-        if(Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role)) {
+        // default behavior, no filtering
+        if (Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role)) {
             return true;
         }
         return !Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role) && !Pattern.matches(excludeRoles, role);
