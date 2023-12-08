@@ -133,6 +133,7 @@ logstash:
   index_permissions:
   - index_patterns:
     - "logstash-*"
+    - "ecs-logstash-*"
     allowed_actions:
     - "crud"
     - "create_index"
