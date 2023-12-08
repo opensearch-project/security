@@ -331,8 +331,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         for (final Iterator<LdapEntry> iterator = rolesResult.iterator(); iterator.hasNext();) {
                             LdapEntry searchResultEntry = iterator.next();
                             LdapName ldapName = new LdapName(searchResultEntry.getDn());
-                            ldapRoles.add(ldapName);
-                            resultRoleSearchBaseKeys.put(ldapName, roleSearchSettingsEntry);
+                            if (LdapHelper.allowRole(excludeRoles, searchResultEntry.getDn())) {
+                                ldapRoles.add(ldapName);
+                                resultRoleSearchBaseKeys.put(ldapName, roleSearchSettingsEntry);
+                            }
                         }
                     }
                 }

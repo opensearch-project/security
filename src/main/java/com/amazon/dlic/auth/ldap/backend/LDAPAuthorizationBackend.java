@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
@@ -964,7 +963,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : nestedReturn) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (filterRole(excludeRoles, role)) {
+                    if (LdapHelper.allowRole(excludeRoles, role)) {
                         user.addRole(role);
                     } else {
                         log.warn("Role not allowed or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
@@ -976,7 +975,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (filterRole(excludeRoles, role)) {
+                    if (LdapHelper.allowRole(excludeRoles, role)) {
                         user.addRole(role);
                     } else {
                         log.warn("No or empty attribute '{}' for entry {}", roleName, roleLdapName);
@@ -1007,14 +1006,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             Utils.unbindAndCloseSilently(connection);
         }
 
-    }
-
-    private static boolean filterRole(String excludeRoles, String role) {
-        // default behavior, no filtering
-        if (Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role)) {
-            return true;
-        }
-        return !Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role) && !Pattern.matches(excludeRoles, role);
     }
 
     protected Set<LdapName> resolveNestedRoles(

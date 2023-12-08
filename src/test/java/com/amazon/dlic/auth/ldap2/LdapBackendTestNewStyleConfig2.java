@@ -759,7 +759,7 @@ public class LdapBackendTestNewStyleConfig2 {
     }
 
     @Test
-    public void testLdapAuthorizationNestedAttrFilterAll() throws Exception {
+    public void testLdapAuthorizationNestedAttrFilterAll() {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
             .put("users.u1.search", "(uid={0})")
@@ -780,7 +780,32 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(4, user.getRoles().size());
+    }
 
+    @Test
+    public void testLdapdRoleFiltering() {
+
+        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put("users.u1.search", "(uid={0})")
+            .put("users.u1.base", "ou=people,o=TEST")
+            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put("roles.g1.search", "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
+            .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "*")
+            .put("exclude_roles", "(dummyempty)")
+            .build();
+
+        final User user = new User("spock");
+
+        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+
+        Assert.assertNotNull(user);
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(3, user.getRoles().size());
+        Assert.assertFalse(user.getRoles().contains("dummyempty"));
     }
 
     @Test
