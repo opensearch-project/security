@@ -219,11 +219,9 @@ public class ConfigurationRepository {
                     try {
                         LOGGER.debug("Try to load config ...");
                         reloadConfiguration(Arrays.asList(CType.values()));
-                        dynamicConfigFactory.setBootstrapped();
                         break;
                     } catch (Exception e) {
                         LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
-                        dynamicConfigFactory.setBootstrapped();
                         try {
                             Thread.sleep(3000);
                         } catch (InterruptedException e1) {
@@ -258,6 +256,8 @@ public class ConfigurationRepository {
 
             } catch (Exception e) {
                 LOGGER.error("Unexpected exception while initializing node " + e, e);
+            } finally {
+                dynamicConfigFactory.setBackgroundThreadComplete();
             }
         });
 
@@ -325,7 +325,7 @@ public class ConfigurationRepository {
                     "Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
                     securityIndex
                 );
-                dynamicConfigFactory.setBootstrapped();
+                dynamicConfigFactory.setBackgroundThreadComplete();
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
