@@ -33,10 +33,12 @@ class ConfigurationFiles {
                 "action_groups.yml",
                 "config.yml",
                 "internal_users.yml",
+                "nodes_dn.yml",
                 "roles.yml",
                 "roles_mapping.yml",
                 "security_tenants.yml",
-                "tenants.yml" };
+                "tenants.yml",
+                "whitelist.yml" };
             for (String fileName : configurationFiles) {
                 Path configFileDestination = tempDirectory.resolve(fileName);
                 copyResourceToFile(fileName, configFileDestination.toFile());
