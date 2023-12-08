@@ -91,12 +91,9 @@ public class SecuritySettingsConfigurer {
      */
     void updateAdminPassword() {
         String initialAdminPassword = System.getenv().get("initialAdminPassword");
-        String ADMIN_PASSWORD_FILE_PATH = this.installer.OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
-        String INTERNAL_USERS_FILE_PATH = this.installer.OPENSEARCH_CONF_DIR
-            + "opensearch-security"
-            + File.separator
-            + "internal_users.yml";
-        boolean shouldValidatePassword = this.installer.environment.equals(ExecutionEnvironment.DEMO);
+        String ADMIN_PASSWORD_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
+        String INTERNAL_USERS_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
+        boolean shouldValidatePassword = installer.environment.equals(ExecutionEnvironment.DEMO);
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -189,13 +186,13 @@ public class SecuritySettingsConfigurer {
      */
     void checkIfSecurityPluginIsAlreadyConfigured() {
         // Check if the configuration file contains the 'plugins.security' string
-        if (this.installer.OPENSEARCH_CONF_FILE != null && new File(this.installer.OPENSEARCH_CONF_FILE).exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(this.installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
+        if (installer.OPENSEARCH_CONF_FILE != null && new File(installer.OPENSEARCH_CONF_FILE).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     if (line.toLowerCase().contains("plugins.security")) {
-                        System.out.println(this.installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                        System.exit(this.installer.skip_updates);
+                        System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
+                        System.exit(installer.skip_updates);
                     }
                 }
             } catch (IOException e) {
@@ -222,7 +219,7 @@ public class SecuritySettingsConfigurer {
 
         Map<String, Object> securityConfigAsMap = buildSecurityConfigMap();
 
-        try (FileWriter writer = new FileWriter(this.installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
+        try (FileWriter writer = new FileWriter(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
             writer.write(configHeader);
             Yaml yaml = new Yaml();
             DumperOptions options = new DumperOptions();
@@ -253,7 +250,7 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.ssl.http.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
         configMap.put("plugins.security.allow_unsafe_democertificates", true);
 
-        if (this.installer.initsecurity) {
+        if (installer.initsecurity) {
             configMap.put("plugins.security.allow_default_init_securityindex", true);
         }
 
@@ -267,15 +264,15 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.system_indices.enabled", true);
         configMap.put("plugins.security.system_indices.indices", SYSTEM_INDICES);
 
-        if (!isNetworkHostAlreadyPresent(this.installer.OPENSEARCH_CONF_FILE)) {
-            if (this.installer.cluster_mode) {
+        if (!isNetworkHostAlreadyPresent(installer.OPENSEARCH_CONF_FILE)) {
+            if (installer.cluster_mode) {
                 configMap.put("network.host", "0.0.0.0");
                 configMap.put("node.name", "smoketestnode");
                 configMap.put("cluster.initial_cluster_manager_nodes", "smoketestnode");
             }
         }
 
-        if (!isNodeMaxLocalStorageNodesAlreadyPresent(this.installer.OPENSEARCH_CONF_FILE)) {
+        if (!isNodeMaxLocalStorageNodesAlreadyPresent(installer.OPENSEARCH_CONF_FILE)) {
             configMap.put("node.max_local_storage_nodes", 3);
         }
 
@@ -349,19 +346,19 @@ public class SecuritySettingsConfigurer {
     String[] getSecurityAdminCommands(String securityAdminScriptPath) {
         String securityAdminExecutionPath = securityAdminScriptPath
             + "\" -cd \""
-            + this.installer.OPENSEARCH_CONF_DIR
+            + installer.OPENSEARCH_CONF_DIR
             + "opensearch-security\" -icl -key \""
-            + this.installer.OPENSEARCH_CONF_DIR
+            + installer.OPENSEARCH_CONF_DIR
             + Certificates.ADMIN_CERT_KEY.getFileName()
             + "\" -cert \""
-            + this.installer.OPENSEARCH_CONF_DIR
+            + installer.OPENSEARCH_CONF_DIR
             + Certificates.ADMIN_CERT.getFileName()
             + "\" -cacert \""
-            + this.installer.OPENSEARCH_CONF_DIR
+            + installer.OPENSEARCH_CONF_DIR
             + Certificates.ROOT_CA.getFileName()
             + "\" -nhnv";
 
-        if (this.installer.OS.toLowerCase().contains("win")) {
+        if (installer.OS.toLowerCase().contains("win")) {
             return new String[] { "@echo off", "call \"" + securityAdminExecutionPath };
         }
 
