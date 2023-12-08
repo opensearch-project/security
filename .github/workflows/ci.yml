@@ -111,7 +111,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [11, 17, 21]
-        platform: [ubuntu-latest] # Removed windows https://github.com/opensearch-project/security/issues/3423
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
