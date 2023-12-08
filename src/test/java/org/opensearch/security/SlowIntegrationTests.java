@@ -49,7 +49,7 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.opensearch.transport.Netty4Plugin;
+import org.opensearch.transport.Netty4ModulePlugin;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -62,27 +62,27 @@ public class SlowIntegrationTests extends SingleClusterTest {
     public void testCustomInterclusterRequestEvaluator() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put(
-                ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-                "org.opensearch.security.AlwaysFalseInterClusterRequestEvaluator"
-            )
-            .put("discovery.initial_state_timeout", "8s")
-            .build();
+                .put(
+                        ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+                        "org.opensearch.security.AlwaysFalseInterClusterRequestEvaluator"
+                )
+                .put("discovery.initial_state_timeout", "8s")
+                .build();
         setup(Settings.EMPTY, null, settings, false, ClusterConfiguration.DEFAULT, 5, 1);
         assertThat(
-            1,
-            is(
-                clusterHelper.nodeClient()
-                    .admin()
-                    .cluster()
-                    .health(new ClusterHealthRequest().waitForGreenStatus())
-                    .actionGet()
-                    .getNumberOfNodes()
-            )
+                1,
+                is(
+                        clusterHelper.nodeClient()
+                                .admin()
+                                .cluster()
+                                .health(new ClusterHealthRequest().waitForGreenStatus())
+                                .actionGet()
+                                .getNumberOfNodes()
+                )
         );
         assertThat(
-            ClusterHealthStatus.GREEN,
-            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
+                ClusterHealthStatus.GREEN,
+                is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
     }
 
@@ -91,49 +91,49 @@ public class SlowIntegrationTests extends SingleClusterTest {
     public void testNodeClientAllowedWithServerCertificate() throws Exception {
         setup();
         assertThat(
-            clusterInfo.numNodes,
-            is(
-                clusterHelper.nodeClient()
-                    .admin()
-                    .cluster()
-                    .health(new ClusterHealthRequest().waitForGreenStatus())
-                    .actionGet()
-                    .getNumberOfNodes()
-            )
+                clusterInfo.numNodes,
+                is(
+                        clusterHelper.nodeClient()
+                                .admin()
+                                .cluster()
+                                .health(new ClusterHealthRequest().waitForGreenStatus())
+                                .actionGet()
+                                .getNumberOfNodes()
+                )
         );
         assertThat(
-            ClusterHealthStatus.GREEN,
-            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
+                ClusterHealthStatus.GREEN,
+                is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
-            .put(minimumSecuritySettings(Settings.EMPTY).get(0))
-            .put("cluster.name", clusterInfo.clustername)
-            .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
-            .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
-            .put("path.home", "./target")
-            .put("node.name", "transportclient")
-            .put("discovery.initial_state_timeout", "8s")
-            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
-            .build();
+                .put(minimumSecuritySettings(Settings.EMPTY).get(0))
+                .put("cluster.name", clusterInfo.clustername)
+                .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
+                .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
+                .put("path.home", "./target")
+                .put("node.name", "transportclient")
+                .put("discovery.initial_state_timeout", "8s")
+                .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
+                .build();
 
         log.debug("Start node client");
 
         try (
-            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
-                .start()
+                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                        .start()
         ) {
             Assert.assertFalse(
-                node.client()
-                    .admin()
-                    .cluster()
-                    .health(new ClusterHealthRequest().waitForNodes(String.valueOf(clusterInfo.numNodes + 1)))
-                    .actionGet()
-                    .isTimedOut()
+                    node.client()
+                            .admin()
+                            .cluster()
+                            .health(new ClusterHealthRequest().waitForNodes(String.valueOf(clusterInfo.numNodes + 1)))
+                            .actionGet()
+                            .isTimedOut()
             );
             assertThat(
-                clusterInfo.numNodes + 1,
-                is(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size())
+                    clusterInfo.numNodes + 1,
+                    is(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size())
             );
         }
     }
@@ -143,39 +143,39 @@ public class SlowIntegrationTests extends SingleClusterTest {
     public void testNodeClientDisallowedWithNonServerCertificate() throws Exception {
         setup();
         assertThat(
-            clusterInfo.numNodes,
-            is(
-                clusterHelper.nodeClient()
-                    .admin()
-                    .cluster()
-                    .health(new ClusterHealthRequest().waitForGreenStatus())
-                    .actionGet()
-                    .getNumberOfNodes()
-            )
+                clusterInfo.numNodes,
+                is(
+                        clusterHelper.nodeClient()
+                                .admin()
+                                .cluster()
+                                .health(new ClusterHealthRequest().waitForGreenStatus())
+                                .actionGet()
+                                .getNumberOfNodes()
+                )
         );
         assertThat(
-            ClusterHealthStatus.GREEN,
-            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
+                ClusterHealthStatus.GREEN,
+                is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
-            .put(minimumSecuritySettings(Settings.EMPTY).get(0))
-            .put("cluster.name", clusterInfo.clustername)
-            .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
-            .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
-            .put("path.home", "./target")
-            .put("node.name", "transportclient")
-            .put("discovery.initial_state_timeout", "8s")
-            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "kirk")
-            .build();
+                .put(minimumSecuritySettings(Settings.EMPTY).get(0))
+                .put("cluster.name", clusterInfo.clustername)
+                .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
+                .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
+                .put("path.home", "./target")
+                .put("node.name", "transportclient")
+                .put("discovery.initial_state_timeout", "8s")
+                .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
+                .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "kirk")
+                .build();
 
         log.debug("Start node client");
 
         try (
-            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
-                .start()
+                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                        .start()
         ) {
             Thread.sleep(10000);
             assertThat(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(1));
@@ -190,39 +190,39 @@ public class SlowIntegrationTests extends SingleClusterTest {
     public void testNodeClientDisallowedWithNonServerCertificate2() throws Exception {
         setup();
         assertThat(
-            clusterInfo.numNodes,
-            is(
-                clusterHelper.nodeClient()
-                    .admin()
-                    .cluster()
-                    .health(new ClusterHealthRequest().waitForGreenStatus())
-                    .actionGet()
-                    .getNumberOfNodes()
-            )
+                clusterInfo.numNodes,
+                is(
+                        clusterHelper.nodeClient()
+                                .admin()
+                                .cluster()
+                                .health(new ClusterHealthRequest().waitForGreenStatus())
+                                .actionGet()
+                                .getNumberOfNodes()
+                )
         );
         assertThat(
-            ClusterHealthStatus.GREEN,
-            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
+                ClusterHealthStatus.GREEN,
+                is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
-            .put(minimumSecuritySettings(Settings.EMPTY).get(0))
-            .put("cluster.name", clusterInfo.clustername)
-            .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
-            .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
-            .put("path.home", "./target")
-            .put("node.name", "transportclient")
-            .put("discovery.initial_state_timeout", "8s")
-            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "spock")
-            .build();
+                .put(minimumSecuritySettings(Settings.EMPTY).get(0))
+                .put("cluster.name", clusterInfo.clustername)
+                .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
+                .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
+                .put("path.home", "./target")
+                .put("node.name", "transportclient")
+                .put("discovery.initial_state_timeout", "8s")
+                .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
+                .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "spock")
+                .build();
 
         log.debug("Start node client");
 
         try (
-            Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
-                .start()
+                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                        .start()
         ) {
             Thread.sleep(10000);
             assertThat(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(1));
@@ -234,37 +234,37 @@ public class SlowIntegrationTests extends SingleClusterTest {
     @Test
     public void testDelayInSecurityIndexInitialization() throws Exception {
         final Settings settings = Settings.builder()
-            .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
-            .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
-            .build();
+                .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
+                .build();
         assertThrows(IOException.class, () -> {
             setup(Settings.EMPTY, null, settings, false);
             clusterHelper.nodeClient()
-                .admin()
-                .indices()
-                .create(new CreateIndexRequest("test-index").timeout(TimeValue.timeValueSeconds(10)))
-                .actionGet();
+                    .admin()
+                    .indices()
+                    .create(new CreateIndexRequest("test-index").timeout(TimeValue.timeValueSeconds(10)))
+                    .actionGet();
             clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(5), ClusterConfiguration.DEFAULT.getNodes());
         });
         // Ideally, we would want to remove this cluster setting, but default settings cannot be removed. So overriding with a reserved
         // IP address
         clusterHelper.nodeClient()
-            .admin()
-            .cluster()
-            .updateSettings(
-                new ClusterUpdateSettingsRequest().transientSettings(
-                    Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()
-                )
-            );
+                .admin()
+                .cluster()
+                .updateSettings(
+                        new ClusterUpdateSettingsRequest().transientSettings(
+                                Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()
+                        )
+                );
         this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), 3);
         RestHelper rh = nonSslRestHelper();
         Awaitility.await()
-            .alias("Wait until Security is initialized")
-            .until(
-                () -> rh.executeGetRequest("/_plugins/_security/health", encodeBasicHeader("admin", "admin"))
-                    .getTextFromJsonBody("/status"),
-                equalTo("UP")
-            );
+                .alias("Wait until Security is initialized")
+                .until(
+                        () -> rh.executeGetRequest("/_plugins/_security/health", encodeBasicHeader("admin", "admin"))
+                                .getTextFromJsonBody("/status"),
+                        equalTo("UP")
+                );
     }
 
 }

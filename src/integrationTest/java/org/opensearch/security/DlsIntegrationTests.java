@@ -56,6 +56,7 @@ import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
+import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithSort;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
@@ -367,7 +368,7 @@ public class DlsIntegrationTests {
     public void testShouldSearchAll() throws IOException {
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
-            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+            SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -379,7 +380,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
-            searchRequest = new SearchRequest(SECOND_INDEX_NAME);
+            searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -387,7 +388,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
         }
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_FIRST_AND_SECOND_USER)) {
-            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+            SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -399,7 +400,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
-            searchRequest = new SearchRequest(SECOND_INDEX_NAME);
+            searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -412,14 +413,14 @@ public class DlsIntegrationTests {
     public void testShouldSearchI1_S2I2_S3() throws IOException {
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING)) {
-            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+            SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_STRING));
 
-            searchRequest = new SearchRequest(SECOND_INDEX_NAME);
+            searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -435,7 +436,7 @@ public class DlsIntegrationTests {
                 READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE
             )
         ) {
-            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+            SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -443,7 +444,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_TWINS));
             assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_UNKNOWN));
 
-            searchRequest = new SearchRequest(SECOND_INDEX_NAME);
+            searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -459,7 +460,7 @@ public class DlsIntegrationTests {
                 READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
             )
         ) {
-            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+            SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -467,7 +468,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_TWINS));
             assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_FIRST));
 
-            searchRequest = new SearchRequest(SECOND_INDEX_NAME);
+            searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -480,7 +481,7 @@ public class DlsIntegrationTests {
     public void testShouldSearchStarsLessThanThree() throws IOException {
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_STARS_LESS_THAN_THREE)) {
-            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+            SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -488,7 +489,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
             assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_STRING));
 
-            searchRequest = new SearchRequest(SECOND_INDEX_NAME);
+            searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -503,7 +504,7 @@ public class DlsIntegrationTests {
 
         // DLS
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
-            SearchRequest searchRequest = new SearchRequest("*".concat(FIRST_INDEX_NAME));
+            SearchRequest searchRequest = searchRequestWithSort("*".concat(FIRST_INDEX_NAME));
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -515,7 +516,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
-            searchRequest = new SearchRequest("*".concat(SECOND_INDEX_NAME));
+            searchRequest = searchRequestWithSort("*".concat(SECOND_INDEX_NAME));
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -528,7 +529,7 @@ public class DlsIntegrationTests {
     public void testSearchForAllDocumentsWithAlias() throws IOException {
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
-            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
+            SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_ALIAS);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
@@ -540,12 +541,15 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
-            searchRequest = new SearchRequest("*".concat(SECOND_INDEX_NAME));
+            searchRequest = searchRequestWithSort("*".concat(SECOND_INDEX_NAME));
             searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_TWINS));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(2, FIELD_ARTIST, ARTIST_STRING));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(3, FIELD_ARTIST, ARTIST_FIRST));
         }
     }
 
