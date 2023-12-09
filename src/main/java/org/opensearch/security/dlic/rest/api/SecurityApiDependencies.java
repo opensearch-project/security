@@ -13,6 +13,7 @@ package org.opensearch.security.dlic.rest.api;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -23,6 +24,7 @@ public class SecurityApiDependencies {
     private final ConfigurationRepository configurationRepository;
     private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
     private final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
+    private final BackendRegistry backendRegistry;
     private final AuditLog auditLog;
     private final Settings settings;
 
@@ -35,7 +37,8 @@ public class SecurityApiDependencies {
         final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator,
         final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator,
         final AuditLog auditLog,
-        final Settings settings
+        final Settings settings,
+        final BackendRegistry backendRegistry
     ) {
         this.adminDNs = adminDNs;
         this.configurationRepository = configurationRepository;
@@ -44,6 +47,7 @@ public class SecurityApiDependencies {
         this.restApiAdminPrivilegesEvaluator = restApiAdminPrivilegesEvaluator;
         this.auditLog = auditLog;
         this.settings = settings;
+        this.backendRegistry = backendRegistry;
     }
 
     public AdminDNs adminDNs() {
@@ -72,6 +76,10 @@ public class SecurityApiDependencies {
 
     public Settings settings() {
         return settings;
+    }
+
+    public BackendRegistry backendRegistry() {
+        return backendRegistry;
     }
 
     public String securityIndexName() {

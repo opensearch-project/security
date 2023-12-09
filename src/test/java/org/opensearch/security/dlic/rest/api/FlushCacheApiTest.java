@@ -42,6 +42,9 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
+        // Username to test cache invalidation
+        String username = "testuser";
+
         // GET
         HttpResponse response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
@@ -65,6 +68,13 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(settings.get("message"), "Cache flushed successfully.");
+
+        // DELETE request for a specific user's cache
+        String userEndpoint = ENDPOINT + "/user/" + username;
+        response = rh.executeDeleteRequest(userEndpoint, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(settings.get("message"), "Cache invalidated for user: " + username);
 
     }
 }

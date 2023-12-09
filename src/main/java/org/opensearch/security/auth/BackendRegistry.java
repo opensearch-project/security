@@ -166,6 +166,29 @@ public class BackendRegistry {
         restRoleCache.invalidateAll();
     }
 
+    public void invalidateUserCache(String username) {
+        if (username == null || username.isEmpty()) {
+            log.debug("No username given, not invalidating user cache.");
+            return;
+        }
+    
+        // Invalidate entries in the userCache by iterating over the keys and matching the username.
+        userCache.asMap().keySet().stream()
+            .filter(authCreds -> username.equals(authCreds.getUsername()))
+            .forEach(userCache::invalidate);
+    
+        // Invalidate entries in the restImpersonationCache directly since it uses the username as the key.
+        restImpersonationCache.invalidate(username);
+    
+        // Invalidate entries in the restRoleCache by iterating over the keys and matching the username.
+        restRoleCache.asMap().keySet().stream()
+            .filter(user -> username.equals(user.getName()))
+            .forEach(restRoleCache::invalidate);
+    
+        // If the user isn't found it still says this, which could be bad
+        log.debug("Invalidated cache for user {}", username);
+    }
+
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
 
