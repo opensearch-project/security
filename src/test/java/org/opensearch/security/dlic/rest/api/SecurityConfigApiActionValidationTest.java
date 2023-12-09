@@ -30,7 +30,7 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
         final var securityConfigApiAction = new SecurityConfigApiAction(
             clusterService,
             threadPool,
-            new SecurityApiDependencies(null, configurationRepository, null, null, restApiAdminPrivilegesEvaluator, null, Settings.EMPTY)
+            new SecurityApiDependencies(null, configurationRepository, null, null, restApiAdminPrivilegesEvaluator, null, Settings.EMPTY, null)
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
         assertFalse(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
@@ -49,7 +49,8 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
                 null,
                 restApiAdminPrivilegesEvaluator,
                 null,
-                Settings.builder().put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build()
+                Settings.builder().put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build(),
+                null
             )
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
@@ -70,7 +71,8 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
                         null,
                         restApiAdminPrivilegesEvaluator,
                         null,
-                        Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build()
+                        Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build(),
+                        null
                 )
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
