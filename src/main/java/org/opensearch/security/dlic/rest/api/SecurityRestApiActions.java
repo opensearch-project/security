@@ -21,6 +21,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -47,7 +48,8 @@ public class SecurityRestApiActions {
         final AuditLog auditLog,
         final SecurityKeyStore securityKeyStore,
         final UserService userService,
-        final boolean certificatesReloadEnabled
+        final boolean certificatesReloadEnabled,
+        final BackendRegistry backendRegistry
     ) {
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
@@ -61,7 +63,8 @@ public class SecurityRestApiActions {
                 settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
             ),
             auditLog,
-            settings
+            settings,
+            backendRegistry
         );
         return List.of(
             new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies),
