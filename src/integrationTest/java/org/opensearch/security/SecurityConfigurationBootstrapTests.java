@@ -60,7 +60,7 @@ public class SecurityConfigurationBootstrapTests {
         .build();
 
     @BeforeClass
-    public static void initData() {
+    public static void runConfigUpdateRequestsInBgThread() {
 
         Client client = new ContextHeaderDecoratorClient(
             cluster.getInternalNodeClient(),
