@@ -28,6 +28,7 @@ package org.opensearch.security.configuration;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.security.AccessController;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,7 +133,9 @@ public class ConfigurationRepository {
                 if (installDefaultConfig.get()) {
 
                     try {
-                        String lookupDir = System.getProperty("security.default_init.dir");
+                        String lookupDir = AccessController.doPrivileged(
+                            (java.security.PrivilegedAction<String>) () -> System.getProperty("security.default_init.dir")
+                        );
                         final String cd = lookupDir != null
                             ? (lookupDir + "/")
                             : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
