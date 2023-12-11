@@ -315,13 +315,13 @@ public class ConfigurationRepository {
             if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
                 installDefaultConfig.set(true);
-                bgThreadRunner = CompletableFuture.runAsync(AccessController.doPrivileged((PrivilegedAction<Thread>) () -> bgThread));
+                bgThreadRunner = CompletableFuture.runAsync(new AccessControllerWrappedThread(bgThread));
             } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)) {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
                     securityIndex
                 );
-                bgThreadRunner = CompletableFuture.runAsync(AccessController.doPrivileged((PrivilegedAction<Thread>) () -> bgThread));
+                bgThreadRunner = CompletableFuture.runAsync(new AccessControllerWrappedThread(bgThread));
             } else {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
@@ -331,7 +331,7 @@ public class ConfigurationRepository {
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
-            bgThreadRunner = CompletableFuture.runAsync(AccessController.doPrivileged((PrivilegedAction<Thread>) () -> bgThread));
+            bgThreadRunner = CompletableFuture.runAsync(new AccessControllerWrappedThread(bgThread));
         }
     }
 
@@ -496,5 +496,25 @@ public class ConfigurationRepository {
 
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
+    }
+
+    private class AccessControllerWrappedThread extends Thread {
+        private final Thread innerThread;
+
+        public AccessControllerWrappedThread(Thread innerThread) {
+            this.innerThread = innerThread;
+        }
+
+        @Override
+        public void run() {
+            AccessController.doPrivileged(new PrivilegedAction<Void>() {
+
+                @Override
+                public Void run() {
+                    innerThread.run();
+                    return null;
+                }
+            });
+        }
     }
 }
