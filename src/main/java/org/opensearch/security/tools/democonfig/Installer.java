@@ -23,6 +23,13 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 /**
  * This class installs demo configuration for security plugin
  */
@@ -57,9 +64,14 @@ public class Installer {
 
     static File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
 
+    private final Options options;
+
+    private final HelpFormatter formatter = new HelpFormatter();
+
     private Installer() {
         this.OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
         FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
+        options = new Options();
     }
 
     public static Installer getInstance() {
@@ -84,7 +96,40 @@ public class Installer {
 
     public static void main(String[] options) {
         Installer installer = Installer.getInstance();
+        installer.buildOptions();
         installer.installDemoConfiguration(options);
+    }
+
+    /**
+     * Builds options supported by this tool
+     */
+    void buildOptions() {
+        options.addOption("h", "show-help", false, "Shows help for this tool.");
+        options.addOption("y", "answer-yes-to-all-prompts", false, "Confirm all installation dialogues automatically.");
+        options.addOption(
+            "i",
+            "initialize-security",
+            false,
+            "Initialize Security plugin with default configuration (default is to ask if -y is not given)."
+        );
+        options.addOption(
+            "c",
+            "enable-cluster-mode",
+            false,
+            "Enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)."
+        );
+        options.addOption(
+            "s",
+            "skip-updates-when-already-configured",
+            false,
+            "Skip updates if config is already applied to opensearch.yml."
+        );
+        options.addOption(
+            "t",
+            "test-execution-environment",
+            false,
+            "Set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `demo`)"
+        );
     }
 
     /**
@@ -97,36 +142,29 @@ public class Installer {
 
     /**
      * Reads the options passed to the script
-     * @param options an array of strings containing options passed to the script
+     * @param args an array of strings containing options passed to the script
      */
-    void readOptions(String[] options) {
+    void readOptions(String[] args) {
         // set script execution dir
-        SCRIPT_DIR = options[0];
+        SCRIPT_DIR = args[0];
 
-        for (int i = 1; i < options.length; i++) {
-            switch (options[i]) {
-                case "-y":
-                    assumeyes = true;
-                    break;
-                case "-i":
-                    initsecurity = true;
-                    break;
-                case "-c":
-                    cluster_mode = true;
-                    break;
-                case "-s":
-                    skip_updates = 0;
-                    break;
-                case "-t":
-                    environment = ExecutionEnvironment.TEST;
-                    break;
-                case "-h":
-                case "-?":
-                    showHelp();
-                    return;
-                default:
-                    System.out.println("Invalid option: " + options[i]);
+        CommandLineParser parser = new DefaultParser();
+        try {
+            CommandLine line = parser.parse(options, args);
+
+            if (line.hasOption("h")) {
+                showHelp();
+                return;
             }
+            assumeyes = line.hasOption("y");
+            initsecurity = line.hasOption("i");
+            cluster_mode = line.hasOption("c");
+            skip_updates = line.hasOption("s") ? 0 : -1;
+            environment = line.hasOption("t") ? ExecutionEnvironment.TEST : environment;
+
+        } catch (ParseException exp) {
+            System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
+            System.exit(-1);
         }
     }
 
@@ -134,15 +172,7 @@ public class Installer {
      * Prints the help menu when -h option is passed
      */
     void showHelp() {
-        System.out.println("install_demo_configuration.sh [-y] [-i] [-c]");
-        System.out.println("  -h show help");
-        System.out.println("  -y confirm all installation dialogues automatically");
-        System.out.println("  -i initialize Security plugin with default configuration (default is to ask if -y is not given)");
-        System.out.println("  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)");
-        System.out.println("  -s skip updates if config is already applied to opensearch.yml");
-        System.out.println(
-            "  -t set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `demo`)"
-        );
+        formatter.printHelp("install_demo_configuration.sh", options, true);
         System.exit(0);
     }
 
@@ -393,9 +423,5 @@ public class Installer {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-    }
-
-    public static void resetInstance() {
-        instance = null;
     }
 }
