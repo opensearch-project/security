@@ -29,7 +29,9 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
@@ -69,6 +71,11 @@ public class SecurityConfigurationBootstrapWithSecurityAdminTests {
 
     @Test
     public void testInitializeWithSecurityAdminWhenNoBackgroundInitialization() throws Exception {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+            assertThat(response.getStatusCode(), equalTo(SC_SERVICE_UNAVAILABLE));
+            assertThat(response.getBody(), containsString("OpenSearch Security not initialized"));
+        }
         SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
 
         int exitCode = securityAdminLauncher.runSecurityAdmin(configurationFolder);
