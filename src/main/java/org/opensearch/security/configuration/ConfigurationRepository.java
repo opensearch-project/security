@@ -133,12 +133,12 @@ public class ConfigurationRepository {
                 if (installDefaultConfig.get()) {
 
                     try {
-                        String lookupDir = AccessController.doPrivileged(
-                            (java.security.PrivilegedAction<String>) () -> System.getProperty("security.default_init.dir")
-                        );
-                        final String cd = lookupDir != null
-                            ? (lookupDir + "/")
-                            : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+                        final String cd = AccessController.doPrivileged((java.security.PrivilegedAction<String>) () -> {
+                            String lookupDir = System.getProperty("security.default_init.dir");
+                            return lookupDir != null
+                                ? (lookupDir + "/")
+                                : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+                        });
                         File confFile = new File(cd + "config.yml");
                         if (confFile.exists()) {
                             final ThreadContext threadContext = threadPool.getThreadContext();
