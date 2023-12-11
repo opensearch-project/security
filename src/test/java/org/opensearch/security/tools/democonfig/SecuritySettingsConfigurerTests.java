@@ -64,6 +64,7 @@ public class SecuritySettingsConfigurerTests {
     public void setUp() {
         System.setOut(new PrintStream(outContent));
         installer = Installer.getInstance();
+        installer.buildOptions();
         securitySettingsConfigurer = new SecuritySettingsConfigurer(installer);
         setUpConf();
     }
@@ -73,7 +74,7 @@ public class SecuritySettingsConfigurerTests {
         System.setOut(originalOut);
         System.setIn(originalIn);
         deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
-        installer.environment = ExecutionEnvironment.DEMO;
+        // installer.environment = ExecutionEnvironment.DEMO;
         unsetEnv(adminPasswordKey);
         Installer.resetInstance();
     }

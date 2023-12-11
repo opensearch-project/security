@@ -48,13 +48,13 @@ public class CertificateGeneratorTests {
     @Before
     public void setUp() {
         installer = Installer.getInstance();
+        installer.buildOptions();
         installer.OPENSEARCH_CONF_DIR = System.getProperty("user.dir") + File.separator + "test-conf";
         createDirectory(installer.OPENSEARCH_CONF_DIR);
     }
 
     @After
     public void tearDown() {
-
         deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
         Installer.resetInstance();
     }

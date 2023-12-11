@@ -438,4 +438,12 @@ public class Installer {
             System.out.println(e.getMessage());
         }
     }
+
+    /**
+     * FOR TESTS ONLY
+     * resets the installer state to allow testing with fresh instance for the next test.
+     */
+    static void resetInstance() {
+        instance = null;
+    }
 }

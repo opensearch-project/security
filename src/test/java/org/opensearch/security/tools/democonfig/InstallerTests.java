@@ -56,6 +56,7 @@ public class InstallerTests {
     public void setUpStreams() {
         System.setOut(new PrintStream(outContent));
         installer = Installer.getInstance();
+        installer.buildOptions();
     }
 
     @After
