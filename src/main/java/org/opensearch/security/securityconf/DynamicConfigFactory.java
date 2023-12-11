@@ -125,7 +125,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
-    private final AtomicBoolean bgThreadComplete = new AtomicBoolean();
     private final EventBus eventBus = EVENT_BUS_BUILDER.logger(new JavaLogger(DynamicConfigFactory.class.getCanonicalName())).build();
     private final Settings opensearchSettings;
     private final Path configPath;
@@ -333,14 +332,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     @Override
     public final boolean isInitialized() {
         return initialized.get();
-    }
-
-    public final boolean isBackgroundThreadComplete() {
-        return bgThreadComplete.get();
-    }
-
-    public final void setBackgroundThreadComplete() {
-        bgThreadComplete.set(true);
     }
 
     public void registerDCFListener(Object listener) {

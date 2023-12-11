@@ -125,7 +125,7 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
 
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        if (dynamicConfigFactory.isBackgroundThreadComplete()) {
+        if (configurationRepository.isBgThreadComplete()) {
             configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
             backendRegistry.get().invalidateCache();
         }

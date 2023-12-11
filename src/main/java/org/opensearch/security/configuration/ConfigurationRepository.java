@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
@@ -91,6 +92,7 @@ public class ConfigurationRepository {
     private final ThreadPool threadPool;
     private DynamicConfigFactory dynamicConfigFactory;
     private static final int DEFAULT_CONFIG_VERSION = 2;
+    private CompletableFuture<Void> bgThreadRunner = new CompletableFuture<>();
     private final Thread bgThread;
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
     private final boolean acceptInvalid;
@@ -256,8 +258,6 @@ public class ConfigurationRepository {
 
             } catch (Exception e) {
                 LOGGER.error("Unexpected exception while initializing node " + e, e);
-            } finally {
-                dynamicConfigFactory.setBackgroundThreadComplete();
             }
         });
 
@@ -313,23 +313,24 @@ public class ConfigurationRepository {
             if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
                 installDefaultConfig.set(true);
-                bgThread.start();
+                bgThreadRunner = CompletableFuture.runAsync(bgThread);
             } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)) {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
                     securityIndex
                 );
-                bgThread.start();
+                bgThreadRunner = CompletableFuture.runAsync(bgThread);
             } else {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
                     securityIndex
                 );
-                dynamicConfigFactory.setBackgroundThreadComplete();
+                bgThreadRunner.complete(null);
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
             bgThread.start();
+            bgThreadRunner = CompletableFuture.runAsync(bgThread);
         }
     }
 
@@ -374,6 +375,10 @@ public class ConfigurationRepository {
     }
 
     private final Lock LOCK = new ReentrantLock();
+
+    public boolean isBgThreadComplete() {
+        return bgThreadRunner.isDone();
+    }
 
     public void reloadConfiguration(Collection<CType> configTypes) throws ConfigUpdateAlreadyInProgressException {
         try {
