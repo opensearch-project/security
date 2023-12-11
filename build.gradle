@@ -490,7 +490,7 @@ configurations {
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.29.0"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.30.0"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
