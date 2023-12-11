@@ -29,6 +29,7 @@ package org.opensearch.security.configuration;
 import java.io.File;
 import java.nio.file.Path;
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -133,12 +134,10 @@ public class ConfigurationRepository {
                 if (installDefaultConfig.get()) {
 
                     try {
-                        final String cd = AccessController.doPrivileged((java.security.PrivilegedAction<String>) () -> {
-                            String lookupDir = System.getProperty("security.default_init.dir");
-                            return lookupDir != null
-                                ? (lookupDir + "/")
-                                : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
-                        });
+                        String lookupDir = System.getProperty("security.default_init.dir");
+                        final String cd = lookupDir != null
+                            ? (lookupDir + "/")
+                            : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
                         File confFile = new File(cd + "config.yml");
                         if (confFile.exists()) {
                             final ThreadContext threadContext = threadPool.getThreadContext();
@@ -316,13 +315,13 @@ public class ConfigurationRepository {
             if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
                 installDefaultConfig.set(true);
-                bgThreadRunner = CompletableFuture.runAsync(bgThread);
+                bgThreadRunner = CompletableFuture.runAsync(AccessController.doPrivileged((PrivilegedAction<Thread>) () -> bgThread));
             } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)) {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
                     securityIndex
                 );
-                bgThreadRunner = CompletableFuture.runAsync(bgThread);
+                bgThreadRunner = CompletableFuture.runAsync(AccessController.doPrivileged((PrivilegedAction<Thread>) () -> bgThread));
             } else {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
@@ -332,8 +331,7 @@ public class ConfigurationRepository {
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
-            bgThread.start();
-            bgThreadRunner = CompletableFuture.runAsync(bgThread);
+            bgThreadRunner = CompletableFuture.runAsync(AccessController.doPrivileged((PrivilegedAction<Thread>) () -> bgThread));
         }
     }
 
