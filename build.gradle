@@ -502,6 +502,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
+            force "ch.qos.logback:logback-classic:1.2.13"
         }
     }
 
