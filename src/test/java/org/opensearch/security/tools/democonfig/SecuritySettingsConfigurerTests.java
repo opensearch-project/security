@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isStringAlreadyPresentInYMLFile;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
@@ -236,8 +236,8 @@ public class SecuritySettingsConfigurerTests {
         installer.initsecurity = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
-        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
     }
 
     @Test
@@ -249,8 +249,8 @@ public class SecuritySettingsConfigurerTests {
         installer.cluster_mode = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
-        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
     }
 
     @Test
