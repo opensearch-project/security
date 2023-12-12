@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isStringAlreadyPresentInFile;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isStringAlreadyPresentInYMLFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
@@ -74,7 +74,6 @@ public class SecuritySettingsConfigurerTests {
         System.setOut(originalOut);
         System.setIn(originalIn);
         deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
-        // installer.environment = ExecutionEnvironment.DEMO;
         unsetEnv(adminPasswordKey);
         Installer.resetInstance();
     }
@@ -230,21 +229,28 @@ public class SecuritySettingsConfigurerTests {
     }
 
     @Test
-    public void testIsStringAlreadyPresentInFile() throws IOException {
+    public void testIsStringAlreadyPresentInFile_isNotPresent() throws IOException {
         String str1 = "network.host";
         String str2 = "some.random.config";
 
         installer.initsecurity = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
-        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
+        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+    }
 
+    @Test
+    public void testIsStringAlreadyPresentInFile_isPresent() throws IOException {
+        String str1 = "network.host";
+        String str2 = "some.random.config";
+
+        installer.initsecurity = true;
         installer.cluster_mode = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
-        assertThat(isStringAlreadyPresentInFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
+        assertThat(isStringAlreadyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
     }
 
     @Test
