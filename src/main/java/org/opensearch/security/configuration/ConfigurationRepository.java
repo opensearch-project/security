@@ -222,7 +222,11 @@ public class ConfigurationRepository {
                 while (!dynamicConfigFactory.isInitialized()) {
                     try {
                         LOGGER.debug("Try to load config ...");
-                        reloadConfiguration(Arrays.asList(CType.values()));
+                        final ThreadContext threadContext = threadPool.getThreadContext();
+                        try (StoredContext ctx = threadContext.stashContext()) {
+                            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_BG_THREAD_HEADER, true);
+                            reloadConfiguration(Arrays.asList(CType.values()));
+                        }
                         break;
                     } catch (Exception e) {
                         LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
@@ -377,15 +381,17 @@ public class ConfigurationRepository {
 
     private final Lock LOCK = new ReentrantLock();
 
-    public boolean isBgThreadComplete() {
-        return bgThreadRunner.isDone();
-    }
-
-    public void reloadConfiguration(Collection<CType> configTypes) throws ConfigUpdateAlreadyInProgressException {
+    public boolean reloadConfiguration(Collection<CType> configTypes) throws ConfigUpdateAlreadyInProgressException {
+        final ThreadContext threadContext = threadPool.getThreadContext();
+        Boolean isBgThread = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_BG_THREAD_HEADER);
+        if (!Boolean.TRUE.equals(isBgThread) && !bgThreadRunner.isDone()) {
+            return false;
+        }
         try {
             if (LOCK.tryLock(60, TimeUnit.SECONDS)) {
                 try {
                     reloadConfiguration0(configTypes, this.acceptInvalid);
+                    return true;
                 } finally {
                     LOCK.unlock();
                 }

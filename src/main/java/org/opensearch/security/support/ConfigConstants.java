@@ -74,6 +74,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_MASKED_FIELD_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "masked_fields_ccs";
 
     public static final String OPENDISTRO_SECURITY_CONF_REQUEST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "conf_request";
+    public static final String OPENDISTRO_SECURITY_BG_THREAD_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "bg_thread";
 
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";
