@@ -25,7 +25,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.tools.Hasher;
@@ -67,6 +70,7 @@ public class SecuritySettingsConfigurer {
         ".geospatial-ip2geo-data*"
     );
     static String ADMIN_PASSWORD = "";
+    static String ADMIN_USERNAME = "admin";
 
     private final Installer installer;
 
@@ -120,7 +124,7 @@ public class SecuritySettingsConfigurer {
             // If script execution environment is set to demo, validate custom password, else if set to test, skip validation
             if (shouldValidatePassword
                 && !ADMIN_PASSWORD.isEmpty()
-                && passwordValidator.validate("admin", ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
+                && passwordValidator.validate(ADMIN_USERNAME, ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
                 System.out.println("Password " + ADMIN_PASSWORD + " is weak. Please re-try with a stronger password.");
                 System.exit(-1);
             }
@@ -286,8 +290,8 @@ public class SecuritySettingsConfigurer {
      */
     static boolean isNetworkHostAlreadyPresent(String filePath) {
         try {
-            String searchString = "network.host:";
-            return isStringAlreadyPresentInFile(filePath, searchString);
+            String searchString = "network.host";
+            return isStringAlreadyPresentInYMLFile(filePath, searchString);
         } catch (IOException e) {
             return false;
         }
@@ -300,30 +304,29 @@ public class SecuritySettingsConfigurer {
      */
     static boolean isNodeMaxLocalStorageNodesAlreadyPresent(String filePath) {
         try {
-            String searchString = "node.max_local_storage_nodes:";
-            return isStringAlreadyPresentInFile(filePath, searchString);
+            String searchString = "node.max_local_storage_nodes";
+            return isStringAlreadyPresentInYMLFile(filePath, searchString);
         } catch (IOException e) {
             return false;
         }
     }
 
     /**
-     * Checks if given string is already present in the file
-     * @param filePath path to file in which given string should be searched
-     * @param searchString the string to be searched for
+     * Checks if given string is already present in the yml file
+     * @param filePath path to yml file in which given string should be searched
+     * @param fieldName the field name to be searched for
      * @return true if string is present, false otherwise
      * @throws IOException if there was exception reading the file
      */
-    static boolean isStringAlreadyPresentInFile(String filePath, String searchString) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith(searchString)) {
-                    return true;
-                }
-            }
+    static boolean isStringAlreadyPresentInYMLFile(String filePath, String fieldName) throws IOException {
+        JsonNode node;
+        try {
+            node = DefaultObjectMapper.YAML_MAPPER.readTree(new File(filePath));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return false;
+
+        return node.has(fieldName);
     }
 
     /**
