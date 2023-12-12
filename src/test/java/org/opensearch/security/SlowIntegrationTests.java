@@ -29,7 +29,6 @@ package org.opensearch.security;
 import java.io.IOException;
 
 import com.google.common.collect.Lists;
-import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
@@ -53,6 +52,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
 
 public class SlowIntegrationTests extends SingleClusterTest {
 
@@ -227,7 +227,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
             .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
             .build();
-        try {
+        assertThrows(IOException.class, () -> {
             setup(Settings.EMPTY, null, settings, false);
             clusterHelper.nodeClient()
                 .admin()
@@ -235,24 +235,26 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .create(new CreateIndexRequest("test-index").timeout(TimeValue.timeValueSeconds(10)))
                 .actionGet();
             clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(5), ClusterConfiguration.DEFAULT.getNodes());
-            Assert.fail("Expected IOException here due to red cluster state");
-        } catch (IOException e) {
-            // Ideally, we would want to remove this cluster setting, but default settings cannot be removed. So overriding with a reserved
-            // IP address
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .updateSettings(
-                    new ClusterUpdateSettingsRequest().transientSettings(
-                        Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()
-                    )
-                );
-            this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), 3);
-        }
+        });
+        // Ideally, we would want to remove this cluster setting, but default settings cannot be removed. So overriding with a reserved
+        // IP address
+        clusterHelper.nodeClient()
+            .admin()
+            .cluster()
+            .updateSettings(
+                new ClusterUpdateSettingsRequest().transientSettings(
+                    Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()
+                )
+            );
+        this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), 3);
         RestHelper rh = nonSslRestHelper();
         Awaitility.await()
             .alias("Wait until Security is initialized")
-            .until(() -> rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(), equalTo(HttpStatus.SC_OK));
+            .until(
+                () -> rh.executeGetRequest("/_plugins/_security/health", encodeBasicHeader("admin", "admin"))
+                    .getTextFromJsonBody("/status"),
+                equalTo("UP")
+            );
     }
 
 }
