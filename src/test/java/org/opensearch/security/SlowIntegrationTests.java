@@ -30,6 +30,7 @@ import java.io.IOException;
 
 import com.google.common.collect.Lists;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -50,6 +51,8 @@ import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
+
+import static org.hamcrest.Matchers.equalTo;
 
 public class SlowIntegrationTests extends SingleClusterTest {
 
@@ -247,8 +250,9 @@ public class SlowIntegrationTests extends SingleClusterTest {
             this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), 3);
         }
         RestHelper rh = nonSslRestHelper();
-        Thread.sleep(10000);
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+        Awaitility.await()
+            .alias("Wait until Security is initialized")
+            .until(() -> rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(), equalTo(HttpStatus.SC_OK));
     }
 
 }
