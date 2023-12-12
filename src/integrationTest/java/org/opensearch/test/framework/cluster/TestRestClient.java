@@ -119,7 +119,7 @@ public class TestRestClient implements AutoCloseable {
     }
 
     public HttpResponse get(String path, Header... headers) {
-        return get(path, Collections.emptyList(), headers);
+        return executeRequest(new HttpGet(getHttpServerUri() + "/" + path), headers);
     }
 
     public HttpResponse getAuthInfo(Header... headers) {
