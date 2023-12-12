@@ -291,7 +291,7 @@ public class SecuritySettingsConfigurer {
     static boolean isNetworkHostAlreadyPresent(String filePath) {
         try {
             String searchString = "network.host";
-            return isStringAlreadyPresentInYMLFile(filePath, searchString);
+            return isKeyPresentInYMLFile(filePath, searchString);
         } catch (IOException e) {
             return false;
         }
@@ -305,20 +305,20 @@ public class SecuritySettingsConfigurer {
     static boolean isNodeMaxLocalStorageNodesAlreadyPresent(String filePath) {
         try {
             String searchString = "node.max_local_storage_nodes";
-            return isStringAlreadyPresentInYMLFile(filePath, searchString);
+            return isKeyPresentInYMLFile(filePath, searchString);
         } catch (IOException e) {
             return false;
         }
     }
 
     /**
-     * Checks if given string is already present in the yml file
-     * @param filePath path to yml file in which given string should be searched
-     * @param fieldName the field name to be searched for
-     * @return true if string is present, false otherwise
+     * Checks if the given key is present in the yml file
+     * @param filePath path to yml file in which given key should be searched
+     * @param key the key to be searched for
+     * @return true if the key is present, false otherwise
      * @throws IOException if there was exception reading the file
      */
-    static boolean isStringAlreadyPresentInYMLFile(String filePath, String fieldName) throws IOException {
+    static boolean isKeyPresentInYMLFile(String filePath, String key) throws IOException {
         JsonNode node;
         try {
             node = DefaultObjectMapper.YAML_MAPPER.readTree(new File(filePath));
@@ -326,7 +326,7 @@ public class SecuritySettingsConfigurer {
             throw new RuntimeException(e);
         }
 
-        return node.has(fieldName);
+        return node.has(key);
     }
 
     /**
