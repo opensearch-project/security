@@ -59,7 +59,7 @@ public class SslOnlyTests {
         try (TestRestClient client = cluster.getRestClient()) {
 
             // request does not contains credential
-            HttpResponse response = client.get("/_cat/indices");
+            HttpResponse response = client.get("_cat/indices");
 
             // successful response is returned because the security plugin in SSL only mode
             // does not perform authentication and authorization

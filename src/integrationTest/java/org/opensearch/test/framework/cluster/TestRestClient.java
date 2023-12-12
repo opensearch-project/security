@@ -32,8 +32,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,17 +108,8 @@ public class TestRestClient implements AutoCloseable {
         this.sourceInetAddress = sourceInetAddress;
     }
 
-    public HttpResponse get(String path, List<NameValuePair> queryParameters, Header... headers) {
-        try {
-            URI uri = new URIBuilder(getHttpServerUri()).setPath(path).addParameters(queryParameters).build();
-            return executeRequest(new HttpGet(uri), headers);
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException("Incorrect URI syntax", ex);
-        }
-    }
-
     public HttpResponse get(String path, Header... headers) {
-        return get(path, Collections.emptyList(), headers);
+        return executeRequest(new HttpGet(getHttpServerUri() + "/" + path), headers);
     }
 
     public HttpResponse getAuthInfo(Header... headers) {

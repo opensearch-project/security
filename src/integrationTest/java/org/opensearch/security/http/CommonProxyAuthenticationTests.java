@@ -31,7 +31,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 */
 abstract class CommonProxyAuthenticationTests {
 
-    protected static final String RESOURCE_AUTH_INFO = "/_opendistro/_security/authinfo";
+    protected static final String RESOURCE_AUTH_INFO = "_opendistro/_security/authinfo";
     protected static final TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     protected static final String ATTRIBUTE_DEPARTMENT = "department";
