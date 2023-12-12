@@ -150,7 +150,6 @@ public class PrivilegesEvaluatorTest {
                 renderSearchTemplate,
                 TEST_RENDER_SEARCH_TEMPLATE_QUERY
             );
-            System.out.println("renderSearchTemplateResponse: " + renderSearchTemplateResponse.getBody());
             assertThat(renderSearchTemplateResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
     }
