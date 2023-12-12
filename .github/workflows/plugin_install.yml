@@ -20,7 +20,7 @@ jobs:
         uses: peternied/random-name@v1
 
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
@@ -44,14 +44,14 @@ jobs:
         run: |
           cat > setup.sh <<'EOF'
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
-          /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
+          /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh -t"
           EOF
 
       - name: Create Setup Script
         if: ${{ runner.os == 'Windows' }}
         run: |
           New-Item .\setup.bat -type file
-          Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y"
+          Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y -t"
           Get-Content .\setup.bat
 
       - name: Run Opensearch with A Single Plugin

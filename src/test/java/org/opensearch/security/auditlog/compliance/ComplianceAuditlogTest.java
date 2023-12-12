@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -97,7 +97,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         assertThat(message.getRequestBody(), not(containsString("Salary")));
         assertThat(message.getRequestBody(), containsString("Gender"));
 
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -245,7 +245,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         assertThat(genderMsg.getRequestBody(), containsString("Gender"));
         assertThat(genderMsg.getRequestBody(), not(containsString("Salary")));
 
-        Assert.assertTrue(validateMsgs(messages));
+        validateMsgs(messages);
     }
 
     @Test
@@ -302,7 +302,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             );
         });
 
-        Assert.assertTrue(validateMsgs(messages));
+        validateMsgs(messages);
     }
 
     @Test
@@ -346,7 +346,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         assertThat(messages.get(1).getNodeId(), not(equalTo(messages.get(2).getNodeId())));
         assertThat(messages.get(2).getNodeId(), not(equalTo(messages.get(3).getNodeId())));
 
-        Assert.assertTrue(validateMsgs(messages));
+        validateMsgs(messages);
     }
 
     @Test
@@ -399,7 +399,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         assertThat(ex2.getMissingCount(), equalTo(1));
 
         Assert.assertTrue(TestAuditlogImpl.messages.isEmpty());
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test

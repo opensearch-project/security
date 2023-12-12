@@ -65,6 +65,7 @@ import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.net.URIBuilder;
+import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -77,6 +78,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 /**
@@ -284,7 +286,26 @@ public class TestRestClient implements AutoCloseable {
             this.header = inner.getHeaders();
             this.statusCode = inner.getCode();
             this.statusReason = inner.getReasonPhrase();
+
             inner.close();
+
+            if (this.body.length() != 0) {
+                verifyContentType();
+            }
+        }
+
+        private void verifyContentType() {
+            final String contentType = this.getHeader(HttpHeaders.CONTENT_TYPE).getValue();
+            if (contentType.contains("application/json")) {
+                assertThat("Response body format was not json, body: " + body, body.charAt(0), equalTo('{'));
+            } else {
+                assertThat(
+                    "Response body format was json, whereas content-type was " + contentType + ", body: " + body,
+                    body.charAt(0),
+                    not(equalTo('{'))
+                );
+            }
+
         }
 
         public String getContentType() {
