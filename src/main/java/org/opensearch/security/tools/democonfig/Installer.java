@@ -63,7 +63,7 @@ public class Installer {
 
     final String FILE_EXTENSION;
 
-    static File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
+    static final File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
 
     private final Options options;
 
