@@ -26,10 +26,7 @@
 
 package org.opensearch.security;
 
-import java.io.IOException;
-
 import com.google.common.collect.Lists;
-import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,7 +36,6 @@ import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -48,7 +44,6 @@ import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
 
 public class SlowIntegrationTests extends SingleClusterTest {
