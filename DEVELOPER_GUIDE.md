@@ -253,7 +253,7 @@ public void testMethod() {
 }
 ```
 
-## Tests in the integrationTest package
+## Running tests in the integrationTest package
 
 Tests in the integrationTest package can be run with `./gradlew integrationTest`.
 
