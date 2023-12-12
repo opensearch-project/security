@@ -343,6 +343,11 @@ public class SecuritySettingsConfigurer {
         writer.close();
     }
 
+    /**
+     * Return the command to be added to securityadmin_demo script
+     * @param securityAdminScriptPath the path to securityadmin.(sh|bat)
+     * @return the command string
+     */
     String[] getSecurityAdminCommands(String securityAdminScriptPath) {
         String securityAdminExecutionPath = securityAdminScriptPath
             + "\" -cd \""

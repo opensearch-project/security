@@ -35,6 +35,7 @@ import org.apache.commons.cli.ParseException;
  */
 public class Installer {
 
+    // Singleton Pattern
     private static Installer instance;
 
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
@@ -62,18 +63,27 @@ public class Installer {
 
     final String FILE_EXTENSION;
 
-    static File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
+    static final File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
 
     private final Options options;
 
+    // To print help information for this script
     private final HelpFormatter formatter = new HelpFormatter();
 
+    /**
+     * We do not want this class to be instantiated more than once,
+     * as we are following Singleton Factory pattern
+     */
     private Installer() {
         this.OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
         FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
         options = new Options();
     }
 
+    /**
+     * Returns a singleton instance of this class
+     * @return an existing instance OR a new instance if there was no existing instance
+     */
     public static Installer getInstance() {
         if (instance == null) {
             instance = new Installer();
@@ -83,6 +93,10 @@ public class Installer {
         return instance;
     }
 
+    /**
+     * Installs the demo security configuration
+     * @param options the options passed to the script
+     */
     public void installDemoConfiguration(String[] options) {
         readOptions(options);
         printScriptHeaders();
@@ -298,7 +312,7 @@ public class Installer {
 
         // other OS (.sh execution)
         if (RPM_DEB_OPENSEARCH_HOME.exists() && RPM_DEB_OPENSEARCH_HOME.equals(new File(BASE_DIR))) {
-            OPENSEARCH_CONF_FILE = "/usr/share/opensearch/config/opensearch.yml";
+            OPENSEARCH_CONF_FILE = RPM_DEB_OPENSEARCH_HOME.getAbsolutePath() + "/config/opensearch.yml";
             if (!new File(OPENSEARCH_CONF_FILE).exists()) {
                 OPENSEARCH_CONF_FILE = "/etc/opensearch/opensearch.yml";
             }
