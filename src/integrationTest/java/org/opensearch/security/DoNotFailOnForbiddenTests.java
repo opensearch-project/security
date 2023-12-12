@@ -445,6 +445,7 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void checkStatsApi() {
+        // As admin creates 2 documents in different indices, can find both indices in search, cat indice & stats APIs
         try (final TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), ADMIN_USER.getPassword())) {
             final HttpResponse createDoc1 = client.postJson("hi1/_doc?refresh=true", "{\"hi\":\"Hello1\"}");
             createDoc1.assertStatusCode(SC_CREATED);
@@ -456,13 +457,14 @@ public class DoNotFailOnForbiddenTests {
 
             final HttpResponse catIndices = client.get("_cat/indices");
             assertThat("Expected cat indices: " + catIndices.getBody(), catIndices.getBody(), containsString("hi1"));
-            assertThat("Unexpected cat indices: " + catIndices.getBody(), catIndices.getBody(), containsString("hi2"));
+            assertThat("Expected cat indices: " + catIndices.getBody(), catIndices.getBody(), containsString("hi2"));
 
             final HttpResponse stats = client.get("hi*/_stats?filter_path=indices.*.uuid");
             assertThat("Expected stats indices: " + stats.getBody(), stats.getBody(), containsString("hi1"));
-            assertThat("Unexpected stats indices: " + stats.getBody(), stats.getBody(), containsString("hi2"));
+            assertThat("Expected stats indices: " + stats.getBody(), stats.getBody(), containsString("hi2"));
         }
 
+        // As user who can only see the index "hi1" make sure that DNFOF is filtering out "hi2"
         try (final TestRestClient client = cluster.getRestClient(STATS_USER.getName(), STATS_USER.getPassword())) {
             final HttpResponse search = client.postJson("hi*/_search", "{}");
             assertThat("Unexpected document results in search:" + search.getBody(), search.getBody(), containsString("1"));
