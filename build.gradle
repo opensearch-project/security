@@ -256,6 +256,8 @@ test {
     jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+        // this is needed to reflect access system env map.
+        jvmArgs += "--add-opens=java.base/java.util=ALL-UNNAMED"
     }
     retry {
         failOnPassedAfterRetry = false
@@ -303,6 +305,8 @@ def setCommonTestConfig(Test task) {
     task.jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+        // this is needed to reflect access system env map.
+        task.jvmArgs += "--add-opens=java.base/java.util=ALL-UNNAMED"
     }
     task.retry {
         failOnPassedAfterRetry = false
