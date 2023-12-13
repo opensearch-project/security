@@ -334,6 +334,10 @@ public class ConfigConstants {
     public static final boolean EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT = false;
     // CS-ENFORCE-SINGLE
 
+    // Variables for initial admin password support
+    public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
+    public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD_TXT = "opensearch_initial_admin_password.txt";
+
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,
