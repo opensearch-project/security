@@ -28,17 +28,17 @@ public class InvalidAdminPasswordIT extends SecurityRestTestCase {
     static String currentPasswordVariable = System.getProperty("password");
 
     @BeforeClass
-    public static void setUpInvalidAdminCredentials() {
+    public static void setUpAdminAsPasswordVariable() {
         System.setProperty("password", "admin");
     }
 
     @AfterClass
-    public static void restoreValidAdminCredentials() {
+    public static void restorePasswordProperty() {
         System.setProperty("password", currentPasswordVariable);
     }
 
     @Test
-    public void testAdminCredentials_adminPassword_shouldFail() throws Exception {
+    public void testAdminCredentials_adminAsPassword_shouldFail() throws Exception {
         try {
             client().performRequest(new Request("GET", ""));
         } catch (ResponseException e) {

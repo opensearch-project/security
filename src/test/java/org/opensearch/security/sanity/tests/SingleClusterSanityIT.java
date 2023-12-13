@@ -39,7 +39,7 @@ public class SingleClusterSanityIT extends SecurityRestTestCase {
     }
 
     @Test
-    public void testAdminCredentials_customStrongPassword_shouldSucceed() throws Exception {
+    public void testAdminCredentials_validAdminPassword_shouldSucceed() throws Exception {
         Response response = client().performRequest(new Request("GET", ""));
         MatcherAssert.assertThat(response.getStatusLine().getStatusCode(), is(equalTo(200)));
         MatcherAssert.assertThat(response.getStatusLine().getReasonPhrase(), is(equalTo("OK")));
