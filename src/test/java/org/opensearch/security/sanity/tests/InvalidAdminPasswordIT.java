@@ -25,14 +25,16 @@ import static org.hamcrest.Matchers.is;
 
 public class InvalidAdminPasswordIT extends SecurityRestTestCase {
 
+    static String currentPasswordVariable = System.getProperty("password");
+
     @BeforeClass
     public static void setUpInvalidAdminCredentials() {
-        useAdminAsPassword = true;
+        System.setProperty("password", "admin");
     }
 
     @AfterClass
     public static void restoreValidAdminCredentials() {
-        useAdminAsPassword = false;
+        System.setProperty("password", currentPasswordVariable);
     }
 
     @Test

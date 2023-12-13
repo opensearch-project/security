@@ -45,8 +45,6 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
     private static final String CERT_FILE_DIRECTORY = "sanity-tests/";
 
-    static boolean useAdminAsPassword = false;
-
     private boolean isHttps() {
         return System.getProperty("https").equals("true");
     }
@@ -90,7 +88,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
             // create client with passed user
             String userName = System.getProperty("user");
-            String password = useAdminAsPassword ? "admin" : System.getProperty("password");
+            String password = System.getProperty("password");
 
             return new SecureRestClientBuilder(hosts, isHttps(), userName, password).setSocketTimeout(60000)
                 .setConnectionRequestTimeout(180000)
