@@ -186,7 +186,7 @@ public class Installer {
      * Prints the help menu when -h option is passed
      */
     void showHelp() {
-        formatter.printHelp("install_demo_configuration.sh", options, true);
+        formatter.printHelp("install_demo_configuration" + FILE_EXTENSION, options, true);
         System.exit(0);
     }
 
@@ -437,5 +437,13 @@ public class Installer {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    /**
+     * FOR TESTS ONLY
+     * resets the installer state to allow testing with fresh instance for the next test.
+     */
+    static void resetInstance() {
+        instance = null;
     }
 }
