@@ -36,6 +36,7 @@ import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
@@ -60,11 +61,16 @@ public class CertificateGeneratorTests {
     }
 
     @Test
-    public void testCreateDemoCertificates() {
+    public void testCreateDemoCertificates() throws Exception {
         CertificateGenerator certificateGenerator = new CertificateGenerator(installer);
         Certificates[] certificatesArray = Certificates.values();
 
         certificateGenerator.createDemoCertificates();
+
+        // root-ca.pem, esnode.pem, esnode-key.pem, kirk.pem, kirk-key.pem
+        int expectedNumberOfCertificateFiles = 5;
+
+        int certsFound = 0;
 
         for (Certificates cert : certificatesArray) {
             String certFilePath = installer.OPENSEARCH_CONF_DIR + File.separator + cert.getFileName();
@@ -74,10 +80,15 @@ public class CertificateGeneratorTests {
 
             if (certFilePath.endsWith("-key.pem")) {
                 checkPrivateKeyValidity(certFilePath);
-                return;
+            } else {
+                checkCertificateValidity(certFilePath);
             }
-            checkCertificateValidity(certFilePath);
+
+            // increment a count since a valid certificate was found
+            certsFound++;
         }
+
+        assertThat(certsFound, equalTo(expectedNumberOfCertificateFiles));
     }
 
     @Test
@@ -94,35 +105,47 @@ public class CertificateGeneratorTests {
         }
     }
 
-    private static void checkCertificateValidity(String certPath) {
+    private static void checkCertificateValidity(String certPath) throws Exception {
         try (FileInputStream certInputStream = new FileInputStream(certPath)) {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             Certificate certificate = cf.generateCertificate(certInputStream);
 
             if (certificate instanceof X509Certificate) {
                 X509Certificate x509Certificate = (X509Certificate) certificate;
-                x509Certificate.checkValidity();
-
                 Date expiryDate = x509Certificate.getNotAfter();
                 Instant expiry = expiryDate.toInstant();
 
-                assertThat(isExpiryAtLeastAYearLater(expiry), is(equalTo(true)));
+                Period duration = getPeriodBetween(x509Certificate.getNotBefore().toInstant(), expiry);
+                if (certPath.endsWith("-ca.pem")) {
+                    // root-ca.pem is already expired as the validity is only 30 days from generation
+                    // so we just check interval to be of 30 days
+                    assertThat(duration.getDays(), equalTo(30));
+                    return;
+                }
+
+                // we check that cert is valid for total of ~10 yrs
+                // we don't check days as leaps years may cause flaky-ness
+                assertThat(duration.getYears(), equalTo(9));
+                assertThat(duration.getMonths(), equalTo(11));
+
+                x509Certificate.checkValidity();
+                verifyExpiryAtLeastAYearFromNow(expiry);
+
                 assertThat(x509Certificate.getSigAlgName(), is(equalTo("SHA256withRSA")));
-            } else {
-                fail("Certificate is invalid. Expected X.509 certificate.");
             }
-        } catch (Exception e) {
-            fail("Error checking certificate validity: " + e.getMessage());
         }
     }
 
-    private static boolean isExpiryAtLeastAYearLater(Instant expiry) {
-        Instant currentInstant = Instant.now();
-        LocalDate expiryDate = LocalDate.ofInstant(expiry, TimeZone.getTimeZone("EDT").toZoneId());
-        LocalDate currentDate = LocalDate.ofInstant(currentInstant, TimeZone.getTimeZone("EDT").toZoneId());
+    private static void verifyExpiryAtLeastAYearFromNow(Instant expiry) {
+        Period gap = getPeriodBetween(Instant.now(), expiry);
+        assertThat(gap.getYears(), greaterThanOrEqualTo(1));
+    }
 
-        Period gap = Period.between(currentDate, expiryDate);
-        return gap.getYears() >= 1;
+    private static Period getPeriodBetween(Instant start, Instant end) {
+        LocalDate startDate = LocalDate.ofInstant(start, TimeZone.getTimeZone("EDT").toZoneId());
+        LocalDate endDate = LocalDate.ofInstant(end, TimeZone.getTimeZone("EDT").toZoneId());
+
+        return Period.between(startDate, endDate);
     }
 
     private void checkPrivateKeyValidity(String keyPath) {
