@@ -162,6 +162,21 @@ extension_hw_greet:
     - "hw-user"
 ```
 
+### Setting up password for demo admin user
+
+This step is a pre-requisite to installing demo configuration. There are two ways password can be set for demo `admin` user:
+1. **Setting via environment variable:** Password be passed by exporting `OPENSEARCH_INITIAL_ADMIN_PASSWORD` variable with a password.
+```shell
+export OPENSEARCH_INITIAL_ADMIN_PASSWORD=<password>
+```
+
+2. **Setting via a text file:** Password can also be supplied by creating a single line text file `opensearch_initial_admin_password.txt` file with `<password>` under `$OPENSEARCH_HOME/config/` folder.
+
+**_Note:_** If no password is supplied the installation will fail. The passwords supplied need to be strong as there is a password validation check in place. There is an option to skip password validation by passing `-t` option to installation script. However, this should only be used for test environments.
+
+
+### Executing the demo installation script
+
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
 ```bash
@@ -192,7 +207,7 @@ Detected OpenSearch Security Version: *
 "/Users/XXXXX/Test/opensearch-*/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/Test/opensearch-*/config/opensearch-security/" -icl -key "/Users/XXXXX/Test/opensearch-*/config/kirk-key.pem" -cert "/Users/XXXXX/Test/opensearch-*/config/kirk.pem" -cacert "/Users/XXXXX/Test/opensearch-*/config/root-ca.pem" -nhnv
 ### or run ./securityadmin_demo.sh
 ### To use the Security Plugin ConfigurationGUI
-### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.
+### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/<your-admin-password>.
 ### (Ignore the SSL certificate warning because we installed self-signed demo certificates)
 ```
 
