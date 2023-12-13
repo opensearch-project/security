@@ -186,7 +186,7 @@ public class Installer {
      * Prints the help menu when -h option is passed
      */
     void showHelp() {
-        formatter.printHelp("install_demo_configuration.sh", options, true);
+        formatter.printHelp("install_demo_configuration" + FILE_EXTENSION, options, true);
         System.exit(0);
     }
 

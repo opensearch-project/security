@@ -41,7 +41,6 @@ import static org.opensearch.security.tools.democonfig.Installer.printScriptHead
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
@@ -74,7 +73,7 @@ public class InstallerTests {
             + System.lineSeparator()
             + "### ** Warning: Do not use on production or public reachable systems **"
             + System.lineSeparator();
-        assertThat(expectedOutput, equalTo(outContent.toString()));
+        assertThat(outContent.toString(), equalTo(expectedOutput));
     }
 
     @Test
@@ -83,35 +82,28 @@ public class InstallerTests {
         String[] validOptions = { "/scriptDir", "-y", "-i", "-c", "-s", "-t" };
         installer.readOptions(validOptions);
 
-        assertEquals("/scriptDir", installer.SCRIPT_DIR);
+        assertThat(installer.SCRIPT_DIR, equalTo("/scriptDir"));
         assertThat(installer.assumeyes, is(true));
         assertThat(installer.initsecurity, is(true));
         assertThat(installer.cluster_mode, is(true));
-        assertEquals(0, installer.skip_updates);
-        assertEquals(ExecutionEnvironment.TEST, installer.environment);
+        assertThat(installer.skip_updates, equalTo(0));
+        assertThat(installer.environment, equalTo(ExecutionEnvironment.TEST));
     }
 
     @Test
     public void testReadOptions_help() {
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-
             String[] helpOption = { "/scriptDir", "-h" };
             installer.readOptions(helpOption);
-
-            assertThat(outContent.toString(), containsString("install_demo_configuration.sh [-y] [-i] [-c]"));
-            assertThat(outContent.toString(), containsString("-h show help"));
-            assertThat(outContent.toString(), containsString("-y confirm all installation dialogues automatically"));
-            assertThat(outContent.toString(), containsString("-i initialize Security plugin with default configuration"));
-            assertThat(outContent.toString(), containsString("-c enable cluster mode by binding to all network interfaces"));
-            assertThat(outContent.toString(), containsString("-s skip updates if config is already applied to opensearch.yml"));
-            assertThat(outContent.toString(), containsString("-t set the execution environment to `test` to skip password validation"));
-            assertThat(outContent.toString(), containsString("Should be used only for testing. (default is set to `demo`)"));
         } catch (SecurityException e) {
+            // if help text printed correctly then exit code 0 is expected
             assertThat(e.getMessage(), equalTo("System.exit(0) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
+
+        verifyStdOutContainsString("usage: install_demo_configuration" + installer.FILE_EXTENSION + " [-c] [-h] [-i] [-s] [-t] [-y]");
     }
 
     @Test
@@ -128,11 +120,11 @@ public class InstallerTests {
                                                                                                                      // y
         installer.gatherUserInputs();
 
-        assertThat(outContent.toString(), containsString("Install demo certificates?"));
-        assertThat(outContent.toString(), containsString("Initialize Security Modules?"));
-        assertThat(outContent.toString(), containsString("Cluster mode requires additional setup of:"));
-        assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator()));
-        assertThat(outContent.toString(), containsString("Enable cluster mode?"));
+        verifyStdOutContainsString("Install demo certificates?");
+        verifyStdOutContainsString("Initialize Security Modules?");
+        verifyStdOutContainsString("Cluster mode requires additional setup of:");
+        verifyStdOutContainsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator());
+        verifyStdOutContainsString("Enable cluster mode?");
 
         assertThat(installer.initsecurity, is(false));
         assertThat(installer.cluster_mode, is(false));
@@ -144,11 +136,11 @@ public class InstallerTests {
                                                                                                                      // y
         installer.gatherUserInputs();
 
-        assertThat(outContent.toString(), containsString("Install demo certificates?"));
-        assertThat(outContent.toString(), containsString("Initialize Security Modules?"));
-        assertThat(outContent.toString(), containsString("Cluster mode requires additional setup of:"));
-        assertThat(outContent.toString(), containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator()));
-        assertThat(outContent.toString(), containsString("Enable cluster mode?"));
+        verifyStdOutContainsString("Install demo certificates?");
+        verifyStdOutContainsString("Initialize Security Modules?");
+        verifyStdOutContainsString("Cluster mode requires additional setup of:");
+        verifyStdOutContainsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator());
+        verifyStdOutContainsString("Enable cluster mode?");
 
         assertThat(installer.initsecurity, is(true));
         assertThat(installer.cluster_mode, is(true));
@@ -161,17 +153,16 @@ public class InstallerTests {
 
             readInputStream("n" + System.lineSeparator() + "n" + System.lineSeparator() + "n" + System.lineSeparator());
             installer.gatherUserInputs();
-
-            assertThat(outContent.toString(), containsString("Install demo certificates?"));
-            assertThat(outContent.toString(), not(containsString("Initialize Security Modules?")));
-            assertThat(outContent.toString(), not(containsString("Cluster mode requires additional setup of:")));
-            assertThat(outContent.toString(), not(containsString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator())));
-            assertThat(outContent.toString(), not(containsString("Enable cluster mode?")));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(0) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
+        verifyStdOutContainsString("Install demo certificates?");
+        verifyStdOutDoesNotContainString("Initialize Security Modules?");
+        verifyStdOutDoesNotContainString("Cluster mode requires additional setup of:");
+        verifyStdOutDoesNotContainString("  - Virtual memory (vm.max_map_count)" + System.lineSeparator());
+        verifyStdOutDoesNotContainString("Enable cluster mode?");
 
         outContent.reset();
 
@@ -186,9 +177,9 @@ public class InstallerTests {
                                                                                                                      // y
         installer.gatherUserInputs();
 
-        assertThat(outContent.toString(), containsString("Install demo certificates?"));
-        assertThat(outContent.toString(), not(containsString("Initialize Security Modules?")));
-        assertThat(outContent.toString(), not(containsString("Enable cluster mode?")));
+        verifyStdOutContainsString("Install demo certificates?");
+        verifyStdOutDoesNotContainString("Initialize Security Modules?");
+        verifyStdOutDoesNotContainString("Enable cluster mode?");
 
         assertThat(installer.initsecurity, is(true));
         assertThat(installer.cluster_mode, is(true));
@@ -218,14 +209,14 @@ public class InstallerTests {
 
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-
             installer.initializeVariables();
-            assertThat(outContent.toString(), containsString("DEBUG: basedir does not exist"));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
+
+        verifyStdOutContainsString("DEBUG: basedir does not exist");
     }
 
     @Test
@@ -251,20 +242,18 @@ public class InstallerTests {
 
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-
             installer.setBaseDir();
             installer.setOpenSearchVariables();
-
-            assertThat(outContent.toString(), containsString("Unable to determine OpenSearch config file. Quit."));
-            assertThat(outContent.toString(), containsString("Unable to determine OpenSearch bin directory. Quit."));
-            assertThat(outContent.toString(), containsString("Unable to determine OpenSearch plugins directory. Quit."));
-            assertThat(outContent.toString(), containsString("Unable to determine OpenSearch lib directory. Quit."));
-
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
+
         }
+        verifyStdOutContainsString("Unable to determine OpenSearch config file. Quit.");
+        verifyStdOutContainsString("Unable to determine OpenSearch bin directory. Quit.");
+        verifyStdOutContainsString("Unable to determine OpenSearch plugins directory. Quit.");
+        verifyStdOutContainsString("Unable to determine OpenSearch lib directory. Quit.");
 
         String expectedBaseDirValue = new File(currentDir).getParentFile().getParentFile().getParentFile().getAbsolutePath()
             + File.separator;
@@ -288,7 +277,7 @@ public class InstallerTests {
 
         String installType = installer.determineInstallType();
 
-        assertEquals(".zip", installType);
+        assertThat(installType, equalTo(".zip"));
     }
 
     @Test
@@ -300,7 +289,7 @@ public class InstallerTests {
 
         String installType = installer.determineInstallType();
 
-        assertEquals("rpm/deb", installType);
+        assertThat(installType, equalTo("rpm/deb"));
     }
 
     @Test
@@ -309,7 +298,7 @@ public class InstallerTests {
         installer.BASE_DIR = "/random-dir";
         String installType = installer.determineInstallType();
 
-        assertEquals(".tar.gz", installType);
+        assertThat(installType, equalTo(".tar.gz"));
     }
 
     @Test
@@ -367,7 +356,7 @@ public class InstallerTests {
             + "Detected OpenSearch Security Version: version"
             + System.lineSeparator();
 
-        assertEquals(expectedOutput, outContent.toString());
+        assertThat(outContent.toString(), equalTo(expectedOutput));
     }
 
     @Test
@@ -412,7 +401,7 @@ public class InstallerTests {
             + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
             + System.lineSeparator();
 
-        assertEquals(expectedOutput, outContent.toString());
+        assertThat(outContent.toString(), equalTo(expectedOutput));
 
         tearDownSecurityDirectories();
     }
@@ -472,7 +461,7 @@ public class InstallerTests {
             + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
             + System.lineSeparator();
 
-        assertEquals(expectedOutput, outContent.toString());
+        assertThat(outContent.toString(), equalTo(expectedOutput));
 
         tearDownSecurityDirectories();
     }
@@ -518,5 +507,13 @@ public class InstallerTests {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    private void verifyStdOutContainsString(String s) {
+        assertThat(outContent.toString(), containsString(s));
+    }
+
+    private void verifyStdOutDoesNotContainString(String s) {
+        assertThat(outContent.toString(), not(containsString(s)));
     }
 }

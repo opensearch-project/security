@@ -52,6 +52,7 @@ public class SecuritySettingsConfigurerTests {
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
+    private final PrintStream originalErr = System.err;
     private final InputStream originalIn = System.in;
 
     private final String adminPasswordKey = "initialAdminPassword";
@@ -63,6 +64,7 @@ public class SecuritySettingsConfigurerTests {
     @Before
     public void setUp() {
         System.setOut(new PrintStream(outContent));
+        System.setErr(new PrintStream(outContent));
         installer = Installer.getInstance();
         installer.buildOptions();
         securitySettingsConfigurer = new SecuritySettingsConfigurer(installer);
@@ -71,7 +73,9 @@ public class SecuritySettingsConfigurerTests {
 
     @After
     public void tearDown() throws NoSuchFieldException, IllegalAccessException {
+        outContent.reset();
         System.setOut(originalOut);
+        System.setErr(originalErr);
         System.setIn(originalIn);
         deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
         unsetEnv(adminPasswordKey);
@@ -87,7 +91,7 @@ public class SecuritySettingsConfigurerTests {
 
         assertThat(customPassword, is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
 
-        assertThat(outContent.toString(), containsString("ADMIN PASSWORD SET TO: " + customPassword));
+        verifyStdOutContainsString("ADMIN PASSWORD SET TO: " + customPassword);
     }
 
     @Test
@@ -105,22 +109,21 @@ public class SecuritySettingsConfigurerTests {
         securitySettingsConfigurer.updateAdminPassword();
 
         assertEquals(customPassword, SecuritySettingsConfigurer.ADMIN_PASSWORD);
-        assertThat(outContent.toString(), containsString("ADMIN PASSWORD SET TO: " + customPassword));
+        verifyStdOutContainsString("ADMIN PASSWORD SET TO: " + customPassword);
     }
 
     @Test
     public void testUpdateAdminPassword_noPasswordSupplied() {
-        deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR); // to ensure no flakiness
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-
             securitySettingsConfigurer.updateAdminPassword();
-            assertThat(outContent.toString(), containsString("No custom admin password found. Please provide a password."));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
+
+        verifyStdOutContainsString("No custom admin password found. Please provide a password.");
     }
 
     @Test
@@ -129,16 +132,14 @@ public class SecuritySettingsConfigurerTests {
         setEnv(adminPasswordKey, "weakpassword");
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-
             securitySettingsConfigurer.updateAdminPassword();
-
-            assertThat(outContent.toString(), containsString("Password weakpassword is weak. Please re-try with a stronger password."));
-
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
+
+        verifyStdOutContainsString("Password weakpassword is weak. Please re-try with a stronger password.");
     }
 
     @Test
@@ -148,23 +149,22 @@ public class SecuritySettingsConfigurerTests {
         securitySettingsConfigurer.updateAdminPassword();
 
         assertThat("weakpassword", is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
-        assertThat(outContent.toString(), containsString("ADMIN PASSWORD SET TO: weakpassword"));
+        verifyStdOutContainsString("ADMIN PASSWORD SET TO: weakpassword");
     }
 
     @Test
     public void testSecurityPluginAlreadyConfigured() {
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
+        String expectedMessage = installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.";
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-            String expectedMessage = installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.";
-
             securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
-            assertThat(outContent.toString(), containsString(expectedMessage));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
+        verifyStdOutContainsString(expectedMessage);
     }
 
     @Test
@@ -179,17 +179,18 @@ public class SecuritySettingsConfigurerTests {
     @Test
     public void testConfigFileDoesNotExist() {
         installer.OPENSEARCH_CONF_FILE = "path/to/nonexistentfile";
+        String expectedMessage = "OpenSearch configuration file does not exist. Quit.";
         try {
             System.setSecurityManager(new NoExitSecurityManager());
-            String expectedMessage = "OpenSearch configuration file does not exist. Quit.";
-
             securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
-            assertThat(outContent.toString(), containsString(expectedMessage));
         } catch (SecurityException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
+
+        verifyStdOutContainsString(expectedMessage);
+
         // reset the file pointer
         installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
     }
@@ -317,5 +318,9 @@ public class SecuritySettingsConfigurerTests {
         createDirectory(securityConfDir);
         createFile(securityConfDir + "internal_users.yml");
         createFile(installer.OPENSEARCH_CONF_FILE);
+    }
+
+    private void verifyStdOutContainsString(String s) {
+        assertThat(outContent.toString(), containsString(s));
     }
 }
