@@ -55,7 +55,7 @@ public class SecuritySettingsConfigurerTests {
     private final PrintStream originalErr = System.err;
     private final InputStream originalIn = System.in;
 
-    private final String adminPasswordKey = "initialAdminPassword";
+    private final String adminPasswordKey = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
 
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
 
