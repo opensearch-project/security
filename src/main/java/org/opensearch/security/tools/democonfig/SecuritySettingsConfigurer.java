@@ -31,6 +31,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.Hasher;
 
 import org.yaml.snakeyaml.DumperOptions;
@@ -94,8 +95,8 @@ public class SecuritySettingsConfigurer {
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
     void updateAdminPassword() {
-        String initialAdminPassword = System.getenv().get("initialAdminPassword");
-        String ADMIN_PASSWORD_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "initialAdminPassword.txt";
+        String initialAdminPassword = System.getenv().get(ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD);
+        String ADMIN_PASSWORD_FILE_PATH = installer.OPENSEARCH_CONF_DIR + ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD_TXT;
         String INTERNAL_USERS_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         boolean shouldValidatePassword = installer.environment.equals(ExecutionEnvironment.DEMO);
         try {
@@ -115,7 +116,9 @@ public class SecuritySettingsConfigurer {
                     try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH, StandardCharsets.UTF_8))) {
                         ADMIN_PASSWORD = br.readLine();
                     } catch (IOException e) {
-                        System.out.println("Error reading admin password from initialAdminPassword.txt.");
+                        System.out.println(
+                            "Error reading admin password from " + ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD_TXT + "."
+                        );
                         System.exit(-1);
                     }
                 }

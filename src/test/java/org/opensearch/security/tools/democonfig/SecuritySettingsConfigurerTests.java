@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,7 +56,7 @@ public class SecuritySettingsConfigurerTests {
     private final PrintStream originalErr = System.err;
     private final InputStream originalIn = System.in;
 
-    private final String adminPasswordKey = "initialAdminPassword";
+    private final String adminPasswordKey = ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD;
 
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
 
