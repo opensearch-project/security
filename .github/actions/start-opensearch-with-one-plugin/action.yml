@@ -71,9 +71,9 @@ runs:
         'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$(pwd)\${{ inputs.plugin-name }}.zip
       shell: pwsh
 
-    - name: Write password to opensearch_initial_admin_password txt
+    - name: Export password to OPENSEARCH_INITIAL_ADMIN_PASSWORD variable
       run:
-        echo ${{ inputs.admin-password }} >> ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/config/opensearch_initial_admin_password.txt
+        export OPENSEARCH_INITIAL_ADMIN_PASSWORD=${{ inputs.admin-password }}
       shell: bash
 
     # Run any configuration scripts
