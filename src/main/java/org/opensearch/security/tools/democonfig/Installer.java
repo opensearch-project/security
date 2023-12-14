@@ -428,9 +428,7 @@ public class Installer {
             }
 
             System.out.println(
-                "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/"
-                    + SecuritySettingsConfigurer.ADMIN_PASSWORD
-                    + "."
+                "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/<your-custom-admin-password>."
             );
             System.out.println("### (Ignore the SSL certificate warning because we installed self-signed demo certificates)");
 

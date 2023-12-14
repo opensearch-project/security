@@ -13,11 +13,9 @@ package org.opensearch.security.tools.democonfig;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline extension key-word is used in file ext variable
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -45,7 +43,6 @@ import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigure
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -79,42 +76,25 @@ public class SecuritySettingsConfigurerTests {
         System.setErr(originalErr);
         System.setIn(originalIn);
         deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
-        unsetEnv(adminPasswordKey);
+        unsetEnvVariables();
         Installer.resetInstance();
     }
 
     @Test
     public void testUpdateAdminPasswordWithCustomPassword() throws NoSuchFieldException, IllegalAccessException {
-        String customPassword = "myStrongPassword123"; // generateStrongPassword();
+        String customPassword = "myStrongPassword123";
         setEnv(adminPasswordKey, customPassword);
 
         securitySettingsConfigurer.updateAdminPassword();
 
         assertThat(customPassword, is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
 
-        verifyStdOutContainsString("ADMIN PASSWORD SET TO: " + customPassword);
-    }
-
-    @Test
-    public void testUpdateAdminPasswordWithFilePassword() throws IOException {
-        String customPassword = "myStrongPassword123";
-        String initialAdminPasswordTxt = installer.OPENSEARCH_CONF_DIR + adminPasswordKey + ".txt";
-        createFile(initialAdminPasswordTxt);
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(initialAdminPasswordTxt, StandardCharsets.UTF_8))) {
-            writer.write(customPassword);
-        } catch (IOException e) {
-            throw new IOException("Unable to update the internal users file with the hashed password.");
-        }
-
-        securitySettingsConfigurer.updateAdminPassword();
-
-        assertEquals(customPassword, SecuritySettingsConfigurer.ADMIN_PASSWORD);
-        verifyStdOutContainsString("ADMIN PASSWORD SET TO: " + customPassword);
+        verifyStdOutContainsString("Admin password set successfully.");
     }
 
     @Test
     public void testUpdateAdminPassword_noPasswordSupplied() {
+        SecuritySettingsConfigurer.ADMIN_PASSWORD = ""; // to ensure 0 flaky-ness
         try {
             System.setSecurityManager(new NoExitSecurityManager());
             securitySettingsConfigurer.updateAdminPassword();
@@ -150,7 +130,8 @@ public class SecuritySettingsConfigurerTests {
         securitySettingsConfigurer.updateAdminPassword();
 
         assertThat("weakpassword", is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
-        verifyStdOutContainsString("ADMIN PASSWORD SET TO: weakpassword");
+
+        verifyStdOutContainsString("Admin password set successfully.");
     }
 
     @Test
@@ -298,7 +279,7 @@ public class SecuritySettingsConfigurerTests {
     }
 
     @SuppressWarnings("unchecked")
-    public static void unsetEnv(String key) throws NoSuchFieldException, IllegalAccessException {
+    public static void unsetEnvVariables() throws NoSuchFieldException, IllegalAccessException {
         Class<?>[] classes = Collections.class.getDeclaredClasses();
         Map<String, String> env = System.getenv();
         for (Class<?> cl : classes) {
@@ -307,7 +288,7 @@ public class SecuritySettingsConfigurerTests {
                 field.setAccessible(true);
                 Object obj = field.get(env);
                 Map<String, String> map = (Map<String, String>) obj;
-                map.remove(key);
+                map.clear();
             }
         }
     }

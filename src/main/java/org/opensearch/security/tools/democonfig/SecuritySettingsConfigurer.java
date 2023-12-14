@@ -28,6 +28,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -92,11 +93,33 @@ public class SecuritySettingsConfigurer {
     }
 
     /**
+     * Checks if security plugin is already configured. If so, the script execution will exit.
+     */
+    void checkIfSecurityPluginIsAlreadyConfigured() {
+        // Check if the configuration file contains the 'plugins.security' string
+        if (installer.OPENSEARCH_CONF_FILE != null && new File(installer.OPENSEARCH_CONF_FILE).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (line.toLowerCase().contains("plugins.security")) {
+                        System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
+                        System.exit(installer.skip_updates);
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading configuration file.");
+                System.exit(-1);
+            }
+        } else {
+            System.err.println("OpenSearch configuration file does not exist. Quit.");
+            System.exit(-1);
+        }
+    }
+
+    /**
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
     void updateAdminPassword() {
-        String initialAdminPassword = System.getenv().get(ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD);
-        String ADMIN_PASSWORD_FILE_PATH = installer.OPENSEARCH_CONF_DIR + ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD_TXT;
         String INTERNAL_USERS_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         boolean shouldValidatePassword = installer.environment.equals(ExecutionEnvironment.DEMO);
         try {
@@ -107,21 +130,10 @@ public class SecuritySettingsConfigurer {
                     .build()
             );
 
-            // Read custom password
-            if (initialAdminPassword != null && !initialAdminPassword.isEmpty()) {
+            // Read custom password from environment variable
+            String initialAdminPassword = System.getenv().get(ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD);
+            if (!Strings.isNullOrEmpty(initialAdminPassword)) {
                 ADMIN_PASSWORD = initialAdminPassword;
-            } else {
-                File adminPasswordFile = new File(ADMIN_PASSWORD_FILE_PATH);
-                if (adminPasswordFile.exists() && adminPasswordFile.length() > 0) {
-                    try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH, StandardCharsets.UTF_8))) {
-                        ADMIN_PASSWORD = br.readLine();
-                    } catch (IOException e) {
-                        System.out.println(
-                            "Error reading admin password from " + ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD_TXT + "."
-                        );
-                        System.exit(-1);
-                    }
-                }
             }
 
             // If script execution environment is set to demo, validate custom password, else if set to test, skip validation
@@ -133,15 +145,13 @@ public class SecuritySettingsConfigurer {
             }
 
             // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We exit the setup.
-            if (ADMIN_PASSWORD.isEmpty()) {
+            if (Strings.isNullOrEmpty(ADMIN_PASSWORD)) {
                 System.out.println("No custom admin password found. Please provide a password.");
                 System.exit(-1);
             }
 
-            // print the password to the logs
-            System.out.println("\t***************************************************");
-            System.out.println("\t\tADMIN PASSWORD SET TO: " + ADMIN_PASSWORD);
-            System.out.println("\t***************************************************");
+            // Print an update to the logs
+            System.out.println("Admin password set successfully.");
 
             writePasswordToInternalUsersFile(ADMIN_PASSWORD, INTERNAL_USERS_FILE_PATH);
 
@@ -186,30 +196,6 @@ public class SecuritySettingsConfigurer {
             throw new IOException("Unable to update the internal users file with the hashed password.");
         }
         Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    /**
-     * Checks if security plugin is already configured. If so, the script execution will not continue.
-     */
-    void checkIfSecurityPluginIsAlreadyConfigured() {
-        // Check if the configuration file contains the 'plugins.security' string
-        if (installer.OPENSEARCH_CONF_FILE != null && new File(installer.OPENSEARCH_CONF_FILE).exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (line.toLowerCase().contains("plugins.security")) {
-                        System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                        System.exit(installer.skip_updates);
-                    }
-                }
-            } catch (IOException e) {
-                System.err.println("Error reading configuration file.");
-                System.exit(-1);
-            }
-        } else {
-            System.err.println("OpenSearch configuration file does not exist. Quit.");
-            System.exit(-1);
-        }
     }
 
     /**
