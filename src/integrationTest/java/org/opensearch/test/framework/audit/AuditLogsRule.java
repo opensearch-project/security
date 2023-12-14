@@ -39,6 +39,7 @@ public class AuditLogsRule implements TestRule {
     private static final Logger log = LogManager.getLogger(AuditLogsRule.class);
 
     private List<AuditMessage> currentTestAuditMessages;
+    private List<AuditMessage> currentTransportTestAuditMessages;
 
     public List<AuditMessage> getCurrentTestAuditMessages() {
         return currentTestAuditMessages;
@@ -56,11 +57,19 @@ public class AuditLogsRule implements TestRule {
     private void afterWaitingForAuditLogs() {
         if (log.isDebugEnabled()) {
             log.debug("Audit records captured during test:\n{}", auditMessagesToString(currentTestAuditMessages));
+            log.debug("Audit transport records captured during test:\n{}", auditMessagesToString(currentTransportTestAuditMessages));
         }
     }
 
     public void assertExactlyOne(Predicate<AuditMessage> predicate) {
         assertExactly(1, predicate);
+    }
+
+    public void assertExactlyScanAll(long expectedNumberOfAuditMessages, Predicate<AuditMessage> predicate) {
+        List<AuditMessage> auditMessages = new ArrayList<>(currentTestAuditMessages);
+        auditMessages.addAll(currentTransportTestAuditMessages);
+        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate), auditMessages);
+
     }
 
     public void assertAuditLogsCount(int from, int to) {
@@ -70,10 +79,10 @@ public class AuditLogsRule implements TestRule {
     }
 
     public void assertExactly(long expectedNumberOfAuditMessages, Predicate<AuditMessage> predicate) {
-        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate));
+        assertExactly(exactNumberOfAuditsFulfillPredicate(expectedNumberOfAuditMessages, predicate), currentTestAuditMessages);
     }
 
-    private void assertExactly(Matcher<List<AuditMessage>> matcher) {
+    private void assertExactly(Matcher<List<AuditMessage>> matcher, List<AuditMessage> currentTestAuditMessages) {
         // pollDelay - initial delay before first evaluation
         Awaitility.await("Await for audit logs")
             .atMost(3, TimeUnit.SECONDS)
@@ -82,7 +91,11 @@ public class AuditLogsRule implements TestRule {
     }
 
     public void assertAtLeast(long minCount, Predicate<AuditMessage> predicate) {
-        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate));
+        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate), currentTestAuditMessages);
+    }
+
+    public void assertAtLeastTransportMessages(long minCount, Predicate<AuditMessage> predicate) {
+        assertExactly(atLeastCertainNumberOfAuditsFulfillPredicate(minCount, predicate), currentTransportTestAuditMessages);
     }
 
     private static String auditMessagesToString(List<AuditMessage> audits) {
@@ -122,16 +135,35 @@ public class AuditLogsRule implements TestRule {
     private void afterTest() {
         TestRuleAuditLogSink.unregisterListener();
         this.currentTestAuditMessages = null;
+        this.currentTransportTestAuditMessages = null;
     }
 
     private void beforeTest(String methodName) {
         log.info("Start collecting audit logs before test {}", methodName);
         this.currentTestAuditMessages = synchronizedList(new ArrayList<>());
+        this.currentTransportTestAuditMessages = synchronizedList(new ArrayList<>());
         TestRuleAuditLogSink.registerListener(this);
     }
 
     public void onAuditMessage(AuditMessage auditMessage) {
-        currentTestAuditMessages.add(auditMessage);
-        log.debug("New audit message received '{}', total number of audit messages '{}'.", auditMessage, currentTestAuditMessages.size());
+        if (auditMessage.getAsMap().keySet().contains("audit_transport_headers")) {
+            if (log.isDebugEnabled()) {
+                log.debug(
+                    "New transport audit message received '{}', total number of transport audit messages '{}'.",
+                    auditMessage,
+                    currentTransportTestAuditMessages.size()
+                );
+            }
+            currentTransportTestAuditMessages.add(auditMessage);
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug(
+                    "New audit message received '{}', total number of audit messages '{}'.",
+                    auditMessage,
+                    currentTestAuditMessages.size()
+                );
+            }
+            currentTestAuditMessages.add(auditMessage);
+        }
     }
 }

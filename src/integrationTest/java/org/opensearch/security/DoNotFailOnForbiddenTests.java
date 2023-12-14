@@ -39,10 +39,14 @@ import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
@@ -51,6 +55,7 @@ import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -127,13 +132,17 @@ public class DoNotFailOnForbiddenTests {
             .on(MARVELOUS_SONGS)
     );
 
+    private static final User STATS_USER = new User("stats_user").roles(
+        new Role("test_role").clusterPermissions("cluster:monitor/*").indexPermissions("read", "indices:monitor/*").on("hi1")
+    );
+
     private static final String BOTH_INDEX_ALIAS = "both-indices";
     private static final String FORBIDDEN_INDEX_ALIAS = "forbidden-index";
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN_USER, LIMITED_USER)
+        .users(ADMIN_USER, LIMITED_USER, STATS_USER)
         .anonymousAuth(false)
         .doNotFailOnForbidden(true)
         .build();
@@ -434,4 +443,39 @@ public class DoNotFailOnForbiddenTests {
         }
     }
 
+    @Test
+    public void checkStatsApi() {
+        // As admin creates 2 documents in different indices, can find both indices in search, cat indice & stats APIs
+        try (final TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), ADMIN_USER.getPassword())) {
+            final HttpResponse createDoc1 = client.postJson("hi1/_doc?refresh=true", "{\"hi\":\"Hello1\"}");
+            createDoc1.assertStatusCode(SC_CREATED);
+            final HttpResponse createDoc2 = client.postJson("hi2/_doc?refresh=true", "{\"hi\":\"Hello2\"}");
+            createDoc2.assertStatusCode(SC_CREATED);
+
+            final HttpResponse search = client.postJson("hi*/_search", "{}");
+            assertThat("Unexpected document results in search:" + search.getBody(), search.getBody(), containsString("2"));
+
+            final HttpResponse catIndices = client.get("_cat/indices");
+            assertThat("Expected cat indices: " + catIndices.getBody(), catIndices.getBody(), containsString("hi1"));
+            assertThat("Expected cat indices: " + catIndices.getBody(), catIndices.getBody(), containsString("hi2"));
+
+            final HttpResponse stats = client.get("hi*/_stats?filter_path=indices.*.uuid");
+            assertThat("Expected stats indices: " + stats.getBody(), stats.getBody(), containsString("hi1"));
+            assertThat("Expected stats indices: " + stats.getBody(), stats.getBody(), containsString("hi2"));
+        }
+
+        // As user who can only see the index "hi1" make sure that DNFOF is filtering out "hi2"
+        try (final TestRestClient client = cluster.getRestClient(STATS_USER.getName(), STATS_USER.getPassword())) {
+            final HttpResponse search = client.postJson("hi*/_search", "{}");
+            assertThat("Unexpected document results in search:" + search.getBody(), search.getBody(), containsString("1"));
+
+            final HttpResponse catIndices = client.get("_cat/indices");
+            assertThat("Expected cat indices: " + catIndices.getBody(), catIndices.getBody(), containsString("hi1"));
+            assertThat("Unexpected cat indices: " + catIndices.getBody(), catIndices.getBody(), not(containsString("hi2")));
+
+            final HttpResponse stats = client.get("hi*/_stats?filter_path=indices.*.uuid");
+            assertThat("Expected stats indices: " + stats.getBody(), stats.getBody(), containsString("hi1"));
+            assertThat("Unexpected stats indices: " + stats.getBody(), stats.getBody(), not(containsString("hi2")));
+        }
+    }
 }

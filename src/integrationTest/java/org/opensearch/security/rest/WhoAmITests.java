@@ -172,7 +172,7 @@ public class WhoAmITests {
             assertThat(client.get("_cat/indices").getStatusCode(), equalTo(HttpStatus.SC_OK));
 
             // transport layer audit messages
-            auditLogsRule.assertExactly(2, grantedPrivilege(AUDIT_LOG_VERIFIER, "GetSettingsRequest"));
+            auditLogsRule.assertExactly(1, grantedPrivilege(AUDIT_LOG_VERIFIER, "GetSettingsRequest"));
 
             List<AuditMessage> grantedPrivilegesMessages = auditLogsRule.getCurrentTestAuditMessages()
                 .stream()
