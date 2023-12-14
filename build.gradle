@@ -687,6 +687,9 @@ dependencies {
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
+    testImplementation('org.awaitility:awaitility:4.2.0') {
+        exclude(group: 'org.hamcrest', module: 'hamcrest')
+    }
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
         testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"

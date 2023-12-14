@@ -232,11 +232,30 @@ curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' -
 
 Launch IntelliJ IDEA, choose **Project from Existing Sources**, and select directory with Gradle build script (`build.gradle`).
 
-## Running integration tests
+## Running tests
 
 Locally these can be run with `./gradlew test` with detailed results being available at `${project-root}/build/reports/tests/test/index.html`. You can also run tests through an IDEs JUnit test runner.
 
-Integration tests are automatically run on all pull requests for all supported versions of the JDK. These must pass for change(s) to be merged. Detailed logs of these test results are available by going to the GitHub Actions workflow summary view and downloading the workflow run of the tests. If you see multiple tests listed with different JDK versions, you can download the version with whichever JDK you are interested in. After extracting the test file on your local machine, integration tests results can be found at `./tests/tests/index.html`.
+Tests are automatically run on all pull requests for all supported versions of the JDK. These must pass for change(s) to be merged. Detailed logs of these test results are available by going to the GitHub Actions workflow summary view and downloading the workflow run of the tests. If you see multiple tests listed with different JDK versions, you can download the version with whichever JDK you are interested in. After extracting the test file on your local machine, integration tests results can be found at `./tests/tests/index.html`.
+
+### Running an individual test multiple times
+
+This repo has a `@Repeat` annotation which you can import to annotate a test to run many times repeatedly. To use the annotation, add the following code to your test suite.
+
+```
+@Rule
+public RepeatRule repeatRule = new RepeatRule();
+
+@Test
+@Repeat(10)
+public void testMethod() {
+    ...
+}
+```
+
+## Running tests in the integrationTest package
+
+Tests in the integrationTest package can be run with `./gradlew integrationTest`.
 
 ### Bulk test runs
 
