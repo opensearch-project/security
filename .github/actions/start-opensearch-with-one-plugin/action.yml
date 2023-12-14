@@ -85,7 +85,7 @@ runs:
       if: ${{ runner.os == 'Windows' && inputs.setup-script-name != '' }}
       run: |
         echo "running windows setup"
-        $env:OPENSEARCH_INITIAL_ADMIN_PASSWORD=${{ inputs.admin-password }}
+        $env:OPENSEARCH_INITIAL_ADMIN_PASSWORD="${{ inputs.admin-password }}"
         .\${{ inputs.setup-script-name }}.bat
       shell: pwsh
 
