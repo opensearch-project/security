@@ -164,15 +164,15 @@ extension_hw_greet:
 
 ### Setting up password for demo admin user
 
-This step is a pre-requisite to installing demo configuration. There are two ways password can be set for demo `admin` user:
-1. **Setting via environment variable:** Password be passed by exporting `OPENSEARCH_INITIAL_ADMIN_PASSWORD` variable with a password.
+This step is a pre-requisite to installing demo configuration. There are two ways the demo `admin` user password can be set:
+1. **Setting via environment variable:** The default password  can be passed by exporting `OPENSEARCH_INITIAL_ADMIN_PASSWORD` variable with a password.
 ```shell
 export OPENSEARCH_INITIAL_ADMIN_PASSWORD=<password>
 ```
 
-2. **Setting via a text file:** Password can also be supplied by creating a single line text file `opensearch_initial_admin_password.txt` file with `<password>` under `$OPENSEARCH_HOME/config/` folder.
+2. **Setting via a text file:** The password can also be supplied by creating a single line text file `opensearch_initial_admin_password.txt` file with `<password>` under `$OPENSEARCH_HOME/config/` folder.
 
-**_Note:_** If no password is supplied the installation will fail. The passwords supplied need to be strong as there is a password validation check in place. There is an option to skip password validation by passing `-t` option to installation script. However, this should only be used for test environments.
+**_Note:_** If no password is supplied, the installation will fail. The password supplied will also be tested for its strength and will be blocked if it is too simple. There is an option to skip this password validation by passing the `-t` option to the installation script. However, this should only be used for test environments.
 
 
 ### Executing the demo installation script
