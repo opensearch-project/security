@@ -394,9 +394,7 @@ public class InstallerTests {
             + System.lineSeparator()
             + "### After that you can also use the Security Plugin ConfigurationGUI"
             + System.lineSeparator()
-            + "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/"
-            + SecuritySettingsConfigurer.ADMIN_PASSWORD
-            + "."
+            + "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/<your-custom-admin-password>."
             + System.lineSeparator()
             + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
             + System.lineSeparator();
@@ -454,9 +452,7 @@ public class InstallerTests {
             + System.lineSeparator()
             + "### To use the Security Plugin ConfigurationGUI"
             + System.lineSeparator()
-            + "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/"
-            + SecuritySettingsConfigurer.ADMIN_PASSWORD
-            + "."
+            + "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/<your-custom-admin-password>."
             + System.lineSeparator()
             + "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
             + System.lineSeparator();

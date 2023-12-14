@@ -88,6 +88,8 @@ public class SecuritySettingsConfigurerTests {
         securitySettingsConfigurer.updateAdminPassword();
 
         assertThat(customPassword, is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
+
+        verifyStdOutContainsString("Admin password set successfully.");
     }
 
     @Test
@@ -128,6 +130,8 @@ public class SecuritySettingsConfigurerTests {
         securitySettingsConfigurer.updateAdminPassword();
 
         assertThat("weakpassword", is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
+
+        verifyStdOutContainsString("Admin password set successfully.");
     }
 
     @Test

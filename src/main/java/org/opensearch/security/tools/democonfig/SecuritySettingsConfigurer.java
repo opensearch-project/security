@@ -93,6 +93,30 @@ public class SecuritySettingsConfigurer {
     }
 
     /**
+     * Checks if security plugin is already configured. If so, the script execution will exit.
+     */
+    void checkIfSecurityPluginIsAlreadyConfigured() {
+        // Check if the configuration file contains the 'plugins.security' string
+        if (installer.OPENSEARCH_CONF_FILE != null && new File(installer.OPENSEARCH_CONF_FILE).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (line.toLowerCase().contains("plugins.security")) {
+                        System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
+                        System.exit(installer.skip_updates);
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading configuration file.");
+                System.exit(-1);
+            }
+        } else {
+            System.err.println("OpenSearch configuration file does not exist. Quit.");
+            System.exit(-1);
+        }
+    }
+
+    /**
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
     void updateAdminPassword() {
@@ -125,6 +149,9 @@ public class SecuritySettingsConfigurer {
                 System.out.println("No custom admin password found. Please provide a password.");
                 System.exit(-1);
             }
+
+            // Print an update to the logs
+            System.out.println("Admin password set successfully.");
 
             writePasswordToInternalUsersFile(ADMIN_PASSWORD, INTERNAL_USERS_FILE_PATH);
 
@@ -169,30 +196,6 @@ public class SecuritySettingsConfigurer {
             throw new IOException("Unable to update the internal users file with the hashed password.");
         }
         Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    /**
-     * Checks if security plugin is already configured. If so, the script execution will not continue.
-     */
-    void checkIfSecurityPluginIsAlreadyConfigured() {
-        // Check if the configuration file contains the 'plugins.security' string
-        if (installer.OPENSEARCH_CONF_FILE != null && new File(installer.OPENSEARCH_CONF_FILE).exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (line.toLowerCase().contains("plugins.security")) {
-                        System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                        System.exit(installer.skip_updates);
-                    }
-                }
-            } catch (IOException e) {
-                System.err.println("Error reading configuration file.");
-                System.exit(-1);
-            }
-        } else {
-            System.err.println("OpenSearch configuration file does not exist. Quit.");
-            System.exit(-1);
-        }
     }
 
     /**
