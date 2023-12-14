@@ -34,6 +34,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.Hasher;
 
+import joptsimple.internal.Strings;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -95,8 +96,6 @@ public class SecuritySettingsConfigurer {
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
     void updateAdminPassword() {
-        String initialAdminPassword = System.getenv().get(ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD);
-        String ADMIN_PASSWORD_FILE_PATH = installer.OPENSEARCH_CONF_DIR + ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD_TXT;
         String INTERNAL_USERS_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         boolean shouldValidatePassword = installer.environment.equals(ExecutionEnvironment.DEMO);
         try {
@@ -107,21 +106,10 @@ public class SecuritySettingsConfigurer {
                     .build()
             );
 
-            // Read custom password
+            // Read custom password from environment variable
+            String initialAdminPassword = System.getenv().get(ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD);
             if (initialAdminPassword != null && !initialAdminPassword.isEmpty()) {
                 ADMIN_PASSWORD = initialAdminPassword;
-            } else {
-                File adminPasswordFile = new File(ADMIN_PASSWORD_FILE_PATH);
-                if (adminPasswordFile.exists() && adminPasswordFile.length() > 0) {
-                    try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_PASSWORD_FILE_PATH, StandardCharsets.UTF_8))) {
-                        ADMIN_PASSWORD = br.readLine();
-                    } catch (IOException e) {
-                        System.out.println(
-                            "Error reading admin password from " + ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD_TXT + "."
-                        );
-                        System.exit(-1);
-                    }
-                }
             }
 
             // If script execution environment is set to demo, validate custom password, else if set to test, skip validation
@@ -133,15 +121,10 @@ public class SecuritySettingsConfigurer {
             }
 
             // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We exit the setup.
-            if (ADMIN_PASSWORD.isEmpty()) {
+            if (Strings.isNullOrEmpty(ADMIN_PASSWORD)) {
                 System.out.println("No custom admin password found. Please provide a password.");
                 System.exit(-1);
             }
-
-            // print the password to the logs
-            System.out.println("\t***************************************************");
-            System.out.println("\t\tADMIN PASSWORD SET TO: " + ADMIN_PASSWORD);
-            System.out.println("\t***************************************************");
 
             writePasswordToInternalUsersFile(ADMIN_PASSWORD, INTERNAL_USERS_FILE_PATH);
 
