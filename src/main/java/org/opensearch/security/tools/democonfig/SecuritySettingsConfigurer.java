@@ -28,13 +28,13 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.Hasher;
 
-import joptsimple.internal.Strings;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
