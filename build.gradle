@@ -90,6 +90,7 @@ configurations.all {
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
         force "org.xerial.snappy:snappy-java:1.1.10.5"
         force "org.apache.zookeeper:zookeeper:3.9.1"
+        force "ch.qos.logback:logback-classic:1.2.13"
     }
 }
 
