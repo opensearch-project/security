@@ -32,8 +32,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +49,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
@@ -62,7 +59,6 @@ import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -110,17 +106,8 @@ public class TestRestClient implements AutoCloseable {
         this.sourceInetAddress = sourceInetAddress;
     }
 
-    public HttpResponse get(String path, List<NameValuePair> queryParameters, Header... headers) {
-        try {
-            URI uri = new URIBuilder(getHttpServerUri()).setPath(path).addParameters(queryParameters).build();
-            return executeRequest(new HttpGet(uri), headers);
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException("Incorrect URI syntax", ex);
-        }
-    }
-
     public HttpResponse get(String path, Header... headers) {
-        return get(path, Collections.emptyList(), headers);
+        return executeRequest(new HttpGet(getHttpServerUri() + "/" + path), headers);
     }
 
     public HttpResponse getAuthInfo(Header... headers) {

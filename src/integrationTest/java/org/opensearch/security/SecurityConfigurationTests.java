@@ -119,7 +119,7 @@ public class SecurityConfigurationTests {
     @Test
     public void shouldAuthenticateAsAdminWithCertificate_positive() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
+            HttpResponse httpResponse = client.get("_plugins/_security/whoami");
 
             httpResponse.assertStatusCode(200);
             assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("true"));
@@ -130,7 +130,7 @@ public class SecurityConfigurationTests {
     public void shouldAuthenticateAsAdminWithCertificate_negativeSelfSignedCertificate() {
         TestCertificates testCertificates = cluster.getTestCertificates();
         try (TestRestClient client = cluster.getRestClient(testCertificates.createSelfSignedCertificate("CN=bond"))) {
-            HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
+            HttpResponse httpResponse = client.get("_plugins/_security/whoami");
 
             httpResponse.assertStatusCode(200);
             assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
@@ -141,7 +141,7 @@ public class SecurityConfigurationTests {
     public void shouldAuthenticateAsAdminWithCertificate_negativeIncorrectDn() {
         TestCertificates testCertificates = cluster.getTestCertificates();
         try (TestRestClient client = cluster.getRestClient(testCertificates.createAdminCertificate("CN=non_admin"))) {
-            HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
+            HttpResponse httpResponse = client.get("_plugins/_security/whoami");
 
             httpResponse.assertStatusCode(200);
             assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
@@ -199,7 +199,7 @@ public class SecurityConfigurationTests {
     @Test
     public void shouldAccessIndexWithPlaceholder_positive() {
         try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
-            HttpResponse httpResponse = client.get("/" + LIMITED_USER_INDEX + "/_doc/" + ID_1);
+            HttpResponse httpResponse = client.get(LIMITED_USER_INDEX + "/_doc/" + ID_1);
 
             httpResponse.assertStatusCode(200);
         }
@@ -208,7 +208,7 @@ public class SecurityConfigurationTests {
     @Test
     public void shouldAccessIndexWithPlaceholder_negative() {
         try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
-            HttpResponse httpResponse = client.get("/" + PROHIBITED_INDEX + "/_doc/" + ID_2);
+            HttpResponse httpResponse = client.get(PROHIBITED_INDEX + "/_doc/" + ID_2);
 
             httpResponse.assertStatusCode(403);
         }
