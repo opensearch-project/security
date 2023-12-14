@@ -212,12 +212,12 @@ Detected OpenSearch Security Version: *
 ```
 
 Now if we start our server again and try the original `curl localhost:9200`, it will fail.
-Try this command instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
+Try this command instead: `curl -XGET https://localhost:9200 -u 'admin:<your-admin-password>' --insecure`. It should succeed.
 
 You can also make this call to return the authenticated user details:
 
 ```bash
-curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' --insecure
+curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:<your-admin-password>' --insecure
 
 {
   "user": "User [name=admin, backend_roles=[admin], requestedTenant=null]",
