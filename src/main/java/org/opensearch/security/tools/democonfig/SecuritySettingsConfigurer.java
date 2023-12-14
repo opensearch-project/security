@@ -132,7 +132,7 @@ public class SecuritySettingsConfigurer {
 
             // Read custom password from environment variable
             String initialAdminPassword = System.getenv().get(ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD);
-            if (initialAdminPassword != null && !initialAdminPassword.isEmpty()) {
+            if (!Strings.isNullOrEmpty(initialAdminPassword)) {
                 ADMIN_PASSWORD = initialAdminPassword;
             }
 
