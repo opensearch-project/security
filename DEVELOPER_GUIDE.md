@@ -162,6 +162,18 @@ extension_hw_greet:
     - "hw-user"
 ```
 
+### Setting up password for demo admin user
+
+This step is a pre-requisite to installing demo configuration. You can pass the demo `admin` user password by exporting `OPENSEARCH_INITIAL_ADMIN_PASSWORD` variable with a password.
+```shell
+export OPENSEARCH_INITIAL_ADMIN_PASSWORD=<password>
+```
+
+**_Note:_** If no password is supplied, the installation will fail. The password supplied will also be tested for its strength and will be blocked if it is too simple. There is an option to skip this password validation by passing the `-t` option to the installation script. However, this should only be used for test environments.
+
+
+### Executing the demo installation script
+
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
 ```bash
@@ -192,17 +204,17 @@ Detected OpenSearch Security Version: *
 "/Users/XXXXX/Test/opensearch-*/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/Test/opensearch-*/config/opensearch-security/" -icl -key "/Users/XXXXX/Test/opensearch-*/config/kirk-key.pem" -cert "/Users/XXXXX/Test/opensearch-*/config/kirk.pem" -cacert "/Users/XXXXX/Test/opensearch-*/config/root-ca.pem" -nhnv
 ### or run ./securityadmin_demo.sh
 ### To use the Security Plugin ConfigurationGUI
-### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.
+### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/<your-admin-password>.
 ### (Ignore the SSL certificate warning because we installed self-signed demo certificates)
 ```
 
 Now if we start our server again and try the original `curl localhost:9200`, it will fail.
-Try this command instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
+Try this command instead: `curl -XGET https://localhost:9200 -u 'admin:<your-admin-password>' --insecure`. It should succeed.
 
 You can also make this call to return the authenticated user details:
 
 ```bash
-curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' --insecure
+curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:<your-admin-password>' --insecure
 
 {
   "user": "User [name=admin, backend_roles=[admin], requestedTenant=null]",
