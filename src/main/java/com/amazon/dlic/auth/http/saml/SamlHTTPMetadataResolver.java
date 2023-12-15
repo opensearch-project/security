@@ -30,7 +30,7 @@ import org.apache.hc.core5.http.config.RegistryBuilder;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV5;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 
 public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
@@ -56,8 +56,8 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         }
     }
 
-    private static SettingsBasedSSLConfiguratorV5.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
-        return new SettingsBasedSSLConfiguratorV5(settings, configPath, "idp").buildSSLConfig();
+    private static SettingsBasedSSLConfiguratorV4.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
+        return new SettingsBasedSSLConfiguratorV4(settings, configPath, "idp").buildSSLConfig();
     }
 
     private static HttpClient createHttpClient(Settings settings, Path configPath) throws Exception {
@@ -89,7 +89,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
         builder.useSystemProperties();
 
-        SettingsBasedSSLConfiguratorV5.SSLConfig sslConfig = getSSLConfig(settings, configPath);
+        SettingsBasedSSLConfiguratorV4.SSLConfig sslConfig = getSSLConfig(settings, configPath);
 
         if (sslConfig != null) {
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();

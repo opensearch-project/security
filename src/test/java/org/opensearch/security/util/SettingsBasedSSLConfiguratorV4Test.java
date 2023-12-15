@@ -72,14 +72,14 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV5;
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV5.SSLConfig;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
 
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
-public class SettingsBasedSSLConfiguratorV5Test {
+public class SettingsBasedSSLConfiguratorV4Test {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -106,7 +106,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -145,7 +145,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -190,7 +190,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -233,7 +233,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -281,7 +281,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -321,7 +321,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -361,7 +361,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -402,7 +402,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
@@ -440,7 +440,7 @@ public class SettingsBasedSSLConfiguratorV5Test {
                 .build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
             SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();

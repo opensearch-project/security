@@ -23,14 +23,14 @@ import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.opensaml.saml.metadata.resolver.impl.AbstractReloadingMetadataResolver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HTTPMetadataResolver extends AbstractReloadingMetadataResolver {
-    private final Logger log = LoggerFactory.getLogger(HTTPMetadataResolver.class);
+    private final static Logger log = LogManager.getLogger(HTTPMetadataResolver.class);
     private HttpClient httpClient;
     private URI metadataURI;
     private String cachedMetadataETag;
