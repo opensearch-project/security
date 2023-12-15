@@ -69,7 +69,10 @@ public class SecuritySettingsConfigurer {
         ".opendistro-asynchronous-search-response*",
         ".replication-metadata-store",
         ".opensearch-knn-models",
-        ".geospatial-ip2geo-data*"
+        ".geospatial-ip2geo-data*",
+        ".plugins-flow-framework-config",
+        ".plugins-flow-framework-templates",
+        ".plugins-flow-framework-state"
     );
     static String ADMIN_PASSWORD = "";
     static String ADMIN_USERNAME = "admin";
