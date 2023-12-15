@@ -373,3 +373,26 @@ security_analytics_ack_alerts:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
+
+# Allows users to use all Flow Framework functionality
+flow_framework_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/flow_framework/*'
+    - 'cluster_monitor'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/aliases/get'
+        - 'indices:admin/mappings/get'
+        - 'indices_monitor'
+
+# Allow users to read flow framework's workflows and their state
+flow_framework_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/flow_framework/workflow/get'
+    - 'cluster:admin/opensearch/flow_framework/workflow/search'
+    - 'cluster:admin/opensearch/flow_framework/workflow_state/get'
+    - 'cluster:admin/opensearch/flow_framework/workflow_state/search'
