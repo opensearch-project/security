@@ -17,16 +17,21 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.time.Duration;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.BasicHttpClientConnectionManager;
+import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.http.URIScheme;
+import org.apache.hc.core5.http.config.Registry;
+import org.apache.hc.core5.http.config.RegistryBuilder;
 
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV5;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
-import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 
 public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
@@ -38,10 +43,9 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
     }
 
     @Override
-    @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) () -> SamlHTTPMetadataResolver.super.fetchMetadata());
+            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) SamlHTTPMetadataResolver.super::fetchMetadata);
         } catch (PrivilegedActionException e) {
 
             if (e.getCause() instanceof ResolverException) {
@@ -52,11 +56,10 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         }
     }
 
-    private static SettingsBasedSSLConfiguratorV4.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
-        return new SettingsBasedSSLConfiguratorV4(settings, configPath, "idp").buildSSLConfig();
+    private static SettingsBasedSSLConfiguratorV5.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
+        return new SettingsBasedSSLConfiguratorV5(settings, configPath, "idp").buildSSLConfig();
     }
 
-    @SuppressWarnings("removal")
     private static HttpClient createHttpClient(Settings settings, Path configPath) throws Exception {
         try {
             final SecurityManager sm = System.getSecurityManager();
@@ -86,10 +89,16 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
         builder.useSystemProperties();
 
-        SettingsBasedSSLConfiguratorV4.SSLConfig sslConfig = getSSLConfig(settings, configPath);
+        SettingsBasedSSLConfiguratorV5.SSLConfig sslConfig = getSSLConfig(settings, configPath);
 
         if (sslConfig != null) {
-            builder.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory());
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            builder.setConnectionManager(connectionManager);
         }
 
         return builder.build();

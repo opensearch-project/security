@@ -11,7 +11,6 @@
 
 package com.amazon.dlic.util;
 
-import java.net.Socket;
 import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -25,7 +24,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -33,14 +31,11 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.PrivateKeyDetails;
-import org.apache.http.ssl.PrivateKeyStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -51,7 +46,7 @@ import org.opensearch.security.support.PemKeyReader;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
-public class SettingsBasedSSLConfiguratorV4 {
+public class SettingsBasedSSLConfiguratorV5 {
     private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);
 
     public static final String CERT_ALIAS = "cert_alias";
@@ -95,14 +90,14 @@ public class SettingsBasedSSLConfiguratorV4 {
     private String effectiveKeyAlias;
     private List<String> effectiveTruststoreAliases;
 
-    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix, String clientName) {
+    public SettingsBasedSSLConfiguratorV5(Settings settings, Path configPath, String settingsKeyPrefix, String clientName) {
         this.settings = settings;
         this.configPath = configPath;
         this.settingsKeyPrefix = normalizeSettingsKeyPrefix(settingsKeyPrefix);
         this.clientName = clientName != null ? clientName : this.settingsKeyPrefix;
     }
 
-    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix) {
+    public SettingsBasedSSLConfiguratorV5(Settings settings, Path configPath, String settingsKeyPrefix) {
         this(settings, configPath, settingsKeyPrefix, null);
     }
 
@@ -203,20 +198,16 @@ public class SettingsBasedSSLConfiguratorV4 {
         if (enableSslClientAuth) {
             if (effectiveKeystore != null) {
                 try {
-                    sslContextBuilder.loadKeyMaterial(effectiveKeystore, effectiveKeyPassword, new PrivateKeyStrategy() {
-
-                        @Override
-                        public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
-                            if (aliases == null || aliases.isEmpty()) {
-                                return effectiveKeyAlias;
-                            }
-
-                            if (effectiveKeyAlias == null || effectiveKeyAlias.isEmpty()) {
-                                return aliases.keySet().iterator().next();
-                            }
-
+                    sslContextBuilder.loadKeyMaterial(effectiveKeystore, effectiveKeyPassword, (aliases, socket) -> {
+                        if (aliases == null || aliases.isEmpty()) {
                             return effectiveKeyAlias;
                         }
+
+                        if (effectiveKeyAlias == null || effectiveKeyAlias.isEmpty()) {
+                            return aliases.keySet().iterator().next();
+                        }
+
+                        return effectiveKeyAlias;
                     });
                 } catch (UnrecoverableKeyException e) {
                     throw new RuntimeException(e);
@@ -468,10 +459,6 @@ public class SettingsBasedSSLConfiguratorV4 {
 
         public HostnameVerifier getHostnameVerifier() {
             return hostnameVerifier;
-        }
-
-        public SSLIOSessionStrategy toSSLIOSessionStrategy() {
-            return new SSLIOSessionStrategy(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
         }
 
         public SSLConnectionSocketFactory toSSLConnectionSocketFactory() {

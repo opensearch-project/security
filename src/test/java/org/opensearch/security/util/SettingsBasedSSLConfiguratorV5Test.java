@@ -22,41 +22,45 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.cert.Certificate;
 import java.util.Map;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.http.HttpConnectionFactory;
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.config.ConnectionConfig;
-import org.apache.http.config.MessageConstraints;
-import org.apache.http.entity.ContentLengthStrategy;
-import org.apache.http.impl.ConnSupport;
-import org.apache.http.impl.DefaultBHttpServerConnection;
-import org.apache.http.impl.bootstrap.HttpServer;
-import org.apache.http.impl.bootstrap.SSLServerSetupHandler;
-import org.apache.http.impl.bootstrap.ServerBootstrap;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.io.HttpMessageParserFactory;
-import org.apache.http.io.HttpMessageWriterFactory;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpRequestHandler;
-import org.apache.http.ssl.PrivateKeyDetails;
-import org.apache.http.ssl.PrivateKeyStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.BasicHttpClientConnectionManager;
+import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.function.Callback;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentLengthStrategy;
+import org.apache.hc.core5.http.URIScheme;
+import org.apache.hc.core5.http.config.Http1Config;
+import org.apache.hc.core5.http.config.Registry;
+import org.apache.hc.core5.http.config.RegistryBuilder;
+import org.apache.hc.core5.http.impl.DefaultContentLengthStrategy;
+import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
+import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
+import org.apache.hc.core5.http.impl.io.DefaultBHttpServerConnection;
+import org.apache.hc.core5.http.impl.io.DefaultHttpRequestParserFactory;
+import org.apache.hc.core5.http.impl.io.DefaultHttpResponseWriterFactory;
+import org.apache.hc.core5.http.io.HttpConnectionFactory;
+import org.apache.hc.core5.http.io.HttpMessageParserFactory;
+import org.apache.hc.core5.http.io.HttpMessageWriterFactory;
+import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.ssl.PrivateKeyDetails;
+import org.apache.hc.core5.ssl.PrivateKeyStrategy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,14 +72,14 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV5;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV5.SSLConfig;
 
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
-public class SettingsBasedSSLConfiguratorV4Test {
+public class SettingsBasedSSLConfiguratorV5Test {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -102,13 +106,16 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
 
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build();) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -138,13 +145,16 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
 
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 thrown.expect(SSLHandshakeException.class);
 
@@ -180,13 +190,16 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
 
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -220,22 +233,24 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
-
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 // Due to some race condition in Java's internal network stack, this can be one
                 // of the following exceptions
 
                 thrown.expect(
                     either(instanceOf(SocketException.class)).or(instanceOf(SSLHandshakeException.class)).or(instanceOf(SSLException.class)) // Java
-                                                                                                                                             // 11:
-                                                                                                                                             // javax.net.ssl.SSLException:
-                                                                                                                                             // readHandshakeRecord
+                    // 11:
+                    // javax.net.ssl.SSLException:
+                    // readHandshakeRecord
                 );
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
@@ -266,13 +281,15 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
-
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 thrown.expect(SSLPeerUnverifiedException.class);
 
@@ -304,13 +321,15 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
-
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -342,13 +361,15 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
-
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -381,13 +402,15 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
-
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 thrown.expect(SSLHandshakeException.class);
 
@@ -417,13 +440,15 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV5 sbsc = new SettingsBasedSSLConfiguratorV5(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
-
-            try (
-                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
-            ) {
+            SSLConnectionSocketFactory sslConnectionSocketFactory = sslConfig.toSSLConnectionSocketFactory();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register(URIScheme.HTTPS.id, sslConnectionSocketFactory)
+                .build();
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            try (CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -449,21 +474,12 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap()
                 .setListenerPort(port)
-                .registerHandler("test", new HttpRequestHandler() {
-
+                .setSslContext(createSSLContext(trustStore, keyStore, password))
+                .setSslSetupHandler(new Callback<SSLParameters>() {
                     @Override
-                    public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
-
-                    }
-                });
-
-            serverBootstrap = serverBootstrap.setSslContext(createSSLContext(trustStore, keyStore, password))
-                .setSslSetupHandler(new SSLServerSetupHandler() {
-
-                    @Override
-                    public void initialize(SSLServerSocket socket) throws SSLException {
+                    public void execute(SSLParameters object) {
                         if (clientAuth) {
-                            socket.setNeedClientAuth(true);
+                            object.setNeedClientAuth(true);
                         }
                     }
                 })
@@ -474,15 +490,14 @@ public class SettingsBasedSSLConfiguratorV4Test {
                     @Override
                     public DefaultBHttpServerConnection createConnection(final Socket socket) throws IOException {
                         final SSLTestHttpServerConnection conn = new SSLTestHttpServerConnection(
-                            this.cconfig.getBufferSize(),
-                            this.cconfig.getFragmentSizeHint(),
-                            ConnSupport.createDecoder(this.cconfig),
-                            ConnSupport.createEncoder(this.cconfig),
-                            this.cconfig.getMessageConstraints(),
+                            "http",
+                            Http1Config.DEFAULT,
                             null,
                             null,
-                            null,
-                            null
+                            DefaultContentLengthStrategy.INSTANCE,
+                            DefaultContentLengthStrategy.INSTANCE,
+                            DefaultHttpRequestParserFactory.INSTANCE,
+                            DefaultHttpResponseWriterFactory.INSTANCE
                         );
                         conn.bind(socket);
                         return conn;
@@ -497,7 +512,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
         @Override
         public void close() throws IOException {
             if (this.httpServer != null) {
-                this.httpServer.shutdown(0, null);
+                this.httpServer.close(CloseMode.IMMEDIATE);
             }
         }
 
@@ -531,7 +546,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 sslContextBuilder.loadKeyMaterial(keyStore, password.toCharArray(), new PrivateKeyStrategy() {
 
                     @Override
-                    public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
+                    public String chooseAlias(Map<String, PrivateKeyDetails> aliases, SSLParameters sslParameters) {
                         return "node1";
                     }
                 });
@@ -544,31 +559,25 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         static class SSLTestHttpServerConnection extends DefaultBHttpServerConnection {
             public SSLTestHttpServerConnection(
-                final int buffersize,
-                final int fragmentSizeHint,
+                final String scheme,
+                final Http1Config http1Config,
                 final CharsetDecoder chardecoder,
                 final CharsetEncoder charencoder,
-                final MessageConstraints constraints,
                 final ContentLengthStrategy incomingContentStrategy,
                 final ContentLengthStrategy outgoingContentStrategy,
-                final HttpMessageParserFactory<HttpRequest> requestParserFactory,
-                final HttpMessageWriterFactory<HttpResponse> responseWriterFactory
+                final HttpMessageParserFactory<ClassicHttpRequest> requestParserFactory,
+                final HttpMessageWriterFactory<ClassicHttpResponse> responseWriterFactory
             ) {
                 super(
-                    buffersize,
-                    fragmentSizeHint,
+                    scheme,
+                    http1Config,
                     chardecoder,
                     charencoder,
-                    constraints,
                     incomingContentStrategy,
                     outgoingContentStrategy,
                     requestParserFactory,
                     responseWriterFactory
                 );
-            }
-
-            public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-                return ((SSLSocket) getSocket()).getSession().getPeerCertificates();
             }
         }
     }
