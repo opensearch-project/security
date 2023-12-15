@@ -26,14 +26,20 @@
 
 package org.opensearch.security;
 
+import java.io.IOException;
+
 import com.google.common.collect.Lists;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -42,7 +48,11 @@ import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
 
 public class SlowIntegrationTests extends SingleClusterTest {
 
@@ -210,4 +220,41 @@ public class SlowIntegrationTests extends SingleClusterTest {
             Assert.fail(e.toString());
         }
     }
+
+    @Test
+    public void testDelayInSecurityIndexInitialization() throws Exception {
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+            .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
+            .build();
+        assertThrows(IOException.class, () -> {
+            setup(Settings.EMPTY, null, settings, false);
+            clusterHelper.nodeClient()
+                .admin()
+                .indices()
+                .create(new CreateIndexRequest("test-index").timeout(TimeValue.timeValueSeconds(10)))
+                .actionGet();
+            clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(5), ClusterConfiguration.DEFAULT.getNodes());
+        });
+        // Ideally, we would want to remove this cluster setting, but default settings cannot be removed. So overriding with a reserved
+        // IP address
+        clusterHelper.nodeClient()
+            .admin()
+            .cluster()
+            .updateSettings(
+                new ClusterUpdateSettingsRequest().transientSettings(
+                    Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()
+                )
+            );
+        this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), 3);
+        RestHelper rh = nonSslRestHelper();
+        Awaitility.await()
+            .alias("Wait until Security is initialized")
+            .until(
+                () -> rh.executeGetRequest("/_plugins/_security/health", encodeBasicHeader("admin", "admin"))
+                    .getTextFromJsonBody("/status"),
+                equalTo("UP")
+            );
+    }
+
 }

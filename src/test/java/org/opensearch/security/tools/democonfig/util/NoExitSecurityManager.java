@@ -11,10 +11,13 @@
 
 package org.opensearch.security.tools.democonfig.util;
 
+/**
+ * Helper class to allow capturing and testing exit codes and block test execution from exiting mid-way
+ */
 public class NoExitSecurityManager extends SecurityManager {
     @Override
     public void checkPermission(java.security.Permission perm) {
-        // Allow everything except System.exit code 0 &b -1
+        // Allow everything except System.exit code 0 & -1
         if (perm instanceof java.lang.RuntimePermission && ("exitVM.0".equals(perm.getName()) || "exitVM.-1".equals(perm.getName()))) {
             StringBuilder sb = new StringBuilder();
             sb.append("System.exit(");
