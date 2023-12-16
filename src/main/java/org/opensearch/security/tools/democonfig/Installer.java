@@ -23,53 +23,127 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 /**
  * This class installs demo configuration for security plugin
  */
 public class Installer {
 
-    static boolean assumeyes = false;
-    static boolean initsecurity = false;
-    static boolean cluster_mode = false;
-    static int skip_updates = -1;
-    static String SCRIPT_DIR;
-    static String BASE_DIR;
-    static String OPENSEARCH_CONF_FILE;
-    static String OPENSEARCH_BIN_DIR;
-    static String OPENSEARCH_PLUGINS_DIR;
-    static String OPENSEARCH_LIB_PATH;
-    static String OPENSEARCH_INSTALL_TYPE;
-    static String OPENSEARCH_CONF_DIR;
-    static String OPENSEARCH_VERSION;
-    static String SECURITY_VERSION;
+    // Singleton Pattern
+    private static Installer instance;
 
-    static ExecutionEnvironment environment = ExecutionEnvironment.DEMO;
+    private static SecuritySettingsConfigurer securitySettingsConfigurer;
 
-    static final String OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
+    private static CertificateGenerator certificateGenerator;
 
-    static final String FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
+    boolean assumeyes = false;
+    boolean initsecurity = false;
+    boolean cluster_mode = false;
+    int skip_updates = -1;
+    String SCRIPT_DIR;
+    String BASE_DIR;
+    String OPENSEARCH_CONF_FILE;
+    String OPENSEARCH_BIN_DIR;
+    String OPENSEARCH_PLUGINS_DIR;
+    String OPENSEARCH_LIB_PATH;
+    String OPENSEARCH_INSTALL_TYPE;
+    String OPENSEARCH_CONF_DIR;
+    String OPENSEARCH_VERSION;
+    String SECURITY_VERSION;
 
-    static final String SYSTEM_INDICES = ".plugins-ml-config, .plugins-ml-connector, .plugins-ml-model-group, .plugins-ml-model, "
-        + ".plugins-ml-task, .plugins-ml-conversation-meta, .plugins-ml-conversation-interactions, .opendistro-alerting-config, .opendistro-alerting-alert*, "
-        + ".opendistro-anomaly-results*, .opendistro-anomaly-detector*, .opendistro-anomaly-checkpoints, .opendistro-anomaly-detection-state, "
-        + ".opendistro-reports-*, .opensearch-notifications-*, .opensearch-notebooks, .opensearch-observability, .ql-datasources, "
-        + ".opendistro-asynchronous-search-response*, .replication-metadata-store, .opensearch-knn-models, .geospatial-ip2geo-data*";
+    ExecutionEnvironment environment = ExecutionEnvironment.DEMO;
 
-    static SecuritySettingsConfigurer securitySettingsConfigurer;
-    static CertificateGenerator certificateGenerator;
+    String OS;
 
-    public static void main(String[] options) {
-        securitySettingsConfigurer = new SecuritySettingsConfigurer();
-        certificateGenerator = new CertificateGenerator();
+    final String FILE_EXTENSION;
 
-        printScriptHeaders();
+    static File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
+
+    private final Options options;
+
+    // To print help information for this script
+    private final HelpFormatter formatter = new HelpFormatter();
+
+    /**
+     * We do not want this class to be instantiated more than once,
+     * as we are following Singleton Factory pattern
+     */
+    private Installer() {
+        this.OS = System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
+        FILE_EXTENSION = OS.toLowerCase().contains("win") ? ".bat" : ".sh";
+        options = new Options();
+    }
+
+    /**
+     * Returns a singleton instance of this class
+     * @return an existing instance OR a new instance if there was no existing instance
+     */
+    public static Installer getInstance() {
+        if (instance == null) {
+            instance = new Installer();
+            securitySettingsConfigurer = new SecuritySettingsConfigurer(instance);
+            certificateGenerator = new CertificateGenerator(instance);
+        }
+        return instance;
+    }
+
+    /**
+     * Installs the demo security configuration
+     * @param options the options passed to the script
+     */
+    public void installDemoConfiguration(String[] options) {
         readOptions(options);
+        printScriptHeaders();
         gatherUserInputs();
         initializeVariables();
         printVariables();
         securitySettingsConfigurer.configureSecuritySettings();
         certificateGenerator.createDemoCertificates();
         finishScriptExecution();
+    }
+
+    public static void main(String[] options) {
+        Installer installer = Installer.getInstance();
+        installer.buildOptions();
+        installer.installDemoConfiguration(options);
+    }
+
+    /**
+     * Builds options supported by this tool
+     */
+    void buildOptions() {
+        options.addOption("h", "show-help", false, "Shows help for this tool.");
+        options.addOption("y", "answer-yes-to-all-prompts", false, "Confirm all installation dialogues automatically.");
+        options.addOption(
+            "i",
+            "initialize-security",
+            false,
+            "Initialize Security plugin with default configuration (default is to ask if -y is not given)."
+        );
+        options.addOption(
+            "c",
+            "enable-cluster-mode",
+            false,
+            "Enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)."
+        );
+        options.addOption(
+            "s",
+            "skip-updates-when-already-configured",
+            false,
+            "Skip updates if config is already applied to opensearch.yml."
+        );
+        options.addOption(
+            "t",
+            "test-execution-environment",
+            false,
+            "Set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `demo`)"
+        );
     }
 
     /**
@@ -82,52 +156,37 @@ public class Installer {
 
     /**
      * Reads the options passed to the script
-     * @param options an array of strings containing options passed to the script
+     * @param args an array of strings containing options passed to the script
      */
-    static void readOptions(String[] options) {
+    void readOptions(String[] args) {
         // set script execution dir
-        SCRIPT_DIR = options[0];
+        SCRIPT_DIR = args[0];
 
-        for (int i = 1; i < options.length; i++) {
-            switch (options[i]) {
-                case "-y":
-                    assumeyes = true;
-                    break;
-                case "-i":
-                    initsecurity = true;
-                    break;
-                case "-c":
-                    cluster_mode = true;
-                    break;
-                case "-s":
-                    skip_updates = 0;
-                    break;
-                case "-t":
-                    environment = ExecutionEnvironment.TEST;
-                    break;
-                case "-h":
-                case "-?":
-                    showHelp();
-                    return;
-                default:
-                    System.out.println("Invalid option: " + options[i]);
+        CommandLineParser parser = new DefaultParser();
+        try {
+            CommandLine line = parser.parse(options, args);
+
+            if (line.hasOption("h")) {
+                showHelp();
+                return;
             }
+            assumeyes = line.hasOption("y");
+            initsecurity = line.hasOption("i");
+            cluster_mode = line.hasOption("c");
+            skip_updates = line.hasOption("s") ? 0 : -1;
+            environment = line.hasOption("t") ? ExecutionEnvironment.TEST : environment;
+
+        } catch (ParseException exp) {
+            System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
+            System.exit(-1);
         }
     }
 
     /**
      * Prints the help menu when -h option is passed
      */
-    static void showHelp() {
-        System.out.println("install_demo_configuration.sh [-y] [-i] [-c]");
-        System.out.println("  -h show help");
-        System.out.println("  -y confirm all installation dialogues automatically");
-        System.out.println("  -i initialize Security plugin with default configuration (default is to ask if -y is not given)");
-        System.out.println("  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)");
-        System.out.println("  -s skip updates if config is already applied to opensearch.yml");
-        System.out.println(
-            "  -t set the execution environment to `test` to skip password validation. Should be used only for testing. (default is set to `demo`)"
-        );
+    void showHelp() {
+        formatter.printHelp("install_demo_configuration" + FILE_EXTENSION, options, true);
         System.exit(0);
     }
 
@@ -135,7 +194,7 @@ public class Installer {
      * Prompt the user and collect user inputs
      * Input collection will be skipped if -y option was passed
      */
-    static void gatherUserInputs() {
+    void gatherUserInputs() {
         if (!assumeyes) {
             try (Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8)) {
 
@@ -149,7 +208,7 @@ public class Installer {
 
                 if (!cluster_mode) {
                     System.out.println("Cluster mode requires additional setup of:");
-                    System.out.println("  - Virtual memory (vm.max_map_count)\n");
+                    System.out.println("  - Virtual memory (vm.max_map_count)" + System.lineSeparator());
                     cluster_mode = confirmAction(scanner, "Enable cluster mode?");
                 }
             }
@@ -165,7 +224,7 @@ public class Installer {
      * @param message prompt question
      * @return true or false based on user input
      */
-    static boolean confirmAction(Scanner scanner, String message) {
+    boolean confirmAction(Scanner scanner, String message) {
         System.out.print(message + " [y/N] ");
         String response = scanner.nextLine();
         return response.equalsIgnoreCase("yes") || response.equalsIgnoreCase("y");
@@ -174,7 +233,7 @@ public class Installer {
     /**
      * Initialize all class level variables required
      */
-    static void initializeVariables() {
+    void initializeVariables() {
         setBaseDir();
         setOpenSearchVariables();
         setSecurityVariables();
@@ -183,7 +242,7 @@ public class Installer {
     /**
      * Sets the base directory to be used by the script
      */
-    static void setBaseDir() {
+    void setBaseDir() {
         File baseDirFile = new File(SCRIPT_DIR).getParentFile().getParentFile().getParentFile();
         BASE_DIR = baseDirFile != null ? baseDirFile.getAbsolutePath() : null;
 
@@ -198,30 +257,17 @@ public class Installer {
     /**
      * Sets the variables for items at OpenSearch level
      */
-    static void setOpenSearchVariables() {
+    void setOpenSearchVariables() {
         OPENSEARCH_CONF_FILE = BASE_DIR + "config" + File.separator + "opensearch.yml";
         OPENSEARCH_BIN_DIR = BASE_DIR + "bin" + File.separator;
         OPENSEARCH_PLUGINS_DIR = BASE_DIR + "plugins" + File.separator;
         OPENSEARCH_LIB_PATH = BASE_DIR + "lib" + File.separator;
         OPENSEARCH_INSTALL_TYPE = determineInstallType();
 
-        if (!(new File(OPENSEARCH_CONF_FILE).exists())) {
-            System.out.println("Unable to determine OpenSearch config directory. Quit.");
-            System.exit(-1);
-        }
+        Set<String> errorMessages = validatePaths();
 
-        if (!(new File(OPENSEARCH_BIN_DIR).exists())) {
-            System.out.println("Unable to determine OpenSearch bin directory. Quit.");
-            System.exit(-1);
-        }
-
-        if (!(new File(OPENSEARCH_PLUGINS_DIR).exists())) {
-            System.out.println("Unable to determine OpenSearch plugins directory. Quit.");
-            System.exit(-1);
-        }
-
-        if (!(new File(OPENSEARCH_LIB_PATH).exists())) {
-            System.out.println("Unable to determine OpenSearch lib directory. Quit.");
+        if (!errorMessages.isEmpty()) {
+            errorMessages.forEach(System.out::println);
             System.exit(-1);
         }
 
@@ -230,18 +276,43 @@ public class Installer {
     }
 
     /**
+     * Helper method
+     * Returns a set of error messages for the paths that didn't contain files/directories
+     * @return a set containing error messages if any, empty otherwise
+     */
+    private Set<String> validatePaths() {
+        Set<String> errorMessages = new HashSet<>();
+        if (!(new File(OPENSEARCH_CONF_FILE).exists())) {
+            errorMessages.add("Unable to determine OpenSearch config file. Quit.");
+        }
+
+        if (!(new File(OPENSEARCH_BIN_DIR).exists())) {
+            errorMessages.add("Unable to determine OpenSearch bin directory. Quit.");
+        }
+
+        if (!(new File(OPENSEARCH_PLUGINS_DIR).exists())) {
+            errorMessages.add("Unable to determine OpenSearch plugins directory. Quit.");
+        }
+
+        if (!(new File(OPENSEARCH_LIB_PATH).exists())) {
+            errorMessages.add("Unable to determine OpenSearch lib directory. Quit.");
+        }
+        return errorMessages;
+    }
+
+    /**
      * Returns the installation type based on the underlying operating system
      * @return will be one of `.zip`, `.tar.gz` or `rpm/deb`
      */
-    static String determineInstallType() {
+    String determineInstallType() {
         // windows (.bat execution)
         if (OS.toLowerCase().contains("win")) {
             return ".zip";
         }
 
         // other OS (.sh execution)
-        if (new File("/usr/share/opensearch").equals(new File(BASE_DIR))) {
-            OPENSEARCH_CONF_FILE = "/usr/share/opensearch/config/opensearch.yml";
+        if (RPM_DEB_OPENSEARCH_HOME.exists() && RPM_DEB_OPENSEARCH_HOME.equals(new File(BASE_DIR))) {
+            OPENSEARCH_CONF_FILE = RPM_DEB_OPENSEARCH_HOME.getAbsolutePath() + "/config/opensearch.yml";
             if (!new File(OPENSEARCH_CONF_FILE).exists()) {
                 OPENSEARCH_CONF_FILE = "/etc/opensearch/opensearch.yml";
             }
@@ -253,7 +324,7 @@ public class Installer {
     /**
      * Sets the path variables for items at OpenSearch security plugin level
      */
-    static void setSecurityVariables() {
+    void setSecurityVariables() {
         if (!(new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").exists())) {
             System.out.println("OpenSearch Security plugin not installed. Quit.");
             System.exit(-1);
@@ -261,11 +332,11 @@ public class Installer {
 
         // Extract OpenSearch version and Security version
         File[] opensearchLibFiles = new File(OPENSEARCH_LIB_PATH).listFiles(
-            pathname -> pathname.getName().startsWith("opensearch-") && pathname.getName().endsWith(".jar")
+            pathname -> pathname.getName().matches("opensearch-core-(.*).jar")
         );
 
         if (opensearchLibFiles != null && opensearchLibFiles.length > 0) {
-            OPENSEARCH_VERSION = opensearchLibFiles[0].getName().replaceAll("opensearch-(.*).jar", "$1");
+            OPENSEARCH_VERSION = opensearchLibFiles[0].getName().replaceAll("opensearch-core-(.*).jar", "$1");
         }
 
         File[] securityFiles = new File(OPENSEARCH_PLUGINS_DIR + "opensearch-security").listFiles(
@@ -280,7 +351,7 @@ public class Installer {
     /**
      * Prints the initialized variables
      */
-    static void printVariables() {
+    void printVariables() {
         System.out.println("OpenSearch install type: " + OPENSEARCH_INSTALL_TYPE + " on " + OS);
         System.out.println("OpenSearch config dir: " + OPENSEARCH_CONF_DIR);
         System.out.println("OpenSearch config file: " + OPENSEARCH_CONF_FILE);
@@ -294,7 +365,7 @@ public class Installer {
     /**
      * Prints end of script execution message and creates security admin demo file.
      */
-    static void finishScriptExecution() {
+    void finishScriptExecution() {
         System.out.println("### Success");
         System.out.println("### Execute this script now on all your nodes and then start all nodes");
 
@@ -356,11 +427,21 @@ public class Installer {
                 System.out.println("### To use the Security Plugin ConfigurationGUI");
             }
 
-            System.out.println("### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.");
+            System.out.println(
+                "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/<your-custom-admin-password>."
+            );
             System.out.println("### (Ignore the SSL certificate warning because we installed self-signed demo certificates)");
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    /**
+     * FOR TESTS ONLY
+     * resets the installer state to allow testing with fresh instance for the next test.
+     */
+    static void resetInstance() {
+        instance = null;
     }
 }

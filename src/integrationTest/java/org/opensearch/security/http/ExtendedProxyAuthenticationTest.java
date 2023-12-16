@@ -230,7 +230,7 @@ public class ExtendedProxyAuthenticationTest extends CommonProxyAuthenticationTe
             .header(HEADER_DEPARTMENT, DEPARTMENT_BRIDGE);
         try (TestRestClient client = cluster.createGenericClientRestClient(testRestClientConfiguration)) {
 
-            HttpResponse response = client.get("/" + PERSONAL_INDEX_NAME_SPOCK + "/_search");
+            HttpResponse response = client.get(PERSONAL_INDEX_NAME_SPOCK + "/_search");
 
             response.assertStatusCode(200);
             assertThat(response.getLongFromJsonBody(POINTER_TOTAL_HITS), equalTo(1L));
@@ -251,7 +251,7 @@ public class ExtendedProxyAuthenticationTest extends CommonProxyAuthenticationTe
             .header(HEADER_DEPARTMENT, DEPARTMENT_BRIDGE);
         try (TestRestClient client = cluster.createGenericClientRestClient(testRestClientConfiguration)) {
 
-            HttpResponse response = client.get("/" + PERSONAL_INDEX_NAME_KIRK + "/_search");
+            HttpResponse response = client.get(PERSONAL_INDEX_NAME_KIRK + "/_search");
 
             response.assertStatusCode(403);
         }

@@ -19,7 +19,11 @@ import java.util.stream.Collectors;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+
 import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -32,6 +36,13 @@ public class SingleClusterSanityIT extends SecurityRestTestCase {
     @Test
     public void testSecurityPluginInstallation() throws Exception {
         verifyPluginInstallationOnAllNodes();
+    }
+
+    @Test
+    public void testAdminCredentials_validAdminPassword_shouldSucceed() throws Exception {
+        Response response = client().performRequest(new Request("GET", ""));
+        MatcherAssert.assertThat(response.getStatusLine().getStatusCode(), is(equalTo(200)));
+        MatcherAssert.assertThat(response.getStatusLine().getReasonPhrase(), is(equalTo("OK")));
     }
 
     private void verifyPluginInstallationOnAllNodes() throws Exception {

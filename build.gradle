@@ -256,6 +256,8 @@ test {
     jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+        // this is needed to reflect access system env map.
+        jvmArgs += "--add-opens=java.base/java.util=ALL-UNNAMED"
     }
     retry {
         failOnPassedAfterRetry = false
@@ -303,6 +305,8 @@ def setCommonTestConfig(Test task) {
     task.jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+        // this is needed to reflect access system env map.
+        task.jvmArgs += "--add-opens=java.base/java.util=ALL-UNNAMED"
     }
     task.retry {
         failOnPassedAfterRetry = false
@@ -497,6 +501,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.23.0"
             force "org.checkerframework:checker-qual:3.40.0"
+            force "ch.qos.logback:logback-classic:1.2.13"
         }
     }
 
@@ -682,6 +687,9 @@ dependencies {
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
+    testImplementation('org.awaitility:awaitility:4.2.0') {
+        exclude(group: 'org.hamcrest', module: 'hamcrest')
+    }
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
         testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"
