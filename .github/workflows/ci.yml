@@ -218,11 +218,11 @@ jobs:
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
-    - uses: github/codeql-action/init@v2
+    - uses: github/codeql-action/init@v3
       with:
         languages: java
     - run: ./gradlew clean assemble
-    - uses: github/codeql-action/analyze@v2
+    - uses: github/codeql-action/analyze@v3
 
   build-artifact-names:
     runs-on: ubuntu-latest
