@@ -20,7 +20,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
@@ -63,22 +62,21 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     private void flushCacheApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented()
-            .override(
-                Method.DELETE,
-                (channel, request, client) -> {
-                    if (request.path().contains("/user/")) {
-                        // Extract the username from the request
-                        final String username = request.param("username");
-                        // Validate and handle user-specific cache invalidation
-                        handleUserCacheInvalidation(channel, username);
-                    }
-                    else
-                    {
-                        client.execute(
-                            ConfigUpdateAction.INSTANCE,
-                            new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])),
-                            new ActionListener<>() {
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.DELETE, (channel, request, client) -> {
+            final ConfigUpdateRequest configUpdateRequest;
+            if (request.path().contains("/user/")) {
+                // Extract the username from the request
+                final String username = request.param("username");
+                if (username == null || username.isEmpty()) {
+                    internalSeverError(channel, "No username provided for cache invalidation.");
+                    return;
+                }
+                // Validate and handle user-specific cache invalidation
+                configUpdateRequest = new ConfigUpdateRequest(CType.INTERNALUSERS.toLCString(), new String[] { username });
+            } else {
+                configUpdateRequest = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
+            }
+            client.execute(ConfigUpdateAction.INSTANCE, configUpdateRequest, new ActionListener<>() {
 
                                 @Override
                                 public void onResponse(ConfigUpdateResponse configUpdateResponse) {
@@ -118,21 +116,8 @@ public class FlushCacheApiAction extends AbstractApiAction {
                             internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
                         }
 
-                            }
-                        );
-                    }
-                }
-            );
-    }
-
-    private void handleUserCacheInvalidation(RestChannel channel, String username) {
-        if (username == null || username.isEmpty()) {
-            internalSeverError(channel, "No username provided for cache invalidation.");
-            return;
-        }
-        // Use BackendRegistry's method to invalidate cache for the specific user
-        securityApiDependencies.backendRegistry().invalidateUserCache(username);
-        ok(channel, "Cache invalidated for user: " + username);
+            });
+        });
     }
 
     @Override
@@ -142,6 +127,8 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     @Override
     protected void consumeParameters(final RestRequest request) {
-        // not needed
+        if (request.path().contains("/user/")) {
+            request.param("username");
+        }
     }
 }

@@ -28,6 +28,7 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -168,27 +169,29 @@ public class BackendRegistry {
         restRoleCache.invalidateAll();
     }
 
-    public void invalidateUserCache(String username) {
-        if (username == null || username.isEmpty()) {
-            log.debug("No username given, not invalidating user cache.");
+    public void invalidateUserCache(String[] usernames) {
+        if (usernames == null || usernames.length == 0) {
+            log.debug("No usernames given, not invalidating user cache.");
             return;
         }
-    
+
+        List<String> usernamesAsList = Arrays.asList(usernames);
+
         // Invalidate entries in the userCache by iterating over the keys and matching the username.
-        userCache.asMap().keySet().stream()
-            .filter(authCreds -> username.equals(authCreds.getUsername()))
+        userCache.asMap()
+            .keySet()
+            .stream()
+            .filter(authCreds -> usernamesAsList.contains(authCreds.getUsername()))
             .forEach(userCache::invalidate);
-    
+
         // Invalidate entries in the restImpersonationCache directly since it uses the username as the key.
-        restImpersonationCache.invalidate(username);
-    
+        restImpersonationCache.invalidateAll(usernamesAsList);
+
         // Invalidate entries in the restRoleCache by iterating over the keys and matching the username.
-        restRoleCache.asMap().keySet().stream()
-            .filter(user -> username.equals(user.getName()))
-            .forEach(restRoleCache::invalidate);
-    
+        restRoleCache.asMap().keySet().stream().filter(user -> usernamesAsList.contains(user.getName())).forEach(restRoleCache::invalidate);
+
         // If the user isn't found it still says this, which could be bad
-        log.debug("Invalidated cache for user {}", username);
+        log.debug("Invalidated cache for users {}", String.join(", ", usernames));
     }
 
     @Subscribe

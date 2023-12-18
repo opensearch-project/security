@@ -30,7 +30,16 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
         final var securityConfigApiAction = new SecurityConfigApiAction(
             clusterService,
             threadPool,
-            new SecurityApiDependencies(null, configurationRepository, null, null, restApiAdminPrivilegesEvaluator, null, Settings.EMPTY, null)
+            new SecurityApiDependencies(
+                null,
+                configurationRepository,
+                null,
+                null,
+                restApiAdminPrivilegesEvaluator,
+                null,
+                Settings.EMPTY,
+                null
+            )
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
         assertFalse(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
