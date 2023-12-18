@@ -13,6 +13,11 @@ env:
   CI_ENVIRONMENT: normal
 
 jobs:
+  Get-CI-Image-Tag:
+    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
+    with:
+      product: opensearch
+
   generate-test-list:
     runs-on: ubuntu-latest
     outputs:
@@ -32,16 +37,49 @@ jobs:
       run: |
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
-  test:
-    name: test
+  test-linux:
+    name: test (linux)
+    needs:
+      - generate-test-list
+      - Get-CI-Image-Tag
+    if: github.repository == 'opensearch-project/security'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
+        jdk: [11, 17, 21]
+    container:
+      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
+      # this image tag is subject to change as more dependencies and updates will arrive over time
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      # need to switch to root so that github actions can install runner binary on container without permission issues.
+      options: --user root
+
+    steps:
+    - uses: actions/checkout@v3
+      name: Checkout security
+    - name: Build and Test
+      run: |
+        chown -R ci-runner:ci-runner `pwd`
+        su ci-runner -c "source /etc/profile.d/java_home.sh && ./gradlew ${{ matrix.gradle_task }} --no-build-cache -Dbuild.snapshot=false -Dorg.gradle.java.home=/opt/java/openjdk-${{ matrix.jdk }}"
+
+    - uses: alehechka/upload-tartifact@v2
+      if: always()
+      with:
+        name: ubuntu-latest-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
+        path: |
+          ./build/reports/
+
+  test-windows:
+    name: test (windows)
     needs: generate-test-list
     strategy:
       fail-fast: false
       matrix:
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
-        platform: [windows-latest, ubuntu-latest]
         jdk: [11, 17, 21]
-    runs-on: ${{ matrix.platform }}
+    runs-on: windows-latest
 
     steps:
     - name: Set up JDK for build and test
@@ -63,13 +101,14 @@ jobs:
     - uses: alehechka/upload-tartifact@v2
       if: always()
       with:
-        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
+        name: windows-latest-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
         path: |
           ./build/reports/
 
   report-coverage:
     needs:
-      - "test"
+      - "test-linux"
+      - "test-windows"
       - "integration-tests"
     runs-on: ubuntu-latest
     steps:
