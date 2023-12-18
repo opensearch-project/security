@@ -71,8 +71,7 @@ public abstract class AbstractApiActionValidationTest {
             null,
             restApiAdminPrivilegesEvaluator,
             null,
-            Settings.EMPTY,
-            null
+            Settings.EMPTY
         );
     }
 

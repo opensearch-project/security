@@ -30,16 +30,7 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
         final var securityConfigApiAction = new SecurityConfigApiAction(
             clusterService,
             threadPool,
-            new SecurityApiDependencies(
-                null,
-                configurationRepository,
-                null,
-                null,
-                restApiAdminPrivilegesEvaluator,
-                null,
-                Settings.EMPTY,
-                null
-            )
+            new SecurityApiDependencies(null, configurationRepository, null, null, restApiAdminPrivilegesEvaluator, null, Settings.EMPTY)
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
         assertFalse(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
@@ -58,8 +49,7 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
                 null,
                 restApiAdminPrivilegesEvaluator,
                 null,
-                Settings.builder().put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build(),
-                null
+                Settings.builder().put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build()
             )
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
@@ -80,8 +70,7 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
                         null,
                         restApiAdminPrivilegesEvaluator,
                         null,
-                        Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build(),
-                        null
+                        Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build()
                 )
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
