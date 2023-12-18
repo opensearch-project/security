@@ -614,7 +614,7 @@ dependencies {
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.1'
     runtimeOnly 'org.ow2.asm:asm:9.6'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.2'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.3'
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.0'
