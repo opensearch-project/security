@@ -37,7 +37,6 @@ import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -294,7 +293,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     }
 
     @Test
-    @Ignore
     public void testInvalidDefaultConfig() throws Exception {
         try {
             final String defaultInitDirectory = ClusterHelper.updateDefaultDirectory(
@@ -308,7 +306,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                 nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
             );
 
-            ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
+            ClusterHelper.resetSystemProperties();
             restart(Settings.EMPTY, null, settings, false);
             Awaitility.await()
                 .alias("Load default configuration")
