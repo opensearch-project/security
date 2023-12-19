@@ -20,6 +20,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.parsers.ParserConfigurationException;
@@ -42,6 +43,7 @@ import org.opensearch.security.filter.OpenSearchRequest;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.opensaml.integration.SecurityXMLObjectProviderInitializer;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.user.AuthCredentials;
@@ -61,9 +63,11 @@ import net.shibboleth.utilities.java.support.component.DestructableComponent;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
+import org.opensaml.core.config.Initializer;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.AbstractMetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.DOMMetadataResolver;
+import org.opensaml.xmlsec.config.impl.XMLObjectProviderInitializer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -111,12 +115,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             spSignaturePrivateKey = getSpSignaturePrivateKey(settings, configPath);
             useForceAuthn = settings.getAsBoolean("sp.forceAuthn", null);
 
-            if (rolesKey == null || rolesKey.length() == 0) {
+            if (rolesKey == null || rolesKey.isEmpty()) {
                 log.warn("roles_key is not configured, will only extract subject from SAML");
                 rolesKey = null;
             }
 
-            if (subjectKey == null || subjectKey.length() == 0) {
+            if (subjectKey == null || subjectKey.isEmpty()) {
                 // If subjectKey == null, get subject from the NameID element.
                 // Thus, this is a valid configuration.
                 subjectKey = null;
@@ -287,32 +291,37 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
 
         try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws InitializationException {
-
-                    Thread thread = Thread.currentThread();
-                    ClassLoader originalClassLoader = thread.getContextClassLoader();
-
-                    try {
-
-                        thread.setContextClassLoader(InitializationService.class.getClassLoader());
-
-                        InitializationService.initialize();
-
-                        new org.opensaml.saml.config.impl.XMLObjectProviderInitializer().init();
-                        new org.opensaml.saml.config.impl.SAMLConfigurationInitializer().init();
-                        new org.opensaml.xmlsec.config.impl.XMLObjectProviderInitializer().init();
-                    } finally {
-                        thread.setContextClassLoader(originalClassLoader);
-                    }
-
-                    openSamlInitialized = true;
-                    return null;
+            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+                Thread thread = Thread.currentThread();
+                ClassLoader originalClassLoader = thread.getContextClassLoader();
+                try {
+                    thread.setContextClassLoader(InitializationService.class.getClassLoader());
+                    initializeOpenSAMLConfiguration();
+                } catch (InitializationException e) {
+                    throw new RuntimeException(e.getCause());
+                } finally {
+                    thread.setContextClassLoader(originalClassLoader);
                 }
+
+                openSamlInitialized = true;
+                return null;
             });
         } catch (PrivilegedActionException e) {
             throw new RuntimeException(e.getCause());
+        }
+    }
+
+    private static void initializeOpenSAMLConfiguration() throws InitializationException {
+        log.info("Initializing OpenSAML using the Java Services API");
+
+        final ServiceLoader<Initializer> serviceLoader = ServiceLoader.load(Initializer.class);
+        for (Initializer initializer : serviceLoader) {
+            if (initializer instanceof XMLObjectProviderInitializer) {
+                // replace initialization of X509 builders which support Cleaner with our own solution
+                new SecurityXMLObjectProviderInitializer().init();
+            } else {
+                initializer.init();
+            }
         }
     }
 
@@ -349,12 +358,9 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
 
         try {
-            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws ComponentInitializationException {
-                    metadataResolver.initialize();
-                    return null;
-                }
+            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+                metadataResolver.initialize();
+                return null;
             });
         } catch (PrivilegedActionException e) {
             if (e.getCause() instanceof ComponentInitializationException) {

@@ -39,6 +39,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
 import org.opensearch.security.auth.HTTPAuthenticator;
@@ -284,10 +285,12 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials creds) {
         final Map<String, String> headers = new HashMap<>();
         String responseBody = "";
+        String contentType = null;
+        SecurityResponse response;
         final String negotiateResponseBody = getNegotiateResponseBody();
         if (negotiateResponseBody != null) {
             responseBody = negotiateResponseBody;
-            headers.putAll(SecurityResponse.CONTENT_TYPE_APP_JSON);
+            contentType = XContentType.JSON.mediaType();
         }
 
         if (creds == null || creds.getNativeCredentials() == null) {
@@ -296,7 +299,12 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
             headers.put("WWW-Authenticate", "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials()));
         }
 
-        return Optional.of(new SecurityResponse(SC_UNAUTHORIZED, headers, responseBody));
+        if (contentType != null) {
+            response = new SecurityResponse(SC_UNAUTHORIZED, headers, responseBody, contentType);
+        } else {
+            response = new SecurityResponse(SC_UNAUTHORIZED, headers, responseBody);
+        }
+        return Optional.of(response);
     }
 
     @Override

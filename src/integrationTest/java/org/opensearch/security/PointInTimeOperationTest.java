@@ -380,7 +380,7 @@ public class PointInTimeOperationTest {
     @Test
     public void listAllPitSegments_positive() {
         try (TestRestClient restClient = cluster.getRestClient(POINT_IN_TIME_USER)) {
-            HttpResponse response = restClient.get("/_cat/pit_segments/_all");
+            HttpResponse response = restClient.get("_cat/pit_segments/_all");
 
             response.assertStatusCode(OK.getStatus());
         }
@@ -389,7 +389,7 @@ public class PointInTimeOperationTest {
     @Test
     public void listAllPitSegments_negative() {
         try (TestRestClient restClient = cluster.getRestClient(LIMITED_POINT_IN_TIME_USER)) {
-            HttpResponse response = restClient.get("/_cat/pit_segments/_all");
+            HttpResponse response = restClient.get("_cat/pit_segments/_all");
 
             response.assertStatusCode(FORBIDDEN.getStatus());
         }

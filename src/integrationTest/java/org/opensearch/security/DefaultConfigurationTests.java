@@ -69,7 +69,7 @@ public class DefaultConfigurationTests {
         }
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
             client.confirmCorrectCredentials(ADMIN_USER_NAME);
-            HttpResponse response = client.get("/_plugins/_security/api/internalusers");
+            HttpResponse response = client.get("_plugins/_security/api/internalusers");
             response.assertStatusCode(200);
             Map<String, Object> users = response.getBodyAs(Map.class);
             assertThat(users, allOf(aMapWithSize(3), hasKey(ADMIN_USER_NAME), hasKey(NEW_USER), hasKey(LIMITED_USER)));
