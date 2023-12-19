@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.script.mustache.MustacheModulePlugin;
+import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -49,15 +50,25 @@ public class PrivilegesEvaluatorTest {
         new Role("search_template_role").indexPermissions("read").on("services").clusterPermissions("cluster_composite_ops")
     );
 
+    protected final static TestSecurityConfig.User RENDER_SEARCH_TEMPLATE = new TestSecurityConfig.User("render_search_template_user")
+        .roles(
+            new Role("render_search_template_role").indexPermissions("read")
+                .on("services")
+                .clusterPermissions(RenderSearchTemplateAction.NAME)
+        );
+
     private String TEST_QUERY =
         "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}";
 
     private String TEST_DOC = "{\"source\": {\"title\": \"Spirited Away\"}}";
 
+    private String TEST_RENDER_SEARCH_TEMPLATE_QUERY =
+        "{\"params\":{\"status\":[\"pending\",\"published\"]},\"source\":\"{\\\"query\\\": {\\\"terms\\\": {\\\"status\\\": [\\\"{{#status}}\\\",\\\"{{.}}\\\",\\\"{{/status}}\\\"]}}}\"}";
+
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN)
+        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, RENDER_SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN)
         .plugin(MustacheModulePlugin.class)
         .build();
 
@@ -116,6 +127,30 @@ public class PrivilegesEvaluatorTest {
             final String searchTemplateOnAllIndices = "_search/template";
             final TestRestClient.HttpResponse searchOnAllIndicesResponse = client.getWithJsonBody(searchTemplateOnAllIndices, TEST_QUERY);
             assertThat(searchOnAllIndicesResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
+    public void testRenderSearchTemplateRequestFailure() {
+        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
+            final String renderSearchTemplate = "_render/template";
+            final TestRestClient.HttpResponse renderSearchTemplateResponse = client.postJson(
+                renderSearchTemplate,
+                TEST_RENDER_SEARCH_TEMPLATE_QUERY
+            );
+            assertThat(renderSearchTemplateResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
+    public void testRenderSearchTemplateRequestSuccess() {
+        try (TestRestClient client = cluster.getRestClient(RENDER_SEARCH_TEMPLATE)) {
+            final String renderSearchTemplate = "_render/template";
+            final TestRestClient.HttpResponse renderSearchTemplateResponse = client.postJson(
+                renderSearchTemplate,
+                TEST_RENDER_SEARCH_TEMPLATE_QUERY
+            );
+            assertThat(renderSearchTemplateResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
     }
 }

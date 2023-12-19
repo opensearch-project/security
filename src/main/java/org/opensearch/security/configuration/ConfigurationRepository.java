@@ -504,6 +504,10 @@ public class ConfigurationRepository {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
     }
 
+    public AtomicBoolean getInstallDefaultConfig() {
+        return installDefaultConfig;
+    }
+
     private class AccessControllerWrappedThread extends Thread {
         private final Thread innerThread;
 

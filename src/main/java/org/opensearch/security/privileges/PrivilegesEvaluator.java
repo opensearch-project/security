@@ -81,6 +81,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
+import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -696,8 +697,7 @@ public class PrivilegesEvaluator {
             || (action0.startsWith(MultiSearchAction.NAME))
             || (action0.equals(MultiTermVectorsAction.NAME))
             || (action0.equals(ReindexAction.NAME))
-
-        );
+            || (action0.equals(RenderSearchTemplateAction.NAME)));
     }
 
     @SuppressWarnings("unchecked")

@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: downloaded-artifacts
 
@@ -111,7 +111,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [11, 17, 21]
-        platform: [ubuntu-latest] # Removed windows https://github.com/opensearch-project/security/issues/3423
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -218,11 +218,11 @@ jobs:
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
-    - uses: github/codeql-action/init@v2
+    - uses: github/codeql-action/init@v3
       with:
         languages: java
     - run: ./gradlew clean assemble
-    - uses: github/codeql-action/analyze@v2
+    - uses: github/codeql-action/analyze@v3
 
   build-artifact-names:
     runs-on: ubuntu-latest
