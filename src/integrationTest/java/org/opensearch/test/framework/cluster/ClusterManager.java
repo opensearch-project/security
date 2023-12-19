@@ -74,6 +74,15 @@ public enum ClusterManager {
         new NodeSettings(NodeRole.CLUSTER_MANAGER),
         new NodeSettings(NodeRole.DATA),
         new NodeSettings(NodeRole.DATA)
+    ),
+
+    THREE_CLUSTER_MANAGERS_COORDINATOR(
+        new NodeSettings(NodeRole.CLUSTER_MANAGER),
+        new NodeSettings(NodeRole.CLUSTER_MANAGER),
+        new NodeSettings(NodeRole.CLUSTER_MANAGER),
+        new NodeSettings(NodeRole.DATA),
+        new NodeSettings(NodeRole.DATA),
+        new NodeSettings()
     );
 
     private List<NodeSettings> nodeSettings = new LinkedList<>();
