@@ -1,6 +1,5 @@
 # Developer Guide
-
-So you want to contribute code to OpenSearch Security? Excellent! We're glad you're here. Here's what you need to do.
+So you want to contribute code to this project? Excellent! We're glad you're here. Here's what you need to do.
 
 - [Developer Guide](#developer-guide)
   - [Prerequisites](#prerequisites)
@@ -18,13 +17,14 @@ So you want to contribute code to OpenSearch Security? Excellent! We're glad you
 
 > Please make sure to follow the OpenSearch [Install Prerequisites](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#install-prerequisites) before starting for the first time.
 
-OpenSearch Security runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install the Security plugin there. However, we will compile OpenSearch Security using source code so that we are pulling in changes from the latest commit.
+This project runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install this plugin there. However, we will compile it using source code so that we are pulling in changes from the latest commit.
 
 ### Native platforms
+Not all platforms natively support OpenSearch, to check distribution avaliability please check these [issues](https://github.com/opensearch-project/opensearch-build/labels/distributions).
 
-Not all platforms natively support OpenSearch, to view distribution availability please check these [issues](https://github.com/opensearch-project/opensearch-build/issues?q=label%3Adistributions).
+On MacOS / PC the OpenSearch distribution can be run with docker.  This distribution contains the released version of OpenSearch including the security plugin.  For development we do not recommend using this docker image.
 
-On MacOS / PC the OpenSearch distribution can be run with Docker. This distribution contains the released version of OpenSearch including the security plugin. If you wish to use the Docker image for development, you will need to follow the steps found on the [Developing with Docker](DEVELOPING_WITH_DOCKER.md) guide.
+To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. Reach to the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
 
 To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. You should follow the steps until you reach the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
 
@@ -43,28 +43,20 @@ cd $OPENSEARCH_HOME
 ./bin/opensearch
 ```
 
-The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are now ready to install the security plugin.
-
+The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are ready to install the security plugin.
 
 >Worth noting:\
-> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `3.0.0.0-SNAPSHOT` compatible with OpenSearch `3.0.0`. Check the expected compatible version in `build.gradle` file [here](https://github.com/opensearch-project/security/blob/main/build.gradle) and make sure you get the correct branch from OpenSearch when building that project.
->
-> The line to look for: `opensearch_version = System.getProperty("opensearch.version", "x")`
->
-> Alternatively, you can find the compatible version of OpenSearch by running in project root folder
-> ```
-> ./gradlew properties -q | grep -E '^version:' | awk '{print $2}'
-> ```
+> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT` compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
 
 ## Building
 
-First create a fork of this repo and clone it locally. You should then change to the directory containing the clone and run this to build the project:
+First create a fork of this repo and clone it locally. Changing to directory containing this clone and run this to build the project:
 
 ```bash
 ./gradlew clean assemble
 ```
 
-To install the built plugin into the OpenSearch server run:
+Install the built plugin into the OpenSearch server:
 
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
@@ -162,19 +154,8 @@ extension_hw_greet:
     - "hw-user"
 ```
 
-### Setting up password for demo admin user
-
-This step is a pre-requisite to installing demo configuration. You can pass the demo `admin` user password by exporting `OPENSEARCH_INITIAL_ADMIN_PASSWORD` variable with a password.
-```shell
-export OPENSEARCH_INITIAL_ADMIN_PASSWORD=<password>
-```
-
-**_Note:_** If no password is supplied, the installation will fail. The password supplied will also be tested for its strength and will be blocked if it is too simple. There is an option to skip this password validation by passing the `-t` option to the installation script. However, this should only be used for test environments.
-
-
-### Executing the demo installation script
-
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
+
 
 ```bash
 ./tools/install_demo_configuration.sh
@@ -204,17 +185,17 @@ Detected OpenSearch Security Version: *
 "/Users/XXXXX/Test/opensearch-*/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/Test/opensearch-*/config/opensearch-security/" -icl -key "/Users/XXXXX/Test/opensearch-*/config/kirk-key.pem" -cert "/Users/XXXXX/Test/opensearch-*/config/kirk.pem" -cacert "/Users/XXXXX/Test/opensearch-*/config/root-ca.pem" -nhnv
 ### or run ./securityadmin_demo.sh
 ### To use the Security Plugin ConfigurationGUI
-### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/<your-admin-password>.
+### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.
 ### (Ignore the SSL certificate warning because we installed self-signed demo certificates)
 ```
 
 Now if we start our server again and try the original `curl localhost:9200`, it will fail.
-Try this command instead: `curl -XGET https://localhost:9200 -u 'admin:<your-admin-password>' --insecure`. It should succeed.
+Try this one instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
 
 You can also make this call to return the authenticated user details:
 
 ```bash
-curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:<your-admin-password>' --insecure
+curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' --insecure
 
 {
   "user": "User [name=admin, backend_roles=[admin], requestedTenant=null]",
@@ -246,7 +227,7 @@ Launch IntelliJ IDEA, choose **Project from Existing Sources**, and select direc
 
 ## Running tests
 
-Locally these can be run with `./gradlew test` with detailed results being available at `${project-root}/build/reports/tests/test/index.html`. You can also run tests through an IDEs JUnit test runner.
+Locally these can be run with `./gradlew test` with detailed results being avaliable at `${project-root}/build/reports/tests/test/index.html`, or run through an IDEs JUnit test runner.
 
 Tests are automatically run on all pull requests for all supported versions of the JDK. These must pass for change(s) to be merged. Detailed logs of these test results are available by going to the GitHub Actions workflow summary view and downloading the workflow run of the tests. If you see multiple tests listed with different JDK versions, you can download the version with whichever JDK you are interested in. After extracting the test file on your local machine, integration tests results can be found at `./tests/tests/index.html`.
 
@@ -270,12 +251,10 @@ public void testMethod() {
 Tests in the integrationTest package can be run with `./gradlew integrationTest`.
 
 ### Bulk test runs
-
-To collect reliability data on test runs, there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
+To collect reliability data on test runs there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
 
 ### Checkstyle Violations
-
-Checkstyle enforces several rules within this codebase. Sometimes it will be necessary for exceptions to be made when dealing with components that are set for deprecation. This can happen when the new version of a deprecation-path component is unavailable. There are two formats of suppression that can be used when dealing with violations of this nature, one for disabling a single rule, or another for disabling all rules. It is best to only disable specific rules when possible.
+Checkstyle enforced several rules within this codebase.  Sometimes exceptions will be necessary for components that are set for deprecation but the new version is unavailable.  There are two formats of suppression that can be used when dealing with violations of this nature, one for disabling a single rule, or another for disabling all rules - its best to be as specific as possible.
 
 *Execute Checkstyle*
 ```
