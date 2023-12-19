@@ -14,6 +14,7 @@ import java.io.IOException;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -133,6 +134,23 @@ public class PointInTimeOperationTest {
         }
     }
 
+    @Before
+    public void cleanUpPits() throws IOException {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
+            GetAllPitNodesResponse existingPitsResponse = restHighLevelClient.getAllPits(DEFAULT);
+            if (!existingPitsResponse.getPitInfos().isEmpty()) {
+                try {
+                    restHighLevelClient.deleteAllPits(DEFAULT);
+                } catch (OpenSearchStatusException ex) {
+                    if (ex.status() != RestStatus.NOT_FOUND) {
+                        throw ex;
+                    }
+                    // tried to remove pits but no pit exists
+                }
+            }
+        }
+    }
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
@@ -180,11 +198,9 @@ public class PointInTimeOperationTest {
         }
     }
 
-    @Ignore("Pretty sure cleanUpPits is returning before all of the PITs have actually been deleted")
     @Test
     public void listAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
-            cleanUpPits();
             String firstIndexPit = createPitForIndices(FIRST_SONG_INDEX);
             String secondIndexPit = createPitForIndices(SECOND_SONG_INDEX);
 
@@ -247,11 +263,9 @@ public class PointInTimeOperationTest {
         }
     }
 
-    @Ignore("Pretty sure cleanUpPits is returning before all of the PITs have actually been deleted")
     @Test
     public void deleteAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
-            cleanUpPits();
             String firstIndexPit = createPitForIndices(FIRST_SONG_INDEX);
             String secondIndexPit = createPitForIndices(SECOND_SONG_INDEX);
 
@@ -407,22 +421,6 @@ public class PointInTimeOperationTest {
 
             assertThat(createPitResponse, isSuccessfulCreatePitResponse());
             return createPitResponse.getId();
-        }
-    }
-
-    /**
-    * Deletes all PITs.
-    */
-    public void cleanUpPits() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            try {
-                restHighLevelClient.deleteAllPits(DEFAULT);
-            } catch (OpenSearchStatusException ex) {
-                if (ex.status() != RestStatus.NOT_FOUND) {
-                    throw ex;
-                }
-                // tried to remove pits but no pit exists
-            }
         }
     }
 
