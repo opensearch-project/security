@@ -28,6 +28,7 @@ package org.opensearch.security;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -307,6 +308,16 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                 HttpStatus.SC_SERVICE_UNAVAILABLE,
                 nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
             );
+
+            ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
+            restart(Settings.EMPTY, null, settings, false);
+            Awaitility.waitAtMost(30, TimeUnit.SECONDS)
+                .await()
+                .alias("Load default configuration")
+                .until(
+                    () -> nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(),
+                    equalTo(HttpStatus.SC_OK)
+                );
         } finally {
             ClusterHelper.resetSystemProperties();
         }
