@@ -356,11 +356,12 @@ public final class AuditMessage {
         }
     }
 
-    public void addRestHeaders(Map<String, List<String>> headers, boolean excludeSensitiveHeaders) {
+    public void addRestHeaders(Map<String, List<String>> headers, boolean excludeSensitiveHeaders, WildcardMatcher customHeaders) {
         if (headers != null && !headers.isEmpty()) {
             final Map<String, List<String>> headersClone = new HashMap<>(headers);
             if (excludeSensitiveHeaders) {
                 headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
+                headersClone.keySet().removeIf(customHeaders);
             }
             auditInfo.put(REST_REQUEST_HEADERS, headersClone);
         }
@@ -376,7 +377,7 @@ public final class AuditMessage {
         if (request != null) {
             final String path = request.path().toString();
             addPath(path);
-            addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
+            addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders(), filter.getIgnoredCustomHeadersMatcher());
             addRestParams(request.params());
             addRestMethod(request.method());
 

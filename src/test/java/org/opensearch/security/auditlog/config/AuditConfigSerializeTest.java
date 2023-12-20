@@ -72,6 +72,7 @@ public class AuditConfigSerializeTest {
             .field("exclude_sensitive_headers", true)
             .field("ignore_users", Collections.singletonList("kibanaserver"))
             .field("ignore_requests", Collections.emptyList())
+                .field("ignore_headers", Collections.emptyList())
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -107,6 +108,7 @@ public class AuditConfigSerializeTest {
         assertTrue(audit.shouldExcludeSensitiveHeaders());
         assertSame(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
         assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
+        assertEquals(WildcardMatcher.NONE, audit.getIgnoredCustomHeadersMatcher());
         assertFalse(compliance.shouldLogExternalConfig());
         assertFalse(compliance.shouldLogInternalConfig());
         assertFalse(compliance.shouldLogReadMetadataOnly());
@@ -115,6 +117,7 @@ public class AuditConfigSerializeTest {
         assertFalse(compliance.shouldLogDiffsForWrite());
         assertEquals(DEFAULT_IGNORED_USER, compliance.getIgnoredComplianceUsersForWriteMatcher());
     }
+
 
     @Test
     public void testDeserialize() throws IOException {
@@ -196,6 +199,7 @@ public class AuditConfigSerializeTest {
             true,
             ImmutableSet.of("ignore-user-1", "ignore-user-2"),
             ImmutableSet.of("ignore-request-1"),
+                ImmutableSet.of("test-header"),
             EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES),
             EnumSet.of(AUTHENTICATED)
         );
@@ -287,6 +291,9 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
+        System.out.println("JSON BUILDER OUTPUT IS: " + jsonBuilder);
+        System.out.println("JSON OUTPUT IS: " + json);
+        System.out.println(jsonBuilder.);
         assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
@@ -370,6 +377,8 @@ public class AuditConfigSerializeTest {
     private boolean compareJson(final String json1, final String json2) throws JsonProcessingException {
         ObjectNode objectNode1 = objectMapper.readValue(json1, ObjectNode.class);
         ObjectNode objectNode2 = objectMapper.readValue(json2, ObjectNode.class);
+
+        System.out.println("Checking if " + objectNode1 + " is equal to " + objectNode2 + ". Equal? " + objectNode1.equals(objectNode2));
         return objectNode1.equals(objectNode2);
     }
 }

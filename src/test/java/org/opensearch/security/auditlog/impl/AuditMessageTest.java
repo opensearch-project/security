@@ -13,6 +13,7 @@ package org.opensearch.security.auditlog.impl;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.WildcardMatcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -70,22 +72,28 @@ public class AuditMessageTest {
     }
 
     @Test
-    public void testRestHeadersAreFiltered() {
-        message.addRestHeaders(TEST_REST_HEADERS, true);
+    public void testAuthorizationRestHeadersAreFiltered() {
+        message.addRestHeaders(TEST_REST_HEADERS, true, WildcardMatcher.NONE);
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), ImmutableMap.of("test-header", ImmutableList.of("test-4")));
     }
 
     @Test
+    public void testCustomRestHeadersAreFiltered() {
+        message.addRestHeaders(TEST_REST_HEADERS, true, WildcardMatcher.from("test-header"));
+        assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), Map.of());
+    }
+
+    @Test
     public void testRestHeadersNull() {
-        message.addRestHeaders(null, true);
+        message.addRestHeaders(null, true, null);
         assertNull(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS));
-        message.addRestHeaders(Collections.emptyMap(), true);
+        message.addRestHeaders(Collections.emptyMap(), true, null);
         assertNull(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS));
     }
 
     @Test
     public void testRestHeadersAreNotFiltered() {
-        message.addRestHeaders(TEST_REST_HEADERS, false);
+        message.addRestHeaders(TEST_REST_HEADERS, false, WildcardMatcher.ANY);
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), TEST_REST_HEADERS);
     }
 

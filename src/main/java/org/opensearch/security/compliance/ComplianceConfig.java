@@ -235,6 +235,7 @@ public class ComplianceConfig {
         final Set<String> ignoredComplianceUsersForRead = ImmutableSet.copyOf(
             getOrDefault(properties, "read_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS)
         );
+
         final boolean logWriteMetadataOnly = getOrDefault(properties, "write_metadata_only", false);
         final boolean logDiffsForWrite = getOrDefault(properties, "write_log_diffs", false);
         final List<String> watchedWriteIndicesPatterns = getOrDefault(properties, "write_watched_indices", Collections.emptyList());
