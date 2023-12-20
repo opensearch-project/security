@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -183,16 +182,9 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         if (Objects.nonNull(jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY))) {
             config.dynamic.kibana.multitenancy_enabled = jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY).asBoolean();
         }
-        if (Objects.nonNull(jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS))
-            && jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS).size() > 0) {
-            JsonNode newOptions = jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS);
-            List<DashboardSignInOption> options = new ArrayList<>();
-            for (int i = 0; i < newOptions.size(); i++) {
-                try {
-                    String option = newOptions.get(i).asText();
-                    options.add(DashboardSignInOption.valueOf(option));
-                } catch (Exception e) {}
-            }
+        if (jsonContent.hasNonNull(DASHBOARD_SIGNIN_OPTIONS) && jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS).isEmpty() == false) {
+            List<String> newOptions = jsonContent.findValuesAsText(DASHBOARD_SIGNIN_OPTIONS);
+            List<DashboardSignInOption> options = newOptions.stream().map(DashboardSignInOption::valueOf).collect(Collectors.toList());
             config.dynamic.kibana.dashboardSignInOptions = options;
         }
 
