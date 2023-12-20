@@ -300,14 +300,17 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             );
             final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
             setup(Settings.EMPTY, null, settings, false);
+
             Thread.sleep(10000);
             Assert.assertEquals(
                 HttpStatus.SC_SERVICE_UNAVAILABLE,
                 nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
             );
 
-            ClusterHelper.resetSystemProperties();
-            restart(Settings.EMPTY, null, settings, false);
+            ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
+
+            stopCluster();
+            setup(Settings.EMPTY, null, settings, false);
             Awaitility.await()
                 .alias("Load default configuration")
                 .until(
