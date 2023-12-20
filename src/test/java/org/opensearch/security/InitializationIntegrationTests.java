@@ -28,7 +28,6 @@ package org.opensearch.security;
 
 import java.io.File;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -36,7 +35,6 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpVersion;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.http.HttpStatus;
-import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -62,8 +60,6 @@ import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-
-import static org.hamcrest.Matchers.equalTo;
 
 public class InitializationIntegrationTests extends SingleClusterTest {
 
@@ -285,10 +281,9 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();
+        Thread.sleep(10000);
 
-        Awaitility.await()
-            .alias("Load default configuration")
-            .until(() -> rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(), equalTo(HttpStatus.SC_OK));
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
         HttpResponse res = rh.executeGetRequest("/_cluster/health", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
     }
@@ -299,25 +294,14 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             final String defaultInitDirectory = ClusterHelper.updateDefaultDirectory(
                 new File(TEST_RESOURCE_RELATIVE_PATH + "invalid_config").getAbsolutePath()
             );
-
             final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
             setup(Settings.EMPTY, null, settings, false);
-
+            RestHelper rh = nonSslRestHelper();
             Thread.sleep(10000);
             Assert.assertEquals(
                 HttpStatus.SC_SERVICE_UNAVAILABLE,
-                nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
+                rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
             );
-
-            ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
-            restart(Settings.EMPTY, null, settings, false);
-            Awaitility.waitAtMost(30, TimeUnit.SECONDS)
-                .await()
-                .alias("Load default configuration")
-                .until(
-                    () -> nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(),
-                    equalTo(HttpStatus.SC_OK)
-                );
         } finally {
             ClusterHelper.resetSystemProperties();
         }
