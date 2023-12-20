@@ -273,6 +273,7 @@ public class AuditConfigSerializeTest {
             .field("exclude_sensitive_headers", true)
             .field("ignore_users", ImmutableList.of("kibanaserver"))
             .field("ignore_requests", Collections.emptyList())
+                .field("ignore_headers", Collections.emptyList())
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -293,7 +294,6 @@ public class AuditConfigSerializeTest {
         // assert
         System.out.println("JSON BUILDER OUTPUT IS: " + jsonBuilder);
         System.out.println("JSON OUTPUT IS: " + json);
-        System.out.println(jsonBuilder.);
         assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
