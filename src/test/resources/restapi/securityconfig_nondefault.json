@@ -9,7 +9,8 @@
       "private_tenant_enabled" : true,
       "default_tenant" : "",
       "server_username" : "kibanaserver",
-      "index" : ".kibana"
+      "index" : ".kibana",
+      "dashboardSignInOptions":["BASIC"]
     },
     "http" : {
       "anonymous_auth_enabled" : false,
