@@ -384,7 +384,7 @@ public final class AuditMessage {
             if (filter.shouldLogRequestBody()) {
 
                 if (!(request instanceof OpenSearchRequest)) {
-                    // The request body is only avaliable on some request sources
+                    // The request body is only available on some request sources
                     return;
                 }
 

@@ -255,7 +255,9 @@ public class AuditConfig {
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(
                 getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList())
             );
-            final Set<String> ignoreCustomHeaders = ImmutableSet.copyOf(getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList()));
+            final Set<String> ignoreCustomHeaders = ImmutableSet.copyOf(
+                    getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
+            );
 
             return new Filter(
                 isRestApiAuditEnabled,
@@ -416,6 +418,7 @@ public class AuditConfig {
             return ignoredAuditRequestsMatcher;
         }
 
+
         public WildcardMatcher getIgnoredCustomHeadersMatcher() {
             return ignoredCustomHeadersMatcher;
         }
@@ -457,7 +460,7 @@ public class AuditConfig {
             logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
             logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
             logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsersMatcher);
-            logger.info("Auditing request headers {} is disabled.", ignoredCustomHeaders);
+            logger.info("Auditing request headers {} is disabled.", ignoredCustomHeadersMatcher);
         }
 
         @Override
@@ -483,8 +486,8 @@ public class AuditConfig {
                 + ignoredAuditUsersMatcher
                 + ", ignoreAuditRequests="
                 + ignoredAuditRequestsMatcher
-                    + ", ignoredCustomHeaders="
-                    + ignoredCustomHeadersMatcher
+                + ", ignoredCustomHeaders="
+                + ignoredCustomHeadersMatcher
                 + '}';
         }
     }
