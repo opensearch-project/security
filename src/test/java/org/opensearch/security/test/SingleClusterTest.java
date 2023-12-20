@@ -83,11 +83,6 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initSecurityIndex, ClusterConfiguration.DEFAULT);
     }
 
-    protected void stopCluster() throws Exception {
-        clusterHelper.stopCluster();
-        clusterInfo = null;
-    }
-
     private Settings ccs(Settings nodeOverride) throws Exception {
         if (remoteClusterHelper != null) {
             Assert.assertNull("No remote clusters", remoteClusterInfo);

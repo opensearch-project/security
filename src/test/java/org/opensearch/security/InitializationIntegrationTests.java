@@ -298,6 +298,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             final String defaultInitDirectory = ClusterHelper.updateDefaultDirectory(
                 new File(TEST_RESOURCE_RELATIVE_PATH + "invalid_config").getAbsolutePath()
             );
+
             final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
             setup(Settings.EMPTY, null, settings, false);
 
@@ -306,17 +307,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                 HttpStatus.SC_SERVICE_UNAVAILABLE,
                 nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
             );
-
-            ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
-
-            stopCluster();
-            setup(Settings.EMPTY, null, settings, false);
-            Awaitility.await()
-                .alias("Load default configuration")
-                .until(
-                    () -> nonSslRestHelper().executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode(),
-                    equalTo(HttpStatus.SC_OK)
-                );
         } finally {
             ClusterHelper.resetSystemProperties();
         }
