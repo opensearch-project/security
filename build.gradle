@@ -177,6 +177,8 @@ forbiddenApisTest.enabled = false
 filepermissions.enabled = false
 forbiddenPatterns.enabled = false
 testingConventions.enabled = false
+validateNebulaPom.enabled = false
+
 jarHell.enabled = true
 tasks.whenTaskAdded {task ->
     if(task.name.contains("forbiddenApisIntegrationTest")) {
@@ -416,8 +418,6 @@ opensearchplugin {
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
 }
 
-// This requires an additional Jar not published as part of build-tools
-loggerUsageCheck.enabled = false
 
 // No need to validate pom, as we do not upload to maven/sonatype
 tasks.matching {it.path in [":validateMavenPom", ":validateNebulaPom", ":validatePluginZipPom"]}.all { task ->
@@ -932,10 +932,8 @@ task updateVersion {
     }
 }
 
-loggerUsageCheck.enabled = false
-testingConventions.enabled = false
-validateNebulaPom.enabled = false
 
+// ******************** BWC testing ********************
 String bwcPreviousVersion = System.getProperty("bwc.version.previous", "2.4.0.0")
 String bwcNextVersion = System.getProperty("bwc.version.next", "3.0.0.0")
 
