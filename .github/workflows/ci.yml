@@ -182,7 +182,7 @@ jobs:
         with:
           cache-disabled: true
           arguments: |
-            -p bwc-test build -x test -x integTest
+            build -x test -x integTest
 
   backward-compatibility:
     strategy:

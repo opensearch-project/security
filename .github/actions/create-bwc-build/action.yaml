@@ -46,6 +46,6 @@ runs:
 
     - name: Copy current distro into the expected folder
       run: |
-        mkdir -p ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
-        cp ${{ inputs.plugin-branch }}/build/distributions/opensearch-security-${{ steps.get-opensearch-version.outputs.version }}-SNAPSHOT.zip ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
+        mkdir -p ./src/backwardsCompatabilityTest/java/org/opensearch/security/resources/${{ steps.get-opensearch-version.outputs.version }}
+        cp ${{ inputs.plugin-branch }}/build/distributions/opensearch-security-${{ steps.get-opensearch-version.outputs.version }}-SNAPSHOT.zip ./src/backwardsCompatabilityTest/java/org/opensearch/security/resources/${{ steps.get-opensearch-version.outputs.version }}
       shell: bash
