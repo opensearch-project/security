@@ -10,10 +10,9 @@
  */
 
 
+import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
 import groovy.json.JsonBuilder
-import java.util.concurrent.Callable
-import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 buildscript {
     ext {
@@ -496,82 +495,9 @@ configurations {
 
             // for spotless transitive dependency CVE
             force "org.eclipse.platform:org.eclipse.core.runtime:3.30.0"
-
-            // For integrationTest
-            force "org.apache.httpcomponents:httpclient:4.5.14"
-            force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.23.0"
-            force "org.checkerframework:checker-qual:3.42.0"
-            force "ch.qos.logback:logback-classic:1.2.13"
-        }
-    }
-
-    integrationTestImplementation.extendsFrom implementation
-    integrationTestRuntimeOnly.extendsFrom runtimeOnly
-}
-
-//create source set 'integrationTest'
-//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
-sourceSets {
-    integrationTest {
-        java {
-            srcDir file ('src/integrationTest/java')
-            compileClasspath += sourceSets.main.output
-            runtimeClasspath += sourceSets.main.output
-        }
-        resources {
-            srcDir file('src/integrationTest/resources')
-        }
-        processIntegrationTestResources {
-            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
         }
     }
 }
-
-//add new task that runs integration tests
-task integrationTest(type: Test) {
-    doFirst {
-        // Only run resources tests on resource-test CI environments or locally
-        if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
-            exclude '**/ResourceFocusedTests.class'
-        }
-        // Only run with retries while in CI systems
-        if (System.getenv('CI_ENVIRONMENT') == 'normal') {
-            retry {
-                failOnPassedAfterRetry = false
-                maxRetries = 2
-                maxFailures = 10
-            }
-        }
-    }
-    description = 'Run integration tests.'
-    group = 'verification'
-    systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
-    testClassesDirs = sourceSets.integrationTest.output.classesDirs
-    classpath = sourceSets.integrationTest.runtimeClasspath
-    //run the integrationTest task after the test task
-    shouldRunAfter test
-    jacoco {
-        excludes = [
-                "com.sun.jndi.dns.*",
-                "com.sun.security.sasl.gsskerb.*",
-                "java.sql.*",
-                "javax.script.*",
-                "org.jcp.xml.dsig.internal.dom.*",
-                "sun.nio.cs.ext.*",
-                "sun.security.ec.*",
-                "sun.security.jgss.*",
-                "sun.security.pkcs11.*",
-                "sun.security.smartcardio.*",
-                "sun.util.resources.provider.*"
-        ]
-    }
-}
-
-tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
-
-//run the integrationTest task before the check task
-check.dependsOn integrationTest
 
 dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
@@ -717,29 +643,6 @@ dependencies {
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
-    //integration test framework:
-    integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.1') {
-        exclude(group: 'junit', module: 'junit')
-    }
-    integrationTestImplementation 'junit:junit:4.13.2'
-    integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
-    integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.15.1'
-    integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-    integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
-    integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-    integrationTestImplementation "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
-    integrationTestImplementation "org.bouncycastle:bcutil-jdk15to18:${versions.bouncycastle}"
-    integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
-        exclude(group: 'org.hamcrest', module: 'hamcrest')
-    }
-    integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-    integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
-    integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
-    integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
-    integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
-    integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.18.1') {
         exclude group: 'com.google.guava'
@@ -819,23 +722,6 @@ publishing {
     }
 }
 
-task integTestRemote(type: RestIntegTestTask) {
-
-    systemProperty "tests.security.manager", "false"
-    systemProperty "user", System.getProperty("user")
-    systemProperty "password", System.getProperty("password")
-    systemProperty "https", System.getProperty("https")
-    systemProperty "security.enabled", "true"
-
-    filter {
-        setIncludePatterns("org.opensearch.security.sanity.tests.*IT")
-    }
-}
-
-integTestRemote.enabled = System.getProperty("tests.rest.cluster") != null
-// should be updated appropriately, when we add integTests in future
-integTest.enabled = false
-
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
 afterEvaluate {
     ospackage {
@@ -907,181 +793,10 @@ task updateVersion {
         ant.replaceregexp(match: opensearch_version.tokenize('-')[0], replace: newVersion.tokenize('-')[0], flags:'g', byline:true) {
             fileset(dir: projectDir) {
                 // Include the required files that needs to be updated with new Version
+                include(name: "bwc-test/build.gradle")
                 include(name: ".github/workflows/plugin_install.yml")
             }
         }
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
     }
-}
-
-// ******************** BWC testing ********************
-String bwcPreviousVersion = System.getProperty("bwc.version.previous", "2.4.0.0")
-String bwcNextVersion = System.getProperty("bwc.version.next", "3.0.0.0")
-
-String bwcVersion = bwcPreviousVersion
-String bwcBaseName = "securityBwcCluster"
-String bwcFilePath = "src/backwardsCompatabilityTest/java/org/opensearch/"
-String bwcProjectVersion = bwcNextVersion
-
-String bwcPreviousOpenSearch  = extractVersion(bwcPreviousVersion) + "-SNAPSHOT";
-String bwcNextOpenSearch  = extractVersion(bwcNextVersion) + "-SNAPSHOT";
-
-// Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
-def String extractVersion(versionStr) {
-    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)$/
-    versionMatcher.find()
-    return versionMatcher.group(1)
-}
-
-2.times {i ->
-    testClusters {
-        "${bwcBaseName}$i" {
-            testDistribution = "ARCHIVE"
-            versions = [bwcPreviousOpenSearch, bwcNextOpenSearch]
-            numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>() {
-                @Override
-                RegularFile call() throws Exception {
-                    return new RegularFile() {
-                        @Override
-                        File getAsFile() {
-                            return fileTree(bwcFilePath  + bwcVersion).getSingleFile()
-                        }
-                    }
-                }
-            }))
-            nodes.each { node ->
-                def plugins = node.plugins
-                def firstPlugin = plugins.get(0)
-                plugins.remove(0)
-                plugins.add(firstPlugin)
-
-                node.extraConfigFile("kirk.pem", file("src/backwardsCompatabilityTest/java/org/opensearch/security/resources/kirk.pem"))
-                node.extraConfigFile("kirk-key.pem", file("src/backwardsCompatabilityTest/java/org/opensearch/security/resources/kirk-key.pem"))
-                node.extraConfigFile("esnode.pem", file("src/backwardsCompatabilityTest/java/org/opensearch/security/resources/esnode.pem"))
-                node.extraConfigFile("esnode-key.pem", file("src/backwardsCompatabilityTest/java/org/opensearch/security/resources/esnode-key.pem"))
-                node.extraConfigFile("root-ca.pem", file("src/backwardsCompatabilityTest/java/org/opensearch/security/resources/root-ca.pem"))
-                node.setting("network.bind_host", "127.0.0.1")
-                node.setting("network.publish_host", "127.0.0.1")
-                node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
-                node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
-                node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
-                node.setting("plugins.security.ssl.transport.enforce_hostname_verification", "false")
-                node.setting("plugins.security.ssl.http.enabled", "true")
-                node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
-                node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")
-                node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
-                node.setting("plugins.security.allow_unsafe_democertificates", "true")
-                node.setting("plugins.security.allow_default_init_securityindex", "true")
-                node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
-                node.setting("plugins.security.audit.type", "internal_opensearch")
-                node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
-                node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
-                node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
-                node.setting("plugins.security.system_indices.enabled", "true")
-            }
-
-            setting 'path.repo', "${buildDir}/cluster/shared/repo/${bwcBaseName}"
-            setting 'http.content_type.required', 'true'
-        }
-    }
-}
-
-List<Provider<RegularFile>> plugins = [
-        provider(new Callable<RegularFile>(){
-            @Override
-            RegularFile call() throws Exception {
-                return new RegularFile() {
-                    @Override
-                    File getAsFile() {
-                        return fileTree(bwcFilePath  + bwcProjectVersion).getSingleFile()
-                    }
-                }
-            }
-        })
-]
-
-// Creates a test cluster with 3 nodes of the old version.
-2.times {i ->
-    task "${bwcBaseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
-        useCluster testClusters."${bwcBaseName}$i"
-        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
-        systemProperty 'tests.rest.bwcsuite_round', 'old'
-        systemProperty 'tests.plugin_bwc_version', bwcVersion
-        nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${bwcBaseName}$i".allHttpSocketURI.join(",")}")
-        nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${bwcBaseName}$i".getName()}")
-    }
-}
-
-// Upgrades one node of the old cluster to new OpenSearch version with upgraded plugin version
-// This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
-// This is also used as a one third upgraded cluster for a rolling upgrade.
-task "${bwcBaseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
-    dependsOn "${bwcBaseName}#oldVersionClusterTask0"
-    useCluster testClusters."${bwcBaseName}0"
-    doFirst {
-        testClusters."${bwcBaseName}0".upgradeNodeAndPluginToNextVersion(plugins)
-    }
-    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
-    systemProperty 'tests.rest.bwcsuite_round', 'first'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${bwcBaseName}0".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${bwcBaseName}0".getName()}")
-}
-
-// Upgrades the second node to new OpenSearch version with upgraded plugin version after the first node is upgraded.
-// This results in a mixed cluster with 1 node on the old version and 2 upgraded nodes.
-// This is used for rolling upgrade.
-task "${bwcBaseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
-    dependsOn "${bwcBaseName}#mixedClusterTask"
-    useCluster testClusters."${bwcBaseName}0"
-    doFirst {
-        testClusters."${bwcBaseName}0".upgradeNodeAndPluginToNextVersion(plugins)
-    }
-    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
-    systemProperty 'tests.rest.bwcsuite_round', 'second'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${bwcBaseName}0".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${bwcBaseName}0".getName()}")
-}
-
-// Upgrades the third node to new OpenSearch version with upgraded plugin version after the second node is upgraded.
-// This results in a fully upgraded cluster.
-// This is used for rolling upgrade.
-task "${bwcBaseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
-    dependsOn "${bwcBaseName}#twoThirdsUpgradedClusterTask"
-    useCluster testClusters."${bwcBaseName}0"
-    doFirst {
-        testClusters."${bwcBaseName}0".upgradeNodeAndPluginToNextVersion(plugins)
-    }
-    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
-    systemProperty 'tests.rest.bwcsuite_round', 'third'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${bwcBaseName}0".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${bwcBaseName}0".getName()}")
-}
-
-// Upgrades all the nodes of the old cluster to new OpenSearch version with upgraded plugin version
-// at the same time resulting in a fully upgraded cluster.
-tasks.register("${bwcBaseName}#fullRestartClusterTask", StandaloneRestIntegTestTask) {
-    dependsOn "${bwcBaseName}#oldVersionClusterTask1"
-    useCluster testClusters."${bwcBaseName}1"
-    doFirst {
-        testClusters."${bwcBaseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
-    }
-    systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
-    systemProperty 'tests.rest.bwcsuite_round', 'first'
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${bwcBaseName}1".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${bwcBaseName}1".getName()}")
-}
-
-
-
-// A bwc test suite which runs all the bwc tasks combined.
-task bwcTestSuite(type: StandaloneRestIntegTestTask) {
-    exclude '**/**' // Do not run any tests as part of this aggregate task
-    dependsOn tasks.named("${bwcBaseName}#mixedClusterTask")
-    dependsOn tasks.named("${bwcBaseName}#rollingUpgradeClusterTask")
-    dependsOn tasks.named("${bwcBaseName}#fullRestartClusterTask")
 }

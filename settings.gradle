@@ -5,3 +5,5 @@
  */
 
 rootProject.name = 'opensearch-security'
+include('backwardsCompatabilityTest')
+include('integrationTest')

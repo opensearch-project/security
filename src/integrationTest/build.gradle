@@ -1,0 +1,119 @@
+import org.opensearch.gradle.test.RestIntegTestTask
+
+configurations {
+	resolutionStrategy {
+		// For integrationTest
+		force "org.apache.httpcomponents:httpclient:4.5.14"
+		force "org.apache.httpcomponents:httpcore:4.4.16"
+		force "com.google.errorprone:error_prone_annotations:2.23.0"
+		force "org.checkerframework:checker-qual:3.42.0"
+		force "ch.qos.logback:logback-classic:1.2.13"
+	}
+	integrationTestImplementation.extendsFrom implementation
+	integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+//create source set 'integrationTest'
+//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
+sourceSets {
+	integrationTest {
+		java {
+			srcDir file ('src/integrationTest/java')
+			compileClasspath += sourceSets.main.output
+			runtimeClasspath += sourceSets.main.output
+		}
+		resources {
+			srcDir file('src/integrationTest/resources')
+		}
+		processIntegrationTestResources {
+			duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+		}
+	}
+}
+
+//add new task that runs integration tests
+task integrationTest(type: Test) {
+	doFirst {
+		// Only run resources tests on resource-test CI environments or locally
+		if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
+			exclude '**/ResourceFocusedTests.class'
+		}
+		// Only run with retries while in CI systems
+		if (System.getenv('CI_ENVIRONMENT') == 'normal') {
+			retry {
+				failOnPassedAfterRetry = false
+				maxRetries = 2
+				maxFailures = 10
+			}
+		}
+	}
+	description = 'Run integration tests.'
+	group = 'verification'
+	systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
+	testClassesDirs = sourceSets.integrationTest.output.classesDirs
+	classpath = sourceSets.integrationTest.runtimeClasspath
+	//run the integrationTest task after the test task
+	shouldRunAfter test
+	jacoco {
+		excludes = [
+				"com.sun.jndi.dns.*",
+				"com.sun.security.sasl.gsskerb.*",
+				"java.sql.*",
+				"javax.script.*",
+				"org.jcp.xml.dsig.internal.dom.*",
+				"sun.nio.cs.ext.*",
+				"sun.security.ec.*",
+				"sun.security.jgss.*",
+				"sun.security.pkcs11.*",
+				"sun.security.smartcardio.*",
+				"sun.util.resources.provider.*"
+		]
+	}
+}
+
+tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
+
+//run the integrationTest task before the check task
+check.dependsOn integrationTest
+
+dependencies {
+	//integration test framework:
+	integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.1') {
+		exclude(group: 'junit', module: 'junit')
+	}
+	integrationTestImplementation 'junit:junit:4.13.2'
+	integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
+	integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
+	integrationTestImplementation 'commons-io:commons-io:2.15.1'
+	integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+	integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
+	integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
+	integrationTestImplementation "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
+	integrationTestImplementation "org.bouncycastle:bcutil-jdk15to18:${versions.bouncycastle}"
+	integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
+		exclude(group: 'org.hamcrest', module: 'hamcrest')
+	}
+	integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
+	integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
+	integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
+	integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
+	integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
+	integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
+}
+
+task integTestRemote(type: RestIntegTestTask) {
+
+	systemProperty "tests.security.manager", "false"
+	systemProperty "user", System.getProperty("user")
+	systemProperty "password", System.getProperty("password")
+	systemProperty "https", System.getProperty("https")
+	systemProperty "security.enabled", "true"
+
+	filter {
+		setIncludePatterns("org.opensearch.security.sanity.tests.*IT")
+	}
+}
+
+integTestRemote.enabled = System.getProperty("tests.rest.cluster") != null
+// should be updated appropriately, when we add integTests in future
+integTest.enabled = false
