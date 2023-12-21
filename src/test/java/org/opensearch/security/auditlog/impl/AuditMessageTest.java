@@ -29,6 +29,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -62,24 +63,30 @@ public class AuditMessageTest {
     );
 
     private AuditMessage message;
+    private AuditConfig auditConfig;
 
     @Before
     public void setUp() {
         final ClusterService clusterServiceMock = mock(ClusterService.class);
         when(clusterServiceMock.localNode()).thenReturn(mock(DiscoveryNode.class));
         when(clusterServiceMock.getClusterName()).thenReturn(mock(ClusterName.class));
+        auditConfig = mock(AuditConfig.class);
+        final AuditConfig.Filter auditFilter = mock(AuditConfig.Filter.class);
+        when(auditConfig.getFilter()).thenReturn(auditFilter);
         message = new AuditMessage(AuditCategory.AUTHENTICATED, clusterServiceMock, AuditLog.Origin.REST, AuditLog.Origin.REST);
     }
 
     @Test
     public void testAuthorizationRestHeadersAreFiltered() {
-        message.addRestHeaders(TEST_REST_HEADERS, true, WildcardMatcher.NONE);
+        when(auditConfig.getFilter().isHeaderDisabled("test-header")).thenReturn(false);
+        message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), ImmutableMap.of("test-header", ImmutableList.of("test-4")));
     }
 
     @Test
     public void testCustomRestHeadersAreFiltered() {
-        message.addRestHeaders(TEST_REST_HEADERS, true, WildcardMatcher.from("test-header"));
+        when(auditConfig.getFilter().isHeaderDisabled("test-header")).thenReturn(true);
+        message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), Map.of());
     }
 
@@ -93,7 +100,8 @@ public class AuditMessageTest {
 
     @Test
     public void testRestHeadersAreNotFiltered() {
-        message.addRestHeaders(TEST_REST_HEADERS, false, WildcardMatcher.ANY);
+        when(auditConfig.getFilter().isHeaderDisabled("test-header")).thenReturn(false);
+        message.addRestHeaders(TEST_REST_HEADERS, false, null);
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), TEST_REST_HEADERS);
     }
 

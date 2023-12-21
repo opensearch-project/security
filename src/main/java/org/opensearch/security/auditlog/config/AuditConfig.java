@@ -255,7 +255,7 @@ public class AuditConfig {
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(
                 getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList())
             );
-            final Set<String> ignoreCustomHeaders = ImmutableSet.copyOf(
+            final Set<String> ignoreHeaders = ImmutableSet.copyOf(
                     getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
@@ -268,7 +268,7 @@ public class AuditConfig {
                 excludeSensitiveHeaders,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
-                ignoreCustomHeaders,
+                ignoreHeaders,
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -303,7 +303,7 @@ public class AuditConfig {
             );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
-            final Set<String> ignoreCustomHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
+            final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
             return new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
@@ -313,7 +313,7 @@ public class AuditConfig {
                 excludeSensitiveHeaders,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
-                ignoreCustomHeaders,
+                ignoreHeaders,
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -418,9 +418,19 @@ public class AuditConfig {
             return ignoredAuditRequestsMatcher;
         }
 
-
-        public WildcardMatcher getIgnoredCustomHeadersMatcher() {
+        @VisibleForTesting
+        WildcardMatcher getIgnoredCustomHeadersMatcher() {
             return ignoredCustomHeadersMatcher;
+        }
+
+        /**
+         * Check if the specified header is excluded from the audit
+         *
+         * @param header
+         * @return true if header should be excluded
+         */
+        public boolean isHeaderDisabled(String header) {
+            return ignoredCustomHeadersMatcher.test(header);
         }
 
         /**

@@ -232,7 +232,7 @@ public class AuditConfigSerializeTest {
             .field("exclude_sensitive_headers", true)
             .field("ignore_users", ImmutableList.of("ignore-user-1", "ignore-user-2"))
             .field("ignore_requests", Collections.singletonList("ignore-request-1"))
-                .field("ignore_header", Collections.singletonList("test-header"))
+                .field("ignore_headers", Collections.singletonList("test-header"))
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -251,6 +251,8 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
+        System.out.println("JSON BUILDER OUTPUT IS: " + jsonBuilder);
+        System.out.println("JSON OUTPUT IS: " + json);
         assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
@@ -294,8 +296,7 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        System.out.println("JSON BUILDER OUTPUT IS: " + jsonBuilder);
-        System.out.println("JSON OUTPUT IS: " + json);
+
         assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
