@@ -250,8 +250,6 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        System.out.println("JSON BUILDER OUTPUT IS: " + jsonBuilder);
-        System.out.println("JSON OUTPUT IS: " + json);
         assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
@@ -380,7 +378,6 @@ public class AuditConfigSerializeTest {
         ObjectNode objectNode1 = objectMapper.readValue(json1, ObjectNode.class);
         ObjectNode objectNode2 = objectMapper.readValue(json2, ObjectNode.class);
 
-        System.out.println("Checking if " + objectNode1 + " is equal to " + objectNode2 + ". Equal? " + objectNode1.equals(objectNode2));
         return objectNode1.equals(objectNode2);
     }
 }
