@@ -256,7 +256,7 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList())
             );
             final Set<String> ignoreHeaders = ImmutableSet.copyOf(
-                    getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
+                getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
             return new Filter(
@@ -411,7 +411,6 @@ public class AuditConfig {
         public boolean isAuditDisabled(String user) {
             return ignoredAuditUsersMatcher.test(user);
         }
-
 
         @VisibleForTesting
         WildcardMatcher getIgnoredAuditRequestsMatcher() {

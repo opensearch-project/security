@@ -74,7 +74,7 @@ public class AuditConfigFilterTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, false)
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "test-request")
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "test-user")
-                .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS, "test-header")
+            .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS, "test-header")
             .putList(
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                 BAD_HEADERS.toString(),
@@ -124,7 +124,7 @@ public class AuditConfigFilterTest {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, Collections.emptyList())
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList())
-                .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS, Collections.emptyList())
+            .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS, Collections.emptyList())
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, Collections.emptyList())
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, Collections.emptyList())
             .build();

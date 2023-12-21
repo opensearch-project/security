@@ -13,7 +13,6 @@ package org.opensearch.security.auditlog.impl;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +30,6 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.WildcardMatcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
