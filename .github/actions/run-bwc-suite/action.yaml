@@ -41,7 +41,7 @@ runs:
       with:
         cache-disabled: true
         arguments: |
-           bwcTestSuite
+          bwcTestSuite
           -Dtests.security.manager=false
           -Dtests.opensearch.secure=true
           -Dtests.opensearch.username=${{ inputs.username }}
