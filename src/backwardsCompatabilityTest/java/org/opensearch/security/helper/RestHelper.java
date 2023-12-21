@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.bwc.helper;
+package org.opensearch.security.helper;
 
 import java.io.IOException;
 import java.util.ArrayList;

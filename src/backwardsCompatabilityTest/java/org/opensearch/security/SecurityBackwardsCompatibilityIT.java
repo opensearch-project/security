@@ -5,7 +5,7 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.opensearch.security.bwc;
+package org.opensearch.security;
 
 import java.io.IOException;
 import java.util.HashMap;

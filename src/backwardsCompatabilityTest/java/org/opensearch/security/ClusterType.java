@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.bwc;
+package org.opensearch.security;
 
 public enum ClusterType {
     OLD,

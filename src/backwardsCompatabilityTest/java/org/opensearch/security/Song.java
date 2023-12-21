@@ -7,7 +7,7 @@
 * compatible open source license.
 *
 */
-package org.opensearch.security.bwc;
+package org.opensearch.security;
 
 import java.util.Map;
 import java.util.Objects;
