@@ -10,11 +10,10 @@
  */
 
 
-import com.diffplug.gradle.spotless.JavaExtension
-import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
-import java.util.concurrent.Callable
 import org.opensearch.gradle.test.RestIntegTestTask
 import groovy.json.JsonBuilder
+import java.util.concurrent.Callable
+import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 buildscript {
     ext {
@@ -22,9 +21,9 @@ buildscript {
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
-        // Adds the extra '.0' to the end of the version id
+        // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
         version_tokens = opensearch_version.tokenize('-')
-        opensearch_build = version_tokens[0] + '.0' + (buildVersionQualifier ? "-${buildVersionQualifier}" : '') + (isSnapshot ? '-SNAPSHOT' : '')
+        opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
         kafka_version  = '3.6.1'
@@ -34,8 +33,14 @@ buildscript {
         jjwt_version = '0.12.3'
         guava_version = '32.1.3-jre'
         jaxb_version = '2.3.9'
-        jackson_version = System.getProperty("jackson_version", "2.15.2")
         spring_version = '5.3.31'
+
+        if (buildVersionQualifier) {
+            opensearch_build += "-${buildVersionQualifier}"
+        }
+        if (isSnapshot) {
+            opensearch_build += "-SNAPSHOT"
+        }
     }
 
     repositories {
@@ -58,11 +63,11 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
+    id 'com.diffplug.spotless' version '6.23.3'
     id 'checkstyle'
-    id 'eclipse'
     id 'com.netflix.nebula.ospackage' version "11.6.0"
     id "org.gradle.test-retry" version "1.5.8"
-    id 'com.diffplug.spotless' version '6.23.3'
+    id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
 }
@@ -72,27 +77,29 @@ allprojects {
     version = opensearch_build
 }
 
-apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
 apply from: 'gradle/formatting.gradle'
-apply plugin: 'java'
 
-// Linting logic
 licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
 
 spotbugs {
     includeFilter = file('spotbugs-include.xml')
-    test.enabled = false
 }
 
-java.sourceCompatibility = java.targetCompatibility = JavaVersion.VERSION_11
+spotbugsTest {
+    enabled = false
+}
 
-tasks.withType(JavaCompile) {
-    options.compilerArgs += [
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
+
+
+compileJava {
+    options.compilerArgs = [
             '-Xlint:auxiliaryclass',
             '-Xlint:cast',
             '-Xlint:classfile',
@@ -115,20 +122,42 @@ tasks.withType(JavaCompile) {
             '-Xlint:unchecked',
             '-Xlint:varargs',
             '-Xlint:preview',
-            '-Werror'
-    ]
+            '-Werror']
     options.encoding = 'UTF-8'
 }
 
-tasks.withType(Test) {
-    tasks.whenTaskAdded { task ->
-        if (task.name.contains("forbiddenApisIntegrationTest")) {
-            task.enabled = false
-        }
-    }
+compileTestJava {
+    options.compilerArgs = [
+            '-Xlint:auxiliaryclass',
+            '-Xlint:cast',
+            '-Xlint:classfile',
+            '-Xlint:dep-ann',
+            '-Xlint:divzero',
+            '-Xlint:empty',
+            '-Xlint:exports',
+            '-Xlint:fallthrough',
+            '-Xlint:finally',
+            '-Xlint:module',
+            '-Xlint:opens',
+            '-Xlint:overloads',
+            '-Xlint:overrides',
+            '-Xlint:-processing',
+            '-Xlint:rawtypes',
+            '-Xlint:removal',
+            '-Xlint:requires-automatic',
+            '-Xlint:requires-transitive-automatic',
+            '-Xlint:static',
+            '-Xlint:unchecked',
+            '-Xlint:varargs',
+            '-Xlint:preview',
+            '-Werror']
+    options.encoding = 'UTF-8'
 }
 
-// The following checks that have never be enabled in security
+
+licenseHeaders.enabled = true
+
+// The following check that have never be enabled in security
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 loggerUsageCheck.enabled = false
@@ -137,75 +166,75 @@ forbiddenApisTest.enabled = false
 filepermissions.enabled = false
 forbiddenPatterns.enabled = false
 testingConventions.enabled = false
-validateNebulaPom.enabled = false
-
-// The two enabled checks
 jarHell.enabled = true
-licenseHeaders.enabled = true
+tasks.whenTaskAdded {task ->
+    if(task.name.contains("forbiddenApisIntegrationTest")) {
+        task.enabled = false
+    }
+}
 
-// Integration test logic
 def splitTestConfig = [
-    ciSecurityIntegrationTest: [
-        description: "Runs integration tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*Integ*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
+        ciSecurityIntegrationTest: [
+                description: "Runs integration tests from all classes.",
+                filters: [
+                        includeTestsMatching: [
+                                "org.opensearch.security.*Integ*"
+                        ],
+                        excludeTestsMatching: [
+                                "org.opensearch.security.sanity.tests.*"
+                        ]
+                ]
+        ],
+        crossClusterTest: [
+                description: "Runs cross-cluster tests.",
+                filters: [
+                        includeTestsMatching: [
+                                "org.opensearch.security.ccstest.*"
+                        ]
+                ]
+        ],
+        dlicDlsflsTest: [
+                description: "Runs Document- and Field-Level Security tests.",
+                filters: [
+                        includeTestsMatching: [
+                                "org.opensearch.security.dlic.dlsfls.*"
+                        ]
+                ]
+        ],
+        dlicRestApiTest: [
+                description: "Runs REST Management API tests.",
+                filters: [
+                        includeTestsMatching: [
+                                "org.opensearch.security.dlic.rest.*"
+                        ]
+                ]
+        ],
+        indicesTest: [
+                description: "Runs indices tests from all classes.",
+                filters: [
+                        includeTestsMatching: [
+                                "org.opensearch.security.*indices*"
+                        ],
+                        excludeTestsMatching: [
+                                "org.opensearch.security.sanity.tests.*"
+                        ]
+                ]
+        ],
+        opensslCITest: [
+                description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
+                include: '**/OpenSSL*.class'
+        ],
+        sslTest: [
+                description: "Runs most of the SSL tests.",
+                filters: [
+                        includeTestsMatching: [
+                                "org.opensearch.security.ssl.*"
+                        ],
+                        excludeTestsMatching: [
+                                "org.opensearch.security.ssl.OpenSSL*"
+                        ]
+                ]
         ]
-    ],
-    crossClusterTest: [
-        description: "Runs cross-cluster tests.",
-        filters: [
-            includeTestsMatching: [
-                    "org.opensearch.security.ccstest.*"
-            ]
-        ]
-    ],
-    dlicDlsflsTest: [
-        description: "Runs Document- and Field-Level Security tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.dlsfls.*"
-            ]
-        ]
-    ],
-    dlicRestApiTest: [
-        description: "Runs REST Management API tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.rest.*"
-            ]
-        ]
-    ],
-    indicesTest: [
-        description: "Runs indices tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*indices*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
-        ]
-    ],
-    opensslCITest: [
-        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
-        include: '**/OpenSSL*.class'
-    ],
-    sslTest: [
-        description: "Runs most of the SSL tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.ssl.*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.ssl.OpenSSL*"
-            ]
-        ]
-    ]
 ] as ConfigObject
 
 List<String> taskNames = splitTestConfig.keySet() as List
@@ -215,7 +244,7 @@ task listTasksAsJSON {
     // want this action to be started. Without it the output
     // is not shown at all or can be mixed with other outputs.
     doLast {
-        System.out.println(json(["citest"] + taskNames))
+        System.out.println(new JsonBuilder(["citest"] + taskNames))
     }
 }
 
@@ -253,11 +282,22 @@ test {
 }
 
 task copyExtraTestResources(dependsOn: testClasses) {
+
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/test/src/test/resources'
+    }
+
     taskNames.each { testName ->
         copy {
             from 'src/test/resources'
             into "build/testrun/${testName}/src/test/resources"
         }
+    }
+
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/citest/src/test/resources'
     }
 }
 
@@ -358,11 +398,15 @@ tasks.withType(Checkstyle) {
     }
 }
 
+
 opensearchplugin {
     name 'opensearch-security'
     description 'Provide access control related features for OpenSearch'
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
 }
+
+// This requires an additional Jar not published as part of build-tools
+loggerUsageCheck.enabled = false
 
 // No need to validate pom, as we do not upload to maven/sonatype
 tasks.matching {it.path in [":validateMavenPom", ":validateNebulaPom", ":validatePluginZipPom"]}.all { task ->
@@ -396,11 +440,20 @@ publishing {
             name = "Snapshots" //  optional target repository name
             url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
             credentials {
-                username findProperty("SONATYPE_USERNAME") ?: project.hasProperty("sonatypeUsername") ? sonatypeUsername : ''
-                password findProperty("SONATYPE_PASSWORD") ?: project.hasProperty("sonatypePassword") ? sonatypePassword : ''
+                username "$System.env.SONATYPE_USERNAME"
+                password "$System.env.SONATYPE_PASSWORD"
             }
         }
     }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
 
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
@@ -478,8 +531,11 @@ sourceSets {
 //add new task that runs integration tests
 task integrationTest(type: Test) {
     doFirst {
-        exclude System.getenv('CI_ENVIRONMENT') == 'resource-test' ? '**/ResourceFocusedTests.class' : null
-
+        // Only run resources tests on resource-test CI environments or locally
+        if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
+            exclude '**/ResourceFocusedTests.class'
+        }
+        // Only run with retries while in CI systems
         if (System.getenv('CI_ENVIRONMENT') == 'normal') {
             retry {
                 failOnPassedAfterRetry = false
@@ -661,13 +717,6 @@ dependencies {
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
-    //BWC
-    testImplementation "com.google.guava:guava:${versions.guava}"
-    testImplementation "org.opensearch.test:framework:${opensearch_version}"
-    testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-    testImplementation "org.opensearch:common-utils:${common_utils_version}"
-    testImplementation "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
-
     //integration test framework:
     integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.1') {
         exclude(group: 'junit', module: 'junit')
@@ -716,39 +765,8 @@ testsJar {
     libsDirName = '.'
 }
 
-buildRpm {
-    arch = 'NOARCH'
-    addParentDirs = false
-    archiveFileName = "${packageName}-${version}.rpm"
-    dependsOn 'assemble'
-    finalizedBy 'renameRpm'
-    task renameRpm(type: Copy) {
-        from("$buildDir/distributions")
-        into("$buildDir/distributions")
-        rename "$archiveFileName", "${packageName}-${version}.rpm"
-        doLast { delete file("$buildDir/distributions/$archiveFileName") }
-    }
-}
-
-buildDeb {
-    arch = 'all'
-    archiveFileName = "${packageName}-${version}.deb"
-    dependsOn 'assemble'
-    finalizedBy 'renameDeb'
-    task renameDeb(type: Copy) {
-        from("$buildDir/distributions")
-        into("$buildDir/distributions")
-        rename "$archiveFileName", "${packageName}-${version}.deb"
-        doLast { delete file("$buildDir/distributions/$archiveFileName") }
-    }
-}
-
-def classifier = 'securityadmin-standalone'
-def archiveExtension = 'tar.gz'
-
 task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
-    archiveClassifier = classifier
-    archiveExtension = archiveExtension
+    archiveClassifier = 'securityadmin-standalone'
     from(configurations.runtimeClasspath) {
         into 'deps/'
     }
@@ -764,8 +782,8 @@ task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
 }
 
 task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
-    archiveClassifier = classifier
-    archiveExtension = archiveExtension
+    archiveClassifier = 'securityadmin-standalone'
+    archiveExtension = 'tar.gz'
     compression = Compression.GZIP
     from(configurations.runtimeClasspath) {
         into 'deps/'
@@ -781,9 +799,16 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
     }
 }
 
-bundleSecurityAdminStandalone.dependsOn jar
-bundleSecurityAdminStandaloneTarGz.dependsOn jar
+buildRpm {
+    arch = 'NOARCH'
+    addParentDirs = false
+    archiveFileName = "${packageName}-${version}.rpm"
+}
 
+buildDeb {
+    arch = 'all'
+    archiveFileName = "${packageName}-${version}.deb"
+}
 
 publishing {
     publications {
@@ -843,6 +868,30 @@ afterEvaluate {
     '''.stripIndent().replace('\n', ' ').trim()
     }
 
+    buildRpm {
+        arch = 'NOARCH'
+        dependsOn 'assemble'
+        finalizedBy 'renameRpm'
+        task renameRpm(type: Copy) {
+            from("$buildDir/distributions")
+            into("$buildDir/distributions")
+            rename "$archiveFileName", "${packageName}-${version}.rpm"
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
+        }
+    }
+
+    buildDeb {
+        arch = 'all'
+        dependsOn 'assemble'
+        finalizedBy 'renameDeb'
+        task renameDeb(type: Copy) {
+            from("$buildDir/distributions")
+            into("$buildDir/distributions")
+            rename "$archiveFileName", "${packageName}-${version}.deb"
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
+        }
+    }
+
     task buildPackages(type: GradleBuild) {
         tasks = ['build', 'buildRpm', 'buildDeb']
     }
@@ -858,13 +907,13 @@ task updateVersion {
         ant.replaceregexp(match: opensearch_version.tokenize('-')[0], replace: newVersion.tokenize('-')[0], flags:'g', byline:true) {
             fileset(dir: projectDir) {
                 // Include the required files that needs to be updated with new Version
+                include(name: "bwc-test/build.gradle")
                 include(name: ".github/workflows/plugin_install.yml")
             }
         }
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
     }
 }
-
 
 // ******************** BWC testing ********************
 String bwcPreviousVersion = System.getProperty("bwc.version.previous", "2.4.0.0")
