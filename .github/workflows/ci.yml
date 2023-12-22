@@ -68,9 +68,7 @@ jobs:
           ./build/reports/
 
   report-coverage:
-    needs:
-      - "test"
-      - "integration-tests"
+    needs: ["test", "integration-tests"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
