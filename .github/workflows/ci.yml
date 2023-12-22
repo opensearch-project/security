@@ -60,7 +60,7 @@ jobs:
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-    - uses: alehechka/upload-tartifact@v2
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
