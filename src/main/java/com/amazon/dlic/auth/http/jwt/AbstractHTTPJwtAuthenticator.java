@@ -78,7 +78,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         requiredIssuer = settings.get("required_issuer");
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
-            deprecationLog.deprecate("jwt_header", "The 'jwt_header' setting will be removed in the next major version of OpenSearch.  Consult https://github.com/opensearch-project/security/issues/3886 for more details.");
+            deprecationLog.deprecate(
+                "jwt_header",
+                "The 'jwt_header' setting will be removed in the next major version of OpenSearch.  Consult https://github.com/opensearch-project/security/issues/3886 for more details."
+            );
         }
 
         try {
