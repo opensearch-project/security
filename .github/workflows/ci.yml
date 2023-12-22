@@ -63,7 +63,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
         path: |
           ./build/reports/
 
