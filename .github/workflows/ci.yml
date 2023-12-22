@@ -80,17 +80,6 @@ jobs:
         run: ls -R
         working-directory: downloaded-artifacts
 
-      - name: Extract downloaded artifacts
-        run: |
-          for archive in ./*/artifact.tar; do
-            (cd "$(dirname "$archive")" && tar -xvf artifact.tar)
-          done
-        working-directory: downloaded-artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: downloaded-artifacts
-
       - name: Upload Coverage with retry
         uses: Wandalen/wretry.action@v1.3.0
         with:
