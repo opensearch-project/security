@@ -60,7 +60,7 @@ jobs:
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-    - uses: alehechka/upload-tartifact@v2
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -68,26 +68,13 @@ jobs:
           ./build/reports/
 
   report-coverage:
-    needs:
-      - "test"
-      - "integration-tests"
+    needs: ["test", "integration-tests"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: downloaded-artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: downloaded-artifacts
-
-      - name: Extract downloaded artifacts
-        run: |
-          for archive in ./*/artifact.tar; do
-            (cd "$(dirname "$archive")" && tar -xvf artifact.tar)
-          done
-        working-directory: downloaded-artifacts
 
       - name: Display structure of downloaded files
         run: ls -R
