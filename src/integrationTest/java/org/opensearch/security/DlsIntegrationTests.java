@@ -10,6 +10,7 @@
 package org.opensearch.security;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -205,7 +206,10 @@ public class DlsIntegrationTests {
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING,
             READ_WHERE_STARS_LESS_THAN_THREE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
-            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
+            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
+            TEST_ROLE_ONE_USER,
+            TEST_ROLE_TWO_USER,
+            TEST_ROLE_USER
         )
         .build();
 
@@ -248,6 +252,21 @@ public class DlsIntegrationTests {
             put(SECOND_INDEX_ID_SONG_2, SONGS[2]); // (ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3, 3, GENRE_JAZZ),
             put(SECOND_INDEX_ID_SONG_3, SONGS[1]); // (ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2, 2, GENRE_BLUES),
             put(SECOND_INDEX_ID_SONG_4, SONGS[0]); // (ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1, GENRE_ROCK)
+        }
+    };
+
+    static final TreeMap<String, Map<String, Serializable>> UNION_ROLE_TEST_DATA = new TreeMap<>() {
+        {
+            put("1", Map.of("genre", "History", "date", "01-01-2020", "sensitive", true));
+            put("2", Map.of("genre", "History", "date", "01-01-2020", "sensitive", true));
+            put("3", Map.of("genre", "History", "date", "01-01-2020", "sensitive", true));
+            put("4", Map.of("genre", "History", "date", "01-01-2020", "sensitive", true));
+            put("5", Map.of("genre", "History", "date", "01-01-2020", "sensitive", true));
+            put("6", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
+            put("7", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
+            put("8", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
+            put("9", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
+            put("10", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
         }
     };
 
@@ -308,6 +327,10 @@ public class DlsIntegrationTests {
                     )
                 )
                 .actionGet();
+            
+            UNION_ROLE_TEST_DATA.forEach((index, document) -> {
+                client.prepareIndex(UNION_TEST_INDEX_NAME).setId(index).setRefreshPolicy(IMMEDIATE).setSource(document).get();
+            });
         }
     }
 
