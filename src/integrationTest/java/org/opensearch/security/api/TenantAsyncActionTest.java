@@ -18,11 +18,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -53,12 +53,7 @@ public class TenantAsyncActionTest {
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN)
         .anonymousAuth(false)
-        .nodeSettings(
-            Map.of(
-                SECURITY_RESTAPI_ROLES_ENABLED,
-                List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())
-            )
-        )
+        .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())))
         .build();
 
     @Test
