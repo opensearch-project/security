@@ -1352,7 +1352,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Function.identity(),
                     Property.NodeScope
                 )
-            ); // not filtered here
+            );
             settings.add(
                 Setting.listSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
@@ -1360,7 +1360,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Function.identity(),
                     Property.NodeScope
                 )
-            );
+            ); // not filtered here
             settings.add(
                 Setting.listSetting(
                     ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS,
@@ -1368,7 +1368,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Function.identity(),
                     Property.NodeScope
                 )
-            );// not filtered here
+            );
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,

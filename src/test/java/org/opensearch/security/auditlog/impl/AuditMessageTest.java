@@ -76,14 +76,14 @@ public class AuditMessageTest {
 
     @Test
     public void testAuthorizationRestHeadersAreFiltered() {
-        when(auditConfig.getFilter().isHeaderDisabled("test-header")).thenReturn(false);
+        when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(false);
         message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), ImmutableMap.of("test-header", ImmutableList.of("test-4")));
     }
 
     @Test
     public void testCustomRestHeadersAreFiltered() {
-        when(auditConfig.getFilter().isHeaderDisabled("test-header")).thenReturn(true);
+        when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(true);
         message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), Map.of());
     }
@@ -98,7 +98,7 @@ public class AuditMessageTest {
 
     @Test
     public void testRestHeadersAreNotFiltered() {
-        when(auditConfig.getFilter().isHeaderDisabled("test-header")).thenReturn(false);
+        when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(false);
         message.addRestHeaders(TEST_REST_HEADERS, false, null);
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), TEST_REST_HEADERS);
     }
