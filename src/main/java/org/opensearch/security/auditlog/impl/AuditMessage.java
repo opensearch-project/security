@@ -363,7 +363,7 @@ public final class AuditMessage {
                 headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
             }
             if (filter != null) {
-                headersClone.entrySet().removeIf(entry -> filter.isHeaderDisabled(entry.getKey()));
+                headersClone.entrySet().removeIf(entry -> filter.shouldExcludeHeader(entry.getKey()));
             }
             auditInfo.put(REST_REQUEST_HEADERS, headersClone);
         }
