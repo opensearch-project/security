@@ -15,9 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
-import java.util.stream.IntStream;
+import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -29,7 +30,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.ParsedAvg;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -37,7 +37,6 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -62,6 +61,7 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.conta
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -176,7 +176,7 @@ public class DlsIntegrationTests {
      */
     static final TestSecurityConfig.Role TEST_ROLE_TWO = new TestSecurityConfig.Role("test_role_2").clusterPermissions(
         "cluster_composite_ops_ro"
-    ).indexPermissions("read").on("my_index*");
+    ).indexPermissions("read").dls("{\"match_all\": {}}").on("my_index*");
 
     /**
      * Test role 3 for DLS filtering with two nonoverlapping roles. This role imposes a filter wher ethe user can only access documents where the genre field is History, and combined with TEST_ROLE_ONE should yield a union that allows the user to access every document except the one with genre Science and sensitive true. This role is applied at a lower level for index patterns my_index*.
@@ -290,8 +290,7 @@ public class DlsIntegrationTests {
             put("7", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
             put("8", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
             put("9", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
-            put("10", Map.of("genre", "Math", "date", "01-01-2020", "sensitive", false));
-            put("11", Map.of("genre", "Science", "date", "01-01-2020", "sensitive", true));
+            put("10", Map.of("genre", "Science", "date", "01-01-2020", "sensitive", true));
         }
     };
 
@@ -606,9 +605,17 @@ public class DlsIntegrationTests {
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(5));
-            IntStream.range(0, 5)
-                .forEach((hitIndex) -> { assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, "sensitive", false)); });
+            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+            assertThat(
+                searchResponse,
+                searchHitsContainDocumentsInAnyOrder(
+                    UNION_ROLE_TEST_DATA.entrySet()
+                        .stream()
+                        .filter(e -> e.getValue().get("sensitive").equals(false))
+                        .map(e -> Pair.of(UNION_TEST_INDEX_NAME, e.getKey()))
+                        .collect(Collectors.toList())
+                )
+            );
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_ROLE_TWO_USER)) {
@@ -616,44 +623,24 @@ public class DlsIntegrationTests {
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(11));
+            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(10));
         }
 
-        SearchHits adminHits, unionRoleHits;
-
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            adminHits = searchResponse.getHits();
-        }
-
-        // now test with user with both roles to make sure the roles add to each other and the hits equal the same hits for an admin user
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_UNION_OF_OVERLAPPING_ROLES_USER)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
-            unionRoleHits = searchResponse.getHits();
+            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(10));
+
+            // shows that roles are additive and the overlapping role with less filtering is used
+            assertThat(
+                searchResponse,
+                searchHitsContainDocumentsInAnyOrder(
+                    UNION_ROLE_TEST_DATA.keySet().stream().map(id -> Pair.of(UNION_TEST_INDEX_NAME, id)).collect(Collectors.toList())
+                )
+            );
         }
-
-        // make sure total hits are the same
-        assertThat(adminHits.getTotalHits().value, equalTo(11L));
-        assertThat(unionRoleHits.getTotalHits().value, equalTo(adminHits.getTotalHits().value));
-
-        IntStream.range(0, 11).forEach((hitIndex) -> {
-            // make sure that the ids of the corresponding hits match
-            assertThat(unionRoleHits.getAt(hitIndex).getId(), equalTo(adminHits.getAt(hitIndex).getId()));
-
-            // make sure that each field value of the corresponding hits matches
-            Map<String, Object> adminHitKVMap = adminHits.getAt(hitIndex).getSourceAsMap();
-            Map<String, Object> unionRoleHitKVMap = unionRoleHits.getAt(hitIndex).getSourceAsMap();
-
-            assertThat(unionRoleHitKVMap.get("genre"), equalTo(adminHitKVMap.get("genre")));
-            assertThat(unionRoleHitKVMap.get("date"), equalTo(adminHitKVMap.get("date")));
-            assertThat(unionRoleHitKVMap.get("sensitive"), equalTo(adminHitKVMap.get("sensitive")));
-        });
     }
 
     @Test
@@ -663,9 +650,17 @@ public class DlsIntegrationTests {
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(5));
-            IntStream.range(0, 5)
-                .forEach((hitIndex) -> { assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, "sensitive", false)); });
+            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+            assertThat(
+                searchResponse,
+                searchHitsContainDocumentsInAnyOrder(
+                    UNION_ROLE_TEST_DATA.entrySet()
+                        .stream()
+                        .filter(e -> e.getValue().get("sensitive").equals(false))
+                        .map(e -> Pair.of(UNION_TEST_INDEX_NAME, e.getKey()))
+                        .collect(Collectors.toList())
+                )
+            );
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_ROLE_THREE_USER)) {
@@ -674,8 +669,16 @@ public class DlsIntegrationTests {
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(5));
-            IntStream.range(0, 5)
-                .forEach((hitIndex) -> { assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, "genre", "History")); });
+            assertThat(
+                searchResponse,
+                searchHitsContainDocumentsInAnyOrder(
+                    UNION_ROLE_TEST_DATA.entrySet()
+                        .stream()
+                        .filter(e -> e.getValue().get("genre").equals("History"))
+                        .map(e -> Pair.of(UNION_TEST_INDEX_NAME, e.getKey()))
+                        .collect(Collectors.toList())
+                )
+            );
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_UNION_OF_NONOVERLAPPING_ROLES_USER)) {
@@ -683,8 +686,21 @@ public class DlsIntegrationTests {
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(10));
-            assertThat(searchResponse, not(searchHitContainsFieldWithValue(10, "genre", "Science")));
+            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(9));
+
+            assertThat(
+                searchResponse,
+                searchHitsContainDocumentsInAnyOrder(
+                    UNION_ROLE_TEST_DATA.keySet()
+                        .stream()
+                        .filter(id -> !id.equals("10"))
+                        .map(id -> Pair.of(UNION_TEST_INDEX_NAME, id))
+                        .collect(Collectors.toList())
+                )
+            );
+
+            // shows that the roles are additive, but excludes one document since the DLS filters for both roles do not account for this
+            assertThat(searchResponse, not(searchHitsContainDocumentsInAnyOrder(Pair.of(UNION_TEST_INDEX_NAME, "10"))));
         }
     }
 }
