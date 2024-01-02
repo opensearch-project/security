@@ -428,7 +428,7 @@ public class AuditConfig {
          * @param header
          * @return true if header should be excluded
          */
-        public boolean isHeaderDisabled(String header) {
+        public boolean shouldExcludeHeader(String header) {
             return ignoredCustomHeadersMatcher.test(header);
         }
 
