@@ -10,18 +10,26 @@
 package org.opensearch.security;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
@@ -34,8 +42,11 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
@@ -53,10 +64,12 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithSort;
+import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -158,6 +171,26 @@ public class DlsIntegrationTests {
                 .on("*")
         );
 
+    /**
+     * User with a role with DLS restrictions containing a bool query.
+     */
+    static final TestSecurityConfig.User BOOL_USER = new TestSecurityConfig.User("bool_user").roles(
+        new TestSecurityConfig.Role("test_role_bool").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_FIRST))
+            .on(FIRST_INDEX_NAME)
+    );
+
+    /**
+     * User with a role with DLS restrictions containing a term query.
+     */
+    static final TestSecurityConfig.User TERM_USER = new TestSecurityConfig.User("term_user").roles(
+        new TestSecurityConfig.Role("test_role_term").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .dls(String.format("{\"term\":{\"%s\":%d}}", FIELD_STARS, 1))
+            .on(FIRST_INDEX_NAME)
+    );
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
@@ -172,7 +205,9 @@ public class DlsIntegrationTests {
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING,
             READ_WHERE_STARS_LESS_THAN_THREE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
-            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
+            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
+            BOOL_USER,
+            TERM_USER
         )
         .build();
 
@@ -515,6 +550,94 @@ public class DlsIntegrationTests {
             Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
             assertThat(actualAggregation, instanceOf(ParsedAvg.class));
             assertThat(((ParsedAvg) actualAggregation).getValue(), is(1.5));
+        }
+    }
+
+    @Test
+    public void testGetDocumentWithDLSRestrictions() throws Exception {
+        GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
+        GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
+            GetResponse boolFoundGetResponse = restHighLevelClient.get(findExistingDoc, DEFAULT);
+            assertThat(boolFoundGetResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+
+            GetResponse boolNotFoundGetResponse = restHighLevelClient.get(findNonExistingDoc, DEFAULT);
+            assertThat(boolNotFoundGetResponse.isExists(), equalTo(false));
+        }
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
+            GetResponse termFoundGetResponse = restHighLevelClient.get(findExistingDoc, DEFAULT);
+            assertThat(termFoundGetResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+
+            GetResponse termNotFoundGetResponse = restHighLevelClient.get(findNonExistingDoc, DEFAULT);
+            assertThat(termNotFoundGetResponse.isExists(), equalTo(false));
+        }
+    }
+
+    @Test
+    public void testMultiGetDocumentWithDLSRestrictions() throws Exception {
+        MultiGetRequest multiGetRequest = new MultiGetRequest();
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
+            MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+            List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+                .map(MultiGetItemResponse::getResponse)
+                .collect(Collectors.toList());
+            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+            assertThat(getResponses, not(hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2))));
+        }
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
+            MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+            List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+                .map(MultiGetItemResponse::getResponse)
+                .collect(Collectors.toList());
+            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+            assertThat(getResponses, not(hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2))));
+        }
+    }
+
+    @Test
+    public void testSearchDocumentWithDLSRestrictions() throws Exception {
+        SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            assertThat(searchResponse, isSuccessfulSearchResponse());
+            assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+            assertThat(
+                searchResponse,
+                not(
+                    searchHitsContainDocumentsInAnyOrder(
+                        FIRST_INDEX_SONGS_BY_ID.keySet()
+                            .stream()
+                            .filter(id -> !id.equals(FIRST_INDEX_ID_SONG_1))
+                            .map(id -> Pair.of(FIRST_INDEX_NAME, id))
+                            .collect(Collectors.toList())
+                    )
+                )
+            );
+        }
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            assertThat(searchResponse, isSuccessfulSearchResponse());
+            assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+            assertThat(
+                searchResponse,
+                not(
+                    searchHitsContainDocumentsInAnyOrder(
+                        FIRST_INDEX_SONGS_BY_ID.keySet()
+                            .stream()
+                            .filter(id -> !id.equals(FIRST_INDEX_ID_SONG_1))
+                            .map(id -> Pair.of(FIRST_INDEX_NAME, id))
+                            .collect(Collectors.toList())
+                    )
+                )
+            );
         }
     }
 }
