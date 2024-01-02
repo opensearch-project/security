@@ -105,7 +105,10 @@ public class SecuritySettingsConfigurerTests {
         }
 
         verifyStdOutContainsString(
-            "No custom admin password found. Please provide a password via the environment variable OPENSEARCH_INITIAL_ADMIN_PASSWORD."
+            String.format(
+                "No custom admin password found. Please provide a password via the environment variable %s.",
+                ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD
+            )
         );
     }
 
