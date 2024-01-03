@@ -31,7 +31,6 @@ class ConfigurationFiles {
             String[] configurationFiles = {
                 "config.yml",
                 "action_groups.yml",
-                "config.yml",
                 "internal_users.yml",
                 "nodes_dn.yml",
                 "roles.yml",

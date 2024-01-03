@@ -93,7 +93,7 @@ public class ConfigurationRepository {
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private DynamicConfigFactory dynamicConfigFactory;
-    private static final int DEFAULT_CONFIG_VERSION = 2;
+    public static final int DEFAULT_CONFIG_VERSION = 2;
     private CompletableFuture<Void> bgThreadRunner = new CompletableFuture<>();
     private final Thread bgThread;
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
@@ -146,6 +146,15 @@ public class ConfigurationRepository {
 
                                 createSecurityIndexIfAbsent();
                                 waitForSecurityIndexToBeAtLeastYellow();
+
+                                int initializationDelay = settings.getAsInt(
+                                    ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
+                                    0
+                                );
+                                if (initializationDelay > 0) {
+                                    LOGGER.info("Delay initialization for {} seconds", initializationDelay);
+                                    TimeUnit.SECONDS.sleep(initializationDelay);
+                                }
 
                                 ConfigHelper.uploadFile(client, cd + "config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
                                 ConfigHelper.uploadFile(client, cd + "roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
@@ -396,7 +405,7 @@ public class ConfigurationRepository {
                     LOCK.unlock();
                 }
             } else {
-                throw new ConfigUpdateAlreadyInProgressException("A config update is already imn progress");
+                throw new ConfigUpdateAlreadyInProgressException("A config update is already in progress");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

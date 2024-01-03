@@ -297,10 +297,10 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
     }
 
-    public void triggerConfigurationReloadForSingleCType(Client client, CType cType, boolean ignoreFailures) {
+    public void triggerConfigurationReloadForCTypes(Client client, List<CType> cTypes, boolean ignoreFailures) {
         ConfigUpdateResponse configUpdateResponse = client.execute(
             ConfigUpdateAction.INSTANCE,
-            new ConfigUpdateRequest(new String[] { cType.toLCString() })
+            new ConfigUpdateRequest(cTypes.stream().map(CType::toLCString).toArray(String[]::new))
         ).actionGet();
         if (!ignoreFailures && configUpdateResponse.hasFailures()) {
             throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
