@@ -84,7 +84,6 @@ config:
         ###### and here https://tools.ietf.org/html/rfc7239
         ###### and https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html#Remote_IP_Valve
     authc:
-
       kerberos_auth_domain:
         http_enabled: false
         transport_enabled: false
