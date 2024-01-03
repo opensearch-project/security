@@ -56,6 +56,14 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
             setPrivateTenantAsDefaultResponse.getStatusCode(),
             equalTo(HttpStatus.SC_OK)
         );
+
+        final HttpResponse updateDashboardSignInOptions = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"dashboard_signin_options\": [\"BASIC\", \"SAML\"]}",
+            header
+        );
+        assertThat(updateDashboardSignInOptions.getBody(), updateDashboardSignInOptions.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
         getDashboardsinfoResponse = rh.executeGetRequest("/_plugins/_security/dashboardsinfo", ADMIN_FULL_ACCESS_USER);
         assertThat(getDashboardsinfoResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(getDashboardsinfoResponse.findValueInJson("default_tenant"), equalTo("Private"));
@@ -163,6 +171,18 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
             signInOptionsNonArrayValue.getBody(),
             signInOptionsNonArrayValue.findValueInJson("reason"),
             containsString("Wrong datatype")
+        );
+
+        final HttpResponse invalidSignInOption = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"dashboard_signin_options\": [\"INVALID_OPTION\"]}",
+            header
+        );
+        assertThat(invalidSignInOption.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
+        assertThat(
+            invalidSignInOption.getBody(),
+            invalidSignInOption.findValueInJson("error.reason"),
+            containsString("Invalid sign-in option.")
         );
     }
 
