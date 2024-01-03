@@ -20,7 +20,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.CreatePitRequest;
@@ -33,7 +32,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -136,17 +134,7 @@ public class PointInTimeOperationTest {
     @Before
     public void cleanUpPits() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            GetAllPitNodesResponse existingPitsResponse = restHighLevelClient.getAllPits(DEFAULT);
-            if (!existingPitsResponse.getPitInfos().isEmpty()) {
-                try {
-                    restHighLevelClient.deleteAllPits(DEFAULT);
-                } catch (OpenSearchStatusException ex) {
-                    if (ex.status() != RestStatus.NOT_FOUND) {
-                        throw ex;
-                    }
-                    // tried to remove pits but no pit exists
-                }
-            }
+            restHighLevelClient.deleteAllPits(DEFAULT);
         }
     }
 
