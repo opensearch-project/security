@@ -377,7 +377,6 @@ public class AuditConfigSerializeTest {
     private boolean compareJson(final String json1, final String json2) throws JsonProcessingException {
         ObjectNode objectNode1 = objectMapper.readValue(json1, ObjectNode.class);
         ObjectNode objectNode2 = objectMapper.readValue(json2, ObjectNode.class);
-
         return objectNode1.equals(objectNode2);
     }
 }
