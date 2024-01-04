@@ -314,9 +314,14 @@ public class ConfigurationRepository {
 
     public CompletableFuture<Boolean> initOnNodeStart() {
         final boolean installDefaultConfig = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
-        final Supplier<CompletableFuture<Boolean>> startInitialization = () -> CompletableFuture.runAsync(
-            () -> initalizeClusterConfiguration(installDefaultConfig)
-        ).thenAccept(initalizeConfigTask::complete).thenApply(result -> installDefaultConfig);
+        
+        final Supplier<CompletableFuture<Boolean>> startInitialization = () -> {
+            new Thread(() -> {
+                initalizeClusterConfiguration(installDefaultConfig);
+                initalizeConfigTask.complete(null);
+            }).start();
+            return initalizeConfigTask.thenApply(result -> installDefaultConfig);
+        };
         try {
             if (installDefaultConfig) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
