@@ -25,8 +25,6 @@ public class AuthzDomain implements ToXContentObject {
 
     private boolean httpEnabled;
 
-    private boolean transportEnabled;
-
     private AuthorizationBackend authorizationBackend;
 
     public AuthzDomain(String id) {
@@ -49,11 +47,6 @@ public class AuthzDomain implements ToXContentObject {
 
     public AuthzDomain authorizationBackend(AuthorizationBackend authorizationBackend) {
         this.authorizationBackend = authorizationBackend;
-        return this;
-    }
-
-    public AuthzDomain transportEnabled(boolean transportEnabled) {
-        this.transportEnabled = transportEnabled;
         return this;
     }
 
