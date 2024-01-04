@@ -149,7 +149,12 @@ public class SecuritySettingsConfigurer {
 
             // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We exit the setup.
             if (Strings.isNullOrEmpty(ADMIN_PASSWORD)) {
-                System.out.println("No custom admin password found. Please provide a password.");
+                System.out.println(
+                    String.format(
+                        "No custom admin password found. Please provide a password via the environment variable %s.",
+                        ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD
+                    )
+                );
                 System.exit(-1);
             }
 
