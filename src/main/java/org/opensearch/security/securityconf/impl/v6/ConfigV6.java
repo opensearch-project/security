@@ -224,8 +224,6 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean transport_enabled = true;
-        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public int order = 0;
         public HttpAuthenticator http_authenticator = new HttpAuthenticator();
@@ -235,8 +233,6 @@ public class ConfigV6 {
         public String toString() {
             return "AuthcDomain [http_enabled="
                 + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
                 + ", enabled="
                 + enabled
                 + ", order="
@@ -337,8 +333,6 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean transport_enabled = true;
-        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
 
@@ -346,8 +340,6 @@ public class ConfigV6 {
         public String toString() {
             return "AuthzDomain [http_enabled="
                 + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
                 + ", enabled="
                 + enabled
                 + ", authorization_backend="
