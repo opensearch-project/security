@@ -41,9 +41,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -89,14 +89,13 @@ public class ConfigurationRepository {
     private final List<ConfigurationChangeListener> configurationChangedListener;
     private final ConfigurationLoaderSecurity7 cl;
     private final Settings settings;
+    private final Path configPath;
     private final ClusterService clusterService;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private DynamicConfigFactory dynamicConfigFactory;
     public static final int DEFAULT_CONFIG_VERSION = 2;
-    private CompletableFuture<Void> bgThreadRunner = new CompletableFuture<>();
-    private final Thread bgThread;
-    private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
+    private final CompletableFuture<Void> initalizeConfigTask = new CompletableFuture<>();
     private final boolean acceptInvalid;
 
     private ConfigurationRepository(
@@ -112,6 +111,7 @@ public class ConfigurationRepository {
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.settings = settings;
+        this.configPath = configPath;
         this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
@@ -121,161 +121,150 @@ public class ConfigurationRepository {
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
         configCache = CacheBuilder.newBuilder().build();
+    }
 
-        bgThread = new Thread(() -> {
-            try {
-                LOGGER.info("Background init thread started. Install default config?: " + installDefaultConfig.get());
-                // wait for the cluster here until it will finish managed node election
-                while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
-                    LOGGER.info("Wait for cluster to be available ...");
-                    TimeUnit.SECONDS.sleep(1);
-                }
+    private void initalizeClusterConfiguration(final boolean installDefaultConfig) {
+        try {
+            LOGGER.info("Background init thread started. Install default config?: " + installDefaultConfig);
+            // wait for the cluster here until it will finish managed node election
+            while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+                LOGGER.info("Wait for cluster to be available ...");
+                TimeUnit.SECONDS.sleep(1);
+            }
 
-                if (installDefaultConfig.get()) {
+            if (installDefaultConfig) {
 
-                    try {
-                        String lookupDir = System.getProperty("security.default_init.dir");
-                        final String cd = lookupDir != null
-                            ? (lookupDir + "/")
-                            : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
-                        File confFile = new File(cd + "config.yml");
-                        if (confFile.exists()) {
-                            final ThreadContext threadContext = threadPool.getThreadContext();
-                            try (StoredContext ctx = threadContext.stashContext()) {
-                                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-
-                                createSecurityIndexIfAbsent();
-                                waitForSecurityIndexToBeAtLeastYellow();
-
-                                int initializationDelay = settings.getAsInt(
-                                    ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
-                                    0
-                                );
-                                if (initializationDelay > 0) {
-                                    LOGGER.info("Delay initialization for {} seconds", initializationDelay);
-                                    TimeUnit.SECONDS.sleep(initializationDelay);
-                                }
-
-                                ConfigHelper.uploadFile(client, cd + "config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                                ConfigHelper.uploadFile(client, cd + "roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "roles_mapping.yml",
-                                    securityIndex,
-                                    CType.ROLESMAPPING,
-                                    DEFAULT_CONFIG_VERSION
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "internal_users.yml",
-                                    securityIndex,
-                                    CType.INTERNALUSERS,
-                                    DEFAULT_CONFIG_VERSION
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "action_groups.yml",
-                                    securityIndex,
-                                    CType.ACTIONGROUPS,
-                                    DEFAULT_CONFIG_VERSION
-                                );
-                                if (DEFAULT_CONFIG_VERSION == 2) {
-                                    ConfigHelper.uploadFile(
-                                        client,
-                                        cd + "tenants.yml",
-                                        securityIndex,
-                                        CType.TENANTS,
-                                        DEFAULT_CONFIG_VERSION
-                                    );
-                                }
-                                final boolean populateEmptyIfFileMissing = true;
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "nodes_dn.yml",
-                                    securityIndex,
-                                    CType.NODESDN,
-                                    DEFAULT_CONFIG_VERSION,
-                                    populateEmptyIfFileMissing
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "whitelist.yml",
-                                    securityIndex,
-                                    CType.WHITELIST,
-                                    DEFAULT_CONFIG_VERSION,
-                                    populateEmptyIfFileMissing
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "allowlist.yml",
-                                    securityIndex,
-                                    CType.ALLOWLIST,
-                                    DEFAULT_CONFIG_VERSION,
-                                    populateEmptyIfFileMissing
-                                );
-
-                                // audit.yml is not packaged by default
-                                final String auditConfigPath = cd + "audit.yml";
-                                if (new File(auditConfigPath).exists()) {
-                                    ConfigHelper.uploadFile(client, auditConfigPath, securityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
-                                }
-                            }
-                        } else {
-                            LOGGER.error("{} does not exist", confFile.getAbsolutePath());
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
-                    }
-                }
-
-                while (!dynamicConfigFactory.isInitialized()) {
-                    try {
-                        LOGGER.debug("Try to load config ...");
+                try {
+                    String lookupDir = System.getProperty("security.default_init.dir");
+                    final String cd = lookupDir != null
+                        ? (lookupDir + "/")
+                        : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+                    File confFile = new File(cd + "config.yml");
+                    if (confFile.exists()) {
                         final ThreadContext threadContext = threadPool.getThreadContext();
                         try (StoredContext ctx = threadContext.stashContext()) {
-                            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_BG_THREAD_HEADER, true);
-                            reloadConfiguration(Arrays.asList(CType.values()));
+                            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
+                            createSecurityIndexIfAbsent();
+                            waitForSecurityIndexToBeAtLeastYellow();
+
+                            final int initializationDelaySeconds = settings.getAsInt(
+                                ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
+                                0
+                            );
+                            if (initializationDelaySeconds > 0) {
+                                LOGGER.error("Test setting loaded to delay initialization for {} seconds", initializationDelaySeconds);
+                                TimeUnit.SECONDS.sleep(initializationDelaySeconds);
+                            }
+
+                            ConfigHelper.uploadFile(client, cd + "config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                            ConfigHelper.uploadFile(client, cd + "roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                            ConfigHelper.uploadFile(
+                                client,
+                                cd + "roles_mapping.yml",
+                                securityIndex,
+                                CType.ROLESMAPPING,
+                                DEFAULT_CONFIG_VERSION
+                            );
+                            ConfigHelper.uploadFile(
+                                client,
+                                cd + "internal_users.yml",
+                                securityIndex,
+                                CType.INTERNALUSERS,
+                                DEFAULT_CONFIG_VERSION
+                            );
+                            ConfigHelper.uploadFile(
+                                client,
+                                cd + "action_groups.yml",
+                                securityIndex,
+                                CType.ACTIONGROUPS,
+                                DEFAULT_CONFIG_VERSION
+                            );
+                            if (DEFAULT_CONFIG_VERSION == 2) {
+                                ConfigHelper.uploadFile(client, cd + "tenants.yml", securityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
+                            }
+                            final boolean populateEmptyIfFileMissing = true;
+                            ConfigHelper.uploadFile(
+                                client,
+                                cd + "nodes_dn.yml",
+                                securityIndex,
+                                CType.NODESDN,
+                                DEFAULT_CONFIG_VERSION,
+                                populateEmptyIfFileMissing
+                            );
+                            ConfigHelper.uploadFile(
+                                client,
+                                cd + "whitelist.yml",
+                                securityIndex,
+                                CType.WHITELIST,
+                                DEFAULT_CONFIG_VERSION,
+                                populateEmptyIfFileMissing
+                            );
+                            ConfigHelper.uploadFile(
+                                client,
+                                cd + "allowlist.yml",
+                                securityIndex,
+                                CType.ALLOWLIST,
+                                DEFAULT_CONFIG_VERSION,
+                                populateEmptyIfFileMissing
+                            );
+
+                            // audit.yml is not packaged by default
+                            final String auditConfigPath = cd + "audit.yml";
+                            if (new File(auditConfigPath).exists()) {
+                                ConfigHelper.uploadFile(client, auditConfigPath, securityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
+                            }
                         }
-                        break;
-                    } catch (Exception e) {
-                        LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
-                        try {
-                            Thread.sleep(3000);
-                        } catch (InterruptedException e1) {
-                            Thread.currentThread().interrupt();
-                            LOGGER.debug("Thread was interrupted so we cancel initialization");
-                            break;
-                        }
+                    } else {
+                        LOGGER.error("{} does not exist", confFile.getAbsolutePath());
                     }
+                } catch (Exception e) {
+                    LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
                 }
-
-                final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
-                if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                    LOGGER.warn(
-                        "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0",
-                        deprecatedAuditKeysInSettings
-                    );
-                }
-                final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
-                if (isAuditConfigDocPresentInIndex) {
-                    if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                        LOGGER.warn("Audit configuration settings found in both index and opensearch settings (deprecated)");
-                    }
-                    LOGGER.info("Hot-reloading of audit configuration is enabled");
-                } else {
-                    LOGGER.info(
-                        "Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it."
-                    );
-                    auditLog.setConfig(AuditConfig.from(settings));
-                }
-
-                LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
-
-            } catch (Exception e) {
-                LOGGER.error("Unexpected exception while initializing node " + e, e);
             }
-        });
 
+            while (!dynamicConfigFactory.isInitialized()) {
+                try {
+                    LOGGER.debug("Try to load config ...");
+                    reloadConfiguration(Arrays.asList(CType.values()), true);
+                    break;
+                } catch (Exception e) {
+                    LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
+                        LOGGER.debug("Thread was interrupted so we cancel initialization");
+                        break;
+                    }
+                }
+            }
+
+            final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
+            if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                LOGGER.warn(
+                    "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0",
+                    deprecatedAuditKeysInSettings
+                );
+            }
+            final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
+            if (isAuditConfigDocPresentInIndex) {
+                if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                    LOGGER.warn("Audit configuration settings found in both index and opensearch settings (deprecated)");
+                }
+                LOGGER.info("Hot-reloading of audit configuration is enabled");
+            } else {
+                LOGGER.info(
+                    "Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it."
+                );
+                auditLog.setConfig(AuditConfig.from(settings));
+            }
+
+            LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
+
+        } catch (Exception e) {
+            LOGGER.error("Unexpected exception while initializing node " + e, e);
+        }
     }
 
     private boolean createSecurityIndexIfAbsent() {
@@ -323,28 +312,32 @@ public class ConfigurationRepository {
         }
     }
 
-    public void initOnNodeStart() {
+    public CompletableFuture<Boolean> initOnNodeStart() {
+        final boolean installDefaultConfig = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
+        final Supplier<CompletableFuture<Boolean>> startInitialization = () -> CompletableFuture.runAsync(
+            () -> initalizeClusterConfiguration(installDefaultConfig)
+        ).thenAccept(initalizeConfigTask::complete).thenApply(result -> installDefaultConfig);
         try {
-            if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
+            if (installDefaultConfig) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
-                installDefaultConfig.set(true);
-                bgThreadRunner = CompletableFuture.runAsync(new AccessControllerWrappedThread(bgThread));
+                return startInitialization.get();
             } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)) {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
                     securityIndex
                 );
-                bgThreadRunner = CompletableFuture.runAsync(new AccessControllerWrappedThread(bgThread));
+                return startInitialization.get();
             } else {
                 LOGGER.info(
                     "Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
                     securityIndex
                 );
-                bgThreadRunner.complete(null);
+                initalizeConfigTask.complete(null);
+                return initalizeConfigTask.thenApply(result -> installDefaultConfig);
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
-            bgThreadRunner = CompletableFuture.runAsync(new AccessControllerWrappedThread(bgThread));
+            return startInitialization.get();
         }
     }
 
@@ -390,10 +383,14 @@ public class ConfigurationRepository {
 
     private final Lock LOCK = new ReentrantLock();
 
-    public boolean reloadConfiguration(Collection<CType> configTypes) throws ConfigUpdateAlreadyInProgressException {
-        final ThreadContext threadContext = threadPool.getThreadContext();
-        Boolean isBgThread = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_BG_THREAD_HEADER);
-        if (!Boolean.TRUE.equals(isBgThread) && !bgThreadRunner.isDone()) {
+    public boolean reloadConfiguration(final Collection<CType> configTypes) throws ConfigUpdateAlreadyInProgressException {
+        return reloadConfiguration(configTypes, false);
+    }
+
+    private boolean reloadConfiguration(final Collection<CType> configTypes, final boolean fromBackgroundThread)
+        throws ConfigUpdateAlreadyInProgressException {
+        if (!fromBackgroundThread && !initalizeConfigTask.isDone()) {
+            LOGGER.warn("Unable to reload configuration, initalization thread has not yet completed.");
             return false;
         }
         try {
@@ -511,10 +508,6 @@ public class ConfigurationRepository {
 
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
-    }
-
-    public AtomicBoolean getInstallDefaultConfig() {
-        return installDefaultConfig;
     }
 
     private class AccessControllerWrappedThread extends Thread {
