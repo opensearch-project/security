@@ -314,7 +314,7 @@ public class ConfigurationRepository {
 
     public CompletableFuture<Boolean> initOnNodeStart() {
         final boolean installDefaultConfig = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
-        
+
         final Supplier<CompletableFuture<Boolean>> startInitialization = () -> {
             new Thread(() -> {
                 initalizeClusterConfiguration(installDefaultConfig);
