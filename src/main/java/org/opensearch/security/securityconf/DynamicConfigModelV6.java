@@ -273,9 +273,8 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
         for (final Entry<String, AuthcDomain> ad : authcDyn.getDomains().entrySet()) {
             final boolean enabled = ad.getValue().enabled;
             final boolean httpEnabled = enabled && ad.getValue().http_enabled;
-            final boolean transportEnabled = enabled && ad.getValue().transport_enabled;
 
-            if (httpEnabled || transportEnabled) {
+            if (httpEnabled) {
                 try {
                     AuthenticationBackend authenticationBackend;
                     final String authBackendClazz = ad.getValue().authentication_backend.type;

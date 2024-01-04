@@ -293,7 +293,6 @@ public class ConfigV7 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean transport_enabled = true;
         // public boolean enabled= true;
         public int order = 0;
         public HttpAuthenticator http_authenticator = new HttpAuthenticator();
@@ -307,10 +306,8 @@ public class ConfigV7 {
         public AuthcDomain(ConfigV6.AuthcDomain v6) {
             super();
             http_enabled = v6.http_enabled && v6.enabled;
-            transport_enabled = v6.transport_enabled && v6.enabled;
             // if(v6.enabled)vv {
             // http_enabled = true;
-            // transport_enabled = true;
             // }
             order = v6.order;
             http_authenticator = new HttpAuthenticator(v6.http_authenticator);
@@ -322,8 +319,6 @@ public class ConfigV7 {
         public String toString() {
             return "AuthcDomain [http_enabled="
                 + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
                 + ", order="
                 + order
                 + ", http_authenticator="
@@ -451,8 +446,6 @@ public class ConfigV7 {
     public static class AuthzDomain {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
-        @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean transport_enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
         public String description;
 
@@ -462,7 +455,6 @@ public class ConfigV7 {
 
         public AuthzDomain(ConfigV6.AuthzDomain v6) {
             http_enabled = v6.http_enabled && v6.enabled;
-            transport_enabled = v6.transport_enabled && v6.enabled;
             authorization_backend = new AuthzBackend(v6.authorization_backend);
             description = "Migrated from v6";
         }
@@ -471,8 +463,6 @@ public class ConfigV7 {
         public String toString() {
             return "AuthzDomain [http_enabled="
                 + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
                 + ", authorization_backend="
                 + authorization_backend
                 + ", description="

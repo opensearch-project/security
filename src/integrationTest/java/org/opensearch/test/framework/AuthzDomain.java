@@ -62,7 +62,6 @@ public class AuthzDomain implements ToXContentObject {
         xContentBuilder.startObject();
         xContentBuilder.field("description", description);
         xContentBuilder.field("http_enabled", httpEnabled);
-        xContentBuilder.field("transport_enabled", transportEnabled);
         xContentBuilder.field("authorization_backend", authorizationBackend);
         xContentBuilder.endObject();
         return xContentBuilder;
