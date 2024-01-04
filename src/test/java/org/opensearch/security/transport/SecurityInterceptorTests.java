@@ -144,19 +144,27 @@ public class SecurityInterceptorTests {
         TransportResponseHandler<TransportResponse> handler = mock(TransportResponseHandler.class);
 
         InetAddress localAddress = null;
+        InetAddress remoteAddress = null;
         try {
             localAddress = InetAddress.getByName("0.0.0.0");
+            remoteAddress = InetAddress.getByName("1.1.1.1");
         } catch (final UnknownHostException uhe) {
             throw new RuntimeException(uhe);
         }
 
-        DiscoveryNode localNode = new DiscoveryNode("local-node", new TransportAddress(localAddress, 1234), Version.CURRENT);
+        DiscoveryNode localNode = new DiscoveryNode("local-node1", new TransportAddress(localAddress, 1234), Version.CURRENT);
         Connection connection1 = transportService.getConnection(localNode);
 
-        DiscoveryNode otherNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 4321), remoteNodeVersion);
+        DiscoveryNode otherNode = new DiscoveryNode("local-node2", new TransportAddress(localAddress, 4321), Version.CURRENT);
         Connection connection2 = transportService.getConnection(otherNode);
 
-        // from thread context inside sendRequestDecorate
+        DiscoveryNode remoteNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 6789), remoteNodeVersion);
+        Connection connection3 = transportService.getConnection(remoteNode);
+
+        DiscoveryNode otherRemoteNode = new DiscoveryNode("remote-node2", new TransportAddress(remoteAddress, 9876), remoteNodeVersion);
+        Connection connection4 = transportService.getConnection(otherRemoteNode);
+
+        // from thread context inside sendRequestDecorate for local-node1 connection1
         AsyncSender sender = new AsyncSender() {
             @Override
             public <T extends TransportResponse> void sendRequest(
@@ -170,7 +178,8 @@ public class SecurityInterceptorTests {
                 assertEquals(transientUser, user);
             }
         };
-        // isSameNodeRequest = true
+
+        // local node request
         securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
 
         // from original context
@@ -178,7 +187,30 @@ public class SecurityInterceptorTests {
         assertEquals(transientUser, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
 
-        // checking thread context inside sendRequestDecorate
+        // checking thread context inside sendRequestDecorate for local-node2 connection2
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                assertEquals(transientUser, user);
+            }
+        };
+
+        // this is also a local request
+        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, otherNode);
+
+        // from original context
+        User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser2, user);
+        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+
+        // checking thread context inside sendRequestDecorate for remote-node connection3
         sender = new AsyncSender() {
             @Override
             public <T extends TransportResponse> void sendRequest(
@@ -192,12 +224,36 @@ public class SecurityInterceptorTests {
                 assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
             }
         };
-        // isSameNodeRequest = false
-        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, localNode);
+
+        // this is a remote request
+        securityInterceptor.sendRequestDecorate(sender, connection3, action, request, options, handler, localNode);
 
         // from original context
-        User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser2, user);
+        User transientUser3 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser3, user);
+        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+
+        // checking thread context inside sendRequestDecorate for remote-node2 connection4
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
+            }
+        };
+
+        // this is a remote request where the transport address is different
+        securityInterceptor.sendRequestDecorate(sender, connection4, action, request, options, handler, localNode);
+
+        // from original context
+        User transientUser4 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser4, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
     }
 
