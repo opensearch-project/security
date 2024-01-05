@@ -138,7 +138,7 @@ public class ConfigurationRepository {
                     String lookupDir = System.getProperty("security.default_init.dir");
                     final String cd = lookupDir != null
                         ? (lookupDir + "/")
-                        : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+                        : new Environment(settings, configPath).configFile().toAbsolutePath().toString() + "/opensearch-security/";
                     File confFile = new File(cd + "config.yml");
                     if (confFile.exists()) {
                         final ThreadContext threadContext = threadPool.getThreadContext();
@@ -514,27 +514,4 @@ public class ConfigurationRepository {
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
     }
-<<<<<<< HEAD
-=======
-
-    private class AccessControllerWrappedThread extends Thread {
-        private final Thread innerThread;
-
-        public AccessControllerWrappedThread(Thread innerThread) {
-            this.innerThread = innerThread;
-        }
-
-        @Override
-        public void run() {
-            AccessController.doPrivileged(new PrivilegedAction<Void>() {
-
-                @Override
-                public Void run() {
-                    innerThread.run();
-                    return null;
-                }
-            });
-        }
-    }
->>>>>>> 045d4ef8a (Allow TransportConfigUpdateAction when security config initialization has completed (#3810))
 }
