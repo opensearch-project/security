@@ -1791,6 +1791,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
+                    0,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
 
             // system integration
             settings.add(
