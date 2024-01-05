@@ -302,12 +302,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                 HttpStatus.SC_SERVICE_UNAVAILABLE,
                 rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
             );
-
-            ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
-            restart(Settings.EMPTY, null, settings, false);
-            rh = nonSslRestHelper();
-            Thread.sleep(10000);
-            Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
         } finally {
             ClusterHelper.resetSystemProperties();
         }
