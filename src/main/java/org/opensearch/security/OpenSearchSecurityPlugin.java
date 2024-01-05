@@ -1350,7 +1350,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Function.identity(),
                     Property.NodeScope
                 )
-            ); // not filtered here
+            );
             settings.add(
                 Setting.listSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
@@ -1359,6 +1359,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.NodeScope
                 )
             ); // not filtered here
+            settings.add(
+                Setting.listSetting(
+                    ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS,
+                    Collections.emptyList(),
+                    Function.identity(),
+                    Property.NodeScope
+                )
+            );
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
@@ -1391,6 +1399,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                             Property.NodeScope
                         );
                     case IGNORE_REQUESTS:
+                    case IGNORE_HEADERS:
                         return Setting.listSetting(
                             filterEntry.getKeyWithNamespace(),
                             Collections.emptyList(),

@@ -682,7 +682,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             + "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"],"
             + "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"],"
             + "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true,"
-            + "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]},"
+            + "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"], \"ignore_headers\":[\"\"]},"
             + "\"compliance\":{"
             + "\"enabled\":true,"
             + "\"internal_config\":true,\"external_config\":true,"

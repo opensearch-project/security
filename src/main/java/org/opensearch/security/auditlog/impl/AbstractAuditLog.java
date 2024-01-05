@@ -927,11 +927,6 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
             return false;
         }
-
-        // check rest audit enabled
-        // check category enabled
-        // check action
-        // check ignoreAuditUsers
     }
 
     protected abstract void save(final AuditMessage msg);
