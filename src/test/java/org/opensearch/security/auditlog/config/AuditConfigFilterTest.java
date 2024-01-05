@@ -57,6 +57,7 @@ public class AuditConfigFilterTest {
         assertTrue(auditConfigFilter.shouldExcludeSensitiveHeaders());
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditRequestsMatcher());
         assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredCustomHeadersMatcher());
         assertEquals(auditConfigFilter.getDisabledRestCategories(), defaultDisabledCategories);
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), defaultDisabledCategories);
     }
@@ -73,6 +74,7 @@ public class AuditConfigFilterTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, false)
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "test-request")
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "test-user")
+            .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS, "test-header")
             .putList(
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                 BAD_HEADERS.toString(),
@@ -95,6 +97,7 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldExcludeSensitiveHeaders());
         assertEquals(WildcardMatcher.from(Collections.singleton("test-user")), auditConfigFilter.getIgnoredAuditUsersMatcher());
         assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), auditConfigFilter.getIgnoredAuditRequestsMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-header")), auditConfigFilter.getIgnoredCustomHeadersMatcher());
         assertEquals(auditConfigFilter.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
     }
@@ -121,6 +124,7 @@ public class AuditConfigFilterTest {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, Collections.emptyList())
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList())
+            .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS, Collections.emptyList())
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, Collections.emptyList())
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, Collections.emptyList())
             .build();

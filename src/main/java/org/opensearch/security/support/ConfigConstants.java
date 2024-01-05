@@ -163,6 +163,7 @@ public class ConfigConstants {
     );
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
+    public static final String SECURITY_AUDIT_IGNORE_HEADERS = "plugins.security.audit.ignore_headers";
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS = "opendistro_security.audit.resolve_bulk_requests";
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
