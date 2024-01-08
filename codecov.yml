@@ -1,3 +1,5 @@
+codecov: 
+  token: secret:v2::vYxLY5VXLm3g4IhSqxkJyji99Izk93bpX+JxfCbndlcWC1j7XkNaO1Pt+Us+TOIYYiHJ491QqD5INZGEVRpoYxJTr33ySpDnxpLFkcI5n1A=
 coverage:
   status:
     project:
