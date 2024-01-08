@@ -28,8 +28,6 @@ package org.opensearch.security.configuration;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
