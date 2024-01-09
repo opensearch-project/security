@@ -156,8 +156,8 @@ final class LdapServer {
         config.setEnforceAttributeSyntaxCompliance(false);
         config.setEnforceSingleStructuralObjectClass(false);
 
-        config.setLDAPDebugLogHandler(new DebugHandler());
-        config.setAccessLogHandler(new DebugHandler());
+        config.setLDAPDebugLogHandler(new ServerLogger());
+        config.setAccessLogHandler(new ServerLogger());
 
         server = new InMemoryDirectoryServer(config);
 
@@ -216,8 +216,8 @@ final class LdapServer {
         return ldifLoadCount;
     }
 
-    private static class DebugHandler extends Handler {
-        final Logger logger = LogManager.getLogger(DebugHandler.class);
+    private static class ServerLogger extends Handler {
+        final Logger logger = LogManager.getLogger(ServerLogger.class);
 
         @Override
         public void publish(final LogRecord logRecord) {
