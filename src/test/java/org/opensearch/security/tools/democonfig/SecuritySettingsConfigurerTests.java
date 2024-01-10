@@ -249,8 +249,8 @@ public class SecuritySettingsConfigurerTests {
         installer.assumeyes = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(false)));
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(false));
     }
 
     @Test
