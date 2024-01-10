@@ -243,14 +243,14 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testAssumeYesDoesNotInitializeClusterMode() throws IOException {
-        String str1 = "node.name"; // cluster_mode
-        String str2 = "plugins.security.allow_default_init_securityindex"; // init_security
+        String nodeName = "node.name"; // cluster_mode
+        String securityIndex = "plugins.security.allow_default_init_securityindex"; // init_security
 
         installer.assumeyes = true;
         securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
 
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(false));
-        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, nodeName), is(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, securityIndex), is(false));
     }
 
     @Test
