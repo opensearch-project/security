@@ -47,7 +47,7 @@ buildscript {
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
         maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
     }
@@ -451,7 +451,7 @@ repositories {
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+    maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
 
@@ -499,7 +499,7 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.23.0"
+            force "com.google.errorprone:error_prone_annotations:2.24.1"
             force "org.checkerframework:checker-qual:3.42.0"
             force "ch.qos.logback:logback-classic:1.2.13"
         }
@@ -609,12 +609,12 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.16.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.23.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.24.1'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.1'
     runtimeOnly 'org.ow2.asm:asm:9.6'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.3'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.0'
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.0'
@@ -643,7 +643,7 @@ dependencies {
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.22'
+    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.23'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
@@ -740,7 +740,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.18.1') {
+    implementation('com.google.googlejavaformat:google-java-format:1.19.2') {
         exclude group: 'com.google.guava'
     }
 }

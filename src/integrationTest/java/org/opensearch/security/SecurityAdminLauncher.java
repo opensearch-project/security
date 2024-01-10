@@ -10,6 +10,7 @@
 package org.opensearch.security;
 
 import java.io.File;
+import java.nio.file.Path;
 
 import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -41,6 +42,23 @@ class SecurityAdminLauncher {
             roleMappingsConfigurationFile.getAbsolutePath(),
             "-t",
             "rolesmapping" };
+
+        return SecurityAdmin.execute(commandLineArguments);
+    }
+
+    public int runSecurityAdmin(Path configurationFolder) throws Exception {
+        String[] commandLineArguments = {
+            "-cacert",
+            certificates.getRootCertificate().getAbsolutePath(),
+            "-cert",
+            certificates.getAdminCertificate().getAbsolutePath(),
+            "-key",
+            certificates.getAdminKey(null).getAbsolutePath(),
+            "-nhnv",
+            "-p",
+            String.valueOf(port),
+            "-cd",
+            configurationFolder.toString() };
 
         return SecurityAdmin.execute(commandLineArguments);
     }

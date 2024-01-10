@@ -315,7 +315,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         initialized.set(true);
-
     }
 
     private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {

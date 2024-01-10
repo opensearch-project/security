@@ -28,6 +28,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.CType;
 
 import static org.junit.Assert.assertEquals;
@@ -60,32 +61,45 @@ public class AuditMessageTest {
     );
 
     private AuditMessage message;
+    private AuditConfig auditConfig;
 
     @Before
     public void setUp() {
         final ClusterService clusterServiceMock = mock(ClusterService.class);
         when(clusterServiceMock.localNode()).thenReturn(mock(DiscoveryNode.class));
         when(clusterServiceMock.getClusterName()).thenReturn(mock(ClusterName.class));
+        auditConfig = mock(AuditConfig.class);
+        final AuditConfig.Filter auditFilter = mock(AuditConfig.Filter.class);
+        when(auditConfig.getFilter()).thenReturn(auditFilter);
         message = new AuditMessage(AuditCategory.AUTHENTICATED, clusterServiceMock, AuditLog.Origin.REST, AuditLog.Origin.REST);
     }
 
     @Test
-    public void testRestHeadersAreFiltered() {
-        message.addRestHeaders(TEST_REST_HEADERS, true);
+    public void testAuthorizationRestHeadersAreFiltered() {
+        when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(false);
+        message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), ImmutableMap.of("test-header", ImmutableList.of("test-4")));
     }
 
     @Test
+    public void testCustomRestHeadersAreFiltered() {
+        when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(true);
+        message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
+        assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), Map.of());
+    }
+
+    @Test
     public void testRestHeadersNull() {
-        message.addRestHeaders(null, true);
+        message.addRestHeaders(null, true, null);
         assertNull(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS));
-        message.addRestHeaders(Collections.emptyMap(), true);
+        message.addRestHeaders(Collections.emptyMap(), true, null);
         assertNull(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS));
     }
 
     @Test
     public void testRestHeadersAreNotFiltered() {
-        message.addRestHeaders(TEST_REST_HEADERS, false);
+        when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(false);
+        message.addRestHeaders(TEST_REST_HEADERS, false, null);
         assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), TEST_REST_HEADERS);
     }
 
