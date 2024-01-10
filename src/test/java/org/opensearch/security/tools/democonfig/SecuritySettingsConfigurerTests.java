@@ -242,6 +242,18 @@ public class SecuritySettingsConfigurerTests {
     }
 
     @Test
+    public void testAssumeYesDoesNotInitializeClusterMode() throws IOException {
+        String nodeName = "node.name"; // cluster_mode
+        String securityIndex = "plugins.security.allow_default_init_securityindex"; // init_security
+
+        installer.assumeyes = true;
+        securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
+
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, nodeName), is(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, securityIndex), is(false));
+    }
+
+    @Test
     public void testCreateSecurityAdminDemoScriptAndGetSecurityAdminCommands() throws IOException {
         String demoPath = installer.OPENSEARCH_CONF_DIR + "securityadmin_demo" + installer.FILE_EXTENSION;
         securitySettingsConfigurer.createSecurityAdminDemoScript("scriptPath", demoPath);
