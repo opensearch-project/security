@@ -396,3 +396,4 @@ flow_framework_read_access:
     - 'cluster:admin/opensearch/flow_framework/workflow/search'
     - 'cluster:admin/opensearch/flow_framework/workflow_state/get'
     - 'cluster:admin/opensearch/flow_framework/workflow_state/search'
+    - 'cluster:admin/opensearch/flow_framework/workflow_step/get'
