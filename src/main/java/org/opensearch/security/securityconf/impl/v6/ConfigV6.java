@@ -38,11 +38,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 
 public class ConfigV6 {
+
+    private static final Logger LOGGER = LogManager.getLogger(ConfigV6.class);
 
     public Dynamic dynamic;
 
@@ -244,6 +248,18 @@ public class ConfigV6 {
                 + "]";
         }
 
+        @JsonAnySetter
+        public void unknownPropertiesHandler(String name, Object value) {
+            if (name.equals("transport_enabled")) {
+                LOGGER.info(
+                    "Detected transport_enabled setting in config.yml file. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
+                );
+                System.out.println(
+                    "Detected transport_enabled setting in config.yml file. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
+                );
+            }
+        }
+
     }
 
     public static class HttpAuthenticator {
@@ -345,6 +361,18 @@ public class ConfigV6 {
                 + ", authorization_backend="
                 + authorization_backend
                 + "]";
+        }
+
+        @JsonAnySetter
+        public void unknownPropertiesHandler(String name, Object value) {
+            if (name.equals("transport_enabled")) {
+                LOGGER.info(
+                    "Detected transport_enabled setting in config.yml file. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
+                );
+                System.out.println(
+                    "Detected transport_enabled setting in config.yml file. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
+                );
+            }
         }
 
     }
