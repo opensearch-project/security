@@ -1352,7 +1352,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Function.identity(),
                     Property.NodeScope
                 )
-            ); // not filtered here
+            );
             settings.add(
                 Setting.listSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
@@ -1361,6 +1361,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.NodeScope
                 )
             ); // not filtered here
+            settings.add(
+                Setting.listSetting(
+                    ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS,
+                    Collections.emptyList(),
+                    Function.identity(),
+                    Property.NodeScope
+                )
+            );
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
@@ -1393,6 +1401,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                             Property.NodeScope
                         );
                     case IGNORE_REQUESTS:
+                    case IGNORE_HEADERS:
                         return Setting.listSetting(
                             filterEntry.getKeyWithNamespace(),
                             Collections.emptyList(),
@@ -1780,6 +1789,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Setting.boolSetting(
                     ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY,
                     false,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
+                    0,
                     Property.NodeScope,
                     Property.Filtered
                 )

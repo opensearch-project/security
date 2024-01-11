@@ -62,7 +62,8 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CON
  *     "ignore_users" : [
  *       "kibanaserver"
  *     ],
- *     "ignore_requests" : [ ]
+ *     "ignore_requests" : [ ],
+ *     "ignore_headers" : [ ],
  *   },
  *   "compliance" : {
  *     "enabled": true,
@@ -82,6 +83,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CON
 public class AuditConfig {
 
     public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
+
     private static Set<String> FIELDS = DefaultObjectMapper.getFields(AuditConfig.class);
 
     private AuditConfig() {
@@ -138,8 +140,11 @@ public class AuditConfig {
         private final Set<String> ignoredAuditUsers;
         @JsonProperty("ignore_requests")
         private final Set<String> ignoredAuditRequests;
+        @JsonProperty("ignore_headers")
+        private final Set<String> ignoredCustomHeaders;
         private final WildcardMatcher ignoredAuditUsersMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
+        private final WildcardMatcher ignoredCustomHeadersMatcher;
         private final Set<AuditCategory> disabledRestCategories;
         private final Set<AuditCategory> disabledTransportCategories;
 
@@ -153,6 +158,7 @@ public class AuditConfig {
             final boolean excludeSensitiveHeaders,
             final Set<String> ignoredAuditUsers,
             final Set<String> ignoredAuditRequests,
+            final Set<String> ignoredCustomHeaders,
             final Set<AuditCategory> disabledRestCategories,
             final Set<AuditCategory> disabledTransportCategories
         ) {
@@ -166,6 +172,8 @@ public class AuditConfig {
             this.ignoredAuditUsersMatcher = WildcardMatcher.from(ignoredAuditUsers);
             this.ignoredAuditRequests = ignoredAuditRequests;
             this.ignoredAuditRequestsMatcher = WildcardMatcher.from(ignoredAuditRequests);
+            this.ignoredCustomHeaders = ignoredCustomHeaders;
+            this.ignoredCustomHeadersMatcher = WildcardMatcher.from(ignoredCustomHeaders);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
         }
@@ -183,7 +191,8 @@ public class AuditConfig {
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES
             ),
             IGNORE_USERS("ignore_users", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS),
-            IGNORE_REQUESTS("ignore_requests", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS);
+            IGNORE_REQUESTS("ignore_requests", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS),
+            IGNORE_HEADERS("ignore_headers", ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS);
 
             private final String key;
             private final String legacyKeyWithNamespace;
@@ -246,6 +255,9 @@ public class AuditConfig {
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(
                 getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList())
             );
+            final Set<String> ignoreHeaders = ImmutableSet.copyOf(
+                getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
+            );
 
             return new Filter(
                 isRestApiAuditEnabled,
@@ -256,6 +268,7 @@ public class AuditConfig {
                 excludeSensitiveHeaders,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
+                ignoreHeaders,
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -290,7 +303,7 @@ public class AuditConfig {
             );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
-
+            final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
             return new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
@@ -300,6 +313,7 @@ public class AuditConfig {
                 excludeSensitiveHeaders,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
+                ignoreHeaders,
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -403,6 +417,21 @@ public class AuditConfig {
             return ignoredAuditRequestsMatcher;
         }
 
+        @VisibleForTesting
+        WildcardMatcher getIgnoredCustomHeadersMatcher() {
+            return ignoredCustomHeadersMatcher;
+        }
+
+        /**
+         * Check if the specified header is excluded from the audit
+         *
+         * @param header
+         * @return true if header should be excluded
+         */
+        public boolean shouldExcludeHeader(String header) {
+            return ignoredCustomHeadersMatcher.test(header);
+        }
+
         /**
          * Check if request is excluded from audit
          * @param action
@@ -440,6 +469,7 @@ public class AuditConfig {
             logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
             logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
             logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsersMatcher);
+            logger.info("Auditing request headers {} is disabled.", ignoredCustomHeadersMatcher);
         }
 
         @Override
@@ -465,6 +495,8 @@ public class AuditConfig {
                 + ignoredAuditUsersMatcher
                 + ", ignoreAuditRequests="
                 + ignoredAuditRequestsMatcher
+                + ", ignoredCustomHeaders="
+                + ignoredCustomHeadersMatcher
                 + '}';
         }
     }

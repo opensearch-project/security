@@ -356,11 +356,14 @@ public final class AuditMessage {
         }
     }
 
-    public void addRestHeaders(Map<String, List<String>> headers, boolean excludeSensitiveHeaders) {
+    public void addRestHeaders(Map<String, List<String>> headers, boolean excludeSensitiveHeaders, AuditConfig.Filter filter) {
         if (headers != null && !headers.isEmpty()) {
             final Map<String, List<String>> headersClone = new HashMap<>(headers);
             if (excludeSensitiveHeaders) {
                 headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
+            }
+            if (filter != null) {
+                headersClone.entrySet().removeIf(entry -> filter.shouldExcludeHeader(entry.getKey()));
             }
             auditInfo.put(REST_REQUEST_HEADERS, headersClone);
         }
@@ -376,14 +379,14 @@ public final class AuditMessage {
         if (request != null) {
             final String path = request.path().toString();
             addPath(path);
-            addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
+            addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders(), filter);
             addRestParams(request.params());
             addRestMethod(request.method());
 
             if (filter.shouldLogRequestBody()) {
 
                 if (!(request instanceof OpenSearchRequest)) {
-                    // The request body is only avaliable on some request sources
+                    // The request body is only available on some request sources
                     return;
                 }
 
