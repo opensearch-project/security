@@ -251,8 +251,8 @@ public class ConfigV6 {
         @JsonAnySetter
         public void unknownPropertiesHandler(String name, Object value) {
             if (name.equals("transport_enabled")) {
-                LOGGER.info(
-                    "Detected transport_enabled setting in config.yml file. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
+                LOGGER.warn(
+                    "Detected transport_enabled setting in config.yml file under an AuthcDomain. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
                 );
             }
         }
@@ -363,8 +363,8 @@ public class ConfigV6 {
         @JsonAnySetter
         public void unknownPropertiesHandler(String name, Object value) {
             if (name.equals("transport_enabled")) {
-                LOGGER.info(
-                    "Detected transport_enabled setting in config.yml file. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
+                LOGGER.warn(
+                    "Detected transport_enabled setting in config.yml file under an AuthzDomain. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
                 );
             }
         }
