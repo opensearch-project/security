@@ -307,6 +307,26 @@ public class SecurityInterceptorTests {
         // Make the origin null should cause the ensureCorrectHeaders method to populate with Origin.LOCAL.toString()
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, null);
 
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                    Connection connection,
+                    String action,
+                    TransportRequest request,
+                    TransportRequestOptions options,
+                    TransportResponseHandler<T> handler
+            ) {
+                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                assertEquals(transientUser, user);
+            }
+        };
+
+        // This is a different way to get the same result which exercises the origin0 = null logic of ensureCorrectHeaders
+        securityInterceptor.sendRequestDecorate(finalSender, connection1, action, request, options, handler, localNode);
+
+        User transientUser7 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser7, user);
+        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
     }
 
     private void testSendRequestDecorateWithEmptyUserHeader(Version remoteNodeVersion) {
