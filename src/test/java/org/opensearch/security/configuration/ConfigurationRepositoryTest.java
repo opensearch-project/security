@@ -81,9 +81,9 @@ public class ConfigurationRepositoryTest {
 
         ConfigurationRepository configRepository = createConfigurationRepository(settings);
 
-        configRepository.initOnNodeStart();
+        final var result = configRepository.initOnNodeStart();
 
-        assertThat(configRepository.getInstallDefaultConfig().get(), is(true));
+        assertThat(result.join(), is(true));
     }
 
     @Test
@@ -92,9 +92,9 @@ public class ConfigurationRepositoryTest {
 
         ConfigurationRepository configRepository = createConfigurationRepository(settings);
 
-        configRepository.initOnNodeStart();
+        final var result = configRepository.initOnNodeStart();
 
-        assertThat(configRepository.getInstallDefaultConfig().get(), is(false));
+        assertThat(result.join(), is(false));
     }
 
     @Test

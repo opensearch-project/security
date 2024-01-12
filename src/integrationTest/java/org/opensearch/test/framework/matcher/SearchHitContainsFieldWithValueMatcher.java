@@ -35,6 +35,7 @@ class SearchHitContainsFieldWithValueMatcher<T> extends TypeSafeDiagnosingMatche
 
     @Override
     protected boolean matchesSafely(SearchResponse searchResponse, Description mismatchDescription) {
+        mismatchDescription.appendText("Unexpected match in SearchResponse " + searchResponse.toString() + "\n");
         Long numberOfHits = readTotalHits(searchResponse);
         if (numberOfHits == null) {
             mismatchDescription.appendText("Total number of hits is unknown.");

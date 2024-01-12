@@ -212,9 +212,6 @@ public class Installer {
                     cluster_mode = confirmAction(scanner, "Enable cluster mode?");
                 }
             }
-        } else {
-            initsecurity = true;
-            cluster_mode = true;
         }
     }
 
