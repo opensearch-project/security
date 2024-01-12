@@ -23,7 +23,6 @@
           "authc":{
              "authentication_domain_kerb":{
                 "http_enabled":false,
-                "transport_enabled":false,
                 "order":3,
                 "http_authenticator":{
                    "challenge":true,
@@ -42,7 +41,6 @@
              },
              "authentication_domain_clientcert":{
                 "http_enabled":false,
-                "transport_enabled":false,
                 "order":1,
                 "http_authenticator":{
                    "challenge":true,
@@ -61,7 +59,6 @@
              },
              "authentication_domain_proxy":{
                 "http_enabled":false,
-                "transport_enabled":false,
                 "order":2,
                 "http_authenticator":{
                    "challenge":true,
@@ -81,7 +78,6 @@
              },
              "authentication_domain_basic_internal":{
                 "http_enabled":true,
-                "transport_enabled":true,
                 "order":0,
                 "http_authenticator":{
                    "challenge":true,
@@ -102,7 +98,6 @@
           "authz":{
              "roles_from_xxx":{
                 "http_enabled":false,
-                "transport_enabled":false,
                 "authorization_backend":{
                    "type":"xxx",
                    "config":{
@@ -113,7 +108,6 @@
              },
              "roles_from_myldap":{
                 "http_enabled":false,
-                "transport_enabled":false,
                 "authorization_backend":{
                    "type":"ldap",
                    "config":{
