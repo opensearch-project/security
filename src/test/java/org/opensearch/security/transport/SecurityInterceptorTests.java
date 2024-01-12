@@ -10,6 +10,7 @@ package org.opensearch.security.transport;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
 import org.junit.Before;
@@ -310,11 +311,11 @@ public class SecurityInterceptorTests {
         sender = new AsyncSender() {
             @Override
             public <T extends TransportResponse> void sendRequest(
-                    Connection connection,
-                    String action,
-                    TransportRequest request,
-                    TransportRequestOptions options,
-                    TransportResponseHandler<T> handler
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
             ) {
                 User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 assertEquals(transientUser, user);
@@ -327,6 +328,59 @@ public class SecurityInterceptorTests {
         User transientUser7 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertEquals(transientUser7, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+
+        // Make the remote address null should cause the ensureCorrectHeaders to keep the TransportAddress as null ultimately causing local
+        // logic to occur
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, null);
+
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                assertEquals(transientUser, user);
+            }
+        };
+
+        // This is a different way to get the same result which exercises the origin0 = null logic of ensureCorrectHeaders
+        securityInterceptor.sendRequestDecorate(finalSender, connection1, action, request, options, handler, localNode);
+
+        User transientUser8 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser8, user);
+        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+
+        threadPool.getThreadContext()
+            .putHeader(
+                ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
+                String.valueOf(new TransportAddress(new InetSocketAddress("8.8.8.8", 80)))
+            );
+
+        // If instead it is a transport address then it will cause serialization
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
+            }
+        };
+
+        securityInterceptor.sendRequestDecorate(finalSender, connection1, action, request, options, handler, localNode);
+
+        User transientUser9 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser9, user);
+        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+
     }
 
     private void testSendRequestDecorateWithEmptyUserHeader(Version remoteNodeVersion) {
