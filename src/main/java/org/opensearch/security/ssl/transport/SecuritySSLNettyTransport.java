@@ -103,6 +103,11 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         this.SSLConfig = SSLConfig;
     }
 
+    // This allows for testing log messages
+    public Logger getLogger() {
+        return logger;
+    }
+
     @Override
     public void onException(TcpChannel channel, Exception e) {
 
@@ -113,7 +118,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         }
 
         errorHandler.logError(cause, false);
-        logger.error("Exception during establishing a SSL connection: " + cause, cause);
+        getLogger().error("Exception during establishing a SSL connection: " + cause, cause);
 
         super.onException(channel, e);
     }
@@ -156,7 +161,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
             }
 
             errorHandler.logError(cause, false);
-            logger.error("Exception during establishing a SSL connection: " + cause, cause);
+            getLogger().error("Exception during establishing a SSL connection: " + cause, cause);
 
             super.exceptionCaught(ctx, cause);
         }
@@ -291,7 +296,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
             }
 
             errorHandler.logError(cause, false);
-            logger.error("Exception during establishing a SSL connection: " + cause, cause);
+            getLogger().error("Exception during establishing a SSL connection: " + cause, cause);
 
             super.exceptionCaught(ctx, cause);
         }
