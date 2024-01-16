@@ -70,7 +70,7 @@ public class SecurityConfigurationTests {
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
                 SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST,
-                true
+                false
             )
         )
         .build();

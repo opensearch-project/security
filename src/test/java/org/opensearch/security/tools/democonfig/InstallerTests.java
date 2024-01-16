@@ -193,8 +193,8 @@ public class InstallerTests {
 
         installer.gatherUserInputs();
 
-        assertThat(installer.initsecurity, is(true));
-        assertThat(installer.cluster_mode, is(true));
+        assertThat(installer.initsecurity, is(false));
+        assertThat(installer.cluster_mode, is(false));
     }
 
     @Test

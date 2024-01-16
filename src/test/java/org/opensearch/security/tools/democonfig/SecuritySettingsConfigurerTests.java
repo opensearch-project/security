@@ -104,7 +104,12 @@ public class SecuritySettingsConfigurerTests {
             System.setSecurityManager(null);
         }
 
-        verifyStdOutContainsString("No custom admin password found. Please provide a password.");
+        verifyStdOutContainsString(
+            String.format(
+                "No custom admin password found. Please provide a password via the environment variable %s.",
+                ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD
+            )
+        );
     }
 
     @Test
@@ -234,6 +239,18 @@ public class SecuritySettingsConfigurerTests {
 
         assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str1), is(equalTo(true)));
         assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, str2), is(equalTo(false)));
+    }
+
+    @Test
+    public void testAssumeYesDoesNotInitializeClusterMode() throws IOException {
+        String nodeName = "node.name"; // cluster_mode
+        String securityIndex = "plugins.security.allow_default_init_securityindex"; // init_security
+
+        installer.assumeyes = true;
+        securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
+
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, nodeName), is(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, securityIndex), is(false));
     }
 
     @Test

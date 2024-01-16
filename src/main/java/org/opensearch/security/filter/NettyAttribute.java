@@ -12,7 +12,7 @@ package org.opensearch.security.filter;
 
 import java.util.Optional;
 
-import org.opensearch.http.netty4.Netty4HttpChannel;
+import org.opensearch.http.HttpChannel;
 import org.opensearch.rest.RestRequest;
 
 import io.netty.channel.Channel;
@@ -25,11 +25,12 @@ public class NettyAttribute {
      * Gets an attribute value from the request context and clears it from that context
      */
     public static <T> Optional<T> popFrom(final RestRequest request, final AttributeKey<T> attribute) {
-        if (request.getHttpChannel() instanceof Netty4HttpChannel) {
-            Channel nettyChannel = ((Netty4HttpChannel) request.getHttpChannel()).getNettyChannel();
-            return Optional.ofNullable(nettyChannel.attr(attribute).getAndSet(null));
+        final HttpChannel httpChannel = request.getHttpChannel();
+        if (httpChannel != null) {
+            return httpChannel.get("channel", Channel.class).map(channel -> channel.attr(attribute).getAndSet(null));
+        } else {
+            return Optional.empty();
         }
-        return Optional.empty();
     }
 
     /**
@@ -50,9 +51,9 @@ public class NettyAttribute {
      * Clears an attribute value from the channel handler context
      */
     public static <T> void clearAttribute(final RestRequest request, final AttributeKey<T> attribute) {
-        if (request.getHttpChannel() instanceof Netty4HttpChannel) {
-            Channel nettyChannel = ((Netty4HttpChannel) request.getHttpChannel()).getNettyChannel();
-            nettyChannel.attr(attribute).set(null);
+        final HttpChannel httpChannel = request.getHttpChannel();
+        if (httpChannel != null) {
+            httpChannel.get("channel", Channel.class).ifPresent(channel -> channel.attr(attribute).set(null));
         }
     }
 
