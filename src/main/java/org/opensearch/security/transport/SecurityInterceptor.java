@@ -86,6 +86,7 @@ public class SecurityInterceptor {
     private final SslExceptionHandler sslExceptionHandler;
     private final ClusterInfoHolder clusterInfoHolder;
     private final SSLConfig SSLConfig;
+    private boolean actionTraceForTesting;
 
     public SecurityInterceptor(
         final Settings settings,
@@ -109,6 +110,7 @@ public class SecurityInterceptor {
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
         this.SSLConfig = SSLConfig;
+        this.actionTraceForTesting = false;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
@@ -247,7 +249,7 @@ public class SecurityInterceptor {
                 useJDKSerialization
             );
 
-            if (isActionTraceEnabled()) {
+            if (isActionTraceEnabled() || actionTraceForTesting) {
                 getThreadContext().putHeader(
                     "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
                     Thread.currentThread().getName()
@@ -408,4 +410,10 @@ public class SecurityInterceptor {
         }
     }
 
+    /*
+      A test-only method meant to be used for trace validation behavior.
+     */
+    public void setActionTraceForTesting(boolean actionTraceForTesting) {
+        this.actionTraceForTesting = actionTraceForTesting;
+    }
 }

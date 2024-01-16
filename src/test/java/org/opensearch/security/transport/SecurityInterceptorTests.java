@@ -52,6 +52,7 @@ import org.mockito.MockitoAnnotations;
 
 import static java.util.Collections.emptySet;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -381,6 +382,36 @@ public class SecurityInterceptorTests {
         assertEquals(transientUser9, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
 
+        securityInterceptor.setActionTraceForTesting(true);
+
+        // from thread context inside sendRequestDecorate for local-node1 connection1
+        // this case is just for action trace logic validation
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                assertEquals(transientUser, user);
+            }
+        };
+
+        // local node request
+        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+
+        // from original context
+        User transientUser10 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser10, user);
+        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+
+        // even though we add the trace the restoring handler should remove it from the thread context
+        assertFalse(
+            threadPool.getThreadContext().getHeaders().keySet().stream().anyMatch(header -> header.startsWith("_opendistro_security_trace"))
+        );
     }
 
     private void testSendRequestDecorateWithEmptyUserHeader(Version remoteNodeVersion) {
