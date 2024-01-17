@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.Version;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.network.NetworkService;
@@ -104,7 +105,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
     }
 
     // This allows for testing log messages
-    public Logger getLogger() {
+     Logger getLogger() {
         return logger;
     }
 
@@ -120,6 +121,9 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         errorHandler.logError(cause, false);
         getLogger().error("Exception during establishing a SSL connection: " + cause, cause);
 
+        if (channel == null || !channel.isOpen()) {
+            throw new OpenSearchSecurityException("The provided TCP channel is invalid.", e);
+        }
         super.onException(channel, e);
     }
 
