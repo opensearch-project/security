@@ -102,20 +102,27 @@ public class SecurityInterceptorTests {
     private OpenSearchSecurityPlugin.GuiceHolder guiceHolder;
     private User user;
     private String action = "testAction";
+    private Version remoteNodeVersion = Version.V_2_0_0;
+
     private InetAddress localAddress;
     private InetAddress remoteAddress;
     private DiscoveryNode localNode;
     private Connection connection1;
     private DiscoveryNode otherNode;
     private Connection connection2;
+    private DiscoveryNode remoteNode;
+    private Connection connection3;
+    private DiscoveryNode otherRemoteNode;
+    private Connection connection4;
 
-    Boolean testActionTraceSupplier() {
-        return true;
-    }
+    private AsyncSender sender;
+    private AsyncSender serializedSender;
+    private AsyncSender nullSender;
 
     @Before
     public void setup() {
 
+        // Build mocked objects
         MockitoAnnotations.openMocks(this);
         settings = Settings.builder()
             .put("node.name", SecurityInterceptorTests.class.getSimpleName())
@@ -133,7 +140,7 @@ public class SecurityInterceptorTests {
             sslExceptionHandler,
             clusterInfoHolder,
             sslConfig,
-            this::testActionTraceSupplier
+            () -> true
         );
 
         clusterName = ClusterName.DEFAULT;
@@ -160,6 +167,7 @@ public class SecurityInterceptorTests {
         );
         // CS-ENFORCE-SINGLE
 
+        // Instantiate objects for tests
         user = new User("John Doe");
 
         request = mock(TransportRequest.class);
@@ -179,325 +187,176 @@ public class SecurityInterceptorTests {
 
         otherNode = new DiscoveryNode("local-node2", new TransportAddress(localAddress, 4321), Version.CURRENT);
         connection2 = transportService.getConnection(otherNode);
+
+        remoteNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 6789), remoteNodeVersion);
+        connection3 = transportService.getConnection(remoteNode);
+
+        otherRemoteNode = new DiscoveryNode("remote-node2", new TransportAddress(remoteAddress, 9876), remoteNodeVersion);
+        connection4 = transportService.getConnection(otherRemoteNode);
+
+        serializedSender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, true));
+            }
+        };
+
+        sender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                assertEquals(transientUser, user);
+            }
+        };
+
+        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+    }
+
+    /**
+     * A method to confirm the original thread context is maintained
+     * @param user The expected user to be in the transient header
+     */
+    final void verifyOriginalContext(User user) {
+
+        User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals(transientUser, user);
+        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
     }
 
     @Test
     public void testSendRequestDecorateLocalConnection() {
-        Version remoteNodeVersion = Version.CURRENT;
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-
-        // from thread context inside sendRequestDecorate for local-node1 connection1
-        AsyncSender sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
-            }
-        };
 
         // local node request
         securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
-
         // from original context
-        User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
-
-        // checking thread context inside sendRequestDecorate for local-node2 connection2
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
-            }
-        };
-
+        verifyOriginalContext(user);
         // this is also a local request
         securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, otherNode);
-
         // from original context
-        User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser2, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+        verifyOriginalContext(user);
     }
 
     @Test
     public void testSendRequestDecorateRemoteConnection() {
-        Version remoteNodeVersion = Version.V_2_0_0;
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-
-        // Have to define these locally since they are only for the remote connections
-        boolean useJDKSerialization = remoteNodeVersion.before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION);
-        DiscoveryNode remoteNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 6789), remoteNodeVersion);
-        Connection connection1 = transportService.getConnection(remoteNode);
-        DiscoveryNode otherRemoteNode = new DiscoveryNode("remote-node2", new TransportAddress(remoteAddress, 9876), remoteNodeVersion);
-        Connection connection2 = transportService.getConnection(otherRemoteNode);
-
-        // checking thread context inside sendRequestDecorate for remote-node connection3
-        AsyncSender sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
-            }
-        };
 
         // this is a remote request
-        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
-
+        securityInterceptor.sendRequestDecorate(serializedSender, connection3, action, request, options, handler, localNode);
         // from original context
-        User transientUser1 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser1, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
-
-        // checking thread context inside sendRequestDecorate for remote-node2 connection4
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
-            }
-        };
-
+        verifyOriginalContext(user);
         // this is a remote request where the transport address is different
-        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, localNode);
-
+        securityInterceptor.sendRequestDecorate(serializedSender, connection4, action, request, options, handler, localNode);
         // from original context
-        User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser2, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+        verifyOriginalContext(user);
     }
 
-    /**
-     * This test validates the behavior of the security interceptor when certain fields are null.
-     */
     @Test
-    public void testSendRequestDecorateWithNullFields() {
-        Version remoteNodeVersion = Version.CURRENT;
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-        boolean useJDKSerialization = remoteNodeVersion.before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION);
-        ClusterName clusterName = ClusterName.DEFAULT;
-        when(clusterService.getClusterName()).thenReturn(clusterName);
-
-        MockTransport transport = new MockTransport();
-        TransportService transportService = transport.createTransportService(
-            Settings.EMPTY,
-            threadPool,
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
-            boundTransportAddress -> clusterService.state().nodes().get(SecurityInterceptor.class.getSimpleName()),
-            null,
-            emptySet(),
-            NoopTracer.INSTANCE
-        );
-
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
-        OpenSearchSecurityPlugin.GuiceHolder guiceHolder = new OpenSearchSecurityPlugin.GuiceHolder(
-            mock(RepositoriesService.class),
-            transportService,
-            mock(IndicesService.class),
-            mock(PitService.class),
-            mock(ExtensionsManager.class)
-        );
-        // CS-ENFORCE-SINGLE
-
-        DiscoveryNode localNode = new DiscoveryNode("local-node1", new TransportAddress(localAddress, 1234), Version.CURRENT);
-        Connection connection1 = transportService.getConnection(localNode);
-
-        DiscoveryNode remoteNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 6789), remoteNodeVersion);
-        Connection connection2 = transportService.getConnection(remoteNode);
-
-        // checking thread context inside sendRequestDecorate for connection1 with null local node -- we should serialize this
-        AsyncSender sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
-            }
-        };
+    public void testSendNoOriginNodeCausesSerialization() {
 
         // this is a request where the local node is null; have to use the remote connection since the serialization will fail
-        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, null);
-
+        securityInterceptor.sendRequestDecorate(serializedSender, connection3, action, request, options, handler, null);
         // from original context
-        User transientUser1 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser1, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+        verifyOriginalContext(user);
+    }
 
-        // test sending various missing decorates with missing request info
+    @Test
+    public void testSendNoConnectionShouldThrowNPE() {
 
-        // checking thread context inside sendRequestDecorate
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
-            }
-        };
-
-        // Having null connection will cause useJDKSerialization to throw npe
-        AsyncSender finalSender = sender; // Have to do this because of being a runnable
         assertThrows(
             java.lang.NullPointerException.class,
-            () -> securityInterceptor.sendRequestDecorate(finalSender, null, action, request, options, handler, localNode)
+            () -> securityInterceptor.sendRequestDecorate(serializedSender, null, action, request, options, handler, localNode)
         );
+    }
+
+    @Test
+    public void testNullOriginHeaderCausesNoSerialization() {
 
         // Make the origin null should cause the ensureCorrectHeaders method to populate with Origin.LOCAL.toString()
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, null);
-
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
-            }
-        };
-
         // This is a different way to get the same result which exercises the origin0 = null logic of ensureCorrectHeaders
-        securityInterceptor.sendRequestDecorate(finalSender, connection1, action, request, options, handler, localNode);
+        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+    }
 
-        User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser2, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+    @Test
+    public void testNullRemoteAddressCausesNoSerialization() {
 
         // Make the remote address null should cause the ensureCorrectHeaders to keep the TransportAddress as null ultimately causing local
         // logic to occur
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, null);
-
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
-            }
-        };
-
         // This is a different way to get the same result which exercises the origin0 = null logic of ensureCorrectHeaders
-        securityInterceptor.sendRequestDecorate(finalSender, connection1, action, request, options, handler, localNode);
+        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+    }
 
-        User transientUser3 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser3, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+    @Test
+    public void testCustomRemoteAddressCausesSerialization() {
 
         threadPool.getThreadContext()
             .putHeader(
                 ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
                 String.valueOf(new TransportAddress(new InetSocketAddress("8.8.8.8", 80)))
             );
+        securityInterceptor.sendRequestDecorate(serializedSender, connection3, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+    }
 
-        // If instead it is a transport address then it will cause serialization
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, useJDKSerialization));
-            }
-        };
+    @Test
+    public void testTraceHeaderIsRemoved() {
 
-        securityInterceptor.sendRequestDecorate(finalSender, connection1, action, request, options, handler, localNode);
-
-        User transientUser4 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser4, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
-
-        // from thread context inside sendRequestDecorate for local-node1 connection1
+        threadPool.getThreadContext().putTransient("_opendistro_security_trace", "fake trace value");
         // this case is just for action trace logic validation
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
-            }
-        };
-
         // local node request
         securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
-
         // from original context
-        User transientUser5 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser5, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
-
+        verifyOriginalContext(user);
         // even though we add the trace the restoring handler should remove it from the thread context
         assertFalse(
             threadPool.getThreadContext().getHeaders().keySet().stream().anyMatch(header -> header.startsWith("_opendistro_security_trace"))
         );
     }
 
-    /**
-     * This test populates all the thread context headers will fake values. This lets us verify the ensureCorrectHeaders
-     * method in the Security Interceptor.
-     */
     @Test
-    public void testSendRequestDecorateWithFakeHeaders() {
-        Version remoteNodeVersion = Version.CURRENT;
-        // Add a fake header to show it does not get misinterpreted
+    public void testFakeHeaderIsIgnored() {
+
         threadPool.getThreadContext().putHeader("FAKE_HEADER", "fake_value");
+        // this is a local request
+        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+        // this is a remote request
+        securityInterceptor.sendRequestDecorate(serializedSender, connection3, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+    }
+
+    @Test
+    public void testNullHeaderIsIgnored() {
 
         // Add a null header
         threadPool.getThreadContext().putHeader(null, null);
         threadPool.getThreadContext().putHeader(null, "null");
+        // this is a local request
+        securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+        // this is a remote request
+        securityInterceptor.sendRequestDecorate(serializedSender, connection3, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+    }
 
-        // Add the other headers we check
+    @Test
+    public void testFakeHeadersAreIgnored() {
+
         threadPool.getThreadContext()
             .putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "fake security config request header");
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, "fake security origin header");
@@ -511,87 +370,14 @@ public class SecurityInterceptorTests {
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER, "fake dls mode header");
         threadPool.getThreadContext()
             .putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER, "fake dls filter header");
-        threadPool.getThreadContext().putHeader("_opendistro_security_trace", "fake trace value");
         threadPool.getThreadContext()
             .putHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER, "fake initial action header");
         threadPool.getThreadContext().putHeader("_opendistro_security_source_field_context", "fake source field context value");
         threadPool.getThreadContext()
             .putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, "fake injected roles validation string");
 
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
-        OpenSearchSecurityPlugin.GuiceHolder guiceHolder = new OpenSearchSecurityPlugin.GuiceHolder(
-            mock(RepositoriesService.class),
-            transportService,
-            mock(IndicesService.class),
-            mock(PitService.class),
-            mock(ExtensionsManager.class)
-        );
-
-        // CS-ENFORCE-SINGLE
-
-        String action = "testAction";
-        TransportRequest request = mock(TransportRequest.class);
-        TransportRequestOptions options = mock(TransportRequestOptions.class);
-        @SuppressWarnings("unchecked")
-        TransportResponseHandler<TransportResponse> handler = mock(TransportResponseHandler.class);
-
-        InetAddress localAddress = null;
-        try {
-            localAddress = InetAddress.getByName("0.0.0.0");
-        } catch (final UnknownHostException uhe) {
-            throw new RuntimeException(uhe);
-        }
-
-        DiscoveryNode localNode = new DiscoveryNode("local-node1", new TransportAddress(localAddress, 1234), Version.CURRENT);
-        Connection connection1 = transportService.getConnection(localNode);
-
-        DiscoveryNode remoteNode = new DiscoveryNode("remote-node", new TransportAddress(localAddress, 6789), remoteNodeVersion);
-        Connection connection2 = transportService.getConnection(remoteNode);
-
-        // from thread context should be null because there is no header
-        AsyncSender sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, null);
-            }
-        };
-
-        // local node request
+        // this is a local request
         securityInterceptor.sendRequestDecorate(sender, connection1, action, request, options, handler, localNode);
-
-        // from original context
-        User transientUser1 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser1, null);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
-
-        // checking thread context for a remote context; does not matter should still be null
-        sender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, null);
-            }
-        };
-
-        // this is also a local request
-        securityInterceptor.sendRequestDecorate(sender, connection2, action, request, options, handler, remoteNode);
-
-        // from original context
-        User transientUser2 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser2, null);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+        verifyOriginalContext(user);
     }
 }
