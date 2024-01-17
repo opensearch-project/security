@@ -214,6 +214,7 @@ public class AuditConfigSerializeTest {
             false,
             Collections.singletonList("test-write-watch-index"),
             Collections.singleton("test-user-2"),
+            null,
             Settings.EMPTY
         );
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
