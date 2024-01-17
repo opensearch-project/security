@@ -105,7 +105,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
     }
 
     // This allows for testing log messages
-     Logger getLogger() {
+    Logger getLogger() {
         return logger;
     }
 

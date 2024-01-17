@@ -11,21 +11,13 @@
 
 package org.opensearch.security.ssl.transport;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.DecoderException;
 import java.util.Collections;
-import net.bytebuddy.implementation.bytecode.Throw;
-import org.junit.Assert;
+
+import org.apache.logging.log4j.Logger;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.MockitoRule;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.Version;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -38,32 +30,29 @@ import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport.SSLClientChannelInitializer;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport.SSLServerChannelInitializer;
-import org.opensearch.security.transport.SecurityInterceptorTests;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.FakeTcpChannel;
 import org.opensearch.transport.SharedGroupFactory;
-
-import org.apache.logging.log4j.Logger;
-import io.netty.channel.ChannelHandler;
-import org.mockito.Mock;
 import org.opensearch.transport.TcpChannel;
+
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.DecoderException;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.common.inject.matcher.Matchers.any;
-
 
 public class SecuritySSLNettyTransportTests {
 
@@ -106,7 +95,8 @@ public class SecuritySSLNettyTransportTests {
         sslConfig = new SSLConfig(Settings.EMPTY);
         mockLogger = mock(Logger.class);
 
-        securitySSLNettyTransport = spy(new SecuritySSLNettyTransport(
+        securitySSLNettyTransport = spy(
+            new SecuritySSLNettyTransport(
                 Settings.EMPTY,
                 version,
                 threadPool,
@@ -119,7 +109,8 @@ public class SecuritySSLNettyTransportTests {
                 sharedGroupFactory,
                 sslConfig,
                 trace
-        ));
+            )
+        );
     }
 
     @Test
