@@ -109,6 +109,10 @@ public class SecurityInterceptorTests {
     private DiscoveryNode otherNode;
     private Connection connection2;
 
+    Boolean testActionTraceSupplier() {
+        return true;
+    }
+
     @Before
     public void setup() {
 
@@ -128,7 +132,8 @@ public class SecurityInterceptorTests {
             clusterService,
             sslExceptionHandler,
             clusterInfoHolder,
-            sslConfig
+            sslConfig,
+            this::testActionTraceSupplier
         );
 
         clusterName = ClusterName.DEFAULT;
@@ -447,8 +452,6 @@ public class SecurityInterceptorTests {
         User transientUser4 = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertEquals(transientUser4, user);
         assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
-
-        securityInterceptor.setActionTraceForTesting(true);
 
         // from thread context inside sendRequestDecorate for local-node1 connection1
         // this case is just for action trace logic validation
