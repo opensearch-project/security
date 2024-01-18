@@ -197,8 +197,9 @@ public class DlsIntegrationTests {
      * User with two roles: a role with DLS restrictions containing a bool query in which the artist field needs to match ARTIST_FIRST, and a role with DLS restrictions containing a term query in which the stars field needs to match 1.
      */
 
-    static final TestSecurityConfig.User USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY = new TestSecurityConfig.User("bool_term_user")
-        .roles(ROLE_MATCH_ARTIST_BOOL_QUERY, ROLE_MATCH_STARS_TERM_QUERY);
+    static final TestSecurityConfig.User USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY = new TestSecurityConfig.User(
+        "bool_term_user"
+    ).roles(ROLE_MATCH_ARTIST_BOOL_QUERY, ROLE_MATCH_STARS_TERM_QUERY);
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)

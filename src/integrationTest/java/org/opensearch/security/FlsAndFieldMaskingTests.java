@@ -248,10 +248,8 @@ public class FlsAndFieldMaskingTests {
     /**
      * Example user with fls filter in which the user can only see the {@link Song#FIELD_TITLE} field and can see every field but the {@link Song#FIELD_TITLE} field- should default to showing no fields.
      */
-    static final TestSecurityConfig.User USER_BOTH_ONLY_AND_NO_FIELD_TITLE_FLS = new TestSecurityConfig.User("inclusive_exclusive_fls_user").roles(
-        ROLE_ONLY_FIELD_TITLE_FLS,
-        ROLE_NO_FIELD_TITLE_FLS
-    );
+    static final TestSecurityConfig.User USER_BOTH_ONLY_AND_NO_FIELD_TITLE_FLS = new TestSecurityConfig.User("inclusive_exclusive_fls_user")
+        .roles(ROLE_ONLY_FIELD_TITLE_FLS, ROLE_NO_FIELD_TITLE_FLS);
 
     /**
      * Example user with fls filter in which the user can only see the {@link Song#FIELD_TITLE} field and in which {@link Song#FIELD_TITLE} field is masked.
@@ -263,8 +261,9 @@ public class FlsAndFieldMaskingTests {
     /**
      *  Example user with fls filter in which the user can see every field but the {@link Song#FIELD_TITLE} field and in which {@link Song#FIELD_TITLE} field is masked- {@link Song#FIELD_TITLE} field should not be visible.
      */
-    static final TestSecurityConfig.User USER_BOTH_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED = new TestSecurityConfig.User("exclusive_masked_user")
-        .roles(ROLE_NO_FIELD_TITLE_FLS, ROLE_ONLY_FIELD_TITLE_MASKED);
+    static final TestSecurityConfig.User USER_BOTH_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED = new TestSecurityConfig.User(
+        "exclusive_masked_user"
+    ).roles(ROLE_NO_FIELD_TITLE_FLS, ROLE_ONLY_FIELD_TITLE_MASKED);
 
     /**
      * Example user with fls filter in which the user can only see the {@link Song#FIELD_TITLE} field and can see every field but the {@link Song#FIELD_TITLE} field and in which {@link Song#FIELD_TITLE} field is masked- should default to showing no fields.
@@ -1554,7 +1553,11 @@ public class FlsAndFieldMaskingTests {
     public void testGetDocumentWithTitleFieldMaskingAndNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         GetRequest getRequest = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED
+            )
+        ) {
             assertProperGetResponsesForTitleFieldMaskingAndNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, getRequest);
         }
     }
@@ -1580,7 +1583,11 @@ public class FlsAndFieldMaskingTests {
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED
+            )
+        ) {
             assertProperMultiGetResponseForTitleFieldMaskingAndNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
                 restHighLevelClient,
                 multiGetRequest
@@ -1646,7 +1653,11 @@ public class FlsAndFieldMaskingTests {
     public void testSearchDocumentWithTitleFieldMaskingAndNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED
+            )
+        ) {
             assertProperSearchResponseForTitleFieldMaskingAndNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
                 restHighLevelClient,
                 searchRequest
