@@ -188,7 +188,9 @@ public class DlsIntegrationTests {
     /**
      * User with DLS permission to only be able to access documents with false sensitive property.
      */
-    static final TestSecurityConfig.User USER_NON_SENSITIVE_ONLY = new TestSecurityConfig.User("test_role_1_user").roles(ROLE_NON_SENSITIVE_ONLY);
+    static final TestSecurityConfig.User USER_NON_SENSITIVE_ONLY = new TestSecurityConfig.User("test_role_1_user").roles(
+        ROLE_NON_SENSITIVE_ONLY
+    );
 
     /**
      * User with DLS permission to access all documents.
@@ -198,7 +200,9 @@ public class DlsIntegrationTests {
     /**
      * User with DLS permission to access documents with genre property matching History.
      */
-    static final TestSecurityConfig.User USER_MATCH_HISTORY_GENRE_ONLY = new TestSecurityConfig.User("test_role_3_user").roles(ROLE_MATCH_HISTORY_GENRE_ONLY);
+    static final TestSecurityConfig.User USER_MATCH_HISTORY_GENRE_ONLY = new TestSecurityConfig.User("test_role_3_user").roles(
+        ROLE_MATCH_HISTORY_GENRE_ONLY
+    );
 
     /**
      * User with overlapping DLS permissions to access documents with false sensitive property and access all documents- should yield accessing all documents.
@@ -210,9 +214,11 @@ public class DlsIntegrationTests {
     /**
      * User with non-overlapping DLS permissions to access documents with false sensitive property and genre property matching History.
      */
-    static final TestSecurityConfig.User USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY = new TestSecurityConfig.User(
-        "test_union_of_non_overlapping_roles_user"
-    ).roles(ROLE_NON_SENSITIVE_ONLY, ROLE_MATCH_HISTORY_GENRE_ONLY);
+    static final TestSecurityConfig.User USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY =
+        new TestSecurityConfig.User("test_union_of_non_overlapping_roles_user").roles(
+            ROLE_NON_SENSITIVE_ONLY,
+            ROLE_MATCH_HISTORY_GENRE_ONLY
+        );
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
@@ -625,7 +631,11 @@ public class DlsIntegrationTests {
             assertSearchResponseHitsEqualTo(searchResponse, 10);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL
+            )
+        ) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
@@ -680,7 +690,11 @@ public class DlsIntegrationTests {
             );
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY
+            )
+        ) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
@@ -705,5 +719,5 @@ public class DlsIntegrationTests {
     private void assertSearchResponseHitsEqualTo(SearchResponse searchResponse, int hits) throws Exception {
         assertThat(searchResponse, isSuccessfulSearchResponse());
         assertThat(searchResponse, numberOfTotalHitsIsEqualTo(hits));
-}
+    }
 }
