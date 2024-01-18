@@ -38,15 +38,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.setting.DeprecatedSettings;
 
 public class ConfigV6 {
-
-    private static final Logger LOGGER = LogManager.getLogger(ConfigV6.class);
 
     public Dynamic dynamic;
 
@@ -249,11 +248,27 @@ public class ConfigV6 {
         }
 
         @JsonAnySetter
-        public void unknownPropertiesHandler(String name, Object value) {
-            if (name.equals("transport_enabled")) {
-                LOGGER.warn(
-                    "Detected transport_enabled setting in config.yml file under an AuthcDomain. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
-                );
+        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+            switch (name) {
+                case "transport_enabled":
+                    DeprecatedSettings.logCustomDeprecationMessage(
+                        String.format(
+                            "In AuthcDomain, using http_authenticator=%s, authentication_backend=%s",
+                            http_authenticator,
+                            authentication_backend
+                        ),
+                        name
+                    );
+                    break;
+                default:
+                    throw new UnrecognizedPropertyException(
+                        null,
+                        "Unrecognized field " + name + " present in the input data for AuthcDomain config",
+                        null,
+                        AuthcDomain.class,
+                        name,
+                        null
+                    );
             }
         }
 
@@ -361,11 +376,23 @@ public class ConfigV6 {
         }
 
         @JsonAnySetter
-        public void unknownPropertiesHandler(String name, Object value) {
-            if (name.equals("transport_enabled")) {
-                LOGGER.warn(
-                    "Detected transport_enabled setting in config.yml file under an AuthzDomain. Since the transport client has been removed, this setting is now unnecessary/unsupported and therefore can be safely removed."
-                );
+        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+            switch (name) {
+                case "transport_enabled":
+                    DeprecatedSettings.logCustomDeprecationMessage(
+                        String.format("In AuthzDomain, using authorization_backend=%s", authorization_backend),
+                        name
+                    );
+                    break;
+                default:
+                    throw new UnrecognizedPropertyException(
+                        null,
+                        "Unrecognized field " + name + " present in the input data for AuthzDomain config",
+                        null,
+                        AuthzDomain.class,
+                        name,
+                        null
+                    );
             }
         }
 
