@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.cxf.common.i18n.Exception;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -554,90 +555,84 @@ public class DlsIntegrationTests {
     }
 
     @Test
-    public void testGetDocumentWithDLSRestrictions() throws Exception {
+    public void testGetDocumentWithDLSRestrictions() throws IOException, Exception {
         GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
         GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
-            GetResponse boolFoundGetResponse = restHighLevelClient.get(findExistingDoc, DEFAULT);
-            assertThat(boolFoundGetResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-
-            GetResponse boolNotFoundGetResponse = restHighLevelClient.get(findNonExistingDoc, DEFAULT);
-            assertThat(boolNotFoundGetResponse.isExists(), equalTo(false));
+            assertFoundNotFoundGetResponsesWork(restHighLevelClient, findExistingDoc, findNonExistingDoc);
         }
-
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
-            GetResponse termFoundGetResponse = restHighLevelClient.get(findExistingDoc, DEFAULT);
-            assertThat(termFoundGetResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-
-            GetResponse termNotFoundGetResponse = restHighLevelClient.get(findNonExistingDoc, DEFAULT);
-            assertThat(termNotFoundGetResponse.isExists(), equalTo(false));
+            assertFoundNotFoundGetResponsesWork(restHighLevelClient, findExistingDoc, findNonExistingDoc);
         }
     }
 
+    private void assertFoundNotFoundGetResponsesWork(
+        RestHighLevelClient restHighLevelClient,
+        GetRequest findExistingDoc,
+        GetRequest findNonExistingDoc
+    ) throws IOException, Exception {
+        GetResponse response = restHighLevelClient.get(findExistingDoc, DEFAULT);
+        assertThat(response, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+        response = restHighLevelClient.get(findNonExistingDoc, DEFAULT);
+        assertThat(response.isExists(), equalTo(false));
+    }
+
     @Test
-    public void testMultiGetDocumentWithDLSRestrictions() throws Exception {
+    public void testMultiGetDocumentWithDLSRestrictions() throws IOException, Exception {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
-            MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
-            List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
-                .map(MultiGetItemResponse::getResponse)
-                .collect(Collectors.toList());
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-            assertThat(getResponses, not(hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2))));
+            assertFoundNotFoundMultiGetRequestWorks(restHighLevelClient, multiGetRequest);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
-            MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
-            List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
-                .map(MultiGetItemResponse::getResponse)
-                .collect(Collectors.toList());
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-            assertThat(getResponses, not(hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2))));
+            assertFoundNotFoundMultiGetRequestWorks(restHighLevelClient, multiGetRequest);
         }
     }
 
+    private void assertFoundNotFoundMultiGetRequestWorks(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest)
+        throws IOException, Exception {
+        MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+        List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+            .map(MultiGetItemResponse::getResponse)
+            .collect(Collectors.toList());
+        assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+        assertThat(getResponses, not(hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2))));
+    }
+
     @Test
-    public void testSearchDocumentWithDLSRestrictions() throws Exception {
+    public void testSearchDocumentWithDLSRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-            assertThat(
-                searchResponse,
-                not(
-                    searchHitsContainDocumentsInAnyOrder(
-                        FIRST_INDEX_SONGS_BY_ID.keySet()
-                            .stream()
-                            .filter(id -> !id.equals(FIRST_INDEX_ID_SONG_1))
-                            .map(id -> Pair.of(FIRST_INDEX_NAME, id))
-                            .collect(Collectors.toList())
-                    )
-                )
-            );
+            assertFoundNotFoundSearchRequestWorks(restHighLevelClient, searchRequest);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-            assertThat(
-                searchResponse,
-                not(
-                    searchHitsContainDocumentsInAnyOrder(
-                        FIRST_INDEX_SONGS_BY_ID.keySet()
-                            .stream()
-                            .filter(id -> !id.equals(FIRST_INDEX_ID_SONG_1))
-                            .map(id -> Pair.of(FIRST_INDEX_NAME, id))
-                            .collect(Collectors.toList())
-                    )
-                )
-            );
+            assertFoundNotFoundSearchRequestWorks(restHighLevelClient, searchRequest);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertFoundNotFoundSearchRequestWorks(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest)
+        throws IOException, Exception {
+        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+        assertThat(searchResponse, isSuccessfulSearchResponse());
+        assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+        assertThat(
+            searchResponse,
+            not(
+                searchHitsContainDocumentsInAnyOrder(
+                    FIRST_INDEX_SONGS_BY_ID.keySet()
+                        .stream()
+                        .filter(id -> !id.equals(FIRST_INDEX_ID_SONG_1))
+                        .map(id -> Pair.of(FIRST_INDEX_NAME, id))
+                        .collect(Collectors.toList())
+                )
+            )
+        );
     }
 }

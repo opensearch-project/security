@@ -21,6 +21,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.cxf.common.i18n.Exception;
+import org.hamcrest.Matcher;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -848,286 +850,298 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testGetDocumentWithFLSRestrictions() throws Exception {
+    public void testGetDocumentWithFLSRestrictions() throws IOException, Exception {
         GetRequest getRequest = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(INCLUSIVE_FLS_USER)) {
-            GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
-
-            assertThat(getResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-            assertThat(getResponse, documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle()));
-            assertThat(
-                getResponse,
-                not(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()))
-            );
-            assertThat(
-                getResponse,
-                not(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()))
-            );
-            assertThat(getResponse, not(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars())));
-            assertThat(getResponse, not(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre())));
+            assertFLSGetRequestWorks(restHighLevelClient, getRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(EXCLUSIVE_FLS_USER)) {
-            GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
-
-            assertThat(getResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-            assertThat(getResponse, not(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle())));
-            assertThat(getResponse, documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()));
-            assertThat(getResponse, documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()));
-            assertThat(getResponse, documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars()));
-            assertThat(getResponse, documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()));
+            assertFLSGetRequestWorks(restHighLevelClient, getRequest, false);
         }
     }
 
+    private void assertFLSGetRequestWorks(RestHighLevelClient restHighLevelClient, GetRequest getRequest, boolean getOne)
+        throws IOException, Exception {
+        // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
+        // ignored
+        GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
+
+        assertThat(getResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+
+        Matcher<GetResponse> containsTitleField = documentContainField(
+            FIELD_TITLE,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle()
+        );
+        Matcher<GetResponse> containsArtistField = documentContainField(
+            FIELD_ARTIST,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()
+        );
+        Matcher<GetResponse> containsLyricsField = documentContainField(
+            FIELD_LYRICS,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()
+        );
+        Matcher<GetResponse> containsStarsField = documentContainField(
+            FIELD_STARS,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars()
+        );
+        Matcher<GetResponse> containsGenreField = documentContainField(
+            FIELD_GENRE,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()
+        );
+
+        assertThat(getResponse, getOne ? containsTitleField : not(containsTitleField));
+        assertThat(getResponse, getOne ? not(containsArtistField) : containsArtistField);
+        assertThat(getResponse, getOne ? not(containsLyricsField) : containsLyricsField);
+        assertThat(getResponse, getOne ? not(containsStarsField) : containsStarsField);
+        assertThat(getResponse, getOne ? not(containsGenreField) : containsGenreField);
+    }
+
     @Test
-    public void testMultiGetDocumentWithFLSRestrictions() throws Exception {
+    public void testMultiGetDocumentWithFLSRestrictions() throws IOException, Exception {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(INCLUSIVE_FLS_USER)) {
-            MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
-            List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
-                .map(MultiGetItemResponse::getResponse)
-                .collect(Collectors.toList());
-
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2)));
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getTitle()))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre())))
-            );
+            assertFLSMultiGetRequestWorks(restHighLevelClient, multiGetRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(EXCLUSIVE_FLS_USER)) {
-            MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
-            List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
-                .map(MultiGetItemResponse::getResponse)
-                .collect(Collectors.toList());
-
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2)));
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle())))
-            );
-            assertThat(
-                getResponses,
-                not(hasItem(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getTitle())))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre()))
-            );
+            assertFLSMultiGetRequestWorks(restHighLevelClient, multiGetRequest, false);
         }
     }
 
+    private void assertFLSMultiGetRequestWorks(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest, boolean getOne)
+        throws IOException, Exception {
+        // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
+        // ignored
+        MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+        List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+            .map(MultiGetItemResponse::getResponse)
+            .collect(Collectors.toList());
+
+        assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+        assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2)));
+
+        Matcher<GetResponse> documentOneContainsTitleField = documentContainField(
+            FIELD_TITLE,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle()
+        );
+        Matcher<GetResponse> documentOneContainsArtistField = documentContainField(
+            FIELD_ARTIST,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()
+        );
+        Matcher<GetResponse> documentOneContainsLyricsField = documentContainField(
+            FIELD_LYRICS,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()
+        );
+        Matcher<GetResponse> documentOneContainsStarsField = documentContainField(
+            FIELD_STARS,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars()
+        );
+        Matcher<GetResponse> documentOneContainsGenreField = documentContainField(
+            FIELD_GENRE,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()
+        );
+        Matcher<GetResponse> documentTwoContainsTitleField = documentContainField(
+            FIELD_TITLE,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getTitle()
+        );
+        Matcher<GetResponse> documentTwoContainsArtistField = documentContainField(
+            FIELD_ARTIST,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist()
+        );
+        Matcher<GetResponse> documentTwoContainsLyricsField = documentContainField(
+            FIELD_LYRICS,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics()
+        );
+        Matcher<GetResponse> documentTwoContainsStarsField = documentContainField(
+            FIELD_STARS,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars()
+        );
+        Matcher<GetResponse> documentTwoContainsGenreField = documentContainField(
+            FIELD_GENRE,
+            FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre()
+        );
+
+        assertThat(getResponses, getOne ? hasItem(documentOneContainsTitleField) : not(hasItem(documentOneContainsTitleField)));
+        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsArtistField)) : hasItem(documentOneContainsArtistField));
+        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsLyricsField)) : hasItem(documentOneContainsLyricsField));
+        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsStarsField)) : hasItem(documentOneContainsStarsField));
+        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsGenreField)) : hasItem(documentOneContainsGenreField));
+        assertThat(getResponses, getOne ? hasItem(documentTwoContainsTitleField) : not(hasItem(documentTwoContainsTitleField)));
+        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsArtistField)) : hasItem(documentTwoContainsArtistField));
+        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsLyricsField)) : hasItem(documentTwoContainsLyricsField));
+        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsStarsField)) : hasItem(documentTwoContainsStarsField));
+        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsGenreField)) : hasItem(documentTwoContainsGenreField));
+    }
+
     @Test
-    public void testSearchDocumentWithFLSRestrictions() throws Exception {
+    public void testSearchDocumentWithFLSRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(INCLUSIVE_FLS_USER)) {
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
-            IntStream.range(0, 4).forEach(hitIndex -> {
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_TITLE, SONGS[hitIndex].getTitle()));
-                assertThat(searchResponse, searchHitDoesNotContainField(hitIndex, FIELD_ARTIST));
-                assertThat(searchResponse, searchHitDoesNotContainField(hitIndex, FIELD_LYRICS));
-                assertThat(searchResponse, searchHitDoesNotContainField(hitIndex, FIELD_STARS));
-                assertThat(searchResponse, searchHitDoesNotContainField(hitIndex, FIELD_GENRE));
-            });
+            assertFLSSearchRequestWorks(restHighLevelClient, searchRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(EXCLUSIVE_FLS_USER)) {
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
-            IntStream.range(0, 4).forEach(hitIndex -> {
-                assertThat(searchResponse, searchHitDoesNotContainField(hitIndex, FIELD_TITLE));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_ARTIST, SONGS[hitIndex].getArtist()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_LYRICS, SONGS[hitIndex].getLyrics()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_STARS, SONGS[hitIndex].getStars()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_GENRE, SONGS[hitIndex].getGenre()));
-            });
+            assertFLSSearchRequestWorks(restHighLevelClient, searchRequest, false);
         }
     }
 
+    private void assertFLSSearchRequestWorks(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest, boolean getOne)
+        throws IOException, Exception {
+        // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
+        // ignored
+        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+        assertThat(searchResponse, isSuccessfulSearchResponse());
+        assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+
+        IntStream.range(0, 4).forEach(hitIndex -> {
+            assertThat(
+                searchResponse,
+                getOne
+                    ? searchHitContainsFieldWithValue(hitIndex, FIELD_TITLE, SONGS[hitIndex].getTitle())
+                    : searchHitDoesNotContainField(hitIndex, FIELD_TITLE)
+            );
+            assertThat(
+                searchResponse,
+                getOne
+                    ? searchHitDoesNotContainField(hitIndex, FIELD_ARTIST)
+                    : searchHitContainsFieldWithValue(hitIndex, FIELD_ARTIST, SONGS[hitIndex].getArtist())
+            );
+            assertThat(
+                searchResponse,
+                getOne
+                    ? searchHitDoesNotContainField(hitIndex, FIELD_LYRICS)
+                    : searchHitContainsFieldWithValue(hitIndex, FIELD_LYRICS, SONGS[hitIndex].getLyrics())
+            );
+            assertThat(
+                searchResponse,
+                getOne
+                    ? searchHitDoesNotContainField(hitIndex, FIELD_STARS)
+                    : searchHitContainsFieldWithValue(hitIndex, FIELD_STARS, SONGS[hitIndex].getStars())
+            );
+            assertThat(
+                searchResponse,
+                getOne
+                    ? searchHitDoesNotContainField(hitIndex, FIELD_GENRE)
+                    : searchHitContainsFieldWithValue(hitIndex, FIELD_GENRE, SONGS[hitIndex].getGenre())
+            );
+        });
+    }
+
     @Test
-    public void testGetDocumentWithFieldMaskingRestrictions() throws Exception {
+    public void testGetDocumentWithFieldMaskingRestrictions() throws IOException, Exception {
         GetRequest getRequest = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_USER)) {
-            GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
+            assertFieldMaskingGetRequestWorks(restHighLevelClient, getRequest);
+        }
+    }
 
-            assertThat(getResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-            assertThat(
-                getResponse,
+    private void assertFieldMaskingGetRequestWorks(RestHighLevelClient restHighLevelClient, GetRequest getRequest) throws IOException,
+        Exception {
+        GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
+
+        assertThat(getResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+        assertThat(
+            getResponse,
+            documentContainField(FIELD_TITLE, VALUE_TO_MASKED_VALUE.apply(FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle()))
+        );
+        assertThat(getResponse, documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()));
+        assertThat(getResponse, documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()));
+        assertThat(getResponse, documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars()));
+        assertThat(getResponse, documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()));
+    }
+
+    @Test
+    public void testMultiGetDocumentWithFieldMaskingRestrictions() throws IOException, Exception {
+        MultiGetRequest multiGetRequest = new MultiGetRequest();
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_USER)) {
+            assertFieldMaskingMultiGetRequestWorks(restHighLevelClient, multiGetRequest);
+        }
+    }
+
+    private void assertFieldMaskingMultiGetRequestWorks(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest)
+        throws IOException, Exception {
+        MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+        List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+            .map(MultiGetItemResponse::getResponse)
+            .collect(Collectors.toList());
+
+        assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+        assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2)));
+        assertThat(
+            getResponses,
+            hasItem(
                 documentContainField(
                     FIELD_TITLE,
                     VALUE_TO_MASKED_VALUE.apply(FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle())
                 )
-            );
-            assertThat(getResponse, documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()));
-            assertThat(getResponse, documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()));
-            assertThat(getResponse, documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars()));
-            assertThat(getResponse, documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()));
-        }
+            )
+        );
+        assertThat(
+            getResponses,
+            hasItem(
+                documentContainField(
+                    FIELD_TITLE,
+                    VALUE_TO_MASKED_VALUE.apply(FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getTitle())
+                )
+            )
+        );
+        assertThat(
+            getResponses,
+            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()))
+        );
+        assertThat(
+            getResponses,
+            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist()))
+        );
+        assertThat(
+            getResponses,
+            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()))
+        );
+        assertThat(
+            getResponses,
+            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics()))
+        );
+        assertThat(getResponses, hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars())));
+        assertThat(getResponses, hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars())));
+        assertThat(getResponses, hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre())));
+        assertThat(getResponses, hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre())));
     }
 
     @Test
-    public void testMultiGetDocumentWithFieldMaskingRestrictions() throws Exception {
-        MultiGetRequest multiGetRequest = new MultiGetRequest();
-        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
-
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_USER)) {
-            MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
-            List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
-                .map(MultiGetItemResponse::getResponse)
-                .collect(Collectors.toList());
-
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-            assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2)));
-            assertThat(
-                getResponses,
-                hasItem(
-                    documentContainField(
-                        FIELD_TITLE,
-                        VALUE_TO_MASKED_VALUE.apply(FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle())
-                    )
-                )
-            );
-            assertThat(
-                getResponses,
-                hasItem(
-                    documentContainField(
-                        FIELD_TITLE,
-                        VALUE_TO_MASKED_VALUE.apply(FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getTitle())
-                    )
-                )
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()))
-            );
-            assertThat(
-                getResponses,
-                hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre()))
-            );
-        }
-    }
-
-    @Test
-    public void testSearchDocumentWithFieldMaskingRestrictions() throws Exception {
+    public void testSearchDocumentWithFieldMaskingRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_USER)) {
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
-            IntStream.range(0, 4).forEach(hitIndex -> {
-                assertThat(
-                    searchResponse,
-                    searchHitContainsFieldWithValue(hitIndex, FIELD_TITLE, VALUE_TO_MASKED_VALUE.apply(SONGS[hitIndex].getTitle()))
-                );
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_ARTIST, SONGS[hitIndex].getArtist()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_LYRICS, SONGS[hitIndex].getLyrics()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_STARS, SONGS[hitIndex].getStars()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_GENRE, SONGS[hitIndex].getGenre()));
-            });
+            assertFieldMaskingSearchRequestWorks(restHighLevelClient, searchRequest);
         }
+    }
+
+    private void assertFieldMaskingSearchRequestWorks(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest)
+        throws IOException, Exception {
+        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+        assertThat(searchResponse, isSuccessfulSearchResponse());
+        assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+        IntStream.range(0, 4).forEach(hitIndex -> {
+            assertThat(
+                searchResponse,
+                searchHitContainsFieldWithValue(hitIndex, FIELD_TITLE, VALUE_TO_MASKED_VALUE.apply(SONGS[hitIndex].getTitle()))
+            );
+            assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_ARTIST, SONGS[hitIndex].getArtist()));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_LYRICS, SONGS[hitIndex].getLyrics()));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_STARS, SONGS[hitIndex].getStars()));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(hitIndex, FIELD_GENRE, SONGS[hitIndex].getGenre()));
+        });
     }
 }
