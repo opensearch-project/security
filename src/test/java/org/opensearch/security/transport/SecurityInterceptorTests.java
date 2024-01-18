@@ -14,6 +14,8 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -238,7 +240,7 @@ public class SecurityInterceptorTests {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    final CompletableFuture<TransportResponse> completableRequestDecorate(
+    final void completableRequestDecorate(
         AsyncSender sender,
         Connection connection,
         String action,
@@ -247,11 +249,17 @@ public class SecurityInterceptorTests {
         TransportResponseHandler handler,
         DiscoveryNode localNode
     ) {
-        CompletableFuture<TransportResponse> future = new CompletableFuture<>();
-        securityInterceptor.sendRequestDecorate(sender, connection, action, request, options, handler, localNode);
-        future.thenRun(() -> { verifyOriginalContext(user); });
-        future.complete(null);
-        return future;
+
+        ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
+
+        singleThreadExecutor.execute(() -> {
+            try {
+                securityInterceptor.sendRequestDecorate(sender, connection, action, request, options, handler, localNode);
+                verifyOriginalContext(user);
+            } finally {
+                singleThreadExecutor.shutdown();
+            }
+        });
     }
 
     @Test
