@@ -213,7 +213,7 @@ public class FlsAndFieldMaskingTests {
     /**
      * Example user with fls filter in which the user can only see the {@link Song#FIELD_TITLE} field.
      */
-    static final TestSecurityConfig.User INCLUSIVE_FLS_USER = new TestSecurityConfig.User("inclusive_fls_user").roles(
+    static final TestSecurityConfig.User USER_ONLY_FIELD_TITLE_FLS = new TestSecurityConfig.User("inclusive_fls_user").roles(
         new TestSecurityConfig.Role("example_inclusive_fls").clusterPermissions("cluster_composite_ops_ro")
             .indexPermissions("read")
             .fls(FIELD_TITLE)
@@ -223,7 +223,7 @@ public class FlsAndFieldMaskingTests {
     /**
      * Example user with fls filter in which the user can see every field but the {@link Song#FIELD_TITLE} field.
      */
-    static final TestSecurityConfig.User EXCLUSIVE_FLS_USER = new TestSecurityConfig.User("exclusive_fls_user").roles(
+    static final TestSecurityConfig.User USER_NO_FIELD_TITLE_FLS = new TestSecurityConfig.User("exclusive_fls_user").roles(
         new TestSecurityConfig.Role("example_exclusive_fls").clusterPermissions("cluster_composite_ops_ro")
             .indexPermissions("read")
             .fls(String.format("~%s", FIELD_TITLE))
@@ -233,7 +233,7 @@ public class FlsAndFieldMaskingTests {
     /**
      * Example user in which {@link Song#FIELD_TITLE} field is masked.
      */
-    static final TestSecurityConfig.User MASKED_USER = new TestSecurityConfig.User("masked_user").roles(
+    static final TestSecurityConfig.User USER_ONLY_FIELD_TITLE_MASKED = new TestSecurityConfig.User("masked_user").roles(
         new TestSecurityConfig.Role("example_mask").clusterPermissions("cluster_composite_ops_ro")
             .indexPermissions("read")
             .maskedFields(FIELD_TITLE.concat("::/(?<=.{1})./::").concat(MASK_VALUE))
@@ -254,9 +254,9 @@ public class FlsAndFieldMaskingTests {
             ALL_INDICES_STRING_ARTIST_READER,
             ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
             TWINS_FIRST_ARTIST_READER,
-            INCLUSIVE_FLS_USER,
-            EXCLUSIVE_FLS_USER,
-            MASKED_USER
+            USER_ONLY_FIELD_TITLE_FLS,
+            USER_NO_FIELD_TITLE_FLS,
+            USER_ONLY_FIELD_TITLE_MASKED
         )
         .build();
 
@@ -849,20 +849,23 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testGetDocumentWithFLSRestrictions() throws IOException, Exception {
+    public void testGetDocumentWithNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         GetRequest getRequest = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(INCLUSIVE_FLS_USER)) {
-            assertFLSGetRequestWorks(restHighLevelClient, getRequest, true);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
+            assertProperGetResponsesForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, getRequest, true);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(EXCLUSIVE_FLS_USER)) {
-            assertFLSGetRequestWorks(restHighLevelClient, getRequest, false);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
+            assertProperGetResponsesForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, getRequest, false);
         }
     }
 
-    private void assertFLSGetRequestWorks(RestHighLevelClient restHighLevelClient, GetRequest getRequest, boolean getOne)
-        throws IOException, Exception {
+    private void assertProperGetResponsesForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
+        RestHighLevelClient restHighLevelClient,
+        GetRequest getRequest,
+        boolean getOne
+    ) throws IOException, Exception {
         // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
         // ignored
         GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
@@ -898,22 +901,25 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testMultiGetDocumentWithFLSRestrictions() throws IOException, Exception {
+    public void testMultiGetDocumentWithNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(INCLUSIVE_FLS_USER)) {
-            assertFLSMultiGetRequestWorks(restHighLevelClient, multiGetRequest, true);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
+            assertProperMultiGetResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, multiGetRequest, true);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(EXCLUSIVE_FLS_USER)) {
-            assertFLSMultiGetRequestWorks(restHighLevelClient, multiGetRequest, false);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
+            assertProperMultiGetResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, multiGetRequest, false);
         }
     }
 
-    private void assertFLSMultiGetRequestWorks(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest, boolean getOne)
-        throws IOException, Exception {
+    private void assertProperMultiGetResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
+        RestHighLevelClient restHighLevelClient,
+        MultiGetRequest multiGetRequest,
+        boolean getOne
+    ) throws IOException, Exception {
         // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
         // ignored
         MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
@@ -978,20 +984,23 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testSearchDocumentWithFLSRestrictions() throws IOException, Exception {
+    public void testSearchDocumentWithWithNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(INCLUSIVE_FLS_USER)) {
-            assertFLSSearchRequestWorks(restHighLevelClient, searchRequest, true);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
+            assertProperSearchResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, searchRequest, true);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(EXCLUSIVE_FLS_USER)) {
-            assertFLSSearchRequestWorks(restHighLevelClient, searchRequest, false);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
+            assertProperSearchResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, searchRequest, false);
         }
     }
 
-    private void assertFLSSearchRequestWorks(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest, boolean getOne)
-        throws IOException, Exception {
+    private void assertProperSearchResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
+        RestHighLevelClient restHighLevelClient,
+        SearchRequest searchRequest,
+        boolean getOne
+    ) throws IOException, Exception {
         // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
         // ignored
         SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
@@ -1034,16 +1043,16 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testGetDocumentWithFieldMaskingRestrictions() throws IOException, Exception {
+    public void testGetDocumentWithTitleFieldMaskingRestriction() throws IOException, Exception {
         GetRequest getRequest = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_USER)) {
-            assertFieldMaskingGetRequestWorks(restHighLevelClient, getRequest);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_MASKED)) {
+            assertProperGetResponsesForTitleFieldMaskingRestriction(restHighLevelClient, getRequest);
         }
     }
 
-    private void assertFieldMaskingGetRequestWorks(RestHighLevelClient restHighLevelClient, GetRequest getRequest) throws IOException,
-        Exception {
+    private void assertProperGetResponsesForTitleFieldMaskingRestriction(RestHighLevelClient restHighLevelClient, GetRequest getRequest)
+        throws IOException, Exception {
         GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
 
         assertThat(getResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
@@ -1058,18 +1067,20 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testMultiGetDocumentWithFieldMaskingRestrictions() throws IOException, Exception {
+    public void testMultiGetDocumentWithTitleFieldMaskingRestriction() throws IOException, Exception {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_USER)) {
-            assertFieldMaskingMultiGetRequestWorks(restHighLevelClient, multiGetRequest);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_MASKED)) {
+            assertProperMultiGetResponseForTitleFieldMaskingRestriction(restHighLevelClient, multiGetRequest);
         }
     }
 
-    private void assertFieldMaskingMultiGetRequestWorks(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest)
-        throws IOException, Exception {
+    private void assertProperMultiGetResponseForTitleFieldMaskingRestriction(
+        RestHighLevelClient restHighLevelClient,
+        MultiGetRequest multiGetRequest
+    ) throws IOException, Exception {
         MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
         List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
             .map(MultiGetItemResponse::getResponse)
@@ -1118,16 +1129,18 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testSearchDocumentWithFieldMaskingRestrictions() throws IOException, Exception {
+    public void testSearchDocumentWithTitleFieldMaskingRestriction() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_USER)) {
-            assertFieldMaskingSearchRequestWorks(restHighLevelClient, searchRequest);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_MASKED)) {
+            assertProperSearchResponseForTitleFieldMaskingRestriction(restHighLevelClient, searchRequest);
         }
     }
 
-    private void assertFieldMaskingSearchRequestWorks(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest)
-        throws IOException, Exception {
+    private void assertProperSearchResponseForTitleFieldMaskingRestriction(
+        RestHighLevelClient restHighLevelClient,
+        SearchRequest searchRequest
+    ) throws IOException, Exception {
         SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
         assertThat(searchResponse, isSuccessfulSearchResponse());

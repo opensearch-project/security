@@ -172,9 +172,9 @@ public class DlsIntegrationTests {
         );
 
     /**
-     * User with a role with DLS restrictions containing a bool query.
+     * User with a role with DLS restrictions containing a bool query in which the artist field needs to match ARTIST_FIRST.
      */
-    static final TestSecurityConfig.User USER_WITH_BOOL_DLS_RESTRICTIONS = new TestSecurityConfig.User("bool_user").roles(
+    static final TestSecurityConfig.User USER_MATCH_ARTIST_BOOL_QUERY = new TestSecurityConfig.User("bool_user").roles(
         new TestSecurityConfig.Role("test_role_bool").clusterPermissions("cluster_composite_ops_ro")
             .indexPermissions("read")
             .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_FIRST))
@@ -182,9 +182,9 @@ public class DlsIntegrationTests {
     );
 
     /**
-     * User with a role with DLS restrictions containing a term query.
+     * User with a role with DLS restrictions containing a term query in which the stars field needs to match 1.
      */
-    static final TestSecurityConfig.User TERM_USER = new TestSecurityConfig.User("term_user").roles(
+    static final TestSecurityConfig.User USER_MATCH_STARS_TERM_QUERY = new TestSecurityConfig.User("term_user").roles(
         new TestSecurityConfig.Role("test_role_term").clusterPermissions("cluster_composite_ops_ro")
             .indexPermissions("read")
             .dls(String.format("{\"term\":{\"%s\":%d}}", FIELD_STARS, 1))
@@ -206,8 +206,8 @@ public class DlsIntegrationTests {
             READ_WHERE_STARS_LESS_THAN_THREE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
-            BOOL_USER,
-            TERM_USER
+            USER_MATCH_ARTIST_BOOL_QUERY,
+            USER_MATCH_STARS_TERM_QUERY
         )
         .build();
 
@@ -554,19 +554,19 @@ public class DlsIntegrationTests {
     }
 
     @Test
-    public void testGetDocumentWithDLSRestrictions() throws IOException, Exception {
+    public void testGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
         GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
         GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
-            assertFoundNotFoundGetResponsesWork(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertProperGetResponsesForAccessibleAndNonAccessibleDocuments(restHighLevelClient, findExistingDoc, findNonExistingDoc);
         }
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
-            assertFoundNotFoundGetResponsesWork(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertProperGetResponsesForAccessibleAndNonAccessibleDocuments(restHighLevelClient, findExistingDoc, findNonExistingDoc);
         }
     }
 
-    private void assertFoundNotFoundGetResponsesWork(
+    private void assertProperGetResponsesForAccessibleAndNonAccessibleDocuments(
         RestHighLevelClient restHighLevelClient,
         GetRequest findExistingDoc,
         GetRequest findNonExistingDoc
@@ -578,22 +578,24 @@ public class DlsIntegrationTests {
     }
 
     @Test
-    public void testMultiGetDocumentWithDLSRestrictions() throws IOException, Exception {
+    public void testMultiGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
-            assertFoundNotFoundMultiGetRequestWorks(restHighLevelClient, multiGetRequest);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertProperMultiGetResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, multiGetRequest);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
-            assertFoundNotFoundMultiGetRequestWorks(restHighLevelClient, multiGetRequest);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertProperMultiGetResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, multiGetRequest);
         }
     }
 
-    private void assertFoundNotFoundMultiGetRequestWorks(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest)
-        throws IOException, Exception {
+    private void assertProperMultiGetResponseForAccessibleAndNonAccessibleDocuments(
+        RestHighLevelClient restHighLevelClient,
+        MultiGetRequest multiGetRequest
+    ) throws IOException, Exception {
         MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
         List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
             .map(MultiGetItemResponse::getResponse)
@@ -603,21 +605,23 @@ public class DlsIntegrationTests {
     }
 
     @Test
-    public void testSearchDocumentWithDLSRestrictions() throws IOException, Exception {
+    public void testSearchDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(BOOL_USER)) {
-            assertFoundNotFoundSearchRequestWorks(restHighLevelClient, searchRequest);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, searchRequest);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TERM_USER)) {
-            assertFoundNotFoundSearchRequestWorks(restHighLevelClient, searchRequest);
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, searchRequest);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void assertFoundNotFoundSearchRequestWorks(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest)
-        throws IOException, Exception {
+    private void assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(
+        RestHighLevelClient restHighLevelClient,
+        SearchRequest searchRequest
+    ) throws IOException, Exception {
         SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
         assertThat(searchResponse, isSuccessfulSearchResponse());
         assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
