@@ -36,7 +36,9 @@ public class DeprecatedSettings {
     public static void logCustomDeprecationMessage(final String deprecationLocationInformation, final String deprecatedSettingKey) {
         DEPRECATION_LOGGER.deprecate(
             deprecatedSettingKey,
-            "In OpenSearch " + Version.CURRENT + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: "
+            "In OpenSearch "
+                + Version.CURRENT
+                + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: "
                 + deprecationLocationInformation,
             deprecatedSettingKey
         );

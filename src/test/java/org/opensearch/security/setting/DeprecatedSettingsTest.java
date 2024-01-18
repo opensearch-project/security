@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.Version;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
@@ -103,12 +104,16 @@ public class DeprecatedSettingsTest {
         );
         verify(logger).deprecate(
             "transport_enabled",
-            "In OpenSearch " + Version.CURRENT + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: In AuthcDomain, using http_authenticator=HttpAuthenticator [challenge=true, type=null, config={}], authentication_backend=AuthcBackend [type=org.opensearch.security.auth.internal.InternalAuthenticationBackend, config={}]",
+            "In OpenSearch "
+                + Version.CURRENT
+                + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: In AuthcDomain, using http_authenticator=HttpAuthenticator [challenge=true, type=null, config={}], authentication_backend=AuthcBackend [type=org.opensearch.security.auth.internal.InternalAuthenticationBackend, config={}]",
             "transport_enabled"
         );
         verify(logger).deprecate(
             "transport_enabled",
-            "In OpenSearch " + Version.CURRENT + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: In AuthzDomain, using authorization_backend=AuthzBackend [type=noop, config={}]",
+            "In OpenSearch "
+                + Version.CURRENT
+                + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: In AuthzDomain, using authorization_backend=AuthzBackend [type=noop, config={}]",
             "transport_enabled"
         );
     }
