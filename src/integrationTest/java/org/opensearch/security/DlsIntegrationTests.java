@@ -554,7 +554,7 @@ public class DlsIntegrationTests {
     }
 
     @Test
-    public void testGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
+    public void testGetDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
         GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
         GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
 
@@ -578,7 +578,7 @@ public class DlsIntegrationTests {
     }
 
     @Test
-    public void testMultiGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
+    public void testMultiGetDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
@@ -605,7 +605,7 @@ public class DlsIntegrationTests {
     }
 
     @Test
-    public void testSearchDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
+    public void testSearchDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {

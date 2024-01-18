@@ -849,19 +849,19 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testGetDocumentWithNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
+    public void testGetDocumentWithNoTitleFieldOrOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         GetRequest getRequest = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
-            assertProperGetResponsesForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, getRequest, true);
+            assertProperGetResponsesForCorrespondingFLSRestrictions(restHighLevelClient, getRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
-            assertProperGetResponsesForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, getRequest, false);
+            assertProperGetResponsesForCorrespondingFLSRestrictions(restHighLevelClient, getRequest, false);
         }
     }
 
-    private void assertProperGetResponsesForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
+    private void assertProperGetResponsesForCorrespondingFLSRestrictions(
         RestHighLevelClient restHighLevelClient,
         GetRequest getRequest,
         boolean getOne
@@ -901,21 +901,21 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testMultiGetDocumentWithNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
+    public void testMultiGetDocumentWithNoTitleFieldOrOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
-            assertProperMultiGetResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, multiGetRequest, true);
+            assertProperMultiGetResponseForCorrespondingFLSRestrictions(restHighLevelClient, multiGetRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
-            assertProperMultiGetResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, multiGetRequest, false);
+            assertProperMultiGetResponseForCorrespondingFLSRestrictions(restHighLevelClient, multiGetRequest, false);
         }
     }
 
-    private void assertProperMultiGetResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
+    private void assertProperMultiGetResponseForCorrespondingFLSRestrictions(
         RestHighLevelClient restHighLevelClient,
         MultiGetRequest multiGetRequest,
         boolean getOne
@@ -984,19 +984,19 @@ public class FlsAndFieldMaskingTests {
     }
 
     @Test
-    public void testSearchDocumentWithWithNoTitleFieldAndOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
+    public void testSearchDocumentWithWithNoTitleFieldOrOnlyTitleFieldFLSRestrictions() throws IOException, Exception {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
-            assertProperSearchResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, searchRequest, true);
+            assertProperSearchResponseForCorrespondingFLSRestrictions(restHighLevelClient, searchRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
-            assertProperSearchResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(restHighLevelClient, searchRequest, false);
+            assertProperSearchResponseForCorrespondingFLSRestrictions(restHighLevelClient, searchRequest, false);
         }
     }
 
-    private void assertProperSearchResponseForNoTitleFieldAndOnlyTitleFieldFLSRestrictions(
+    private void assertProperSearchResponseForCorrespondingFLSRestrictions(
         RestHighLevelClient restHighLevelClient,
         SearchRequest searchRequest,
         boolean getOne
