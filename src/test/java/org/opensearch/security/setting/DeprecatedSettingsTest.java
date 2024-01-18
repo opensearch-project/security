@@ -5,6 +5,7 @@
 
 package org.opensearch.security.setting;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,8 +15,6 @@ import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigHelper;
-
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -118,37 +117,37 @@ public class DeprecatedSettingsTest {
     public void testForExceptionOnUnknownAuthcAuthzSettingsOnYamlLoad() throws Exception {
         try {
             ConfigHelper.fromYamlString(
-            "---\n"
-                + "_meta:\n"
-                + "  type: \"config\"\n"
-                + "  config_version: 2\n"
-                + "config:\n"
-                + "  dynamic:\n"
-                + "    authc:\n"
-                + "      authentication_domain_kerb:\n"
-                + "        http_enabled: false\n"
-                + "        unknown_property: false\n"
-                + "        order: 3\n"
-                + "        http_authenticator:\n"
-                + "          challenge: true\n"
-                + "          type: \"kerberos\"\n"
-                + "          config: {}\n"
-                + "        authentication_backend:\n"
-                + "          type: \"noop\"\n"
-                + "          config: {}\n"
-                + "        description: \"Migrated from v6\"\n"
-                + "    authz:\n"
-                + "      roles_from_xxx:\n"
-                + "        http_enabled: false\n"
-                + "        unknown_property: false\n"
-                + "        authorization_backend:\n"
-                + "          type: \"xxx\"\n"
-                + "          config: {}\n"
-                + "        description: \"Migrated from v6\"",
-            CType.CONFIG,
-            DEFAULT_CONFIG_VERSION,
-            0,
-            0
+                "---\n"
+                    + "_meta:\n"
+                    + "  type: \"config\"\n"
+                    + "  config_version: 2\n"
+                    + "config:\n"
+                    + "  dynamic:\n"
+                    + "    authc:\n"
+                    + "      authentication_domain_kerb:\n"
+                    + "        http_enabled: false\n"
+                    + "        unknown_property: false\n"
+                    + "        order: 3\n"
+                    + "        http_authenticator:\n"
+                    + "          challenge: true\n"
+                    + "          type: \"kerberos\"\n"
+                    + "          config: {}\n"
+                    + "        authentication_backend:\n"
+                    + "          type: \"noop\"\n"
+                    + "          config: {}\n"
+                    + "        description: \"Migrated from v6\"\n"
+                    + "    authz:\n"
+                    + "      roles_from_xxx:\n"
+                    + "        http_enabled: false\n"
+                    + "        unknown_property: false\n"
+                    + "        authorization_backend:\n"
+                    + "          type: \"xxx\"\n"
+                    + "          config: {}\n"
+                    + "        description: \"Migrated from v6\"",
+                CType.CONFIG,
+                DEFAULT_CONFIG_VERSION,
+                0,
+                0
             );
         } catch (JsonMappingException e) {
             verifyNoInteractions(logger);
