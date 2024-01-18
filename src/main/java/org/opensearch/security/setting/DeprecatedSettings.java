@@ -5,6 +5,7 @@
 
 package org.opensearch.security.setting;
 
+import org.opensearch.Version;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 
@@ -35,7 +36,7 @@ public class DeprecatedSettings {
     public static void logCustomDeprecationMessage(final String deprecationLocationInformation, final String deprecatedSettingKey) {
         DEPRECATION_LOGGER.deprecate(
             deprecatedSettingKey,
-            "In OpenSearch v2.0.0+ the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: "
+            "In OpenSearch " + Version.CURRENT + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: "
                 + deprecationLocationInformation,
             deprecatedSettingKey
         );
