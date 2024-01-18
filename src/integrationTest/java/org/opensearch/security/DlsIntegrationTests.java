@@ -167,52 +167,52 @@ public class DlsIntegrationTests {
     /**
      * Test role 1 for DLS filtering with two (non)overlapping roles. This role imposes a filter where the user can only access documents where the sensitive field is false. This role is applied at a higher level for all index patterns.
      */
-    static final TestSecurityConfig.Role TEST_ROLE_ONE = new TestSecurityConfig.Role("test_role_1").clusterPermissions(
+    static final TestSecurityConfig.Role ROLE_NON_SENSITIVE_ONLY = new TestSecurityConfig.Role("test_role_1").clusterPermissions(
         "cluster_composite_ops_ro"
     ).indexPermissions("read").dls("{\"match\":{\"sensitive\":false}}").on("*");
 
     /**
      * Test role 2 for DLS filtering with two overlapping roles. This role does not impose any filter, and combined with TEST_ROLE_ONE should yield a union that does not impose any filter. This role is applied at a lower level for index patterns my_index*.
      */
-    static final TestSecurityConfig.Role TEST_ROLE_TWO = new TestSecurityConfig.Role("test_role_2").clusterPermissions(
+    static final TestSecurityConfig.Role ROLE_ALLOW_ALL = new TestSecurityConfig.Role("test_role_2").clusterPermissions(
         "cluster_composite_ops_ro"
     ).indexPermissions("read").dls("{\"match_all\": {}}").on("my_index*");
 
     /**
-     * Test role 3 for DLS filtering with two nonoverlapping roles. This role imposes a filter wher ethe user can only access documents where the genre field is History, and combined with TEST_ROLE_ONE should yield a union that allows the user to access every document except the one with genre Science and sensitive true. This role is applied at a lower level for index patterns my_index*.
+     * Test role 3 for DLS filtering with two nonoverlapping roles. This role imposes a filter where the user can only access documents where the genre field is History, and combined with TEST_ROLE_ONE should yield a union that allows the user to access every document except the one with genre Science and sensitive true. This role is applied at a lower level for index patterns my_index*.
      */
-    static final TestSecurityConfig.Role TEST_ROLE_THREE = new TestSecurityConfig.Role("test_role_3").clusterPermissions(
+    static final TestSecurityConfig.Role ROLE_MATCH_HISTORY_GENRE_ONLY = new TestSecurityConfig.Role("test_role_3").clusterPermissions(
         "cluster_composite_ops_ro"
     ).indexPermissions("read").dls("{\"match\":{\"genre\":\"History\"}}").on("my_index*");
 
     /**
-     * User with only test role 1 applied.
+     * User with DLS permission to only be able to access documents with false sensitive property.
      */
-    static final TestSecurityConfig.User TEST_ROLE_ONE_USER = new TestSecurityConfig.User("test_role_1_user").roles(TEST_ROLE_ONE);
+    static final TestSecurityConfig.User USER_NON_SENSITIVE_ONLY = new TestSecurityConfig.User("test_role_1_user").roles(ROLE_NON_SENSITIVE_ONLY);
 
     /**
-     * User with only test role 2 applied.
+     * User with DLS permission to access all documents.
      */
-    static final TestSecurityConfig.User TEST_ROLE_TWO_USER = new TestSecurityConfig.User("test_role_2_user").roles(TEST_ROLE_TWO);
+    static final TestSecurityConfig.User USER_ALLOW_ALL = new TestSecurityConfig.User("test_role_2_user").roles(ROLE_ALLOW_ALL);
 
     /**
-     * User with only test role 3 applied.
+     * User with DLS permission to access documents with genre property matching History.
      */
-    static final TestSecurityConfig.User TEST_ROLE_THREE_USER = new TestSecurityConfig.User("test_role_3_user").roles(TEST_ROLE_THREE);
+    static final TestSecurityConfig.User USER_MATCH_HISTORY_GENRE_ONLY = new TestSecurityConfig.User("test_role_3_user").roles(ROLE_MATCH_HISTORY_GENRE_ONLY);
 
     /**
-     * User with both test role 1 and test role 2 applied.
+     * User with overlapping DLS permissions to access documents with false sensitive property and access all documents- should yield accessing all documents.
      */
-    static final TestSecurityConfig.User TEST_UNION_OF_OVERLAPPING_ROLES_USER = new TestSecurityConfig.User(
+    static final TestSecurityConfig.User USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL = new TestSecurityConfig.User(
         "test_union_of_overlapping_roles_user"
-    ).roles(TEST_ROLE_ONE, TEST_ROLE_TWO);
+    ).roles(ROLE_NON_SENSITIVE_ONLY, ROLE_ALLOW_ALL);
 
     /**
-     * User with both test role 1 and test role 3 applied.
+     * User with non-overlapping DLS permissions to access documents with false sensitive property and genre property matching History.
      */
-    static final TestSecurityConfig.User TEST_UNION_OF_NONOVERLAPPING_ROLES_USER = new TestSecurityConfig.User(
+    static final TestSecurityConfig.User USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY = new TestSecurityConfig.User(
         "test_union_of_non_overlapping_roles_user"
-    ).roles(TEST_ROLE_ONE, TEST_ROLE_THREE);
+    ).roles(ROLE_NON_SENSITIVE_ONLY, ROLE_MATCH_HISTORY_GENRE_ONLY);
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
@@ -229,11 +229,11 @@ public class DlsIntegrationTests {
             READ_WHERE_STARS_LESS_THAN_THREE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
-            TEST_ROLE_ONE_USER,
-            TEST_ROLE_TWO_USER,
-            TEST_ROLE_THREE_USER,
-            TEST_UNION_OF_OVERLAPPING_ROLES_USER,
-            TEST_UNION_OF_NONOVERLAPPING_ROLES_USER
+            USER_NON_SENSITIVE_ONLY,
+            USER_ALLOW_ALL,
+            USER_MATCH_HISTORY_GENRE_ONLY,
+            USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL,
+            USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY
         )
         .build();
 
@@ -600,12 +600,12 @@ public class DlsIntegrationTests {
 
     @Test
     public void testOverlappingRoleUnionSearchFiltering() throws Exception {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_ROLE_ONE_USER)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NON_SENSITIVE_ONLY)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+            assertSearchResponseHitsEqualTo(searchResponse, 4);
+
             assertThat(
                 searchResponse,
                 searchHitsContainDocumentsInAnyOrder(
@@ -618,20 +618,18 @@ public class DlsIntegrationTests {
             );
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_ROLE_TWO_USER)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOW_ALL)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(10));
+            assertSearchResponseHitsEqualTo(searchResponse, 10);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_UNION_OF_OVERLAPPING_ROLES_USER)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(10));
+            assertSearchResponseHitsEqualTo(searchResponse, 10);
 
             // shows that roles are additive and the overlapping role with less filtering is used
             assertThat(
@@ -644,13 +642,14 @@ public class DlsIntegrationTests {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testNonOverlappingRoleUnionSearchFiltering() throws Exception {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_ROLE_ONE_USER)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NON_SENSITIVE_ONLY)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+            assertSearchResponseHitsEqualTo(searchResponse, 4);
+
             assertThat(
                 searchResponse,
                 searchHitsContainDocumentsInAnyOrder(
@@ -663,12 +662,12 @@ public class DlsIntegrationTests {
             );
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_ROLE_THREE_USER)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_HISTORY_GENRE_ONLY)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(5));
+            assertSearchResponseHitsEqualTo(searchResponse, 5);
+
             assertThat(
                 searchResponse,
                 searchHitsContainDocumentsInAnyOrder(
@@ -681,12 +680,11 @@ public class DlsIntegrationTests {
             );
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TEST_UNION_OF_NONOVERLAPPING_ROLES_USER)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(9));
+            assertSearchResponseHitsEqualTo(searchResponse, 9);
 
             assertThat(
                 searchResponse,
@@ -703,4 +701,9 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, not(searchHitsContainDocumentsInAnyOrder(Pair.of(UNION_TEST_INDEX_NAME, "10"))));
         }
     }
+
+    private void assertSearchResponseHitsEqualTo(SearchResponse searchResponse, int hits) throws Exception {
+        assertThat(searchResponse, isSuccessfulSearchResponse());
+        assertThat(searchResponse, numberOfTotalHitsIsEqualTo(hits));
+}
 }
