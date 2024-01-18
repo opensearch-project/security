@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.cxf.common.i18n.Exception;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -175,7 +174,7 @@ public class DlsIntegrationTests {
     /**
      * User with a role with DLS restrictions containing a bool query.
      */
-    static final TestSecurityConfig.User BOOL_USER = new TestSecurityConfig.User("bool_user").roles(
+    static final TestSecurityConfig.User USER_WITH_BOOL_DLS_RESTRICTIONS = new TestSecurityConfig.User("bool_user").roles(
         new TestSecurityConfig.Role("test_role_bool").clusterPermissions("cluster_composite_ops_ro")
             .indexPermissions("read")
             .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_FIRST))
