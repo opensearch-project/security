@@ -289,6 +289,7 @@ public class SecurityFilter implements ActionFilter {
                 if (userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
                     auditLog.logGrantedPrivileges(action, request, task);
                     auditLog.logIndexEvent(action, request, task);
+                    evalp.setUserInfoInThreadContext(user);
                 }
 
                 chain.proceed(task, action, request, listener);

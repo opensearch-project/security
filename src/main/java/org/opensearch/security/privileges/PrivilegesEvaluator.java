@@ -210,7 +210,7 @@ public class PrivilegesEvaluator {
         return configModel != null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
-    private void setUserInfoInThreadContext(User user) {
+    public void setUserInfoInThreadContext(User user) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             joiner.add(user.getName());
