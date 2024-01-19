@@ -5,6 +5,7 @@
 
 package org.opensearch.security.setting;
 
+import org.opensearch.Version;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 
@@ -27,5 +28,19 @@ public class DeprecatedSettings {
                 validSettingKey
             );
         }
+    }
+
+    /**
+     * Logs that a specific setting is deprecated, including a specific supplemental message parameter containing information that details where this setting can be removed from. Should be used in cases where a setting is not supported by the codebase and processing it would introduce errors on setup.
+     */
+    public static void logCustomDeprecationMessage(final String deprecationLocationInformation, final String deprecatedSettingKey) {
+        DEPRECATION_LOGGER.deprecate(
+            deprecatedSettingKey,
+            "In OpenSearch "
+                + Version.CURRENT
+                + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: "
+                + deprecationLocationInformation,
+            deprecatedSettingKey
+        );
     }
 }

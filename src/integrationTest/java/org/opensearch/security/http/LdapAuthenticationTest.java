@@ -109,7 +109,6 @@ public class LdapAuthenticationTest {
         .rolesMapping(new RolesMapping(ALL_ACCESS).backendRoles(CN_GROUP_ADMIN))
         .authz(
             new AuthzDomain("ldap_roles").httpEnabled(true)
-                .transportEnabled(true)
                 .authorizationBackend(
                     new AuthorizationBackend("ldap").config(
                         () -> new LdapAuthorizationConfigBuilder().hosts(List.of("localhost:" + embeddedLDAPServer.getLdapNonTlsPort()))
