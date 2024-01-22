@@ -22,7 +22,6 @@
     "authc" : {
       "jwt_auth_domain" : {
         "http_enabled" : true,
-        "transport_enabled" : true,
         "order" : 0,
         "http_authenticator" : {
           "challenge" : false,
@@ -40,7 +39,6 @@
       },
       "ldap" : {
         "http_enabled" : false,
-        "transport_enabled" : false,
         "order" : 5,
         "http_authenticator" : {
           "challenge" : false,
@@ -65,7 +63,6 @@
       },
       "basic_internal_auth_domain" : {
         "http_enabled" : true,
-        "transport_enabled" : true,
         "order" : 4,
         "http_authenticator" : {
           "challenge" : true,
@@ -80,7 +77,6 @@
       },
       "proxy_auth_domain" : {
         "http_enabled" : false,
-        "transport_enabled" : false,
         "order" : 3,
         "http_authenticator" : {
           "challenge" : false,
@@ -98,7 +94,6 @@
       },
       "clientcert_auth_domain" : {
         "http_enabled" : false,
-        "transport_enabled" : false,
         "order" : 2,
         "http_authenticator" : {
           "challenge" : false,
@@ -115,7 +110,6 @@
       },
       "kerberos_auth_domain" : {
         "http_enabled" : false,
-        "transport_enabled" : false,
         "order" : 6,
         "http_authenticator" : {
           "challenge" : true,
@@ -134,7 +128,6 @@
     "authz" : {
       "roles_from_another_ldap" : {
         "http_enabled" : false,
-        "transport_enabled" : false,
         "authorization_backend" : {
           "type" : "ldap",
           "config" : { }
@@ -143,7 +136,6 @@
       },
       "roles_from_myldap" : {
         "http_enabled" : false,
-        "transport_enabled" : false,
         "authorization_backend" : {
           "type" : "ldap",
           "config" : {

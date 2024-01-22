@@ -156,7 +156,6 @@ public class LdapTlsAuthenticationTest {
         )
         .authz(
             new AuthzDomain("ldap_roles").httpEnabled(true)
-                .transportEnabled(true)
                 .authorizationBackend(
                     new AuthorizationBackend("ldap").config(
                         () -> new LdapAuthorizationConfigBuilder().hosts(List.of("localhost:" + embeddedLDAPServer.getLdapTlsPort()))
