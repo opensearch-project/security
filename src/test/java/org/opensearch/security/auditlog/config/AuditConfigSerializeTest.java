@@ -70,9 +70,11 @@ public class AuditConfigSerializeTest {
             .field("log_request_body", true)
             .field("resolve_indices", true)
             .field("exclude_sensitive_headers", true)
+            .field("exclude_sensitive_url_params", true)
             .field("ignore_users", Collections.singletonList("kibanaserver"))
             .field("ignore_requests", Collections.emptyList())
             .field("ignore_headers", Collections.emptyList())
+            .field("ignore_url_params", Collections.emptyList())
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -133,9 +135,11 @@ public class AuditConfigSerializeTest {
             .field("log_request_body", true)
             .field("resolve_indices", true)
             .field("exclude_sensitive_headers", true)
+            .field("exclude_sensitive_url_params", true)
             .field("ignore_users", Collections.singletonList("test-user-1"))
             .field("ignore_requests", Collections.singletonList("test-request"))
             .field("ignore_headers", Collections.singletonList("test-headers"))
+            .field("ignore_url_params", Collections.singletonList("test-param"))
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -165,6 +169,7 @@ public class AuditConfigSerializeTest {
         assertTrue(audit.shouldLogRequestBody());
         assertTrue(audit.shouldResolveIndices());
         assertTrue(audit.shouldExcludeSensitiveHeaders());
+        assertTrue(audit.shouldExcludeSensitiveUrlParams());
         assertTrue(configCompliance.shouldLogExternalConfig());
         assertTrue(configCompliance.shouldLogInternalConfig());
         assertEquals(WildcardMatcher.from(Collections.singleton("test-user-1")), audit.getIgnoredAuditUsersMatcher());
@@ -232,9 +237,11 @@ public class AuditConfigSerializeTest {
             .field("log_request_body", true)
             .field("resolve_indices", true)
             .field("exclude_sensitive_headers", true)
+            .field("exclude_sensitive_url_params", true)
             .field("ignore_users", ImmutableList.of("ignore-user-1", "ignore-user-2"))
             .field("ignore_requests", Collections.singletonList("ignore-request-1"))
             .field("ignore_headers", Collections.singletonList("test-header"))
+            .field("ignore_url_params", Collections.singletonList("test-param"))
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -275,9 +282,11 @@ public class AuditConfigSerializeTest {
             .field("log_request_body", true)
             .field("resolve_indices", true)
             .field("exclude_sensitive_headers", true)
+            .field("exclude_sensitive_url_params", true)
             .field("ignore_users", ImmutableList.of("kibanaserver"))
             .field("ignore_requests", Collections.emptyList())
             .field("ignore_headers", Collections.emptyList())
+            .field("ignore_url_params", Collections.emptyList())
             .endObject()
             .startObject("compliance")
             .field("enabled", true)

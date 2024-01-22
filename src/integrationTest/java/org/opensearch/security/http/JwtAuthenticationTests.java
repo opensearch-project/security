@@ -28,9 +28,13 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.test.framework.AuditCompliance;
+import org.opensearch.test.framework.AuditConfiguration;
+import org.opensearch.test.framework.AuditFilters;
 import org.opensearch.test.framework.JwtConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -104,11 +108,18 @@ public class JwtAuthenticationTests {
         JWT_AUTH_HEADER
     );
 
+    @Rule
+    public AuditLogsRule auditLogsRule = new AuditLogsRule();
+
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(PUBLIC_KEY).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER)
+            .jwtUrlParameter("token")
+            .signingKey(PUBLIC_KEY)
+            .subjectKey(CLAIM_USERNAME)
+            .rolesKey(CLAIM_ROLES)
     ).backend("noop");
     public static final String SONG_ID_1 = "song-id-01";
 
@@ -126,6 +137,10 @@ public class JwtAuthenticationTests {
         .users(ADMIN_USER)
         .roles(DEPARTMENT_SONG_LISTENER_ROLE)
         .authc(JWT_AUTH_DOMAIN)
+        .audit(
+            new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
+                .filters(new AuditFilters().enabledRest(true).enabledTransport(true).resolveBulkRequests(true))
+        )
         .build();
 
     @Rule
@@ -146,6 +161,19 @@ public class JwtAuthenticationTests {
         try (TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken(USER_SUPERHERO))) {
 
             HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(200);
+            String username = response.getTextFromJsonBody(POINTER_USERNAME);
+            assertThat(username, equalTo(USER_SUPERHERO));
+        }
+    }
+
+    @Test
+    public void shouldAuthenticateWithJwtTokenInUrl_positive() {
+        Header jwtToken = tokenFactory.generateValidToken(USER_SUPERHERO);
+        String jwtTokenValue = jwtToken.getValue();
+        try (TestRestClient client = cluster.getRestClient()) {
+            HttpResponse response = client.getAuthInfo(Map.of("token", jwtTokenValue));
 
             response.assertStatusCode(200);
             String username = response.getTextFromJsonBody(POINTER_USERNAME);

@@ -1419,6 +1419,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     case ENABLE_REST:
                     case ENABLE_TRANSPORT:
                     case EXCLUDE_SENSITIVE_HEADERS:
+                    case EXCLUDE_SENSITIVE_URL_PARAMETERS:
                     case LOG_REQUEST_BODY:
                     case RESOLVE_INDICES:
                         return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), true);
