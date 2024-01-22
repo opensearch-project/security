@@ -85,6 +85,11 @@ public class NettyRequest implements SecurityRequest {
         return params(underlyingRequest.uri());
     }
 
+    @Override
+    public String param(String key) {
+        return params().get(key);
+    }
+
     private static Map<String, String> params(String uri) {
         // Sourced from
         // https://github.com/opensearch-project/OpenSearch/blob/main/server/src/main/java/org/opensearch/http/AbstractHttpServerTransport.java#L419-L422

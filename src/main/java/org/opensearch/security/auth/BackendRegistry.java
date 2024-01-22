@@ -66,6 +66,7 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
 import org.greenrobot.eventbus.Subscribe;
 
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
@@ -77,7 +78,7 @@ public class BackendRegistry {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
-
+    private Set<String> urlParamsToConsume = new HashSet<>();
     private List<AuthFailureListener> ipAuthFailureListeners;
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
@@ -156,6 +157,10 @@ public class BackendRegistry {
         createCaches();
     }
 
+    public Set<String> getUrlParamsToConsume() {
+        return urlParamsToConsume;
+    }
+
     public boolean isInitialized() {
         return initialized;
     }
@@ -180,6 +185,17 @@ public class BackendRegistry {
         authBackendFailureListeners = dcm.getAuthBackendFailureListeners();
         ipClientBlockRegistries = dcm.getIpClientBlockRegistries();
         authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
+
+        SortedSet<AuthDomain> authDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
+        urlParamsToConsume.clear();
+        for (AuthDomain authDomain : authDomains) {
+            if ("jwt".equals(authDomain.getHttpAuthenticator().getType())) {
+                HTTPJwtAuthenticator jwtAuthenticator = (HTTPJwtAuthenticator) authDomain.getHttpAuthenticator();
+                if (jwtAuthenticator.getJwtUrlParameter() != null) {
+                    urlParamsToConsume.add(jwtAuthenticator.getJwtUrlParameter());
+                }
+            }
+        }
 
         // OpenSearch Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;

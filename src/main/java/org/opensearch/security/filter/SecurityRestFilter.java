@@ -146,6 +146,10 @@ public class SecurityRestFilter {
 
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
 
+            for (String paramToConsume : registry.getUrlParamsToConsume()) {
+                requestChannel.param(paramToConsume);
+            }
+
             // Authenticate request
             if (!NettyAttribute.popFrom(request, IS_AUTHENTICATED).orElse(false)) {
                 // we aren't authenticated so we should skip this step

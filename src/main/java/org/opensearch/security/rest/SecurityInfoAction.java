@@ -88,9 +88,6 @@ public class SecurityInfoAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-        // TODO Consume the jwtUrlParameter in the authenticator. This was broken after authentication moving up netty pipeline
-        System.out.println("prepareRequest");
-        request.param("token");
         return new RestChannelConsumer() {
 
             @Override
