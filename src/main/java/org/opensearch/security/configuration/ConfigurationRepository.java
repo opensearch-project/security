@@ -61,6 +61,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -126,10 +127,12 @@ public class ConfigurationRepository {
     private void initalizeClusterConfiguration(final boolean installDefaultConfig) {
         try {
             LOGGER.info("Background init thread started. Install default config?: " + installDefaultConfig);
-            // wait for the cluster here until it will finish managed node election
-            while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+            // wait for the cluster here until it will finish managed node election or skip index creation since
+            // cluster blocks index creation
+            while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)
+                || clusterService.state().blocks().hasGlobalBlockWithId(Metadata.CLUSTER_CREATE_INDEX_BLOCK.id())) {
                 LOGGER.info("Wait for cluster to be available ...");
-                TimeUnit.SECONDS.sleep(1);
+                TimeUnit.SECONDS.sleep(5);
             }
 
             if (installDefaultConfig) {
