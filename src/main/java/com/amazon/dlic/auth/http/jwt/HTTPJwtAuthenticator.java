@@ -194,6 +194,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         );
     }
 
+    public String getJwtUrlParameter() {
+        return jwtUrlParameter;
+    }
+
     @Override
     public String getType() {
         return "jwt";

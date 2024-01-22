@@ -12,9 +12,11 @@
 package org.opensearch.security.auditlog.config;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -31,10 +33,15 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
+
+import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
+import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT;
@@ -86,6 +93,8 @@ public class AuditConfig {
 
     private static Set<String> FIELDS = DefaultObjectMapper.getFields(AuditConfig.class);
 
+    private Set<String> sensitiveUrlParams = new HashSet<>();
+
     private AuditConfig() {
         this(true, null, null);
     }
@@ -136,6 +145,7 @@ public class AuditConfig {
         private final boolean logRequestBody;
         private final boolean resolveIndices;
         private final boolean excludeSensitiveHeaders;
+        private final boolean excludeSensitiveUrlParams;
         @JsonProperty("ignore_users")
         private final Set<String> ignoredAuditUsers;
         @JsonProperty("ignore_requests")
@@ -145,6 +155,7 @@ public class AuditConfig {
         private final WildcardMatcher ignoredAuditUsersMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
+        private final WildcardMatcher ignoredUrlParamsMatcher;
         private final Set<AuditCategory> disabledRestCategories;
         private final Set<AuditCategory> disabledTransportCategories;
 
@@ -156,9 +167,11 @@ public class AuditConfig {
             final boolean logRequestBody,
             final boolean resolveIndices,
             final boolean excludeSensitiveHeaders,
+            final boolean excludeSensitiveUrlParams,
             final Set<String> ignoredAuditUsers,
             final Set<String> ignoredAuditRequests,
             final Set<String> ignoredCustomHeaders,
+            final Set<String> ignoredUrlParams,
             final Set<AuditCategory> disabledRestCategories,
             final Set<AuditCategory> disabledTransportCategories
         ) {
@@ -168,12 +181,14 @@ public class AuditConfig {
             this.logRequestBody = logRequestBody;
             this.resolveIndices = resolveIndices;
             this.excludeSensitiveHeaders = excludeSensitiveHeaders;
+            this.excludeSensitiveUrlParams = excludeSensitiveUrlParams;
             this.ignoredAuditUsers = ignoredAuditUsers;
             this.ignoredAuditUsersMatcher = WildcardMatcher.from(ignoredAuditUsers);
             this.ignoredAuditRequests = ignoredAuditRequests;
             this.ignoredAuditRequestsMatcher = WildcardMatcher.from(ignoredAuditRequests);
             this.ignoredCustomHeaders = ignoredCustomHeaders;
             this.ignoredCustomHeadersMatcher = WildcardMatcher.from(ignoredCustomHeaders);
+            this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
         }
@@ -185,6 +200,10 @@ public class AuditConfig {
             LOG_REQUEST_BODY("log_request_body", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY),
             RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
             EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
+            EXCLUDE_SENSITIVE_URL_PARAMETERS(
+                "exclude_sensitive_url_params",
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_URL_PARAMETERS
+            ),
             DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
             DISABLE_TRANSPORT_CATEGORIES(
                 "disabled_transport_categories",
@@ -235,6 +254,11 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
+            final boolean excludeSensitiveUrlParams = getOrDefault(
+                properties,
+                FilterEntries.EXCLUDE_SENSITIVE_URL_PARAMETERS.getKey(),
+                true
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
@@ -266,6 +290,7 @@ public class AuditConfig {
                 logRequestBody,
                 resolveIndices,
                 excludeSensitiveHeaders,
+                excludeSensitiveUrlParams,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
@@ -287,6 +312,7 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
+            final boolean excludeSensitiveUrlParams = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_URL_PARAMETERS, true);
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
@@ -311,6 +337,7 @@ public class AuditConfig {
                 logRequestBody,
                 resolveIndices,
                 excludeSensitiveHeaders,
+                excludeSensitiveUrlParams,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
@@ -398,6 +425,15 @@ public class AuditConfig {
             return excludeSensitiveHeaders;
         }
 
+        /**
+         * Checks if sensitive url params eg: jwtUrlParameter from jwt auth domain must be excluded in log messages
+         * @return true/false
+         */
+        @JsonProperty("exclude_sensitive_url_params")
+        public boolean shouldExcludeSensitiveUrlParams() {
+            return excludeSensitiveUrlParams;
+        }
+
         @VisibleForTesting
         WildcardMatcher getIgnoredAuditUsersMatcher() {
             return ignoredAuditUsersMatcher;
@@ -420,6 +456,21 @@ public class AuditConfig {
         @VisibleForTesting
         WildcardMatcher getIgnoredCustomHeadersMatcher() {
             return ignoredCustomHeadersMatcher;
+        }
+
+        @VisibleForTesting
+        WildcardMatcher getIgnoredUrlParamsMatcher() {
+            return ignoredUrlParamsMatcher;
+        }
+
+        /**
+         * Check if the specified url param is excluded from the audit
+         *
+         * @param param
+         * @return true if header should be excluded
+         */
+        public boolean shouldExcludeUrlParam(String param) {
+            return ignoredUrlParamsMatcher.test(param);
         }
 
         /**
@@ -470,6 +521,7 @@ public class AuditConfig {
             logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
             logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsersMatcher);
             logger.info("Auditing request headers {} is disabled.", ignoredCustomHeadersMatcher);
+            logger.info("Auditing request url params {} is disabled.", ignoredUrlParamsMatcher);
         }
 
         @Override
@@ -497,6 +549,8 @@ public class AuditConfig {
                 + ignoredAuditRequestsMatcher
                 + ", ignoredCustomHeaders="
                 + ignoredCustomHeadersMatcher
+                + ", ignoredUrlParamsMatcher="
+                + ignoredUrlParamsMatcher
                 + '}';
         }
     }
@@ -537,4 +591,18 @@ public class AuditConfig {
             Utils.generateFieldResourcePaths(ComplianceConfig.FIELDS, "/compliance/")
         )
     );
+
+    @Subscribe
+    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+        SortedSet<AuthDomain> authDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
+
+        for (AuthDomain authDomain : authDomains) {
+            if ("jwt".equals(authDomain.getHttpAuthenticator().getType())) {
+                HTTPJwtAuthenticator jwtAuthenticator = (HTTPJwtAuthenticator) authDomain.getHttpAuthenticator();
+                if (jwtAuthenticator.getJwtUrlParameter() != null) {
+                    sensitiveUrlParams.add(jwtAuthenticator.getJwtUrlParameter());
+                }
+            }
+        }
+    }
 }

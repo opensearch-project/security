@@ -197,9 +197,11 @@ public class AuditConfigSerializeTest {
             true,
             true,
             true,
+            true,
             ImmutableSet.of("ignore-user-1", "ignore-user-2"),
             ImmutableSet.of("ignore-request-1"),
             ImmutableSet.of("test-header"),
+            ImmutableSet.of("test-param"),
             EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES),
             EnumSet.of(AUTHENTICATED)
         );

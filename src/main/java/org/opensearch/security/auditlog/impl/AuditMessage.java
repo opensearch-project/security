@@ -12,6 +12,7 @@
 package org.opensearch.security.auditlog.impl;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -23,10 +24,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.net.URIBuilder;
+import org.apache.hc.core5.net.URLEncodedUtils;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
@@ -183,8 +187,37 @@ public final class AuditMessage {
         }
     }
 
-    public void addPath(String path) {
+    public static String redactUrlParams(String path, AuditConfig.Filter filter) {
+        String[] parts = path.split("\\?", 2);
+        String urlPath = parts[0];
+
+        if (parts.length > 1) {
+            String queryString = parts[1];
+
+            // Parse the query string
+            List<NameValuePair> params = URLEncodedUtils.parse(queryString, StandardCharsets.UTF_8);
+
+            // Redact the specified parameter
+            String redactedQuery = params.stream()
+                .map(
+                    param -> filter.shouldExcludeUrlParam(param.getName())
+                        ? param.getName() + "=REDACTED"
+                        : param.getName() + "=" + param.getValue()
+                )
+                .collect(Collectors.joining("&"));
+
+            return urlPath + "?" + redactedQuery;
+        }
+
+        return path;
+    }
+
+    public void addPath(String path, boolean excludeSensitiveUrlParams, AuditConfig.Filter filter) {
+        // TODO redact jwtUrlParameter
         if (path != null) {
+            if (excludeSensitiveUrlParams) {
+                path = redactUrlParams(path, filter);
+            }
             auditInfo.put(REST_REQUEST_PATH, path);
         }
     }
@@ -378,7 +411,7 @@ public final class AuditMessage {
     void addRestRequestInfo(final SecurityRequest request, final AuditConfig.Filter filter) {
         if (request != null) {
             final String path = request.path().toString();
-            addPath(path);
+            addPath(path, filter.shouldExcludeSensitiveUrlParams(), filter);
             addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders(), filter);
             addRestParams(request.params());
             addRestMethod(request.method());
