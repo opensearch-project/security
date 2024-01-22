@@ -53,6 +53,8 @@ public class SecuritySettingsConfigurer {
         ".plugins-ml-model-group",
         ".plugins-ml-model",
         ".plugins-ml-task",
+        ".plugins-ml-conversation-meta",
+        ".plugins-ml-conversation-interactions",
         ".plugins-ml-memory-meta",
         ".plugins-ml-memory-message",
         ".opendistro-alerting-config",
