@@ -93,7 +93,7 @@ public class AuditConfig {
 
     private static Set<String> FIELDS = DefaultObjectMapper.getFields(AuditConfig.class);
 
-    private Set<String> sensitiveUrlParams = new HashSet<>();
+    static Set<String> ignoreUrlParams = new HashSet<>();
 
     private AuditConfig() {
         this(true, null, null);
@@ -152,6 +152,8 @@ public class AuditConfig {
         private final Set<String> ignoredAuditRequests;
         @JsonProperty("ignore_headers")
         private final Set<String> ignoredCustomHeaders;
+        @JsonProperty("ignore_url_params")
+        private final Set<String> ignoredUrlParams;
         private final WildcardMatcher ignoredAuditUsersMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
@@ -188,6 +190,7 @@ public class AuditConfig {
             this.ignoredAuditRequestsMatcher = WildcardMatcher.from(ignoredAuditRequests);
             this.ignoredCustomHeaders = ignoredCustomHeaders;
             this.ignoredCustomHeadersMatcher = WildcardMatcher.from(ignoredCustomHeaders);
+            this.ignoredUrlParams = ignoredUrlParams;
             this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
@@ -294,6 +297,7 @@ public class AuditConfig {
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
+                ignoreUrlParams,
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -341,6 +345,7 @@ public class AuditConfig {
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
+                ignoreUrlParams,
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -595,12 +600,12 @@ public class AuditConfig {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         SortedSet<AuthDomain> authDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
-
+        ignoreUrlParams.clear();
         for (AuthDomain authDomain : authDomains) {
             if ("jwt".equals(authDomain.getHttpAuthenticator().getType())) {
                 HTTPJwtAuthenticator jwtAuthenticator = (HTTPJwtAuthenticator) authDomain.getHttpAuthenticator();
                 if (jwtAuthenticator.getJwtUrlParameter() != null) {
-                    sensitiveUrlParams.add(jwtAuthenticator.getJwtUrlParameter());
+                    ignoreUrlParams.add(jwtAuthenticator.getJwtUrlParameter());
                 }
             }
         }
