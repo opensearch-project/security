@@ -108,7 +108,11 @@ public class JwtAuthenticationTests {
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(PUBLIC_KEY).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER)
+            .jwtUrlParameter("token")
+            .signingKey(PUBLIC_KEY)
+            .subjectKey(CLAIM_USERNAME)
+            .rolesKey(CLAIM_ROLES)
     ).backend("noop");
     public static final String SONG_ID_1 = "song-id-01";
 
@@ -146,6 +150,19 @@ public class JwtAuthenticationTests {
         try (TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken(USER_SUPERHERO))) {
 
             HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(200);
+            String username = response.getTextFromJsonBody(POINTER_USERNAME);
+            assertThat(username, equalTo(USER_SUPERHERO));
+        }
+    }
+
+    @Test
+    public void shouldAuthenticateWithJwtTokenInUrl_positive() {
+        Header jwtToken = tokenFactory.generateValidToken(USER_SUPERHERO);
+        String jwtTokenValue = jwtToken.getValue();
+        try (TestRestClient client = cluster.getRestClient()) {
+            HttpResponse response = client.getAuthInfo(Map.of("token", jwtTokenValue));
 
             response.assertStatusCode(200);
             String username = response.getTextFromJsonBody(POINTER_USERNAME);

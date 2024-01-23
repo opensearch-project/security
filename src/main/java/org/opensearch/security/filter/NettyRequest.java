@@ -14,9 +14,11 @@ package org.opensearch.security.filter;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import javax.net.ssl.SSLEngine;
 
@@ -34,6 +36,8 @@ public class NettyRequest implements SecurityRequest {
 
     protected final HttpRequest underlyingRequest;
     protected final Netty4HttpChannel underlyingChannel;
+
+    private final Set<String> consumedParams = new HashSet<>();
 
     NettyRequest(final HttpRequest request, final Netty4HttpChannel channel) {
         this.underlyingRequest = request;
@@ -83,6 +87,18 @@ public class NettyRequest implements SecurityRequest {
     @Override
     public Map<String, String> params() {
         return params(underlyingRequest.uri());
+    }
+
+    @Override
+    public String param(String key) {
+        Map<String, String> urlParams = params();
+        consumedParams.add(key);
+        return urlParams != null ? params().get(key) : null;
+    }
+
+    @Override
+    public Set<String> getConsumedParams() {
+        return consumedParams;
     }
 
     private static Map<String, String> params(String uri) {
