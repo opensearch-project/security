@@ -33,6 +33,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -52,20 +53,20 @@ public class JwtAuthenticationWithUrlParamTests {
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
-    private static final String JWT_AUTH_HEADER = "jwt-auth";
+    private static final String TOKEN_URL_PARAM = "token";
 
     private static final JwtAuthorizationHeaderFactory tokenFactory = new JwtAuthorizationHeaderFactory(
         KEY_PAIR.getPrivate(),
         CLAIM_USERNAME,
         CLAIM_ROLES,
-        JWT_AUTH_HEADER
+        AUTHORIZATION
     );
 
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtUrlParameter("token").signingKey(PUBLIC_KEY).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtUrlParameter(TOKEN_URL_PARAM).signingKey(PUBLIC_KEY).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
     ).backend("noop");
 
     @ClassRule
@@ -87,11 +88,21 @@ public class JwtAuthenticationWithUrlParamTests {
         Header jwtToken = tokenFactory.generateValidToken(ADMIN_USER.getName());
         String jwtTokenValue = jwtToken.getValue();
         try (TestRestClient client = cluster.getRestClient()) {
-            HttpResponse response = client.getAuthInfo(Map.of("token", jwtTokenValue));
+            HttpResponse response = client.getAuthInfo(Map.of(TOKEN_URL_PARAM, jwtTokenValue));
 
             response.assertStatusCode(200);
             String username = response.getTextFromJsonBody(POINTER_USERNAME);
             assertThat(username, equalTo(ADMIN_USER.getName()));
+        }
+    }
+
+    @Test
+    public void testUnauthenticatedRequest() {
+        try (TestRestClient client = cluster.getRestClient()) {
+            HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(401);
+            logsRule.assertThatContainExactly(String.format("No JWT token found in '%s' url parameter header", TOKEN_URL_PARAM));
         }
     }
 }
