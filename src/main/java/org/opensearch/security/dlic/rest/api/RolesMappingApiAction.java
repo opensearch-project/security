@@ -38,11 +38,11 @@ public class RolesMappingApiAction extends AbstractApiAction {
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
-            new Route(Method.GET, "/rolesmapping/"),
+            new Route(Method.GET, "/rolesmapping"),
             new Route(Method.GET, "/rolesmapping/{name}"),
             new Route(Method.DELETE, "/rolesmapping/{name}"),
             new Route(Method.PUT, "/rolesmapping/{name}"),
-            new Route(Method.PATCH, "/rolesmapping/"),
+            new Route(Method.PATCH, "/rolesmapping"),
             new Route(Method.PATCH, "/rolesmapping/{name}")
         )
     );
