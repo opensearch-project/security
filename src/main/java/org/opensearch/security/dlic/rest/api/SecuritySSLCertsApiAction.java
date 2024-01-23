@@ -50,7 +50,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  */
 public class SecuritySSLCertsApiAction extends AbstractApiAction {
     private static final List<Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(new Route(Method.GET, "/ssl/certs"), new Route(Method.PUT, "/ssl/{certType}/reloadcerts/"))
+        ImmutableList.of(new Route(Method.GET, "/ssl/certs"), new Route(Method.PUT, "/ssl/{certType}/reloadcerts"))
     );
 
     private final SecurityKeyStore securityKeyStore;
