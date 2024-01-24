@@ -55,8 +55,10 @@ public class RolesValidator extends AbstractConfigurationValidator {
 
             ArrayNode indexPermissions = getContentAsNode().withArray("index_permissions");
             Set<String> maskedFields = new HashSet<>();
-            for (JsonNode ip : indexPermissions) {
-                ip.withArray("masked_fields").forEach((n) -> maskedFields.add(n.asText()));
+            if (indexPermissions != null) {
+                for (JsonNode ip : indexPermissions) {
+                    ip.withArray("masked_fields").forEach((n) -> maskedFields.add(n.asText()));
+                }
             }
 
             for (String mf : maskedFields) {
