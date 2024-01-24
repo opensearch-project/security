@@ -15,16 +15,18 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
 
 import org.opensearch.security.configuration.MaskedField;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.ReadContext;
 
 public class RolesValidator extends AbstractConfigurationValidator {
 
@@ -51,15 +53,15 @@ public class RolesValidator extends AbstractConfigurationValidator {
 
         if (this.content != null && this.content.length() > 0) {
 
-            final ReadContext ctx = JsonPath.parse(this.content.utf8ToString());
-            final List<String> maskedFields = ctx.read("$..masked_fields[*]");
+            ArrayNode indexPermissions = getContentAsNode().withArray("index_permissions");
+            Set<String> maskedFields = new HashSet<>();
+            for (JsonNode ip : indexPermissions) {
+                ip.withArray("masked_fields").forEach((n) -> maskedFields.add(n.asText()));
+            }
 
-            if (maskedFields != null) {
-
-                for (String mf : maskedFields) {
-                    if (!validateMaskedFieldSyntax(mf)) {
-                        valid = false;
-                    }
+            for (String mf : maskedFields) {
+                if (!validateMaskedFieldSyntax(mf)) {
+                    valid = false;
                 }
             }
         }
