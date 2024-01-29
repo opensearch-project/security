@@ -54,7 +54,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -112,7 +112,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -147,7 +147,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -165,7 +165,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build BWC tests
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
           arguments: |
