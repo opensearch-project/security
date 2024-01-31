@@ -55,6 +55,8 @@ public class SecuritySettingsConfigurer {
         ".plugins-ml-task",
         ".plugins-ml-conversation-meta",
         ".plugins-ml-conversation-interactions",
+        ".plugins-ml-memory-meta",
+        ".plugins-ml-memory-message",
         ".opendistro-alerting-config",
         ".opendistro-alerting-alert*",
         ".opendistro-anomaly-results*",

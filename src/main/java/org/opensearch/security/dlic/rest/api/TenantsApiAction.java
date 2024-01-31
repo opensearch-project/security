@@ -50,10 +50,10 @@ public class TenantsApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/tenants/{name}"),
-            new Route(Method.GET, "/tenants/"),
+            new Route(Method.GET, "/tenants"),
             new Route(Method.DELETE, "/tenants/{name}"),
             new Route(Method.PUT, "/tenants/{name}"),
-            new Route(Method.PATCH, "/tenants/"),
+            new Route(Method.PATCH, "/tenants"),
             new Route(Method.PATCH, "/tenants/{name}")
         )
     );

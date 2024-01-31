@@ -46,16 +46,16 @@ public class ActionGroupsApiAction extends AbstractApiAction {
             // legacy mapping for backwards compatibility
             // TODO: remove in next version
             new Route(Method.GET, "/actiongroup/{name}"),
-            new Route(Method.GET, "/actiongroup/"),
+            new Route(Method.GET, "/actiongroup"),
             new Route(Method.DELETE, "/actiongroup/{name}"),
             new Route(Method.PUT, "/actiongroup/{name}"),
 
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/actiongroups/{name}"),
-            new Route(Method.GET, "/actiongroups/"),
+            new Route(Method.GET, "/actiongroups"),
             new Route(Method.DELETE, "/actiongroups/{name}"),
             new Route(Method.PUT, "/actiongroups/{name}"),
-            new Route(Method.PATCH, "/actiongroups/"),
+            new Route(Method.PATCH, "/actiongroups"),
             new Route(Method.PATCH, "/actiongroups/{name}")
 
         )
