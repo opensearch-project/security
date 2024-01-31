@@ -55,6 +55,7 @@ import org.mockito.MockitoAnnotations;
 import static java.util.Collections.emptySet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -235,7 +236,7 @@ public class SecurityInterceptorTests {
 
         User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertEquals(transientUser, user);
-        assertEquals(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER), null);
+        assertNull(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER));
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -289,9 +290,10 @@ public class SecurityInterceptorTests {
     @Test
     public void testSendNoConnectionShouldThrowNPE() {
 
+        // The completable version swallows the NPE so have to call actual method
         assertThrows(
             java.lang.NullPointerException.class,
-            () -> completableRequestDecorate(serializedSender, null, action, request, options, handler, localNode)
+            () -> securityInterceptor.sendRequestDecorate(serializedSender, null, action, request, options, handler, localNode)
         );
     }
 
