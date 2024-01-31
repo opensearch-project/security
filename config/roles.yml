@@ -346,6 +346,7 @@ security_analytics_read_access:
     - 'cluster:admin/opensearch/securityanalytics/detector/get'
     - 'cluster:admin/opensearch/securityanalytics/detector/search'
     - 'cluster:admin/opensearch/securityanalytics/findings/get'
+    - 'cluster:admin/opensearch/securityanalytics/logtype/search'
     - 'cluster:admin/opensearch/securityanalytics/mapping/get'
     - 'cluster:admin/opensearch/securityanalytics/mapping/view/get'
     - 'cluster:admin/opensearch/securityanalytics/rule/get'
@@ -359,6 +360,7 @@ security_analytics_full_access:
     - 'cluster:admin/opensearch/securityanalytics/correlations/*'
     - 'cluster:admin/opensearch/securityanalytics/detector/*'
     - 'cluster:admin/opensearch/securityanalytics/findings/*'
+    - 'cluster:admin/opensearch/securityanalytics/logtype/*'
     - 'cluster:admin/opensearch/securityanalytics/mapping/*'
     - 'cluster:admin/opensearch/securityanalytics/rule/*'
   index_permissions:

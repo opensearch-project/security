@@ -68,8 +68,6 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     private final Path configPath;
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
-    private SortedSet<AuthDomain> transportAuthDomains;
-    private Set<AuthorizationBackend> transportAuthorizers;
     private List<Destroyable> destroyableComponents;
     private final InternalAuthenticationBackend iab;
 
@@ -216,8 +214,6 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
         final Set<AuthorizationBackend> restAuthorizers0 = new HashSet<>();
-        final SortedSet<AuthDomain> transportAuthDomains0 = new TreeSet<>();
-        final Set<AuthorizationBackend> transportAuthorizers0 = new HashSet<>();
         final List<Destroyable> destroyableComponents0 = new LinkedList<>();
         final List<AuthFailureListener> ipAuthFailureListeners0 = new ArrayList<>();
         final Multimap<String, AuthFailureListener> authBackendFailureListeners0 = ArrayListMultimap.create();
@@ -229,9 +225,8 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
         for (final Entry<String, AuthzDomain> ad : authzDyn.getDomains().entrySet()) {
             final boolean enabled = ad.getValue().enabled;
             final boolean httpEnabled = enabled && ad.getValue().http_enabled;
-            final boolean transportEnabled = enabled && ad.getValue().transport_enabled;
 
-            if (httpEnabled || transportEnabled) {
+            if (httpEnabled) {
                 try {
 
                     final String authzBackendClazz = ad.getValue().authorization_backend.type;
@@ -264,10 +259,6 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
                         restAuthorizers0.add(authorizationBackend);
                     }
 
-                    if (transportEnabled) {
-                        transportAuthorizers0.add(authorizationBackend);
-                    }
-
                     if (authorizationBackend instanceof Destroyable) {
                         destroyableComponents0.add((Destroyable) authorizationBackend);
                     }
@@ -282,9 +273,8 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
         for (final Entry<String, AuthcDomain> ad : authcDyn.getDomains().entrySet()) {
             final boolean enabled = ad.getValue().enabled;
             final boolean httpEnabled = enabled && ad.getValue().http_enabled;
-            final boolean transportEnabled = enabled && ad.getValue().transport_enabled;
 
-            if (httpEnabled || transportEnabled) {
+            if (httpEnabled) {
                 try {
                     AuthenticationBackend authenticationBackend;
                     final String authBackendClazz = ad.getValue().authentication_backend.type;
@@ -343,10 +333,6 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
                         restAuthDomains0.add(_ad);
                     }
 
-                    if (transportEnabled) {
-                        transportAuthDomains0.add(_ad);
-                    }
-
                     if (httpAuthenticator instanceof Destroyable) {
                         destroyableComponents0.add((Destroyable) httpAuthenticator);
                     }
@@ -365,9 +351,7 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
         List<Destroyable> originalDestroyableComponents = destroyableComponents;
 
         restAuthDomains = Collections.unmodifiableSortedSet(restAuthDomains0);
-        transportAuthDomains = Collections.unmodifiableSortedSet(transportAuthDomains0);
         restAuthorizers = Collections.unmodifiableSet(restAuthorizers0);
-        transportAuthorizers = Collections.unmodifiableSet(transportAuthorizers0);
 
         destroyableComponents = Collections.unmodifiableList(destroyableComponents0);
 
