@@ -12,11 +12,9 @@
 package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLEngine;
 
@@ -54,9 +52,4 @@ public interface SecurityRequest {
 
     /** Gets the parameter for the given key */
     String param(String key);
-
-    /** Gets the parameters that have been consumed */
-    default Set<String> getConsumedParams() {
-        return Collections.emptySet();
-    };
 }

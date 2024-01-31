@@ -96,7 +96,6 @@ public class NettyRequest implements SecurityRequest {
         return urlParams != null ? params().get(key) : null;
     }
 
-    @Override
     public Set<String> getConsumedParams() {
         return consumedParams;
     }
