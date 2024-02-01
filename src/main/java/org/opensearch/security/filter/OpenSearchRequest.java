@@ -69,7 +69,12 @@ public class OpenSearchRequest implements SecurityRequest {
 
     @Override
     public Map<String, String> params() {
-        return underlyingRequest.params();
+        return new Map<>(underlyingRequest.params()) {
+            @Override
+            public String get(String key) {
+                return underlyingRequest.param(key);
+            }
+        };
     }
 
     @Override
