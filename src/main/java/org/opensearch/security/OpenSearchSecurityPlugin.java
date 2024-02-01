@@ -248,6 +248,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
 
     public static boolean isActionTraceEnabled() {
+
         return actionTrace.isTraceEnabled();
     }
 
@@ -1106,7 +1107,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cs,
             Objects.requireNonNull(sslExceptionHandler),
             Objects.requireNonNull(cih),
-            SSLConfig
+            SSLConfig,
+            OpenSearchSecurityPlugin::isActionTraceEnabled
         );
         components.add(principalExtractor);
 
