@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
@@ -70,6 +69,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     protected static final Logger log = LogManager.getLogger(LDAPAuthorizationBackend2.class);
     private final Settings settings;
     private final WildcardMatcher skipUsersMatcher;
+    private final WildcardMatcher excludeRolesMatcher;
     private final WildcardMatcher nestedRoleMatcher;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private ConnectionPool connectionPool;
@@ -81,6 +81,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     public LDAPAuthorizationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
         this.skipUsersMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS));
+        this.excludeRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES));
         this.nestedRoleMatcher = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false)
             ? WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER))
             : null;
@@ -160,7 +161,6 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         String originalUserName;
         LdapEntry entry = null;
         String dn = null;
-        String excludeRoles = settings.get("exclude_roles", null);
 
         if (user instanceof LdapUser) {
             entry = ((LdapUser) user).getUserEntry();
@@ -331,7 +331,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         for (final Iterator<LdapEntry> iterator = rolesResult.iterator(); iterator.hasNext();) {
                             LdapEntry searchResultEntry = iterator.next();
                             LdapName ldapName = new LdapName(searchResultEntry.getDn());
-                            if (LdapHelper.allowRole(excludeRoles, searchResultEntry.getDn())) {
+                            if (!excludeRolesMatcher.test(searchResultEntry.getDn())) {
                                 ldapRoles.add(ldapName);
                                 resultRoleSearchBaseKeys.put(ldapName, roleSearchSettingsEntry);
                             }
@@ -380,11 +380,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 for (final LdapName roleLdapName : nestedReturn) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if ((Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role))
-                        || (!Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role) && !Pattern.matches(excludeRoles, role))) {
-                        user.addRole(role);
-                    } else {
+                    if (excludeRolesMatcher.test(role)) {
                         log.warn("No or empty attribute '{}' for entry {}", roleName, roleLdapName);
+                    } else {
+                        user.addRole(role);
                     }
                 }
 
@@ -393,11 +392,10 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if ((Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role))
-                        || (!Strings.isNullOrEmpty(excludeRoles) && !Strings.isNullOrEmpty(role) && !Pattern.matches(excludeRoles, role))) {
-                        user.addRole(role);
-                    } else {
+                    if (excludeRolesMatcher.test(role)) {
                         log.warn("No or empty attribute '{}' for entry {}", roleName, roleLdapName);
+                    } else {
+                        user.addRole(role);
                     }
                 }
 

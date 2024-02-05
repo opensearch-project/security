@@ -16,13 +16,11 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
 import org.opensearch.SpecialPermission;
-import org.opensearch.core.common.Strings;
 
 import org.ldaptive.Connection;
 import org.ldaptive.DerefAliases;
@@ -124,15 +122,6 @@ public class LdapHelper {
         } else {
             return input;
         }
-    }
-
-    public static boolean allowRole(String excludeRoles, String role) {
-        if (Strings.isNullOrEmpty(role)) {
-            return false;
-        } else if (Strings.isNullOrEmpty(excludeRoles)) {
-            return true;
-        }
-        return !Pattern.matches(excludeRoles, role);
     }
 
 }

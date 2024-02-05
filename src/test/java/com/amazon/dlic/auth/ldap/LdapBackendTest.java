@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.ldap;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
@@ -591,7 +592,7 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
-            .put("exclude_roles", "(nested.)")
+            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("nested1", "nested2"))
             .build();
 
         final User user = new User("spock");
@@ -619,7 +620,7 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
-            .put("exclude_roles", "(ceo|role1|role2)")
+            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("ceo", "role1", "role2"))
             .build();
 
         final User user = new User("spock");

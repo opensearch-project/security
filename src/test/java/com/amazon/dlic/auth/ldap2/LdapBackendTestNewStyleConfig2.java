@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -795,7 +796,7 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .putList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER, "*")
-            .put("exclude_roles", "(dummyempty)")
+            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("dummyempty"))
             .build();
 
         final User user = new User("spock");
