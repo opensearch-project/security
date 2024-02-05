@@ -306,7 +306,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepCloneWithRedaction() {
         try {
-            System.out.println("JSON: " + DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this));
             return fromJson(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctype, version, seqNo, primaryTerm);
         } catch (Exception e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
