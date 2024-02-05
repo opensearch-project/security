@@ -27,6 +27,7 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,9 +39,13 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
@@ -421,6 +426,39 @@ public class ConfigV7 {
 
     }
 
+    private static class AuthcBackendSerializer extends StdSerializer<AuthcBackend> {
+
+        public AuthcBackendSerializer() {
+            this(null);
+        }
+
+        public AuthcBackendSerializer(Class<AuthcBackend> t) {
+            super(t);
+        }
+
+        @Override
+        public void serialize(AuthcBackend value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeStartObject();
+            gen.writeStringField("type", value.type);
+
+            // Handle config map, apply redaction for specific keys
+            Map<String, Object> config = value.config;
+            gen.writeFieldName("config");
+            gen.writeStartObject();
+            for (Map.Entry<String, Object> entry : config.entrySet()) {
+                if ("password".equals(entry.getKey())) {
+                    gen.writeStringField(entry.getKey(), "******"); // Redact password
+                } else {
+                    gen.writeObjectField(entry.getKey(), entry.getValue());
+                }
+            }
+            gen.writeEndObject();
+
+            gen.writeEndObject();
+        }
+    }
+
+    @JsonSerialize(using = AuthcBackendSerializer.class)
     public static class AuthcBackend {
         public String type = InternalAuthenticationBackend.class.getName();
         public Map<String, Object> config = Collections.emptyMap();
