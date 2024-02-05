@@ -20,7 +20,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
 
@@ -56,6 +57,11 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
             setPrivateTenantAsDefaultResponse.getStatusCode(),
             equalTo(HttpStatus.SC_OK)
         );
+        assertThat(getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"), hasItem(DashboardSignInOption.BASIC.toString()));
+        assertThat(
+            getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"),
+            not(hasItem(DashboardSignInOption.SAML.toString()))
+        );
 
         final HttpResponse updateDashboardSignInOptions = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
@@ -68,7 +74,11 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         assertThat(getDashboardsinfoResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(getDashboardsinfoResponse.findValueInJson("default_tenant"), equalTo("Private"));
 
-        assertThat(getSettingResponse.findArrayInJson("dashboard_signin_options"), contains(DashboardSignInOption.BASIC.toString()));
+        assertThat(
+            getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"),
+            hasItem((DashboardSignInOption.BASIC.toString()))
+        );
+        assertThat(getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"), hasItem((DashboardSignInOption.SAML.toString())));
     }
 
     @Test

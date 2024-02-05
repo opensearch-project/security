@@ -45,8 +45,8 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
-import org.opensearch.security.setting.DeprecatedSettings;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
+import org.opensearch.security.setting.DeprecatedSettings;
 
 public class ConfigV6 {
 

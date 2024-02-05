@@ -242,9 +242,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             for (String key : authc.getDomains().keySet()) {
                 if (key.contains(option.toString().toLowerCase())) {
                     authc.getDomains().get(key).http_enabled = enable;
-                    authc.getDomains().get(key).transport_enabled = enable;
                     break;
-
                 }
             }
         }
