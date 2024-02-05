@@ -123,9 +123,9 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class AuditApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
-            new Route(RestRequest.Method.GET, "/audit/"),
+            new Route(RestRequest.Method.GET, "/audit"),
             new Route(RestRequest.Method.PUT, "/audit/config"),
-            new Route(RestRequest.Method.PATCH, "/audit/")
+            new Route(RestRequest.Method.PATCH, "/audit")
         )
     );
 
