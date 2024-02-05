@@ -14,13 +14,12 @@ import java.io.IOException;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.CreatePitRequest;
@@ -33,7 +32,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -133,6 +131,13 @@ public class PointInTimeOperationTest {
         }
     }
 
+    @Before
+    public void cleanUpPits() throws IOException {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
+            restHighLevelClient.deleteAllPits(DEFAULT);
+        }
+    }
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
@@ -180,11 +185,9 @@ public class PointInTimeOperationTest {
         }
     }
 
-    @Ignore("Pretty sure cleanUpPits is returning before all of the PITs have actually been deleted")
     @Test
     public void listAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
-            cleanUpPits();
             String firstIndexPit = createPitForIndices(FIRST_SONG_INDEX);
             String secondIndexPit = createPitForIndices(SECOND_SONG_INDEX);
 
@@ -247,11 +250,9 @@ public class PointInTimeOperationTest {
         }
     }
 
-    @Ignore("Pretty sure cleanUpPits is returning before all of the PITs have actually been deleted")
     @Test
     public void deleteAllPits_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
-            cleanUpPits();
             String firstIndexPit = createPitForIndices(FIRST_SONG_INDEX);
             String secondIndexPit = createPitForIndices(SECOND_SONG_INDEX);
 
@@ -381,7 +382,7 @@ public class PointInTimeOperationTest {
     @Test
     public void listAllPitSegments_positive() {
         try (TestRestClient restClient = cluster.getRestClient(POINT_IN_TIME_USER)) {
-            HttpResponse response = restClient.get("/_cat/pit_segments/_all");
+            HttpResponse response = restClient.get("_cat/pit_segments/_all");
 
             response.assertStatusCode(OK.getStatus());
         }
@@ -390,7 +391,7 @@ public class PointInTimeOperationTest {
     @Test
     public void listAllPitSegments_negative() {
         try (TestRestClient restClient = cluster.getRestClient(LIMITED_POINT_IN_TIME_USER)) {
-            HttpResponse response = restClient.get("/_cat/pit_segments/_all");
+            HttpResponse response = restClient.get("_cat/pit_segments/_all");
 
             response.assertStatusCode(FORBIDDEN.getStatus());
         }
@@ -407,22 +408,6 @@ public class PointInTimeOperationTest {
 
             assertThat(createPitResponse, isSuccessfulCreatePitResponse());
             return createPitResponse.getId();
-        }
-    }
-
-    /**
-    * Deletes all PITs.
-    */
-    public void cleanUpPits() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            try {
-                restHighLevelClient.deleteAllPits(DEFAULT);
-            } catch (OpenSearchStatusException ex) {
-                if (ex.status() != RestStatus.NOT_FOUND) {
-                    throw ex;
-                }
-                // tried to remove pits but no pit exists
-            }
         }
     }
 

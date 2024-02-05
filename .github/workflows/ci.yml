@@ -54,13 +54,13 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-    - uses: alehechka/upload-tartifact@v2
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -68,26 +68,13 @@ jobs:
           ./build/reports/
 
   report-coverage:
-    needs:
-      - "test"
-      - "integration-tests"
+    needs: ["test", "integration-tests"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: downloaded-artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: downloaded-artifacts
-
-      - name: Extract downloaded artifacts
-        run: |
-          for archive in ./*/artifact.tar; do
-            (cd "$(dirname "$archive")" && tar -xvf artifact.tar)
-          done
-        working-directory: downloaded-artifacts
 
       - name: Display structure of downloaded files
         run: ls -R
@@ -111,7 +98,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [11, 17, 21]
-        platform: [ubuntu-latest] # Removed windows https://github.com/opensearch-project/security/issues/3423
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -125,7 +112,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -160,7 +147,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -178,7 +165,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build BWC tests
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
           arguments: |
@@ -218,11 +205,11 @@ jobs:
       with:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 11
-    - uses: github/codeql-action/init@v2
+    - uses: github/codeql-action/init@v3
       with:
         languages: java
     - run: ./gradlew clean assemble
-    - uses: github/codeql-action/analyze@v2
+    - uses: github/codeql-action/analyze@v3
 
   build-artifact-names:
     runs-on: ubuntu-latest

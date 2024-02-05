@@ -62,10 +62,10 @@ public class NodesDnApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/nodesdn/{name}"),
-            new Route(Method.GET, "/nodesdn/"),
+            new Route(Method.GET, "/nodesdn"),
             new Route(Method.DELETE, "/nodesdn/{name}"),
             new Route(Method.PUT, "/nodesdn/{name}"),
-            new Route(Method.PATCH, "/nodesdn/"),
+            new Route(Method.PATCH, "/nodesdn"),
             new Route(Method.PATCH, "/nodesdn/{name}")
         )
     );

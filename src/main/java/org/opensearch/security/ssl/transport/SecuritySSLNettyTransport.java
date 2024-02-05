@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.Version;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.network.NetworkService;
@@ -103,6 +104,11 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         this.SSLConfig = SSLConfig;
     }
 
+    // This allows for testing log messages
+    Logger getLogger() {
+        return logger;
+    }
+
     @Override
     public void onException(TcpChannel channel, Exception e) {
 
@@ -113,8 +119,11 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         }
 
         errorHandler.logError(cause, false);
-        logger.error("Exception during establishing a SSL connection: " + cause, cause);
+        getLogger().error("Exception during establishing a SSL connection: " + cause, cause);
 
+        if (channel == null || !channel.isOpen()) {
+            throw new OpenSearchSecurityException("The provided TCP channel is invalid.", e);
+        }
         super.onException(channel, e);
     }
 
@@ -156,7 +165,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
             }
 
             errorHandler.logError(cause, false);
-            logger.error("Exception during establishing a SSL connection: " + cause, cause);
+            getLogger().error("Exception during establishing a SSL connection: " + cause, cause);
 
             super.exceptionCaught(ctx, cause);
         }
@@ -291,7 +300,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
             }
 
             errorHandler.logError(cause, false);
-            logger.error("Exception during establishing a SSL connection: " + cause, cause);
+            getLogger().error("Exception during establishing a SSL connection: " + cause, cause);
 
             super.exceptionCaught(ctx, cause);
         }

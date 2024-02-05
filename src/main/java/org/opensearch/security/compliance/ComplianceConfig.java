@@ -30,8 +30,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
@@ -73,11 +75,11 @@ import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ComplianceConfig {
 
+    public static Set<String> FIELDS = DefaultObjectMapper.getFields(ComplianceConfig.class);
     private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
     public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_OPENSEARCH = "internal_opensearch";
-    public static Set<String> FIELDS = DefaultObjectMapper.getFields(ComplianceConfig.class);
 
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
@@ -104,6 +106,7 @@ public class ComplianceConfig {
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
     private final boolean enabled;
+    private final Supplier<DateTime> dateProvider;
 
     private ComplianceConfig(
         final boolean enabled,
@@ -118,7 +121,8 @@ public class ComplianceConfig {
         final Set<String> ignoredComplianceUsersForWrite,
         final String securityIndex,
         final String destinationType,
-        final String destinationIndex
+        final String destinationIndex,
+        final Supplier<DateTime> dateProvider
     ) {
         this.enabled = enabled;
         this.logExternalConfig = logExternalConfig;
@@ -148,6 +152,11 @@ public class ComplianceConfig {
             try {
                 auditLogPattern = DateTimeFormat.forPattern(destinationIndex); // throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {
+                log.warn(
+                    "Unable to translate {} as a DateTimeFormat, will instead treat this as a static audit log index name. Error: {}",
+                    destinationIndex,
+                    e.getMessage()
+                );
                 // no pattern
                 auditLogIndex = destinationIndex;
             } catch (Exception e) {
@@ -163,6 +172,8 @@ public class ComplianceConfig {
                 return WildcardMatcher.from(getFieldsForIndex(index));
             }
         });
+
+        this.dateProvider = Optional.ofNullable(dateProvider).orElse(() -> DateTime.now(DateTimeZone.UTC));
     }
 
     @VisibleForTesting
@@ -177,6 +188,7 @@ public class ComplianceConfig {
         final boolean logDiffsForWrite,
         final List<String> watchedWriteIndicesPatterns,
         final Set<String> ignoredComplianceUsersForWrite,
+        final Supplier<DateTime> dateProvider,
         Settings settings
     ) {
         this(
@@ -195,7 +207,8 @@ public class ComplianceConfig {
             settings.get(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
                 "'security-auditlog-'YYYY.MM.dd"
-            )
+            ),
+            dateProvider
         );
     }
 
@@ -253,6 +266,7 @@ public class ComplianceConfig {
             logDiffsForWrite,
             watchedWriteIndicesPatterns,
             ignoredComplianceUsersForWrite,
+            null,
             settings
         );
     }
@@ -263,6 +277,16 @@ public class ComplianceConfig {
      * @return compliance configuration
      */
     public static ComplianceConfig from(Settings settings) {
+        return ComplianceConfig.from(settings, null);
+    }
+
+    /**
+     * Create compliance configuration from Settings defined in opensearch.yml
+     * @param settings settings
+     * @param dateProvider how the current date/time is evalated for audit logs that rollover
+     * @return compliance configuration
+     */
+    public static ComplianceConfig from(Settings settings, Supplier<DateTime> dateProvider) {
         final boolean logExternalConfig = settings.getAsBoolean(
             ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
             false
@@ -326,6 +350,7 @@ public class ComplianceConfig {
             logDiffsForWrite,
             watchedWriteIndices,
             ignoredComplianceUsersForWrite,
+            dateProvider,
             settings
         );
     }
@@ -469,7 +494,7 @@ public class ComplianceConfig {
         if (indexPattern == null) {
             return index;
         }
-        return indexPattern.print(DateTime.now(DateTimeZone.UTC));
+        return indexPattern.print(dateProvider.get());
     }
 
     /**
@@ -507,7 +532,7 @@ public class ComplianceConfig {
      * @return true/false
      */
     public boolean readHistoryEnabledForIndex(String index) {
-        if (!this.isEnabled()) {
+        if (index == null || !this.isEnabled()) {
             return false;
         }
         // if security index (internal index) check if internal config logging is enabled
@@ -529,7 +554,7 @@ public class ComplianceConfig {
      * @return true/false
      */
     public boolean readHistoryEnabledForField(String index, String field) {
-        if (!this.isEnabled()) {
+        if (index == null || !this.isEnabled()) {
             return false;
         }
         // if security index (internal index) check if internal config logging is enabled
