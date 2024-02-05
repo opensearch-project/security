@@ -13,7 +13,6 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,7 +37,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authc;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -187,13 +185,8 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         }
         if (jsonContent.hasNonNull(DASHBOARD_SIGNIN_OPTIONS) && jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS).isEmpty() == false) {
             JsonNode newOptions = jsonContent.findValue(DASHBOARD_SIGNIN_OPTIONS);
-
-            toggleAuthcDashboardSignInAbility(config.dynamic.authc, Arrays.asList(DashboardSignInOption.values()), false);
-
             List<DashboardSignInOption> options = getNewDashboardSignInOptions(newOptions);
-
             config.dynamic.kibana.dashboardSignInOptions = options;
-            toggleAuthcDashboardSignInAbility(config.dynamic.authc, options, true);
         }
 
         final String defaultTenant = Optional.ofNullable(config.dynamic.kibana.default_tenant).map(String::toLowerCase).orElse("");
@@ -232,19 +225,5 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             }
         }
         return options;
-    }
-
-    /**
-     * It enables/disables the authentication options available just for security dashboard sign-in options.
-     */
-    private void toggleAuthcDashboardSignInAbility(Authc authc, List<DashboardSignInOption> options, boolean enable) {
-        for (DashboardSignInOption option : options) {
-            for (String key : authc.getDomains().keySet()) {
-                if (key.contains(option.toString().toLowerCase())) {
-                    authc.getDomains().get(key).http_enabled = enable;
-                    break;
-                }
-            }
-        }
     }
 }
