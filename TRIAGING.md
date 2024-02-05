@@ -12,7 +12,7 @@ Each meeting we seek to  address all new issues. However, should we run out of t
 
 ### How do I join the Backlog & Triage meeting?
 
-Meetings are hosted regularly at 3 PM Eastern Time (Noon Pacific Time) and can be joined via the links posted on the [Upcoming Events](https://opensearch.org/events) webpage.
+Meetings are hosted regularly at 11 AM Eastern Time (8AM Pacific Time) and can be joined via the links posted on the [OpenSearch Meetup Group](https://www.meetup.com/opensearch/events/) list of events. The event will be titled `Development Backlog & Triage Meeting - Security`.
 
 After joining the Zoom meeting, you can enable your video / voice to join the discussion.  If you do not have a webcam or microphone available, you can still join in via the text chat.
 
