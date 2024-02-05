@@ -398,3 +398,9 @@ flow_framework_read_access:
     - 'cluster:admin/opensearch/flow_framework/workflow_state/get'
     - 'cluster:admin/opensearch/flow_framework/workflow_state/search'
     - 'cluster:admin/opensearch/flow_framework/workflow_step/get'
+
+# Allows users to use all query insights APIs
+query_insights_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/insights/top_queries/*'
