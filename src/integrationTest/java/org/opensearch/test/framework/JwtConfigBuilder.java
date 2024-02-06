@@ -18,6 +18,7 @@ import static org.apache.commons.lang3.StringUtils.isNoneBlank;
 
 public class JwtConfigBuilder {
     private String jwtHeader;
+    private String jwtUrlParameter;
     private String signingKey;
     private String subjectKey;
     private String rolesKey;

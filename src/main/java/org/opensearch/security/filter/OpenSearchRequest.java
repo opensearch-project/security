@@ -12,6 +12,7 @@
 package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,7 +70,17 @@ public class OpenSearchRequest implements SecurityRequest {
 
     @Override
     public Map<String, String> params() {
-        return underlyingRequest.params();
+        return new HashMap<>(underlyingRequest.params()) {
+            @Override
+            public String get(Object key) {
+                return underlyingRequest.param((String) key);
+            }
+        };
+    }
+
+    @Override
+    public String param(String key) {
+        return underlyingRequest.param(key);
     }
 
     @Override

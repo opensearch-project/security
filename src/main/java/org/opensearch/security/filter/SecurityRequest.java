@@ -50,6 +50,6 @@ public interface SecurityRequest {
     /** The parameters associated with this request */
     Map<String, String> params();
 
-    /** Get param by key */
+    /** Gets the parameter for the given key */
     String param(String key);
 }
