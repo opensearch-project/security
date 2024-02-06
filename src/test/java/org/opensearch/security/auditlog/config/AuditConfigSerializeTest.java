@@ -169,7 +169,6 @@ public class AuditConfigSerializeTest {
         assertTrue(audit.shouldLogRequestBody());
         assertTrue(audit.shouldResolveIndices());
         assertTrue(audit.shouldExcludeSensitiveHeaders());
-        assertTrue(audit.shouldExcludeSensitiveUrlParams());
         assertTrue(configCompliance.shouldLogExternalConfig());
         assertTrue(configCompliance.shouldLogInternalConfig());
         assertEquals(WildcardMatcher.from(Collections.singleton("test-user-1")), audit.getIgnoredAuditUsersMatcher());
@@ -196,7 +195,6 @@ public class AuditConfigSerializeTest {
     public void testSerialize() throws IOException {
         // arrange
         final AuditConfig.Filter audit = new AuditConfig.Filter(
-            true,
             true,
             true,
             true,

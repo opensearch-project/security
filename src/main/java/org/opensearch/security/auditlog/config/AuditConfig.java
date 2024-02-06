@@ -145,7 +145,6 @@ public class AuditConfig {
         private final boolean logRequestBody;
         private final boolean resolveIndices;
         private final boolean excludeSensitiveHeaders;
-        private final boolean excludeSensitiveUrlParams;
         @JsonProperty("ignore_users")
         private final Set<String> ignoredAuditUsers;
         @JsonProperty("ignore_requests")
@@ -169,7 +168,6 @@ public class AuditConfig {
             final boolean logRequestBody,
             final boolean resolveIndices,
             final boolean excludeSensitiveHeaders,
-            final boolean excludeSensitiveUrlParams,
             final Set<String> ignoredAuditUsers,
             final Set<String> ignoredAuditRequests,
             final Set<String> ignoredCustomHeaders,
@@ -183,7 +181,6 @@ public class AuditConfig {
             this.logRequestBody = logRequestBody;
             this.resolveIndices = resolveIndices;
             this.excludeSensitiveHeaders = excludeSensitiveHeaders;
-            this.excludeSensitiveUrlParams = excludeSensitiveUrlParams;
             this.ignoredAuditUsers = ignoredAuditUsers;
             this.ignoredAuditUsersMatcher = WildcardMatcher.from(ignoredAuditUsers);
             this.ignoredAuditRequests = ignoredAuditRequests;
@@ -203,10 +200,6 @@ public class AuditConfig {
             LOG_REQUEST_BODY("log_request_body", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY),
             RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
             EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
-            EXCLUDE_SENSITIVE_URL_PARAMETERS(
-                "exclude_sensitive_url_params",
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_URL_PARAMETERS
-            ),
             DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
             DISABLE_TRANSPORT_CATEGORIES(
                 "disabled_transport_categories",
@@ -257,11 +250,6 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
-            final boolean excludeSensitiveUrlParams = getOrDefault(
-                properties,
-                FilterEntries.EXCLUDE_SENSITIVE_URL_PARAMETERS.getKey(),
-                true
-            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
@@ -293,7 +281,6 @@ public class AuditConfig {
                 logRequestBody,
                 resolveIndices,
                 excludeSensitiveHeaders,
-                excludeSensitiveUrlParams,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
@@ -316,7 +303,6 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
-            final boolean excludeSensitiveUrlParams = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_URL_PARAMETERS, true);
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
@@ -341,7 +327,6 @@ public class AuditConfig {
                 logRequestBody,
                 resolveIndices,
                 excludeSensitiveHeaders,
-                excludeSensitiveUrlParams,
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
@@ -428,15 +413,6 @@ public class AuditConfig {
         @JsonProperty("exclude_sensitive_headers")
         public boolean shouldExcludeSensitiveHeaders() {
             return excludeSensitiveHeaders;
-        }
-
-        /**
-         * Checks if sensitive url params eg: jwtUrlParameter from jwt auth domain must be excluded in log messages
-         * @return true/false
-         */
-        @JsonProperty("exclude_sensitive_url_params")
-        public boolean shouldExcludeSensitiveUrlParams() {
-            return excludeSensitiveUrlParams;
         }
 
         @VisibleForTesting

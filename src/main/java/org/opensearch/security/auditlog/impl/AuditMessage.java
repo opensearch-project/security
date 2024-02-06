@@ -212,12 +212,10 @@ public final class AuditMessage {
         return path;
     }
 
-    public void addPath(String path, boolean excludeSensitiveUrlParams, AuditConfig.Filter filter) {
+    public void addPath(String path, AuditConfig.Filter filter) {
         // TODO redact jwtUrlParameter
         if (path != null) {
-            if (excludeSensitiveUrlParams) {
-                path = redactUrlParams(path, filter);
-            }
+            path = redactUrlParams(path, filter);
             auditInfo.put(REST_REQUEST_PATH, path);
         }
     }
@@ -411,7 +409,7 @@ public final class AuditMessage {
     void addRestRequestInfo(final SecurityRequest request, final AuditConfig.Filter filter) {
         if (request != null) {
             final String path = request.path().toString();
-            addPath(path, filter.shouldExcludeSensitiveUrlParams(), filter);
+            addPath(path, filter);
             addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders(), filter);
             addRestParams(request.params());
             addRestMethod(request.method());
