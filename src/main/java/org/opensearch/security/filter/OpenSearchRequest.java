@@ -83,11 +83,6 @@ public class OpenSearchRequest implements SecurityRequest {
         return underlyingRequest.param(key);
     }
 
-    @Override
-    public String param(String key) {
-        return underlyingRequest.param(key);
-    }
-
     /** Gets access to the underlying request object */
     public RestRequest breakEncapsulationForRequest() {
         return underlyingRequest;
