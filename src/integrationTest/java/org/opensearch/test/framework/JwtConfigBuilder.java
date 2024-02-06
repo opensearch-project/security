@@ -22,7 +22,6 @@ public class JwtConfigBuilder {
     private String signingKey;
     private String subjectKey;
     private String rolesKey;
-    private String jwtUrlParameter;
 
     public JwtConfigBuilder jwtHeader(String jwtHeader) {
         this.jwtHeader = jwtHeader;

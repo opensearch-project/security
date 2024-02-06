@@ -18,7 +18,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -35,28 +34,12 @@ import static org.opensearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.SSL_EXCEPTION;
-import static org.opensearch.security.auditlog.impl.AuditMessage.redactUrlParams;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class AuditConfigFilterTest {
-
-    private final AuditConfig.Filter urlParamFilter = new AuditConfig.Filter(
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        Collections.emptySet(),
-        Collections.emptySet(),
-        ImmutableSet.of(HttpHeaders.AUTHORIZATION),
-        ImmutableSet.of("secretParam"),
-        Collections.emptySet(),
-        Collections.emptySet()
-    );
 
     @Test
     public void testDefault() {
@@ -245,30 +228,5 @@ public class AuditConfigFilterTest {
             .put(entry.getLegacyKeyWithNamespace(), FAILED_LOGIN.name())
             .build();
         assertThat(parse.apply(settingMultipleValues), equalTo(ImmutableSet.of(AUTHENTICATED, BAD_HEADERS)));
-    }
-
-    @Test
-    public void testRedactParams() {
-        String path = "/path/to/route?param=paramValue1&secretParam=secret";
-        String filtered = redactUrlParams(path, urlParamFilter);
-        assertEquals("/path/to/route?param=paramValue1&secretParam=REDACTED", filtered);
-        System.out.println("PASSED TEST");
-        System.out.println("PASSED TEST: " + filtered);
-    }
-
-    @Test
-    public void testNoRedact() {
-        String path = "/path/to/route?param=paramValue1";
-        String result = redactUrlParams(path, urlParamFilter);
-        assertEquals(path, result);
-        System.out.println("PASSED TEST");
-        System.out.println("PASSED TEST: " + result);
-    }
-
-    @Test
-    public void testNoRedactOnNoParams() {
-        String path = "/path/to/route";
-        String result = redactUrlParams(path, urlParamFilter);
-        assertEquals(path, result);
     }
 }

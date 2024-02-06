@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -33,15 +32,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-
-import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
-import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT;
@@ -92,8 +86,6 @@ public class AuditConfig {
     public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
 
     private static Set<String> FIELDS = DefaultObjectMapper.getFields(AuditConfig.class);
-
-    static Set<String> ignoreUrlParams = new HashSet<>();
 
     private AuditConfig() {
         this(true, null, null);
@@ -152,11 +144,11 @@ public class AuditConfig {
         @JsonProperty("ignore_headers")
         private final Set<String> ignoredCustomHeaders;
         @JsonProperty("ignore_url_params")
-        private final Set<String> ignoredUrlParams;
+        private Set<String> ignoredUrlParams;
         private final WildcardMatcher ignoredAuditUsersMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
-        private final WildcardMatcher ignoredUrlParamsMatcher;
+        private WildcardMatcher ignoredUrlParamsMatcher;
         private final Set<AuditCategory> disabledRestCategories;
         private final Set<AuditCategory> disabledTransportCategories;
 
@@ -284,7 +276,7 @@ public class AuditConfig {
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
-                ignoreUrlParams,
+                new HashSet<>(),
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -330,7 +322,7 @@ public class AuditConfig {
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
-                ignoreUrlParams,
+                new HashSet<>(),
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -474,6 +466,17 @@ public class AuditConfig {
         }
 
         /**
+         * URL Params to redact for auditing
+         */
+        public void setIgnoredUrlParams(Set<String> ignoredUrlParams) {
+            if (ignoredUrlParams == null) {
+                return;
+            }
+            this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
+            this.ignoredUrlParams = ignoredUrlParams;
+        }
+
+        /**
          * Disabled categories for REST API auditing
          * @return set of categories
          */
@@ -572,18 +575,4 @@ public class AuditConfig {
             Utils.generateFieldResourcePaths(ComplianceConfig.FIELDS, "/compliance/")
         )
     );
-
-    @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-        SortedSet<AuthDomain> authDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
-        ignoreUrlParams.clear();
-        for (AuthDomain authDomain : authDomains) {
-            if ("jwt".equals(authDomain.getHttpAuthenticator().getType())) {
-                HTTPJwtAuthenticator jwtAuthenticator = (HTTPJwtAuthenticator) authDomain.getHttpAuthenticator();
-                if (jwtAuthenticator.getJwtUrlParameter() != null) {
-                    ignoreUrlParams.add(jwtAuthenticator.getJwtUrlParameter());
-                }
-            }
-        }
-    }
 }
