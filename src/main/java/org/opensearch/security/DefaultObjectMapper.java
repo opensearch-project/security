@@ -55,6 +55,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.opensearch.SpecialPermission;
 
 class ConfigMapSerializer extends StdSerializer<Map<String, Object>> {
+    private static final Set<String> SENSITIVE_CONFIG_KEYS = Set.of("password");
+
     @SuppressWarnings("unchecked")
     public ConfigMapSerializer() {
         // Pass Map<String, Object>.class to the superclass
@@ -65,7 +67,7 @@ class ConfigMapSerializer extends StdSerializer<Map<String, Object>> {
     public void serialize(Map<String, Object> value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         for (Map.Entry<String, Object> entry : value.entrySet()) {
-            if ("password".equals(entry.getKey())) {
+            if (SENSITIVE_CONFIG_KEYS.contains(entry.getKey())) {
                 gen.writeStringField(entry.getKey(), "******"); // Redact
             } else {
                 gen.writeObjectField(entry.getKey(), entry.getValue());
