@@ -57,15 +57,12 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
             setPrivateTenantAsDefaultResponse.getStatusCode(),
             equalTo(HttpStatus.SC_OK)
         );
-        assertThat(getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"), hasItem(DashboardSignInOption.BASIC.toString()));
-        assertThat(
-            getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"),
-            not(hasItem(DashboardSignInOption.SAML.toString()))
-        );
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem(DashboardSignInOption.BASIC.toString()));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), not(hasItem(DashboardSignInOption.SAML.toString())));
 
         final HttpResponse updateDashboardSignInOptions = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
-            "{\"dashboard_signin_options\": [\"BASIC\", \"SAML\"]}",
+            "{\"sign_in_options\": [\"BASIC\", \"SAML\"]}",
             header
         );
         assertThat(updateDashboardSignInOptions.getBody(), updateDashboardSignInOptions.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -74,11 +71,8 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         assertThat(getDashboardsinfoResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(getDashboardsinfoResponse.findValueInJson("default_tenant"), equalTo("Private"));
 
-        assertThat(
-            getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"),
-            hasItem((DashboardSignInOption.BASIC.toString()))
-        );
-        assertThat(getDashboardsinfoResponse.findArrayInJson("dashboard_signin_options"), hasItem((DashboardSignInOption.SAML.toString())));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem((DashboardSignInOption.BASIC.toString())));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem((DashboardSignInOption.SAML.toString())));
     }
 
     @Test
@@ -173,7 +167,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
 
         final HttpResponse signInOptionsNonArrayValue = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
-            "{\"dashboard_signin_options\": \"BASIC\"}",
+            "{\"sign_in_options\": \"BASIC\"}",
             header
         );
         assertThat(signInOptionsNonArrayValue.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
@@ -185,7 +179,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
 
         final HttpResponse invalidSignInOption = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
-            "{\"dashboard_signin_options\": [\"INVALID_OPTION\"]}",
+            "{\"sign_in_options\": [\"INVALID_OPTION\"]}",
             header
         );
         assertThat(invalidSignInOption.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));

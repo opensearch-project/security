@@ -79,7 +79,7 @@ public class ConfigV7 {
         dynamic.kibana.private_tenant_enabled = true;
         dynamic.kibana.default_tenant = "";
         dynamic.kibana.server_username = c6.dynamic.kibana.server_username;
-        dynamic.kibana.dashboardSignInOptions = c6.dynamic.kibana.dashboardSignInOptions;
+        dynamic.kibana.sign_in_options = c6.dynamic.kibana.sign_in_options;
 
         dynamic.http = new Http();
 
@@ -173,7 +173,7 @@ public class ConfigV7 {
         public String opendistro_role = null;
         public String index = ".kibana";
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public List<DashboardSignInOption> dashboardSignInOptions = Arrays.asList(DashboardSignInOption.BASIC);
+        public List<DashboardSignInOption> sign_in_options = Arrays.asList(DashboardSignInOption.BASIC);
 
         @Override
         public String toString() {
@@ -189,8 +189,8 @@ public class ConfigV7 {
                 + opendistro_role
                 + ", index="
                 + index
-                + ", dashboard_signin_options="
-                + dashboardSignInOptions
+                + ", sign_in_options="
+                + sign_in_options
                 + "]";
         }
 

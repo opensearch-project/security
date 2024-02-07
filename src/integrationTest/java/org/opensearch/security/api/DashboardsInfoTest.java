@@ -62,10 +62,7 @@ public class DashboardsInfoTest {
         try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
             TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-            assertThat(
-                response.getTextArrayFromJsonBody("/dashboard_signin_options").contains(DashboardSignInOption.BASIC.toString()),
-                is(true)
-            );
+            assertThat(response.getTextArrayFromJsonBody("/sign_in_options").contains(DashboardSignInOption.BASIC.toString()), is(true));
         }
     }
 }

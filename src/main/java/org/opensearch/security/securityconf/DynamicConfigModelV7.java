@@ -223,8 +223,8 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     }
 
     @Override
-    public List<DashboardSignInOption> getDashboardSignInOptions() {
-        return config.dynamic.kibana.dashboardSignInOptions;
+    public List<DashboardSignInOption> getSignInOptions() {
+        return config.dynamic.kibana.sign_in_options;
     }
 
     @Override
