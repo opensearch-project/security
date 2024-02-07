@@ -10,7 +10,7 @@
       "default_tenant" : "",
       "server_username" : "kibanaserver",
       "index" : ".kibana",
-      "dashboardSignInOptions":["BASIC"]
+      "sign_in_options":["BASIC"]
     },
     "http" : {
       "anonymous_auth_enabled" : false,

@@ -104,7 +104,7 @@ public class ConfigV6 {
         public String index = ".kibana";
         public boolean do_not_fail_on_forbidden;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public List<DashboardSignInOption> dashboardSignInOptions = Arrays.asList(DashboardSignInOption.BASIC);
+        public List<DashboardSignInOption> sign_in_options = Arrays.asList(DashboardSignInOption.BASIC);
 
         @Override
         public String toString() {
@@ -118,8 +118,8 @@ public class ConfigV6 {
                 + index
                 + ", do_not_fail_on_forbidden="
                 + do_not_fail_on_forbidden
-                + ", dashboard_signin_options="
-                + dashboardSignInOptions
+                + ", sign_in_options="
+                + sign_in_options
                 + "]";
         }
 

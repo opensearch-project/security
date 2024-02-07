@@ -621,8 +621,8 @@ public class PrivilegesEvaluator {
         return dcm.getDashboardsOpenSearchRole();
     }
 
-    public List<DashboardSignInOption> getDashboardSignInOptions() {
-        return dcm.getDashboardSignInOptions();
+    public List<DashboardSignInOption> getSignInOptions() {
+        return dcm.getSignInOptions();
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {

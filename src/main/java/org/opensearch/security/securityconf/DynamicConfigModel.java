@@ -106,7 +106,7 @@ public abstract class DynamicConfigModel {
 
     public abstract Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries();
 
-    public abstract List<DashboardSignInOption> getDashboardSignInOptions();
+    public abstract List<DashboardSignInOption> getSignInOptions();
 
     public abstract Settings getDynamicOnBehalfOfSettings();
 
