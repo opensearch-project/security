@@ -965,7 +965,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
                     if (excludeRolesMatcher.test(role)) {
-                        log.warn("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
+                        if (isDebugEnabled) {
+                            log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
+                        }
                     } else {
                         user.addRole(role);
                     }
@@ -977,7 +979,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
                     if (excludeRolesMatcher.test(role)) {
-                        log.warn("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
+                        if (isDebugEnabled) {
+                            log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
+                        }
                     } else {
                         user.addRole(role);
                     }
