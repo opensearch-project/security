@@ -71,6 +71,7 @@ public class UtilTests {
         assertTrue(wc("abc").test("abc"));
         assertFalse(wc("ABC").test("abc"));
         assertFalse(wc(null).test("abc"));
+        assertTrue(WildcardMatcher.from(null, "abc").test("abc"));
     }
 
     @Test
