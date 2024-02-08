@@ -150,7 +150,9 @@ public abstract class WildcardMatcher implements Predicate<String> {
     };
 
     public static WildcardMatcher from(String pattern, boolean caseSensitive) {
-        if (pattern.equals("*")) {
+        if (pattern == null) {
+            return NONE;
+        } else if (pattern.equals("*")) {
             return ANY;
         } else if (pattern.startsWith("/") && pattern.endsWith("/")) {
             return new RegexMatcher(pattern, caseSensitive);

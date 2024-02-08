@@ -70,6 +70,7 @@ public class UtilTests {
         assertTrue(wc("/\\S+/").test("abc"));
         assertTrue(wc("abc").test("abc"));
         assertFalse(wc("ABC").test("abc"));
+        assertFalse(wc(null).test("abc"));
     }
 
     @Test
