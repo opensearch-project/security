@@ -75,6 +75,7 @@ class AuthTokenProcessorHandler {
     private String jwtRolesKey;
     private String samlSubjectKey;
     private String samlRolesKey;
+    private boolean allowRepeatAttributeName;
     private String kibanaRootUrl;
 
     private long expiryOffset = 0;
@@ -88,6 +89,7 @@ class AuthTokenProcessorHandler {
 
         this.jwtRolesKey = jwtSettings.get("roles_key", "roles");
         this.jwtSubjectKey = jwtSettings.get("subject_key", "sub");
+        this.allowRepeatAttributeName = settings.getAsBoolean("allow_repeat_attribute_names", false);
 
         this.samlRolesKey = settings.get("roles_key");
         this.samlSubjectKey = settings.get("subject_key");
@@ -149,6 +151,10 @@ class AuthTokenProcessorHandler {
             } catch (Exception e) {
                 token_log.warn("SAMLResponse for {} cannot be decoded from base64\n{}", samlRequestId, samlResponseBase64, e);
             }
+        }
+
+        if (allowRepeatAttributeName) {
+            saml2Settings.setAllowRepeatAttributeName(allowRepeatAttributeName);
         }
 
         try {
