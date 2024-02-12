@@ -29,6 +29,7 @@ public final class ConfigConstants {
     public static final String LDAP_AUTHZ_USERROLEATTRIBUTE = "userroleattribute";// multi-value
     public static final String LDAP_AUTHZ_USERROLENAME = "userrolename";// multi-value
     public static final String LDAP_AUTHZ_SKIP_USERS = "skip_users";
+    public static final String LDAP_AUTHZ_EXCLUDE_ROLES = "exclude_roles";
     public static final String LDAP_AUTHZ_ROLESEARCH_ENABLED = "rolesearch_enabled";
     public static final String LDAP_AUTHZ_NESTEDROLEFILTER = "nested_role_filter";
     public static final String LDAP_AUTHZ_MAX_NESTED_DEPTH = "max_nested_depth";
