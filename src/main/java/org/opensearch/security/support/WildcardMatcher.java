@@ -150,7 +150,9 @@ public abstract class WildcardMatcher implements Predicate<String> {
     };
 
     public static WildcardMatcher from(String pattern, boolean caseSensitive) {
-        if (pattern.equals("*")) {
+        if (pattern == null) {
+            return NONE;
+        } else if (pattern.equals("*")) {
             return ANY;
         } else if (pattern.startsWith("/") && pattern.endsWith("/")) {
             return new RegexMatcher(pattern, caseSensitive);
@@ -168,7 +170,9 @@ public abstract class WildcardMatcher implements Predicate<String> {
     // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
     public static <T> WildcardMatcher from(Stream<T> stream, boolean caseSensitive) {
         Collection<WildcardMatcher> matchers = stream.map(t -> {
-            if (t instanceof String) {
+            if (t == null) {
+                return NONE;
+            } else if (t instanceof String) {
                 return WildcardMatcher.from(((String) t), caseSensitive);
             } else if (t instanceof WildcardMatcher) {
                 return ((WildcardMatcher) t);
