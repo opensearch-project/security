@@ -185,7 +185,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             final String suffix = matcher.matches() ? matcher.group(2) : null;
 
             if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
-                // Verficiation of SAML ASC endpoint only works with RestRequests
+                // Verification of SAML ASC endpoint only works with RestRequests
                 if (!(request instanceof OpenSearchRequest)) {
                     throw new SecurityRequestChannelUnsupported(
                         API_AUTHTOKEN_SUFFIX + " not supported for request of type " + request.getClass().getName()
@@ -208,8 +208,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             if (e instanceof SecurityRequestChannelUnsupported) {
                 throw (SecurityRequestChannelUnsupported) e;
             }
-            log.error("Error in reRequestAuthentication()", e);
-            return Optional.empty();
+            return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, e.getMessage()));
         }
     }
 

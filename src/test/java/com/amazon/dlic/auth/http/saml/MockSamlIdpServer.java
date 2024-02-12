@@ -172,7 +172,7 @@ class MockSamlIdpServer implements Closeable {
     private Credential signingCredential;
     private String authenticateUser;
     private List<String> authenticateUserRoles;
-    private boolean allowRepeatAttributes = false;
+    private List<String> authenticateUserRolesAsRepeatedAttributeName;
     private int baseId = 1;
     private boolean signResponses = true;
     private X509Certificate spSignatureCertificate;
@@ -466,31 +466,31 @@ class MockSamlIdpServer implements Closeable {
             conditions.setNotOnOrAfter(Instant.now().plus(1, ChronoUnit.MINUTES));
 
             if (authenticateUserRoles != null) {
-                if (!allowRepeatAttributes) {
+                AttributeStatement attributeStatement = createSamlElement(AttributeStatement.class);
+                assertion.getAttributeStatements().add(attributeStatement);
+
+                Attribute attribute = createSamlElement(Attribute.class);
+                attributeStatement.getAttributes().add(attribute);
+
+                attribute.setName("roles");
+                attribute.setNameFormat("urn:oasis:names:tc:SAML:2.0:attrname-format:basic");
+
+                for (String role : authenticateUserRoles) {
+                    attribute.getAttributeValues().add(createXSAny(AttributeValue.DEFAULT_ELEMENT_NAME, role));
+                }
+            }
+
+            if (authenticateUserRolesAsRepeatedAttributeName != null) {
+                for (String role : authenticateUserRolesAsRepeatedAttributeName) {
                     AttributeStatement attributeStatement = createSamlElement(AttributeStatement.class);
                     assertion.getAttributeStatements().add(attributeStatement);
 
                     Attribute attribute = createSamlElement(Attribute.class);
                     attributeStatement.getAttributes().add(attribute);
 
-                    attribute.setName("roles");
+                    attribute.setName("role");
                     attribute.setNameFormat("urn:oasis:names:tc:SAML:2.0:attrname-format:basic");
-
-                    for (String role : authenticateUserRoles) {
-                        attribute.getAttributeValues().add(createXSAny(AttributeValue.DEFAULT_ELEMENT_NAME, role));
-                    }
-                } else {
-                    for (String role : authenticateUserRoles) {
-                        AttributeStatement attributeStatement = createSamlElement(AttributeStatement.class);
-                        assertion.getAttributeStatements().add(attributeStatement);
-
-                        Attribute attribute = createSamlElement(Attribute.class);
-                        attributeStatement.getAttributes().add(attribute);
-
-                        attribute.setName("role");
-                        attribute.setNameFormat("urn:oasis:names:tc:SAML:2.0:attrname-format:basic");
-                        attribute.getAttributeValues().add(createXSAny(AttributeValue.DEFAULT_ELEMENT_NAME, role));
-                    }
+                    attribute.getAttributeValues().add(createXSAny(AttributeValue.DEFAULT_ELEMENT_NAME, role));
                 }
             }
 
@@ -1127,8 +1127,12 @@ class MockSamlIdpServer implements Closeable {
         this.authenticateUserRoles = authenticateUserRoles;
     }
 
-    public void setAllowRepeatAttributeNames(boolean allowRepeatAttributes) {
-        this.allowRepeatAttributes = allowRepeatAttributes;
+    public List<String> getAuthenticateUserRolesAsRepeatedAttributeName() {
+        return authenticateUserRolesAsRepeatedAttributeName;
+    }
+
+    public void setAuthenticateUserRolesAsRepeatedAttributeName(List<String> authenticateUserRolesAsRepeatedAttributeName) {
+        this.authenticateUserRolesAsRepeatedAttributeName = authenticateUserRolesAsRepeatedAttributeName;
     }
 
     public boolean isSignResponses() {

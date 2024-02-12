@@ -140,7 +140,7 @@ class AuthTokenProcessorHandler {
         String samlRequestId,
         String acsEndpoint,
         Saml2Settings saml2Settings
-    ) {
+    ) throws Exception {
         if (token_log.isDebugEnabled()) {
             try {
                 token_log.debug(
@@ -172,10 +172,10 @@ class AuthTokenProcessorHandler {
             return responseBody;
         } catch (ValidationError e) {
             log.warn("Error while validating SAML response", e);
-            return null;
+            throw e;
         } catch (Exception e) {
             log.error("Error while converting SAML to JWT", e);
-            return null;
+            throw e;
         }
     }
 
@@ -236,6 +236,12 @@ class AuthTokenProcessorHandler {
         } catch (JsonProcessingException e) {
             log.warn("Error while parsing JSON for /_opendistro/_security/api/authtoken", e);
             return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, "JSON could not be parsed"));
+        } catch (ValidationError e) {
+            log.warn("Error while validating SAML response", e);
+            return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, "Error while validating SAML response"));
+        } catch (Exception e) {
+            log.warn("Error while converting SAML to JWT", e);
+            return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, "Error while converting SAML to JWT"));
         }
     }
 

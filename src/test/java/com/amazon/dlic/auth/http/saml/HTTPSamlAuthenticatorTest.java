@@ -59,9 +59,11 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import com.nimbusds.jwt.SignedJWT;
+import com.onelogin.saml2.exception.ValidationError;
 import org.opensaml.saml.saml2.core.NameIDType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
 
@@ -442,7 +444,7 @@ public class HTTPSamlAuthenticatorTest {
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
         mockSamlIdpServer.setAuthenticateUser("horst");
         mockSamlIdpServer.setEndpointQueryString(null);
-        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("Admin", "Developer"));
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("HR", "IT"));
 
         // Note: We need to replace endpoint with mockSamlIdpServer endpoint
         final String metadataBody = FileHelper.loadFile("saml/metadata.xml")
@@ -457,37 +459,19 @@ public class HTTPSamlAuthenticatorTest {
             .put("path.home", ".")
             .build();
 
-        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+        SignedJWT jwt = getSignedJWT(settings);
 
-        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
-
-        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
-
-        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
-        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
-            responseJson,
-            new TypeReference<HashMap<String, Object>>() {
-            }
-        );
-        String authorization = (String) response.get("authorization");
-
-        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
-
-        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
-
-        Assert.assertEquals(List.of("Admin", "Developer"), jwt.getJWTClaimsSet().getClaim("roles"));
+        Assert.assertEquals(List.of("HR", "IT"), jwt.getJWTClaimsSet().getClaim("roles"));
         Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
     }
 
     @Test
-    public void testMetadataBodyAllowRepeatAttributeNames() throws Exception {
+    public void testRolesWithRepeatAttributeNames() throws Exception {
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
         mockSamlIdpServer.setAuthenticateUser("horst");
         mockSamlIdpServer.setEndpointQueryString(null);
-        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("Admin", "Developer"));
-        mockSamlIdpServer.setAllowRepeatAttributeNames(true);
+        mockSamlIdpServer.setAuthenticateUserRolesAsRepeatedAttributeName(Arrays.asList("Admin", "Developer"));
 
         // Note: We need to replace endpoint with mockSamlIdpServer endpoint
         final String metadataBody = FileHelper.loadFile("saml/metadata.xml")
@@ -503,6 +487,91 @@ public class HTTPSamlAuthenticatorTest {
             .put("path.home", ".")
             .build();
 
+        SignedJWT jwt = getSignedJWT(settings);
+
+        Assert.assertEquals(List.of("Admin", "Developer"), jwt.getJWTClaimsSet().getClaim("roles"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+    }
+
+    @Test
+    public void testRolesWithMixOfRepeatAttributeNamesAndListOfAttributesWithSingleName_rolesKeyRepeated() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("HR", "IT"));
+        mockSamlIdpServer.setAuthenticateUserRolesAsRepeatedAttributeName(Arrays.asList("Admin", "Developer"));
+
+        // Note: We need to replace endpoint with mockSamlIdpServer endpoint
+        final String metadataBody = FileHelper.loadFile("saml/metadata.xml")
+            .replaceAll("http://localhost:33667/", mockSamlIdpServer.getMetadataUri());
+
+        Settings settings = Settings.builder()
+            .put(IDP_METADATA_CONTENT, metadataBody)
+            .put("kibana_url", "http://wherever")
+            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc")
+            .put("roles_key", "role") // "role" will extract roles using the repeated attribute names
+            .put("allow_repeat_attribute_names", true)
+            .put("path.home", ".")
+            .build();
+
+        SignedJWT jwt = getSignedJWT(settings);
+
+        Assert.assertEquals(List.of("Admin", "Developer"), jwt.getJWTClaimsSet().getClaim("roles"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+    }
+
+    @Test
+    public void testRolesWithMixOfRepeatAttributeNamesAndListOfAttributesWithSingleName__rolesKeySingular() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("HR", "IT"));
+        mockSamlIdpServer.setAuthenticateUserRolesAsRepeatedAttributeName(Arrays.asList("Admin", "Developer"));
+
+        // Note: We need to replace endpoint with mockSamlIdpServer endpoint
+        final String metadataBody = FileHelper.loadFile("saml/metadata.xml")
+            .replaceAll("http://localhost:33667/", mockSamlIdpServer.getMetadataUri());
+
+        Settings settings = Settings.builder()
+            .put(IDP_METADATA_CONTENT, metadataBody)
+            .put("kibana_url", "http://wherever")
+            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc")
+            .put("roles_key", "roles") // "role" will extract roles using the repeated attribute names
+            .put("allow_repeat_attribute_names", true)
+            .put("path.home", ".")
+            .build();
+
+        SignedJWT jwt = getSignedJWT(settings);
+
+        Assert.assertEquals(List.of("HR", "IT"), jwt.getJWTClaimsSet().getClaim("roles"));
+        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+    }
+
+    @Test
+    public void testThrowsExceptionWhenRepeatAttributeNamesForbidden() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setAuthenticateUserRolesAsRepeatedAttributeName(Arrays.asList("Admin", "Developer"));
+
+        // Note: We need to replace endpoint with mockSamlIdpServer endpoint
+        final String metadataBody = FileHelper.loadFile("saml/metadata.xml")
+            .replaceAll("http://localhost:33667/", mockSamlIdpServer.getMetadataUri());
+
+        Settings settings = Settings.builder()
+            .put(IDP_METADATA_CONTENT, metadataBody)
+            .put("kibana_url", "http://wherever")
+            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc")
+            .put("roles_key", "role")
+            .put("path.home", ".")
+            .build();
+
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
 
         AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
@@ -511,19 +580,7 @@ public class HTTPSamlAuthenticatorTest {
 
         RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
         String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
-        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
-            responseJson,
-            new TypeReference<HashMap<String, Object>>() {
-            }
-        );
-        String authorization = (String) response.get("authorization");
-
-        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
-
-        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
-
-        Assert.assertEquals(List.of("Admin", "Developer"), jwt.getJWTClaimsSet().getClaim("roles"));
-        Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
+        assertThat(responseJson, containsString("Error while validating SAML response"));
     }
 
     @Test(expected = RuntimeException.class)
@@ -900,7 +957,8 @@ public class HTTPSamlAuthenticatorTest {
             RestRequest restRequest = new FakeRestRequest(ImmutableMap.of(), new HashMap<String, String>());
             Optional<SecurityResponse> maybeResponse = sendToAuthenticator(samlAuthenticator, restRequest);
 
-            assertThat(maybeResponse.isPresent(), Matchers.equalTo(false));
+            assertThat(maybeResponse.isPresent(), Matchers.equalTo(true));
+            assertThat(maybeResponse.get().getBody(), containsString("Could not find entity descriptor for http://test.entity"));
 
             mockSamlIdpServer.start();
 
@@ -929,6 +987,31 @@ public class HTTPSamlAuthenticatorTest {
             SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
             Assert.assertEquals("horst", jwt.getJWTClaimsSet().getClaim("sub"));
         }
+    }
+
+    private SignedJWT getSignedJWT(Settings samlAuthenticatorSettings) throws Exception {
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(samlAuthenticatorSettings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
+
+        if (responseJson.contains("Error while validating SAML response")) {
+            throw new ValidationError("Found an Attribute element with duplicated Name", 0);
+        }
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(
+            responseJson,
+            new TypeReference<HashMap<String, Object>>() {
+            }
+        );
+        String authorization = (String) response.get("authorization");
+
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        return SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
     }
 
     private AuthenticateHeaders getAutenticateHeaders(HTTPSamlAuthenticator samlAuthenticator) {
