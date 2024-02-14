@@ -20,19 +20,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
 import javax.net.ssl.SSLEngine;
-
-import org.apache.commons.lang3.concurrent.ConcurrentException;
-import org.apache.commons.lang3.concurrent.LazyInitializer;
-import org.opensearch.http.netty4.Netty4HttpChannel;
-import org.opensearch.rest.RestRequest.Method;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
+import org.opensearch.http.netty4.Netty4HttpChannel;
+import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestUtils;
 
 import io.netty.handler.codec.http.HttpRequest;
@@ -130,7 +124,7 @@ public class NettyRequest implements SecurityRequest {
         public String get(final Object key) {
             // Never noticed this about java's map interface the getter is not generic
             if (key instanceof String) {
-                accessedKeys.add((String)key);
+                accessedKeys.add((String) key);
             }
             return super.get(key);
         }
