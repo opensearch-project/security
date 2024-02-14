@@ -20,10 +20,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
 import javax.net.ssl.SSLEngine;
 
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest.Method;
+
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+
 import org.opensearch.rest.RestUtils;
 
 import io.netty.handler.codec.http.HttpRequest;
@@ -36,8 +45,7 @@ public class NettyRequest implements SecurityRequest {
 
     protected final HttpRequest underlyingRequest;
     protected final Netty4HttpChannel underlyingChannel;
-
-    private final Set<String> consumedParams = new HashSet<>();
+    protected final Supplier<CheckedAccessMap> parameters = Suppliers.memoize(() -> new CheckedAccessMap(params(uri())));
 
     NettyRequest(final HttpRequest request, final Netty4HttpChannel channel) {
         this.underlyingRequest = request;
@@ -86,18 +94,12 @@ public class NettyRequest implements SecurityRequest {
 
     @Override
     public Map<String, String> params() {
-        return params(underlyingRequest.uri());
+        return parameters.get();
     }
 
     @Override
-    public String param(String key) {
-        Map<String, String> urlParams = params();
-        consumedParams.add(key);
-        return urlParams != null ? params().get(key) : null;
-    }
-
-    public Set<String> getConsumedParams() {
-        return consumedParams;
+    public Set<String> getUnconsumedParams() {
+        return parameters.get().accessedKeys();
     }
 
     private static Map<String, String> params(String uri) {
@@ -114,5 +116,27 @@ public class NettyRequest implements SecurityRequest {
         }
 
         return params;
+    }
+
+    /** Records access of any keys if explicetly requested from this map */
+    private static class CheckedAccessMap extends HashMap<String, String> {
+        private final Set<String> accessedKeys = new HashSet<>();
+
+        public CheckedAccessMap(final Map<String, String> map) {
+            super(map);
+        }
+
+        @Override
+        public String get(final Object key) {
+            // Never noticed this about java's map interface the getter is not generic
+            if (key instanceof String) {
+                accessedKeys.add((String)key);
+            }
+            return super.get(key);
+        }
+
+        public Set<String> accessedKeys() {
+            return accessedKeys;
+        }
     }
 }

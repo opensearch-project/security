@@ -69,7 +69,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.http.SecurityHttpServerTransport.CONSUMED_PARAMS;
+import static org.opensearch.security.http.SecurityHttpServerTransport.UNCONSUMED_PARAMS;
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
@@ -145,10 +145,10 @@ public class SecurityRestFilter {
                 }
             });
 
-            NettyAttribute.popFrom(request, CONSUMED_PARAMS).ifPresent(consumedParams -> {
-                for (String param : consumedParams) {
+            NettyAttribute.popFrom(request, UNCONSUMED_PARAMS).ifPresent(unconsumedParams -> {
+                for (String unconsumedParam : unconsumedParams) {
                     // Consume the parameter on the RestRequest
-                    request.param(param);
+                    request.param(unconsumedParam);
                 }
             });
 

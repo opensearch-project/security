@@ -49,7 +49,7 @@ import io.netty.util.AttributeKey;
 public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTransport {
 
     public static final AttributeKey<SecurityResponse> EARLY_RESPONSE = AttributeKey.newInstance("opensearch-http-early-response");
-    public static final AttributeKey<Set<String>> CONSUMED_PARAMS = AttributeKey.newInstance("opensearch-http-request-consumed-params");
+    public static final AttributeKey<Set<String>> UNCONSUMED_PARAMS = AttributeKey.newInstance("opensearch-http-request-consumed-params");
     public static final AttributeKey<ThreadContext.StoredContext> CONTEXT_TO_RESTORE = AttributeKey.newInstance(
         "opensearch-http-request-thread-context"
     );
