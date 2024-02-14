@@ -695,6 +695,7 @@ dependencies {
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.1') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
+        exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
