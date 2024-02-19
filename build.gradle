@@ -501,7 +501,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.24.1"
             force "org.checkerframework:checker-qual:3.42.0"
-            force "ch.qos.logback:logback-classic:1.2.13"
+            force "ch.qos.logback:logback-classic:1.5.0"
         }
     }
 
