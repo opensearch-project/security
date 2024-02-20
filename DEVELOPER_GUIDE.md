@@ -86,7 +86,7 @@ rm -rf config/
 ## ROOT
 
 openssl genrsa -out root-ca-key.pem 2048
-openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "/DC=com/DC=example/O=Example Com Inc./OU=Example Com Inc. Root CA/CN=Example Com Inc. Root CA" -addext "basicConstraints = critical,CA:TRUE" -addext "keyUsage = critical, digitalSignature, keyCertSign, cRLSign" -addext "subjectKeyIdentifier = hash" -addext "authorityKeyIdentifier = keyid:always,issuer:always" -out root-ca.pem
+openssl req -new -x509 -sha256 -days 3650 -key root-ca-key.pem -subj "/DC=com/DC=example/O=Example Com Inc./OU=Example Com Inc. Root CA/CN=Example Com Inc. Root CA" -addext "basicConstraints = critical,CA:TRUE" -addext "keyUsage = critical, digitalSignature, keyCertSign, cRLSign" -addext "subjectKeyIdentifier = hash" -addext "authorityKeyIdentifier = keyid:always,issuer:always" -out root-ca.pem
 
 
 ## NODE
@@ -94,13 +94,15 @@ openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "/DC=com/DC=example/O=
 openssl genrsa -out esnode-key-temp.pem 2048
 openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
 openssl req -new -key esnode-key.pem -subj "/C=de/L=test/O=node/OU=node/CN=node-0.example.com" -out esnode.csr
-openssl x509 -req -in esnode.csr -out esnode.pem -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -days 3650 -extfile <(printf "subjectAltName = RID:1.2.3.4.5.5, DNS:node-0.example.com, DNS:localhost, IP:::1, IP:127.0.0.1\nkeyUsage = digitalSignature, nonRepudiation, keyEncipherment\nextendedKeyUsage = serverAuth, clientAuth\nbasicConstraints = critical,CA:FALSE")
+printf "subjectAltName = RID:1.2.3.4.5.5, DNS:node-0.example.com, DNS:localhost, IP:::1, IP:127.0.0.1\nkeyUsage = digitalSignature, nonRepudiation, keyEncipherment\nextendedKeyUsage = serverAuth, clientAuth\nbasicConstraints = critical,CA:FALSE" > esnode_ext.conf
+openssl x509 -req -in esnode.csr -out esnode.pem -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -days 3650 -extfile esnode_ext.conf
 
 
 ## ADMIN
 
 openssl req -new -newkey rsa:2048 -keyout kirk-key.pem -out kirk.csr -nodes -subj "/C=de/L=test/O=client/OU=client/CN=kirk"
-openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -out kirk.pem -days 3650 -extfile <(printf "basicConstraints = critical,CA:FALSE\nkeyUsage = critical,digitalSignature,nonRepudiation,keyEncipherment\nextendedKeyUsage = critical,clientAuth\nauthorityKeyIdentifier = keyid,issuer:always\nsubjectKeyIdentifier = hash")
+printf "basicConstraints = critical,CA:FALSE\nkeyUsage = critical,digitalSignature,nonRepudiation,keyEncipherment\nextendedKeyUsage = critical,clientAuth\nauthorityKeyIdentifier=keyid,issuer:always\nsubjectKeyIdentifier = hash" > kirk_ext.conf
+openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -out kirk.pem -days 3650 -extfile kirk_ext.conf
 
 ## Remove root-ca-key.pem and other temp keys
 
