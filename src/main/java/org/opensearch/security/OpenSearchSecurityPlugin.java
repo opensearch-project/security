@@ -338,7 +338,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         demoCertHashes.add("dd3cf88e72e9e1a803bd12f4bafb4f29e642110db26c39ed5f2ef2e9351bc61c"); // esnode
         demoCertHashes.add("ba9c5a61065f7f6115188128ffbdaa18fca34562b78b811f082439e2bef1d282"); // esnode-key
         demoCertHashes.add("9948688bc4c7a198f2a0db1d91f4f54499b8626902d03361b6d43e822d3691e4"); // root-ca
-        
+
         // updates certs with renewed root-ca (02-2024)
         demoCertHashes.add("a3556d6bb61f7bd63cb19b1c8d0078d30c12739dedb0455c5792ac8627782042"); // kirk
         demoCertHashes.add("a2ce3f577a5031398c1b4f58761444d837b031d0aff7614f8b9b5e4a9d59dbd1"); // esnode
