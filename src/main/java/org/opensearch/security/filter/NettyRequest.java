@@ -112,7 +112,7 @@ public class NettyRequest implements SecurityRequest {
         return params;
     }
 
-    /** Records access of any keys if explicetly requested from this map */
+    /** Records access of any keys if explicitly requested from this map */
     private static class CheckedAccessMap extends HashMap<String, String> {
         private final Set<String> accessedKeys = new HashSet<>();
 
