@@ -116,12 +116,6 @@ public class CertificateGeneratorTests {
                 Instant expiry = expiryDate.toInstant();
 
                 Period duration = getPeriodBetween(x509Certificate.getNotBefore().toInstant(), expiry);
-                if (certPath.endsWith("-ca.pem")) {
-                    // root-ca.pem is already expired as the validity is only 30 days from generation
-                    // so we just check interval to be of 30 days
-                    assertThat(duration.getDays(), equalTo(30));
-                    return;
-                }
 
                 // we check that cert is valid for total of ~10 yrs
                 // we don't check days as leaps years may cause flaky-ness
