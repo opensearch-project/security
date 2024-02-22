@@ -98,13 +98,6 @@ public class NettyRequest implements SecurityRequest {
         return parameters.get().accessedKeys();
     }
 
-    @Override
-    public String param(String key) {
-        Map<String, String> urlParams = params();
-        consumedParams.add(key);
-        return urlParams != null ? params().get(key) : null;
-    }
-
     public Set<String> getConsumedParams() {
         return consumedParams;
     }
