@@ -15,9 +15,11 @@ import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.http.HttpStatus;
@@ -194,8 +196,12 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         );
     }
 
-    public String getJwtUrlParameter() {
-        return jwtUrlParameter;
+    @Override
+    public Set<String> getSensitiveUrlParams() {
+        if (jwtUrlParameter != null) {
+            return Set.of(jwtUrlParameter);
+        }
+        return Collections.emptySet();
     }
 
     @Override

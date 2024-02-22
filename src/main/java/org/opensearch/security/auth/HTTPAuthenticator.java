@@ -26,7 +26,9 @@
 
 package org.opensearch.security.auth;
 
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -91,5 +93,15 @@ public interface HTTPAuthenticator {
      */
     default boolean supportsImpersonation() {
         return true;
+    }
+
+    /**
+     * Returns a set of URL parameters this authenticator supports that are considered sensitive
+     * and should be redacted in the audit logs
+     *
+     * @return The set of URL parameters considered sensitive for this authenticator.
+     */
+    default Set<String> getSensitiveUrlParams() {
+        return Collections.emptySet();
     }
 }

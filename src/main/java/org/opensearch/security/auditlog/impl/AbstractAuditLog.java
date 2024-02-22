@@ -78,7 +78,6 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
-import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
 import com.flipkart.zjsonpatch.JsonDiff;
 import org.greenrobot.eventbus.Subscribe;
 
@@ -946,12 +945,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         SortedSet<AuthDomain> authDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
         ignoredUrlParams.clear();
         for (AuthDomain authDomain : authDomains) {
-            if ("jwt".equals(authDomain.getHttpAuthenticator().getType())) {
-                HTTPJwtAuthenticator jwtAuthenticator = (HTTPJwtAuthenticator) authDomain.getHttpAuthenticator();
-                if (jwtAuthenticator.getJwtUrlParameter() != null) {
-                    ignoredUrlParams.add(jwtAuthenticator.getJwtUrlParameter());
-                }
-            }
+            ignoredUrlParams.addAll(authDomain.getHttpAuthenticator().getSensitiveUrlParams());
         }
     }
 }
