@@ -38,6 +38,7 @@ import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_T
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
 import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
+import static org.opensearch.security.http.SecurityHttpServerTransport.UNCONSUMED_PARAMS;
 
 @Sharable
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {
@@ -86,9 +87,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             // If request channel is completed and a response is sent, then there was a failure during authentication
             restFilter.checkAndAuthenticateRequest(requestChannel);
 
-            if (requestChannel instanceof NettyRequest) {
-                ctx.channel().attr(CONSUMED_PARAMS).set(((NettyRequest) requestChannel).getConsumedParams());
-            }
+            ctx.channel().attr(UNCONSUMED_PARAMS).set(requestChannel.getUnconsumedParams());
 
             ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
             ctx.channel().attr(CONTEXT_TO_RESTORE).set(contextToRestore);

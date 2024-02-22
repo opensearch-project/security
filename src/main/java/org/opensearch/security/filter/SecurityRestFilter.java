@@ -73,6 +73,7 @@ import static org.opensearch.security.http.SecurityHttpServerTransport.CONSUMED_
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
+import static org.opensearch.security.http.SecurityHttpServerTransport.UNCONSUMED_PARAMS;
 
 public class SecurityRestFilter {
 
@@ -145,10 +146,10 @@ public class SecurityRestFilter {
                 }
             });
 
-            NettyAttribute.popFrom(request, CONSUMED_PARAMS).ifPresent(consumedParams -> {
-                for (String param : consumedParams) {
+            NettyAttribute.popFrom(request, UNCONSUMED_PARAMS).ifPresent(unconsumedParams -> {
+                for (String unconsumedParam : unconsumedParams) {
                     // Consume the parameter on the RestRequest
-                    request.param(param);
+                    request.param(unconsumedParam);
                 }
             });
 

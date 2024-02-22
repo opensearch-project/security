@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.net.ssl.SSLEngine;
 
 import org.opensearch.rest.RestRequest;
@@ -79,8 +80,9 @@ public class OpenSearchRequest implements SecurityRequest {
     }
 
     @Override
-    public String param(String key) {
-        return underlyingRequest.param(key);
+    public Set<String> getUnconsumedParams() {
+        // params() Map consumes explict parameter access
+        return Set.of();
     }
 
     /** Gets access to the underlying request object */

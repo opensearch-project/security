@@ -122,7 +122,6 @@ public class LdapHelper {
         } else {
             return input;
         }
-
     }
 
 }

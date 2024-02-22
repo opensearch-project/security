@@ -304,6 +304,15 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     @JsonIgnore
+    public SecurityDynamicConfiguration<T> deepCloneWithRedaction() {
+        try {
+            return fromJson(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctype, version, seqNo, primaryTerm);
+        } catch (Exception e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+    }
+
+    @JsonIgnore
     public void remove(String key) {
         synchronized (modificationLock) {
             centries.remove(key);

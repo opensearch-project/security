@@ -15,6 +15,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLEngine;
 
@@ -50,6 +51,6 @@ public interface SecurityRequest {
     /** The parameters associated with this request */
     Map<String, String> params();
 
-    /** Gets the parameter for the given key */
-    String param(String key);
+    /** The list of parameters that have been accessed but not recorded as being consumed */
+    Set<String> getUnconsumedParams();
 }
