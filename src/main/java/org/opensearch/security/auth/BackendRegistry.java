@@ -77,6 +77,7 @@ public class BackendRegistry {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
+
     private List<AuthFailureListener> ipAuthFailureListeners;
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
@@ -179,8 +180,6 @@ public class BackendRegistry {
         authBackendFailureListeners = dcm.getAuthBackendFailureListeners();
         ipClientBlockRegistries = dcm.getIpClientBlockRegistries();
         authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
-
-        SortedSet<AuthDomain> authDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
 
         // OpenSearch Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;

@@ -101,12 +101,12 @@ public class JwtAuthenticationWithUrlParamTests {
         Header jwtToken = tokenFactory.generateValidToken(ADMIN_USER.getName());
         String jwtTokenValue = jwtToken.getValue();
         try (TestRestClient client = cluster.getRestClient()) {
-            HttpResponse response = client.getAuthInfo(Map.of(TOKEN_URL_PARAM, jwtTokenValue));
+            HttpResponse response = client.getAuthInfo(Map.of(TOKEN_URL_PARAM, jwtTokenValue, "verbose", "true"));
 
             response.assertStatusCode(200);
             String username = response.getTextFromJsonBody(POINTER_USERNAME);
             assertThat(username, equalTo(ADMIN_USER.getName()));
-            Map<String, String> expectedParams = Map.of("token", "REDACTED");
+            Map<String, String> expectedParams = Map.of("token", "REDACTED", "verbose", "true");
 
             auditLogsRule.assertExactlyOne(
                 userAuthenticated(ADMIN_USER).withRestRequest(GET, "/_opendistro/_security/authinfo").withRestParams(expectedParams)
