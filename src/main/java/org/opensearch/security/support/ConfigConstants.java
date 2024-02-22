@@ -170,8 +170,6 @@ public class ConfigConstants {
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
     public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "opendistro_security.audit.exclude_sensitive_headers";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_URL_PARAMETERS =
-        "opendistro_security.audit.exclude_sensitive_url_params";
 
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
 

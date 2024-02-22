@@ -41,8 +41,6 @@ public class NettyRequest implements SecurityRequest {
     protected final Netty4HttpChannel underlyingChannel;
     protected final Supplier<CheckedAccessMap> parameters = Suppliers.memoize(() -> new CheckedAccessMap(params(uri())));
 
-    private final Set<String> consumedParams = new HashSet<>();
-
     NettyRequest(final HttpRequest request, final Netty4HttpChannel channel) {
         this.underlyingRequest = request;
         this.underlyingChannel = channel;
@@ -96,10 +94,6 @@ public class NettyRequest implements SecurityRequest {
     @Override
     public Set<String> getUnconsumedParams() {
         return parameters.get().accessedKeys();
-    }
-
-    public Set<String> getConsumedParams() {
-        return consumedParams;
     }
 
     private static Map<String, String> params(String uri) {
