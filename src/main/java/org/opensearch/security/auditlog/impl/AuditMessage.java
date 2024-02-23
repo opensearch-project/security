@@ -351,9 +351,17 @@ public final class AuditMessage {
         }
     }
 
-    public void addRestParams(Map<String, String> params) {
+    public void addRestParams(Map<String, String> params, AuditConfig.Filter filter) {
         if (params != null && !params.isEmpty()) {
-            auditInfo.put(REST_REQUEST_PARAMS, new HashMap<>(params));
+            Map<String, String> redactedParams = new HashMap<>();
+            for (Entry<String, String> param : params.entrySet()) {
+                if (filter != null && filter.shouldExcludeUrlParam(param.getKey())) {
+                    redactedParams.put(param.getKey(), "REDACTED");
+                } else {
+                    redactedParams.put(param.getKey(), param.getValue());
+                }
+            }
+            auditInfo.put(REST_REQUEST_PARAMS, redactedParams);
         }
     }
 
@@ -381,7 +389,7 @@ public final class AuditMessage {
             final String path = request.path().toString();
             addPath(path);
             addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders(), filter);
-            addRestParams(request.params());
+            addRestParams(request.params(), filter);
             addRestMethod(request.method());
 
             if (filter.shouldLogRequestBody()) {

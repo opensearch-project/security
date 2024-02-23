@@ -73,6 +73,7 @@ public class AuditConfigSerializeTest {
             .field("ignore_users", Collections.singletonList("kibanaserver"))
             .field("ignore_requests", Collections.emptyList())
             .field("ignore_headers", Collections.emptyList())
+            .field("ignore_url_params", Collections.emptyList())
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -136,6 +137,7 @@ public class AuditConfigSerializeTest {
             .field("ignore_users", Collections.singletonList("test-user-1"))
             .field("ignore_requests", Collections.singletonList("test-request"))
             .field("ignore_headers", Collections.singletonList("test-headers"))
+            .field("ignore_url_params", Collections.singletonList("test-param"))
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -200,6 +202,7 @@ public class AuditConfigSerializeTest {
             ImmutableSet.of("ignore-user-1", "ignore-user-2"),
             ImmutableSet.of("ignore-request-1"),
             ImmutableSet.of("test-header"),
+            ImmutableSet.of("test-param"),
             EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES),
             EnumSet.of(AUTHENTICATED)
         );
@@ -233,6 +236,7 @@ public class AuditConfigSerializeTest {
             .field("ignore_users", ImmutableList.of("ignore-user-1", "ignore-user-2"))
             .field("ignore_requests", Collections.singletonList("ignore-request-1"))
             .field("ignore_headers", Collections.singletonList("test-header"))
+            .field("ignore_url_params", Collections.singletonList("test-param"))
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
@@ -276,6 +280,7 @@ public class AuditConfigSerializeTest {
             .field("ignore_users", ImmutableList.of("kibanaserver"))
             .field("ignore_requests", Collections.emptyList())
             .field("ignore_headers", Collections.emptyList())
+            .field("ignore_url_params", Collections.emptyList())
             .endObject()
             .startObject("compliance")
             .field("enabled", true)
