@@ -72,6 +72,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
 import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
+import static org.opensearch.security.http.SecurityHttpServerTransport.UNCONSUMED_PARAMS;
 
 public class SecurityRestFilter {
 
@@ -141,6 +142,13 @@ public class SecurityRestFilter {
                 storedContext.restore();
                 if (xOpaqueId != null) {
                     threadContext.putHeader(Task.X_OPAQUE_ID, xOpaqueId);
+                }
+            });
+
+            NettyAttribute.popFrom(request, UNCONSUMED_PARAMS).ifPresent(unconsumedParams -> {
+                for (String unconsumedParam : unconsumedParams) {
+                    // Consume the parameter on the RestRequest
+                    request.param(unconsumedParam);
                 }
             });
 
