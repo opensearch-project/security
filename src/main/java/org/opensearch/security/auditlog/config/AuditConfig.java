@@ -12,6 +12,7 @@
 package org.opensearch.security.auditlog.config;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -142,9 +143,12 @@ public class AuditConfig {
         private final Set<String> ignoredAuditRequests;
         @JsonProperty("ignore_headers")
         private final Set<String> ignoredCustomHeaders;
+        @JsonProperty("ignore_url_params")
+        private Set<String> ignoredUrlParams;
         private final WildcardMatcher ignoredAuditUsersMatcher;
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
+        private WildcardMatcher ignoredUrlParamsMatcher;
         private final Set<AuditCategory> disabledRestCategories;
         private final Set<AuditCategory> disabledTransportCategories;
 
@@ -159,6 +163,7 @@ public class AuditConfig {
             final Set<String> ignoredAuditUsers,
             final Set<String> ignoredAuditRequests,
             final Set<String> ignoredCustomHeaders,
+            final Set<String> ignoredUrlParams,
             final Set<AuditCategory> disabledRestCategories,
             final Set<AuditCategory> disabledTransportCategories
         ) {
@@ -174,6 +179,8 @@ public class AuditConfig {
             this.ignoredAuditRequestsMatcher = WildcardMatcher.from(ignoredAuditRequests);
             this.ignoredCustomHeaders = ignoredCustomHeaders;
             this.ignoredCustomHeadersMatcher = WildcardMatcher.from(ignoredCustomHeaders);
+            this.ignoredUrlParams = ignoredUrlParams;
+            this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
         }
@@ -269,6 +276,7 @@ public class AuditConfig {
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
+                new HashSet<>(),
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -314,6 +322,7 @@ public class AuditConfig {
                 ignoredAuditUsers,
                 ignoreAuditRequests,
                 ignoreHeaders,
+                new HashSet<>(),
                 disabledRestCategories,
                 disabledTransportCategories
             );
@@ -422,6 +431,21 @@ public class AuditConfig {
             return ignoredCustomHeadersMatcher;
         }
 
+        @VisibleForTesting
+        WildcardMatcher getIgnoredUrlParamsMatcher() {
+            return ignoredUrlParamsMatcher;
+        }
+
+        /**
+         * Check if the specified url param is excluded from the audit
+         *
+         * @param param
+         * @return true if header should be excluded
+         */
+        public boolean shouldExcludeUrlParam(String param) {
+            return ignoredUrlParamsMatcher.test(param);
+        }
+
         /**
          * Check if the specified header is excluded from the audit
          *
@@ -439,6 +463,17 @@ public class AuditConfig {
          */
         public boolean isRequestAuditDisabled(String action) {
             return ignoredAuditRequestsMatcher.test(action);
+        }
+
+        /**
+         * URL Params to redact for auditing
+         */
+        public void setIgnoredUrlParams(Set<String> ignoredUrlParams) {
+            if (ignoredUrlParams == null) {
+                return;
+            }
+            this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
+            this.ignoredUrlParams = ignoredUrlParams;
         }
 
         /**
@@ -470,6 +505,7 @@ public class AuditConfig {
             logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
             logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsersMatcher);
             logger.info("Auditing request headers {} is disabled.", ignoredCustomHeadersMatcher);
+            logger.info("Auditing request url params {} is disabled.", ignoredUrlParamsMatcher);
         }
 
         @Override
@@ -497,6 +533,8 @@ public class AuditConfig {
                 + ignoredAuditRequestsMatcher
                 + ", ignoredCustomHeaders="
                 + ignoredCustomHeadersMatcher
+                + ", ignoredUrlParamsMatcher="
+                + ignoredUrlParamsMatcher
                 + '}';
         }
     }
