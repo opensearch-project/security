@@ -39,7 +39,9 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX_DEFAULT;
 
 /**
  * This class updates the security related configuration, as needed.
@@ -130,8 +132,8 @@ public class SecuritySettingsConfigurer {
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
-                    .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
-                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 8)
+                    .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX_DEFAULT)
+                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT)
                     .build()
             );
 
@@ -142,11 +144,17 @@ public class SecuritySettingsConfigurer {
             }
 
             // If script execution environment is set to demo, validate custom password, else if set to test, skip validation
-            if (shouldValidatePassword
-                && !ADMIN_PASSWORD.isEmpty()
-                && passwordValidator.validate(ADMIN_USERNAME, ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
-                System.out.println("Password " + ADMIN_PASSWORD + " is weak. Please re-try with a stronger password.");
-                System.exit(-1);
+            if (shouldValidatePassword && !ADMIN_PASSWORD.isEmpty()) {
+                RequestContentValidator.ValidationError response = passwordValidator.validate(ADMIN_USERNAME, ADMIN_PASSWORD);
+                if (!RequestContentValidator.ValidationError.NONE.equals(response)) {
+                    System.out.println(
+                            String.format(
+                                    "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password that is strong per zxcvbn validation."
+                                    , ADMIN_PASSWORD, response.message(), SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT
+                            )
+                    );
+                    System.exit(-1);
+                }
             }
 
             // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We exit the setup.

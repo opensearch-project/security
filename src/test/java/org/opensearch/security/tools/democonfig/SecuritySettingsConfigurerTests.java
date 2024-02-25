@@ -37,6 +37,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
@@ -125,7 +127,13 @@ public class SecuritySettingsConfigurerTests {
             System.setSecurityManager(null);
         }
 
-        verifyStdOutContainsString("Password weakpassword is weak. Please re-try with a stronger password.");
+        verifyStdOutContainsString(
+                String.format(
+                        "Password weakpassword failed validation: \"%s\". Please re-try with a minimum %d character password that is strong per zxcvbn validation.",
+                        INVALID_PASSWORD_INVALID_REGEX.message(),
+                        SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT
+                )
+        );
     }
 
     @Test
