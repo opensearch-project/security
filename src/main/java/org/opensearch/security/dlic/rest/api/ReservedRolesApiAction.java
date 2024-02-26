@@ -11,42 +11,39 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import static org.opensearch.security.dlic.rest.api.AbstractApiAction.LOGGER;
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.StreamSupport;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.commons.lang3.tuple.Pair;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.configuration.MaskedField;
-import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.dlic.rest.api.RolesApiAction.RoleRequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ReservedRolesApiAction extends AbstractApiAction {
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
-            new Route(Method.POST, "/roles/_reserved/_upgrade")
+            new Route(Method.GET, "/roles/_reserved/_upgrade_check"),
+            new Route(Method.POST, "/roles/_reserved/_upgrade_apply")
         )
     );
 
@@ -57,8 +54,34 @@ public class ReservedRolesApiAction extends AbstractApiAction {
         final SecurityApiDependencies securityApiDependencies
     ) {
         super(Endpoint.ROLES, clusterService, threadPool, securityApiDependencies);
-        this.requestHandlersBuilder.configureRequestHandlers(this::rolesApiRequestHandlers);
+        this.requestHandlersBuilder.configureRequestHandlers(rhb -> {
+            rhb.onGetRequest(request ->
+                withIOException(() -> 
+                    loadConfiguration(getConfigType(), false, false)
+                    .map(securityConfiguration -> {
+                        try {
+                            final var entries = securityConfiguration.getCEntries();
+                            final var entriesJson = convertJsonToJackson(entries);
+
+                            Utils.
+                        } catch (final Exception ex) {
+                            // log it ?
+                        }
+                        return (JsonNode)null;
+                    }))));
     }
+
+    public static void uploadFile(
+        String filepath,
+        String index,
+        CType cType,
+    ) {
+        final String configType = cType.toLCString();
+
+        var fromDisk = AccessController.doPrivileged((PrivilegedExceptionAction<?>) () -> 
+                ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0));
+    }
+
 
     @Override
     public List<Route> routes() {
