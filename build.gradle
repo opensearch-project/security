@@ -476,7 +476,7 @@ configurations {
         resolutionStrategy {
             force 'commons-codec:commons-codec:1.16.1'
             force 'org.slf4j:slf4j-api:1.7.36'
-            force 'org.scala-lang:scala-library:2.13.12'
+            force 'org.scala-lang:scala-library:2.13.13'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
@@ -702,7 +702,7 @@ dependencies {
     testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.12'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.13'
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.1') {
