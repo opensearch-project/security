@@ -273,11 +273,9 @@ public class ConfigConstants {
     public static final String SECURITY_RESTAPI_ADMIN_ENABLED = "plugins.security.restapi.admin.enabled";
     public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = "plugins.security.restapi.endpoints_disabled";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "plugins.security.restapi.password_validation_regex";
-    public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX_DEFAULT = "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE =
         "plugins.security.restapi.password_validation_error_message";
     public static final String SECURITY_RESTAPI_PASSWORD_MIN_LENGTH = "plugins.security.restapi.password_min_length";
-    public static final Integer SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT = 8;
     public static final String SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH =
         "plugins.security.restapi.password_score_based_validation_strength";
     // Illegal Opcodes from here on

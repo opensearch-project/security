@@ -39,9 +39,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX_DEFAULT;
 
 /**
  * This class updates the security related configuration, as needed.
@@ -78,6 +76,7 @@ public class SecuritySettingsConfigurer {
         ".plugins-flow-framework-templates",
         ".plugins-flow-framework-state"
     );
+    static final Integer DEFAULT_PASSWORD_MIN_LENGTH = 8;
     static String ADMIN_PASSWORD = "";
     static String ADMIN_USERNAME = "admin";
 
@@ -132,8 +131,8 @@ public class SecuritySettingsConfigurer {
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
-                    .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX_DEFAULT)
-                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT)
+                    .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
+                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, DEFAULT_PASSWORD_MIN_LENGTH)
                     .build()
             );
 
@@ -148,10 +147,12 @@ public class SecuritySettingsConfigurer {
                 RequestContentValidator.ValidationError response = passwordValidator.validate(ADMIN_USERNAME, ADMIN_PASSWORD);
                 if (!RequestContentValidator.ValidationError.NONE.equals(response)) {
                     System.out.println(
-                            String.format(
-                                    "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password that is strong per zxcvbn validation."
-                                    , ADMIN_PASSWORD, response.message(), SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT
-                            )
+                        String.format(
+                            "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn",
+                            ADMIN_PASSWORD,
+                            response.message(),
+                            DEFAULT_PASSWORD_MIN_LENGTH
+                        )
                     );
                     System.exit(-1);
                 }

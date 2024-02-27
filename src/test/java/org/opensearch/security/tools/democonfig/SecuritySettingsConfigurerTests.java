@@ -38,7 +38,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
@@ -128,11 +129,33 @@ public class SecuritySettingsConfigurerTests {
         }
 
         verifyStdOutContainsString(
-                String.format(
-                        "Password weakpassword failed validation: \"%s\". Please re-try with a minimum %d character password that is strong per zxcvbn validation.",
-                        INVALID_PASSWORD_INVALID_REGEX.message(),
-                        SECURITY_RESTAPI_PASSWORD_MIN_LENGTH_DEFAULT
-                )
+            String.format(
+                "Password weakpassword failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn",
+                INVALID_PASSWORD_INVALID_REGEX.message(),
+                DEFAULT_PASSWORD_MIN_LENGTH
+            )
+        );
+    }
+
+    @Test
+    public void testUpdateAdminPasswordWithShortPassword() throws NoSuchFieldException, IllegalAccessException {
+
+        setEnv(adminPasswordKey, "short");
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+            securitySettingsConfigurer.updateAdminPassword();
+        } catch (SecurityException e) {
+            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
+        } finally {
+            System.setSecurityManager(null);
+        }
+
+        verifyStdOutContainsString(
+            String.format(
+                "Password short failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn",
+                INVALID_PASSWORD_TOO_SHORT.message(),
+                DEFAULT_PASSWORD_MIN_LENGTH
+            )
         );
     }
 
