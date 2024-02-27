@@ -58,6 +58,9 @@ public class SecuritySettingsConfigurerTests {
 
     private final String adminPasswordKey = ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD;
 
+    private static final String PASSWORD_VALIDATION_FAILURE_MESSAGE =
+        "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn";
+
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
 
     private static Installer installer;
@@ -130,7 +133,8 @@ public class SecuritySettingsConfigurerTests {
 
         verifyStdOutContainsString(
             String.format(
-                "Password weakpassword failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn",
+                PASSWORD_VALIDATION_FAILURE_MESSAGE,
+                "weakpassword",
                 INVALID_PASSWORD_INVALID_REGEX.message(),
                 DEFAULT_PASSWORD_MIN_LENGTH
             )
@@ -151,11 +155,7 @@ public class SecuritySettingsConfigurerTests {
         }
 
         verifyStdOutContainsString(
-            String.format(
-                "Password short failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn",
-                INVALID_PASSWORD_TOO_SHORT.message(),
-                DEFAULT_PASSWORD_MIN_LENGTH
-            )
+            String.format(PASSWORD_VALIDATION_FAILURE_MESSAGE, "short", INVALID_PASSWORD_TOO_SHORT.message(), DEFAULT_PASSWORD_MIN_LENGTH)
         );
     }
 
