@@ -307,6 +307,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return;
         }
 
+        if (settings.hasValue(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS)) {
+            verifyTLSVersion(
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS,
+                settings.getAsList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS)
+            );
+        }
+
+        if (settings.hasValue(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS)) {
+            verifyTLSVersion(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS,
+                settings.getAsList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS)
+            );
+        }
+
         if (SSLConfig.isSslOnlyMode()) {
             this.sslCertReloadEnabled = false;
             log.warn("OpenSearch Security plugin run in ssl only mode. No authentication or authorization is performed");
@@ -431,6 +445,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 throw new RuntimeException("Unable to look for demo certificates");
             }
 
+        }
+    }
+
+    private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
+        for (final var tls : configuredProtocols) {
+            if (tls.equalsIgnoreCase("TLSv1") || tls.equalsIgnoreCase("TLSv1.1")) {
+                deprecationLogger.deprecate(
+                    settings,
+                    "The '{}' setting contains {} protocol version which was deprecated since 2021 (RFC 8996). "
+                        + "Support for it will be removed in the next major release.",
+                    settings,
+                    tls
+                );
+            }
         }
     }
 
