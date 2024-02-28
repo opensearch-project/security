@@ -76,6 +76,7 @@ public class SecuritySettingsConfigurer {
         ".plugins-flow-framework-templates",
         ".plugins-flow-framework-state"
     );
+    static final Integer DEFAULT_PASSWORD_MIN_LENGTH = 8;
     static String ADMIN_PASSWORD = "";
     static String ADMIN_USERNAME = "admin";
 
@@ -131,7 +132,7 @@ public class SecuritySettingsConfigurer {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
                     .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
-                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 8)
+                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, DEFAULT_PASSWORD_MIN_LENGTH)
                     .build()
             );
 
@@ -142,11 +143,19 @@ public class SecuritySettingsConfigurer {
             }
 
             // If script execution environment is set to demo, validate custom password, else if set to test, skip validation
-            if (shouldValidatePassword
-                && !ADMIN_PASSWORD.isEmpty()
-                && passwordValidator.validate(ADMIN_USERNAME, ADMIN_PASSWORD) != RequestContentValidator.ValidationError.NONE) {
-                System.out.println("Password " + ADMIN_PASSWORD + " is weak. Please re-try with a stronger password.");
-                System.exit(-1);
+            if (shouldValidatePassword && !ADMIN_PASSWORD.isEmpty()) {
+                RequestContentValidator.ValidationError response = passwordValidator.validate(ADMIN_USERNAME, ADMIN_PASSWORD);
+                if (!RequestContentValidator.ValidationError.NONE.equals(response)) {
+                    System.out.println(
+                        String.format(
+                            "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn",
+                            ADMIN_PASSWORD,
+                            response.message(),
+                            DEFAULT_PASSWORD_MIN_LENGTH
+                        )
+                    );
+                    System.exit(-1);
+                }
             }
 
             // if ADMIN_PASSWORD is still an empty string, it implies no custom password was provided. We exit the setup.
