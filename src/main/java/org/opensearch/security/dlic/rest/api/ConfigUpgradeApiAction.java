@@ -1,0 +1,172 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+package org.opensearch.security.dlic.rest.api;
+
+
+
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
+
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.EnumSet;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.Inject;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.ConfigHelper;
+import org.opensearch.threadpool.ThreadPool;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.flipkart.zjsonpatch.DiffFlags;
+import com.flipkart.zjsonpatch.JsonDiff;
+import com.google.common.collect.ImmutableList;
+
+public class ConfigUpgradeApiAction extends AbstractApiAction {
+
+    private final static Logger LOGGER = LogManager.getLogger(ConfigUpgradeApiAction.class);
+
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(
+            new Route(Method.GET, "/_upgrade_check")
+        )
+    );
+
+    @Inject
+    public ConfigUpgradeApiAction(
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final SecurityApiDependencies securityApiDependencies
+    ) {
+        super(Endpoint.CONFIG, clusterService, threadPool, securityApiDependencies);
+        this.requestHandlersBuilder.configureRequestHandlers(rhb -> {
+            rhb.add(Method.GET, this::handleRolesCanUpgrade);
+        });
+    }
+
+    public void handleRolesCanUpgrade(final RestChannel channel, final RestRequest request, final Client client) {
+        try {
+            withIOException(() -> computeDifferenceToUpdate(CType.ROLES, "roles.yml")
+                .map(differences -> {
+                    final var canUpgrade = differences.size() > 0;
+                
+                    // Step 4: Return a response indicating if an upgrade can be performed
+                    ObjectNode response = JsonNodeFactory.instance.objectNode();
+                    response.put("can_upgrade", canUpgrade);
+                    
+                    if (canUpgrade) {
+                        // Optionally include the differences in the response
+                        response.set("differences", differences);
+                    }
+                    return ValidationResult.success(response);
+                }));
+// Handle how this is returned!
+            channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
+        } catch (Exception e) {
+            // Handle other exceptions
+            LOGGER.error("Unexpected error during upgrade check", e);
+            channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "{\"error\":\"Unexpected error checking for upgrade\"}"));
+        }
+    }
+
+    private ValidationResult<JsonNode> computeDifferenceToUpdate(final CType configType, final String configName) throws IOException {
+        return 
+            loadConfiguration(configType, false, false)
+                .map(activeRoles -> {
+                    final var activeRolesJson = Utils.convertJsonToJackson(activeRoles, false);
+                    final var defaultRolesJson = loadConfigFileAsJson(configName, configType);
+                    final var rawDiff = JsonDiff.asJson(activeRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
+                    return ValidationResult.success(filterRemoveOperations(rawDiff));
+                });
+    }
+
+    private JsonNode filterRemoveOperations(final JsonNode diff) {
+        final ArrayNode filteredDiff = JsonNodeFactory.instance.arrayNode();
+        diff.forEach(node -> {
+            if (!isRemoveOperation(node)) {
+                filteredDiff.add(node);
+                return;
+            } else {
+                if (!hasRootLevelPath(node)) {
+                    filteredDiff.add(node);
+                }
+            }
+        });
+        return filteredDiff;
+    }
+
+    private boolean hasRootLevelPath(final JsonNode node) {
+        final var jsonPath = node.get("path").asText();
+        return jsonPath.charAt(0 ) == '/' && !jsonPath.substring(1).contains("/");
+    }
+    private boolean isRemoveOperation(final JsonNode node) {
+        return node.get("op").asText().equals("remove");
+    }
+
+    public JsonNode loadConfigFileAsJson(final String fileName, final CType cType) {
+        final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
+        final var filepath = cd + fileName;
+        try {
+            return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> {
+                var loadedConfiguration = ConfigHelper.fromYamlFile(filepath, cType, ConfigurationRepository.DEFAULT_CONFIG_VERSION, 0, 0);
+                return Utils.convertJsonToJackson(loadedConfiguration, false);
+            });
+        } catch (PrivilegedActionException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Override
+    public List<Route> routes() {
+        return routes;
+    }
+
+    @Override
+    protected CType getConfigType() {
+        return CType.ROLES;
+    }
+
+    // private void rolesApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    //     requestHandlersBuilder.add(null, methodNotImplementedHandler).onChangeRequest(Method.POST, this::processUpgrade);
+    // }
+
+    // protected final ValidationResult<String> processUpgrade(final RestRequest request) throws IOException {
+    //     return loadConfiguration(nameParam(request), false).map(
+    //         securityConfiguration -> {
+    //             final int existingRolesConfig = securityConfiguration.configuration().getCEntry(getConfigType());
+    //             return ValidationResult.success("Upgrade Complete");
+    //         }
+    //     );
+    // }
+
+}

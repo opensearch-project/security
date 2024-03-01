@@ -83,4 +83,7 @@ public class ValidationResult<C> {
         return errorMessage;
     }
 
+    public C getContent(){
+        return content; 
+    }
 }

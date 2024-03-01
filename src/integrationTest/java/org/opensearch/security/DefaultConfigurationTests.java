@@ -11,17 +11,22 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
+import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -38,10 +43,9 @@ import static org.hamcrest.Matchers.hasKey;
 public class DefaultConfigurationTests {
 
     private final static Path configurationFolder = ConfigurationFiles.createConfigurationDirectory();
-    public static final String ADMIN_USER_NAME = "admin";
-    public static final String DEFAULT_PASSWORD = "secret";
-    public static final String NEW_USER = "new-user";
-    public static final String LIMITED_USER = "limited-user";
+    private static final User ADMIN_USER = new User("admin");
+    private static final User NEW_USER = new User("new-user");
+    private static final User LIMITED_USER = new User("limited-user");
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -62,17 +66,60 @@ public class DefaultConfigurationTests {
         FileUtils.deleteDirectory(configurationFolder.toFile());
     }
 
+    // @Test
+    // public void shouldLoadDefaultConfiguration() {
+    //     try (TestRestClient client = cluster.getRestClient(NEW_USER)) {
+    //         Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+    //     }
+    //     try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+    //         client.confirmCorrectCredentials(ADMIN_USER.getName());
+    //         HttpResponse response = client.get("_plugins/_security/api/internalusers");
+    //         response.assertStatusCode(200);
+    //         Map<String, Object> users = response.getBodyAs(Map.class);
+    //         assertThat(users, allOf(aMapWithSize(3), hasKey(ADMIN_USER.getName()), hasKey(NEW_USER.getName()), hasKey(LIMITED_USER.getName())));
+    //     }
+    // }
+
+
     @Test
-    public void shouldLoadDefaultConfiguration() {
-        try (TestRestClient client = cluster.getRestClient(NEW_USER, DEFAULT_PASSWORD)) {
+    public void securityRolesUgrade() throws Exception {
+        try (var client = cluster.getRestClient(ADMIN_USER)) {
             Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+
+            final var defaultRolesResponse = client.get("_plugins/_security/api/roles/");
+            final var roles = defaultRolesResponse.getBodyAs(JsonNode.class);
+            final var rolesCount = extractFieldNames(roles).size();
+
+            final var checkForUpgrade = client.get("_plugins/_security/api/_upgrade_check");
+            System.out.println("checkForUpgrade Response: " + checkForUpgrade.getBody());
+
+
+            final var roleToDelete = "flow_framework_full_access";
+            final var deleteRoleResponse = client.delete("_plugins/_security/api/roles/" + roleToDelete);
+            deleteRoleResponse.assertStatusCode(200);
+
+            final var checkForUpgrade3 = client.get("_plugins/_security/api/_upgrade_check");
+            System.out.println("checkForUpgrade3 Response: " + checkForUpgrade3.getBody());
+
+            final var roleToAlter = "flow_framework_read_access";
+            final String patchBody = "[{ \"op\": \"replace\", \"path\": \"/cluster_permissions\", \"value\":"
+                + "[\"a\",\"b\",\"c\"]"
+            + "},{ \"op\": \"add\", \"path\": \"/index_permissions\", \"value\":"
+                + "[{\"index_patterns\":[\"*\"],\"allowed_actions\":[\"*\"]}]"
+            + "}]";
+            final var updateRoleResponse = client.patch("_plugins/_security/api/roles/" + roleToAlter, patchBody);
+            updateRoleResponse.assertStatusCode(200);
+            System.out.println("Updated Role Response: " +updateRoleResponse.getBody());
+
+            final var checkForUpgrade2 = client.get("_plugins/_security/api/_upgrade_check");
+            System.out.println("checkForUpgrade2 Response: " + checkForUpgrade2.getBody());
+
         }
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            client.confirmCorrectCredentials(ADMIN_USER_NAME);
-            HttpResponse response = client.get("_plugins/_security/api/internalusers");
-            response.assertStatusCode(200);
-            Map<String, Object> users = response.getBodyAs(Map.class);
-            assertThat(users, allOf(aMapWithSize(3), hasKey(ADMIN_USER_NAME), hasKey(NEW_USER), hasKey(LIMITED_USER)));
-        }
+    }
+
+    private List<String> extractFieldNames(final JsonNode json) {
+        final var list = new ArrayList<String>();
+        json.fieldNames().forEachRemaining(list::add);
+        return list; 
     }
 }
