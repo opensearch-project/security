@@ -81,7 +81,7 @@ jobs:
         working-directory: downloaded-artifacts
 
       - name: Upload Coverage with retry
-        uses: Wandalen/wretry.action@v1.4.4
+        uses: Wandalen/wretry.action@v1.4.5
         with:
           attempt_limit: 5
           attempt_delay: 2000
