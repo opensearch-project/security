@@ -11,12 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.AccessController;
@@ -31,14 +25,23 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -53,38 +56,14 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.common.inject.Inject;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.ConfigHelper;
-import org.opensearch.threadpool.ThreadPool;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.flipkart.zjsonpatch.DiffFlags;
-import com.flipkart.zjsonpatch.JsonDiff;
-import com.google.common.collect.ImmutableList;
-
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
 public class ConfigUpgradeApiAction extends AbstractApiAction {
 
@@ -92,10 +71,9 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     private final static Set<CType> SUPPORTED_CTYPES = ImmutableSet.of(CType.ROLES);
 
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
-        new Route(Method.GET, "/_upgrade_check"),
-        new Route(Method.POST, "/_upgrade_perform")
-    ));
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(new Route(Method.GET, "/_upgrade_check"), new Route(Method.POST, "/_upgrade_perform"))
+    );
 
     @Inject
     public ConfigUpgradeApiAction(
@@ -110,64 +88,66 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     }
 
     void handleCanUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        withIOException(() -> getAndValidateConfigurationsToUpgrade(request)
-            .map(this::configurationDifferences))
-            .valid(differencesList -> {
-                final var canUpgrade = differencesList.stream().anyMatch(entry -> entry.v2().size() > 0);
+        withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).valid(differencesList -> {
+            final var canUpgrade = differencesList.stream().anyMatch(entry -> entry.v2().size() > 0);
 
-                final ObjectNode response = JsonNodeFactory.instance.objectNode();
-                response.put("can_upgrade", canUpgrade);
-    
-                if (canUpgrade) {
-                    final ObjectNode differences = JsonNodeFactory.instance.objectNode();
-                    differencesList.forEach(t -> {
-                        differences.set(t.v1().toLCString(), t.v2());
-                    });
-                    response.set("differences", differences);
-                }
-                channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
-            })
-            .error((status, toXContent) -> response(channel, status, toXContent));
+            final ObjectNode response = JsonNodeFactory.instance.objectNode();
+            response.put("can_upgrade", canUpgrade);
+
+            if (canUpgrade) {
+                final ObjectNode differences = JsonNodeFactory.instance.objectNode();
+                differencesList.forEach(t -> { differences.set(t.v1().toLCString(), t.v2()); });
+                response.set("differences", differences);
+            }
+            channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
+        }).error((status, toXContent) -> response(channel, status, toXContent));
     }
 
     private void handleUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        withIOException(() -> getConfigurations(request)
-            .map(this::configurationDifferences))
-            .map(diffs -> applyDifferences(request, diffs))
-            .valid(updatedResources -> {
-                ok(channel, "Applied all differences: " + updatedResources);
-            })
-            .error((status, toXContent) -> response(channel, status, toXContent));
+        withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).map(
+            diffs -> applyDifferences(request, diffs)
+        ).valid(updatedResources -> {
+            ok(channel, "Applied all differences: " + updatedResources);
+        }).error((status, toXContent) -> response(channel, status, toXContent));
     }
 
-    ValidationResult<List<Tuple<CType, Map<String, List<String>>>>> applyDifferences(final RestRequest request, final List<Tuple<CType, JsonNode>> differencesToUpdate) throws IOException {
+    ValidationResult<List<Tuple<CType, Map<String, List<String>>>>> applyDifferences(
+        final RestRequest request,
+        final List<Tuple<CType, JsonNode>> differencesToUpdate
+    ) throws IOException {
         final var updatedResources = new ArrayList<ValidationResult<Tuple<CType, Map<String, List<String>>>>>();
         for (final Tuple<CType, JsonNode> difference : differencesToUpdate) {
-            updatedResources.add(loadConfiguration(difference.v1(), false, false)
-                .map(configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration))
-                    .map(patchResults -> {
-                        final var items = new HashMap<String, String>();
-                        difference.v2().forEach(node -> {
-                            final var item = pathRoot(node);
-                            final var operation = node.get("op").asText();
-                            if (items.containsKey(item) && !items.get(item).equals(operation)) {
-                                items.put(item, "modified");
-                            } else {
-                                items.put(item, operation);
-                            }
-                        });
+            updatedResources.add(
+                loadConfiguration(difference.v1(), false, false).map(
+                    configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration)).map(
+                        patchResults -> {
+                            final var items = new HashMap<String, String>();
+                            difference.v2().forEach(node -> {
+                                final var item = pathRoot(node);
+                                final var operation = node.get("op").asText();
+                                if (items.containsKey(item) && !items.get(item).equals(operation)) {
+                                    items.put(item, "modified");
+                                } else {
+                                    items.put(item, operation);
+                                }
+                            });
 
-                        final var itemsGroupedByOperation = items.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+                            final var itemsGroupedByOperation = items.entrySet()
+                                .stream()
+                                .collect(
+                                    Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList()))
+                                );
 
-                        return ValidationResult.success(new Tuple<>(difference.v1(), itemsGroupedByOperation));
-                    })
+                            return ValidationResult.success(new Tuple<>(difference.v1(), itemsGroupedByOperation));
+                        }
+                    )
                 )
             );
         }
 
         return ValidationResult.merge(updatedResources);
     }
- 
+
     private ValidationResult<List<Tuple<CType, JsonNode>>> configurationDifferences(final Set<CType> configurations) throws IOException {
         final var differences = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
         for (final var configuration : configurations) {
@@ -187,15 +167,16 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     private ValidationResult<Set<CType>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
         final String[] configs = request.paramAsStringArray("configs", null);
-        
-        final var configurations = Optional.ofNullable(configs)
-            .map(CType::fromStringValues)
-            .orElse(SUPPORTED_CTYPES);
+
+        final var configurations = Optional.ofNullable(configs).map(CType::fromStringValues).orElse(SUPPORTED_CTYPES);
 
         if (!configurations.stream().allMatch(SUPPORTED_CTYPES::contains)) {
             // Remove all supported configurations
             configurations.removeAll(SUPPORTED_CTYPES);
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Unsupported configurations for upgrade" + configurations)); 
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Unsupported configurations for upgrade" + configurations)
+            );
         }
 
         return ValidationResult.success(configurations);
@@ -304,7 +285,6 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonContent) throws IOException {
             return super.validate(request, jsonContent);
         }
-
 
     }
 

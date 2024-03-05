@@ -11,15 +11,12 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.common.CheckedBiConsumer;
 import org.opensearch.common.CheckedConsumer;
@@ -28,8 +25,6 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.security.securityconf.impl.CType;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 public class ValidationResult<C> {
 
@@ -70,7 +65,8 @@ public class ValidationResult<C> {
             return success(results.stream().map(result -> result.content).collect(Collectors.toList()));
         }
 
-        return results.stream().filter(result -> !result.isValid())
+        return results.stream()
+            .filter(result -> !result.isValid())
             .map(failedResult -> new ValidationResult<List<L>>(failedResult.status, failedResult.errorMessage))
             .findFirst()
             .get();

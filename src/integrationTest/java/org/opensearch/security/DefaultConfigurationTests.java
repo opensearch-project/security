@@ -14,29 +14,22 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.TestRestClient;
-import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.aMapWithSize;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -68,18 +61,17 @@ public class DefaultConfigurationTests {
 
     // @Test
     // public void shouldLoadDefaultConfiguration() {
-    //     try (TestRestClient client = cluster.getRestClient(NEW_USER)) {
-    //         Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
-    //     }
-    //     try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
-    //         client.confirmCorrectCredentials(ADMIN_USER.getName());
-    //         HttpResponse response = client.get("_plugins/_security/api/internalusers");
-    //         response.assertStatusCode(200);
-    //         Map<String, Object> users = response.getBodyAs(Map.class);
-    //         assertThat(users, allOf(aMapWithSize(3), hasKey(ADMIN_USER.getName()), hasKey(NEW_USER.getName()), hasKey(LIMITED_USER.getName())));
-    //     }
+    // try (TestRestClient client = cluster.getRestClient(NEW_USER)) {
+    // Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
     // }
-
+    // try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+    // client.confirmCorrectCredentials(ADMIN_USER.getName());
+    // HttpResponse response = client.get("_plugins/_security/api/internalusers");
+    // response.assertStatusCode(200);
+    // Map<String, Object> users = response.getBodyAs(Map.class);
+    // assertThat(users, allOf(aMapWithSize(3), hasKey(ADMIN_USER.getName()), hasKey(NEW_USER.getName()), hasKey(LIMITED_USER.getName())));
+    // }
+    // }
 
     @Test
     public void securityRolesUgrade() throws Exception {
@@ -92,7 +84,6 @@ public class DefaultConfigurationTests {
             final var checkForUpgrade = client.get("_plugins/_security/api/_upgrade_check");
             System.out.println("checkForUpgrade Response: " + checkForUpgrade.getBody());
 
-
             final var roleToDelete = "flow_framework_full_access";
             final var deleteRoleResponse = client.delete("_plugins/_security/api/roles/" + roleToDelete);
             deleteRoleResponse.assertStatusCode(200);
@@ -103,12 +94,12 @@ public class DefaultConfigurationTests {
             final var roleToAlter = "flow_framework_read_access";
             final String patchBody = "[{ \"op\": \"replace\", \"path\": \"/cluster_permissions\", \"value\":"
                 + "[\"a\",\"b\",\"c\"]"
-            + "},{ \"op\": \"add\", \"path\": \"/index_permissions\", \"value\":"
+                + "},{ \"op\": \"add\", \"path\": \"/index_permissions\", \"value\":"
                 + "[{\"index_patterns\":[\"*\"],\"allowed_actions\":[\"*\"]}]"
-            + "}]";
+                + "}]";
             final var updateRoleResponse = client.patch("_plugins/_security/api/roles/" + roleToAlter, patchBody);
             updateRoleResponse.assertStatusCode(200);
-            System.out.println("Updated Role Response: " +updateRoleResponse.getBody());
+            System.out.println("Updated Role Response: " + updateRoleResponse.getBody());
 
             final var checkForUpgrade2 = client.get("_plugins/_security/api/_upgrade_check");
             System.out.println("checkForUpgrade2 Response: " + checkForUpgrade2.getBody());
@@ -125,6 +116,6 @@ public class DefaultConfigurationTests {
     private List<String> extractFieldNames(final JsonNode json) {
         final var list = new ArrayList<String>();
         json.fieldNames().forEachRemaining(list::add);
-        return list; 
+        return list;
     }
 }
