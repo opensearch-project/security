@@ -107,7 +107,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 final var differencesList = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
                 for (final var configuration : configurations) {
                     differencesList.add(computeDifferenceToUpdate(configuration)
-                        .map(differences -> ValidationResult.success(new Tuple<CType, JsonNode>(configuration, differences.deepCopy()))));
+                        .map(differences -> ValidationResult.success(new Tuple<CType, JsonNode>(configuration, differences))));
                 }
                 return ValidationResult.combine(differencesList);
             }))
@@ -166,11 +166,11 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         final ArrayNode filteredDiff = JsonNodeFactory.instance.arrayNode();
         diff.forEach(node -> {
             if (!isRemoveOperation(node)) {
-                filteredDiff.add(node.deepCopy());
+                filteredDiff.add(node);
                 return;
             } else {
                 if (!hasRootLevelPath(node)) {
-                    filteredDiff.add(node.deepCopy());
+                    filteredDiff.add(node);
                 }
             }
         });
