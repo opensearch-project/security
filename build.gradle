@@ -25,7 +25,7 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
-        kafka_version  = '3.5.1'
+        kafka_version  = '3.7.0'
         apache_cxf_version = '4.0.3'
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
@@ -477,7 +477,7 @@ bundlePlugin {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.16.0'
+            force 'commons-codec:commons-codec:1.16.1'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.13'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
@@ -500,14 +500,14 @@ configurations {
             force "org.eclipse.platform:org.eclipse.core.runtime:3.30.0"
 
             // For integrationTest
-            force "org.apache.httpcomponents:httpclient-cache:4.5.13"
+            force "org.apache.httpcomponents:httpclient-cache:4.5.14"
             force "org.apache.httpcomponents:httpclient:4.5.13"
             force "org.apache.httpcomponents:fluent-hc:4.5.13"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
             force 'org.checkerframework:checker-qual:3.40.0'
-            force "com.google.errorprone:error_prone_annotations:2.24.0"
+            force "com.google.errorprone:error_prone_annotations:2.25.0"
             force "org.checkerframework:checker-qual:3.42.0"
             force "ch.qos.logback:logback-classic:1.5.2"
         }
@@ -660,6 +660,7 @@ dependencies {
     testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:search-pipeline-common:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
@@ -668,9 +669,13 @@ dependencies {
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-server:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}"
+    testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
+    testImplementation 'commons-validator:commons-validator:1.8.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
