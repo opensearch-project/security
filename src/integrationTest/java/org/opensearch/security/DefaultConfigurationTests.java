@@ -87,8 +87,7 @@ public class DefaultConfigurationTests {
             Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
 
             final var defaultRolesResponse = client.get("_plugins/_security/api/roles/");
-            final var roles = defaultRolesResponse.getBodyAs(JsonNode.class);
-            final var rolesCount = extractFieldNames(roles).size();
+            final var rolesNames = extractFieldNames(defaultRolesResponse.getBodyAs(JsonNode.class));
 
             final var checkForUpgrade = client.get("_plugins/_security/api/_upgrade_check");
             System.out.println("checkForUpgrade Response: " + checkForUpgrade.getBody());
@@ -114,6 +113,12 @@ public class DefaultConfigurationTests {
             final var checkForUpgrade2 = client.get("_plugins/_security/api/_upgrade_check");
             System.out.println("checkForUpgrade2 Response: " + checkForUpgrade2.getBody());
 
+            final var upgradeResponse = client.post("_plugins/_security/api/_upgrade_perform");
+            System.out.println("upgrade Response: " + upgradeResponse.getBody());
+
+            final var afterUpgradeRolesResponse = client.get("_plugins/_security/api/roles/");
+            final var afterUpgradeRolesNames = extractFieldNames(defaultRolesResponse.getBodyAs(JsonNode.class));
+            assertThat(afterUpgradeRolesNames, equalTo(rolesNames));
         }
     }
 

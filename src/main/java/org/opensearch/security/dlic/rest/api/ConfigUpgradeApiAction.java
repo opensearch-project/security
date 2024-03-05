@@ -24,6 +24,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,6 +43,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.api.RolesApiAction.RoleRequestContentValidator;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -58,6 +60,9 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
@@ -85,9 +90,12 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     private final static Logger LOGGER = LogManager.getLogger(ConfigUpgradeApiAction.class);
 
+    private final static Set<CType> SUPPORTED_CTYPES = ImmutableSet.of(CType.ROLES);
+
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
         new Route(Method.GET, "/_upgrade_check"),
-        new Route(Method.POST, "/_upgrade_perform")));
+        new Route(Method.POST, "/_upgrade_perform")
+    ));
 
     @Inject
     public ConfigUpgradeApiAction(
@@ -103,14 +111,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     void handleCanUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
         withIOException(() -> getAndValidateConfigurationsToUpgrade(request)
-            .map(configurations -> {
-                final var differencesList = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
-                for (final var configuration : configurations) {
-                    differencesList.add(computeDifferenceToUpdate(configuration)
-                        .map(differences -> ValidationResult.success(new Tuple<CType, JsonNode>(configuration, differences))));
-                }
-                return ValidationResult.combine(differencesList);
-            }))
+            .map(this::configurationDifferences))
             .valid(differencesList -> {
                 final var canUpgrade = differencesList.stream().anyMatch(entry -> entry.v2().size() > 0);
 
@@ -120,9 +121,9 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 if (canUpgrade) {
                     final ObjectNode differences = JsonNodeFactory.instance.objectNode();
                     differencesList.forEach(t -> {
-                        differences.put(t.v1().toLCString(), t.v2());
+                        differences.set(t.v1().toLCString(), t.v2());
                     });
-                    response.put("differences", differences);
+                    response.set("differences", differences);
                 }
                 channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
             })
@@ -130,15 +131,57 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     }
 
     private void handleUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        throw new UnsupportedOperationException("Unimplemented method 'handleUpgrade'");
+        withIOException(() -> getConfigurations(request)
+            .map(this::configurationDifferences))
+            .map(diffs -> applyDifferences(request, diffs))
+            .valid(updatedResources -> {
+                ok(channel, "Applied all differences: " + updatedResources);
+            })
+            .error((status, toXContent) -> response(channel, status, toXContent));
     }
 
-    private ValidationResult<JsonNode> computeDifferenceToUpdate(final CType configType) throws IOException {
+    ValidationResult<List<Tuple<CType, Map<String, List<String>>>>> applyDifferences(final RestRequest request, final List<Tuple<CType, JsonNode>> differencesToUpdate) throws IOException {
+        final var updatedResources = new ArrayList<ValidationResult<Tuple<CType, Map<String, List<String>>>>>();
+        for (final Tuple<CType, JsonNode> difference : differencesToUpdate) {
+            updatedResources.add(loadConfiguration(difference.v1(), false, false)
+                .map(configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration))
+                    .map(patchResults -> {
+                        final var items = new HashMap<String, String>();
+                        difference.v2().forEach(node -> {
+                            final var item = pathRoot(node);
+                            final var operation = node.get("op").asText();
+                            if (items.containsKey(item) && !items.get(item).equals(operation)) {
+                                items.put(item, "modified");
+                            } else {
+                                items.put(item, operation);
+                            }
+                        });
+
+                        final var itemsGroupedByOperation = items.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+
+                        return ValidationResult.success(new Tuple<>(difference.v1(), itemsGroupedByOperation));
+                    })
+                )
+            );
+        }
+
+        return ValidationResult.merge(updatedResources);
+    }
+ 
+    private ValidationResult<List<Tuple<CType, JsonNode>>> configurationDifferences(final Set<CType> configurations) throws IOException {
+        final var differences = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
+        for (final var configuration : configurations) {
+            differences.add(computeDifferenceToUpdate(configuration));
+        }
+        return ValidationResult.merge(differences);
+    }
+
+    private ValidationResult<Tuple<CType, JsonNode>> computeDifferenceToUpdate(final CType configType) throws IOException {
         return loadConfiguration(configType, false, false).map(activeRoles -> {
             final var activeRolesJson = Utils.convertJsonToJackson(activeRoles, false);
             final var defaultRolesJson = loadConfigFileAsJson(configType);
             final var rawDiff = JsonDiff.asJson(activeRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
-            return ValidationResult.success(filterRemoveOperations(rawDiff));
+            return ValidationResult.success(new Tuple<>(configType, filterRemoveOperations(rawDiff)));
         });
     }
 
@@ -147,22 +190,18 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         
         final var configurations = Optional.ofNullable(configs)
             .map(CType::fromStringValues)
-            .orElse(supportedConfigs());
+            .orElse(SUPPORTED_CTYPES);
 
-        if (!configurations.stream().allMatch(supportedConfigs()::contains)) {
+        if (!configurations.stream().allMatch(SUPPORTED_CTYPES::contains)) {
             // Remove all supported configurations
-            configurations.removeAll(supportedConfigs());
+            configurations.removeAll(SUPPORTED_CTYPES);
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Unsupported configurations for upgrade" + configurations)); 
         }
 
         return ValidationResult.success(configurations);
     }
 
-    private Set<CType> supportedConfigs() {
-        return Set.of(CType.ROLES);
-    }
-
-    private JsonNode filterRemoveOperations(final JsonNode diff) {
+    JsonNode filterRemoveOperations(final JsonNode diff) {
         final ArrayNode filteredDiff = JsonNodeFactory.instance.arrayNode();
         diff.forEach(node -> {
             if (!isRemoveOperation(node)) {
@@ -175,6 +214,10 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             }
         });
         return filteredDiff;
+    }
+
+    private String pathRoot(final JsonNode node) {
+        return node.get("path").asText().split("/")[1];
     }
 
     private boolean hasRootLevelPath(final JsonNode node) {
@@ -207,7 +250,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     @Override
     protected CType getConfigType() {
-        return CType.ROLES;
+        throw new UnsupportedOperationException("This class supports multiple configuration types");
     }
 
     @Override
@@ -226,18 +269,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
             @Override
             public RequestContentValidator createRequestContentValidator(final Object... params) {
-                return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
-
-                    @Override
-                    public Set<String> mandatoryKeys() {
-                        return Set.of("configs");
-                    }
-
-                    @Override
-                    public Map<String, DataType> allowedKeys() {
-                        return Map.of("configs", DataType.ARRAY);
-                    }
-
+                return new RoleRequestContentValidator(new RequestContentValidator.ValidationContext() {
                     @Override
                     public Object[] params() {
                         return params;
@@ -247,8 +279,33 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                     public Settings settings() {
                         return securityApiDependencies.settings();
                     }
+
+                    @Override
+                    public Map<String, DataType> allowedKeys() {
+                        return Map.of("configs", DataType.ARRAY);
+                    }
                 });
             }
         };
     }
+
+    public static class ConfigUpgradeContentValidator extends RequestContentValidator {
+
+        protected ConfigUpgradeContentValidator(final ValidationContext validationContext) {
+            super(validationContext);
+        }
+
+        @Override
+        public ValidationResult<JsonNode> validate(RestRequest request) throws IOException {
+            return super.validate(request);
+        }
+
+        @Override
+        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonContent) throws IOException {
+            return super.validate(request, jsonContent);
+        }
+
+
+    }
+
 }

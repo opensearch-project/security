@@ -11,16 +11,25 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.opensearch.common.CheckedBiConsumer;
 import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedFunction;
+import org.opensearch.common.collect.Tuple;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.security.securityconf.impl.CType;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class ValidationResult<C> {
 
@@ -52,15 +61,19 @@ public class ValidationResult<C> {
         return new ValidationResult<>(status, errorMessage);
     }
 
-    public static <L> ValidationResult<List<L>> combine(final List<ValidationResult<L>> entries) {
-        final var returnList = new ArrayList<L>();
-        for (final var entry : entries) {
-            if (!entry.isValid()) {
-                return error(entry.status(), entry.errorMessage());
-            }
-            returnList.add(entry.content);
+    /**
+     * Transforms a list of validation results into a single validation result of that lists contents.
+     * If any of the validation results are not valid, the first is returned as the error.
+     */
+    public static <L> ValidationResult<List<L>> merge(final List<ValidationResult<L>> results) {
+        if (results.stream().allMatch(ValidationResult::isValid)) {
+            return success(results.stream().map(result -> result.content).collect(Collectors.toList()));
         }
-        return success(returnList);
+
+        return results.stream().filter(result -> !result.isValid())
+            .map(failedResult -> new ValidationResult<List<L>>(failedResult.status, failedResult.errorMessage))
+            .findFirst()
+            .get();
     }
 
     public <L> ValidationResult<L> map(final CheckedFunction<C, ValidationResult<L>, IOException> mapper) throws IOException {
@@ -98,5 +111,10 @@ public class ValidationResult<C> {
 
     public C getContent() {
         return content;
+    }
+
+    public ValidationResult<List<Tuple<CType, JsonNode>>> map(Object mapper) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'map'");
     }
 }
