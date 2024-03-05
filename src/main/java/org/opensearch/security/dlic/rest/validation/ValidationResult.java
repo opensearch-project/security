@@ -12,6 +12,8 @@
 package org.opensearch.security.dlic.rest.validation;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import org.opensearch.common.CheckedBiConsumer;
@@ -50,6 +52,17 @@ public class ValidationResult<C> {
         return new ValidationResult<>(status, errorMessage);
     }
 
+    public static <L> ValidationResult<List<L>> combine(final List<ValidationResult<L>> entries) {
+        final var returnList = new ArrayList<L>();
+        for (final var entry : entries) {
+            if (!entry.isValid()) {
+                return error(entry.status(), entry.errorMessage());
+            }
+            returnList.add(entry.content);
+        }
+        return success(returnList);
+    }
+
     public <L> ValidationResult<L> map(final CheckedFunction<C, ValidationResult<L>, IOException> mapper) throws IOException {
         if (content != null) {
             return Objects.requireNonNull(mapper).apply(content);
@@ -83,7 +96,7 @@ public class ValidationResult<C> {
         return errorMessage;
     }
 
-    public C getContent(){
-        return content; 
+    public C getContent() {
+        return content;
     }
 }

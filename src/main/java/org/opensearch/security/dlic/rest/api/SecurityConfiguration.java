@@ -76,7 +76,7 @@ public class SecurityConfiguration {
     public static SecurityConfiguration of(
         final JsonNode requestContent,
         final String entityName,
-        final SecurityDynamicConfiguration<?> configuration 
+        final SecurityDynamicConfiguration<?> configuration
     ) {
         Objects.requireNonNull(configuration, "configuration hasn't been set");
         Objects.requireNonNull(requestContent, "requestContent hasn't been set");
