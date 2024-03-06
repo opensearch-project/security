@@ -92,7 +92,7 @@ public class SecuritySettingsConfigurer {
      * 2. Sets the custom admin password (Generates one if none is provided)
      * 3. Write the security config to opensearch.yml
      */
-    public void configureSecuritySettings() {
+    public void configureSecuritySettings() throws IOException {
         checkIfSecurityPluginIsAlreadyConfigured();
         updateAdminPassword();
         writeSecurityConfigToOpenSearchYML();
@@ -125,9 +125,17 @@ public class SecuritySettingsConfigurer {
     /**
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
-    void updateAdminPassword() {
+    void updateAdminPassword() throws IOException {
         String INTERNAL_USERS_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         boolean shouldValidatePassword = installer.environment.equals(ExecutionEnvironment.DEMO);
+
+        // check if the password `admin` is present, if not skip updating admin password
+        if (!isAdminPasswordSetToAdmin(INTERNAL_USERS_FILE_PATH)) {
+            System.out.println("Admin password seems to be custom configured. Skipping update to admin password.");
+            return;
+        }
+
+        // if hashed value for "admin" password found, update it with the custom password
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -178,6 +186,41 @@ public class SecuritySettingsConfigurer {
             System.out.println("Exception updating the admin password : " + e.getMessage());
             System.exit(-1);
         }
+    }
+
+    /**
+     * Check if the password for admin user was already updated. (Possibly via a custom internal_users.yml)
+     * @param internalUsersFile Path to internal_users.yml file
+     * @return true if password was already updated, false otherwise
+     * @throws IOException if there was an error while reading the file
+     */
+    private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
+        boolean adminUserFound = false;
+        try (BufferedReader reader = new BufferedReader(new FileReader(internalUsersFile, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+
+                // After admin user is found, check first occurrence of hash (which will admin user's password)
+                // if hash is not for "admin" string, then skip updating password, else continue to update
+                if (line.matches("admin:")) {
+                    adminUserFound = true;
+                    continue;
+                }
+                // Once admin user is found, look for the first occurrence of a line starting with "hash:"
+                // Check that the line doesn't match the hash pattern for "admin" string
+                if (adminUserFound) {
+                    if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
+                        return true;
+                    } else {
+                        // Break, since we only need to find 'admin' user and validate their hash
+                        break;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new IOException("Exception while trying to read the internal users file to search for hashed `admin` password.");
+        }
+        return false;
     }
 
     /**
