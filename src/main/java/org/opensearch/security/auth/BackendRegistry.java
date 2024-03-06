@@ -286,7 +286,9 @@ public class BackendRegistry {
 
             if (ac == null) {
                 // no credentials found in request
-                if (anonymousAuthEnabled) {
+                if (anonymousAuthEnabled && checkIfRequestIsForAnonymousLogin(request.header("_auth_request_type_"))) {
+                    log.info(httpAuthenticator.getClass().getName());
+                    log.info("Skipped {} because anonymous auth is enabled", authDomain.getBackend().getClass());
                     continue;
                 }
 
@@ -386,7 +388,12 @@ public class BackendRegistry {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
-            if (authCredentials == null && anonymousAuthEnabled) {
+            log.info(request.uri());
+            log.info(request.getHeaders());
+            if (authCredentials == null
+                && anonymousAuthEnabled
+                && checkIfRequestIsForAnonymousLogin(request.header("_auth_request_type_"))) {
+                // TODO why do we automatically assume anonymous user ??
                 final String tenant = resolveTenantFrom(request);
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
@@ -396,6 +403,7 @@ public class BackendRegistry {
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");
                 }
+                log.info("Anonymous User is authenticated");
                 return true;
             }
 
@@ -430,6 +438,10 @@ public class BackendRegistry {
             return false;
         }
         return authenticated;
+    }
+
+    private boolean checkIfRequestIsForAnonymousLogin(String authLoginType) {
+        return authLoginType != null && authLoginType.equalsIgnoreCase("anonymous");
     }
 
     private String resolveTenantFrom(final SecurityRequest request) {
