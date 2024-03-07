@@ -11,11 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.AccessController;
@@ -30,17 +25,21 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.index.IndexResponse;
+
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
@@ -57,14 +56,13 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
 public class ConfigUpgradeApiAction extends AbstractApiAction {
 
@@ -113,7 +111,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     void handleUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
         withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).map(
             this::verifyHasDifferences
-        ).map(diffs -> applyDifferences(request, diffs)).valid(updatedConfigs -> {
+        ).map(diffs -> applyDifferences(request, client, diffs)).valid(updatedConfigs -> {
             final var response = JsonNodeFactory.instance.objectNode();
             response.put("status", "OK");
 
@@ -134,29 +132,21 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         for (final Tuple<CType, JsonNode> difference : differencesToUpdate) {
             updatedResources.add(
                 loadConfiguration(difference.v1(), false, false).map(
-                    configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration))
-                    .map(patchResults -> {
-                        saveAndUpdateConfigs(securityApiDependencies.securityIndexName(), client, difference.v1(), configuration, new ActionListener<>(){
-
-                            @Override
-                            public void onResponse(IndexResponse response) {
-                                // TODO: oh my - how did we get here
-                            }
-
-                            @Override
-                            public void onFailure(Exception e) {
-                            }
-                        });
-
-                    })
-                    .map(
+                    configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration)).map(
                         patchResults -> {
-
-
-                            final var itemsGroupedByOperation = new ConfigItemChanges(difference.v1(), difference.v2());
-                            return ValidationResult.success(itemsGroupedByOperation);
+                            final var response = saveAndUpdateConfigs(
+                                securityApiDependencies,
+                                client,
+                                difference.v1(),
+                                patchResults.configuration()
+                            );
+                            return ValidationResult.success(response.actionGet());
                         }
-                    )
+                    ).map(indexResponse -> {
+
+                        final var itemsGroupedByOperation = new ConfigItemChanges(difference.v1(), difference.v2());
+                        return ValidationResult.success(itemsGroupedByOperation);
+                    })
                 )
             );
         }
@@ -351,7 +341,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                     items.put(item, operation);
                 }
             });
-    
+
             final var itemsGroupedByOperation = items.entrySet()
                 .stream()
                 .collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList())));

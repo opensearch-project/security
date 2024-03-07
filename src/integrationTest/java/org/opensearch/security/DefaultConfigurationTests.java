@@ -11,9 +11,10 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -121,9 +122,9 @@ public class DefaultConfigurationTests {
         }
     }
 
-    private List<String> extractFieldNames(final JsonNode json) {
-        final var list = new ArrayList<String>();
-        json.fieldNames().forEachRemaining(list::add);
-        return list;
+    private Set<String> extractFieldNames(final JsonNode json) {
+        final var set = new HashSet<String>();
+        json.fieldNames().forEachRemaining(set::add);
+        return set;
     }
 }
