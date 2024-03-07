@@ -11,11 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.AccessController;
@@ -30,8 +25,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
@@ -53,14 +55,13 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
 public class ConfigUpgradeApiAction extends AbstractApiAction {
 
@@ -88,7 +89,9 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     void handleCanUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
         withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).valid(differencesList -> {
-            final var allConfigItemChanges = differencesList.stream().map(kvp -> new ConfigItemChanges(kvp.v1(), classifyChanges(kvp.v2()))).collect(Collectors.toList());
+            final var allConfigItemChanges = differencesList.stream()
+                .map(kvp -> new ConfigItemChanges(kvp.v1(), classifyChanges(kvp.v2())))
+                .collect(Collectors.toList());
 
             final var upgradeAvaliable = allConfigItemChanges.stream().anyMatch(ConfigItemChanges::hasChanges);
 
@@ -104,12 +107,10 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }).error((status, toXContent) -> response(channel, status, toXContent));
     }
 
-    private void handleUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences))
-        .map(this::verifyHasDifferences)
-        .map(
-            diffs -> applyDifferences(request, diffs)
-        ).valid(updatedConfigs -> {
+    void handleUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
+        withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).map(
+            this::verifyHasDifferences
+        ).map(diffs -> applyDifferences(request, diffs)).valid(updatedConfigs -> {
             final var response = JsonNodeFactory.instance.objectNode();
             response.put("status", "OK");
 
@@ -167,7 +168,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }
     }
 
-    private static Map<String, List<String>> classifyChanges(final JsonNode differences){
+    private static Map<String, List<String>> classifyChanges(final JsonNode differences) {
         final var items = new HashMap<String, String>();
         differences.forEach(node -> {
             final var item = pathRoot(node);
@@ -181,18 +182,13 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
         final var itemsGroupedByOperation = items.entrySet()
             .stream()
-            .collect(
-                Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList()))
-            );
+            .collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
         return itemsGroupedByOperation;
     }
 
     private ValidationResult<List<Tuple<CType, JsonNode>>> verifyHasDifferences(List<Tuple<CType, JsonNode>> diffs) {
         if (diffs.isEmpty()) {
-            return ValidationResult.error(
-                RestStatus.BAD_REQUEST,
-                badRequestMessage("Unable to upgrade, no differences found")
-            );
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Unable to upgrade, no differences found"));
         }
 
         for (final var diff : diffs) {
@@ -337,7 +333,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
         @Override
         public ValidationResult<JsonNode> validate(final RestRequest request, final JsonNode jsonContent) throws IOException {
-            return validateContentSize(jsonContent);//.map(this::validateJsonKeys); TODO use this on the request but disable on patching
+            return validateContentSize(jsonContent);// .map(this::validateJsonKeys); TODO use this on the request but disable on patching
         }
 
     }
