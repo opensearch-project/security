@@ -16,15 +16,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import org.opensearch.common.CheckedBiConsumer;
 import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedFunction;
-import org.opensearch.common.collect.Tuple;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.security.securityconf.impl.CType;
 
 public class ValidationResult<C> {
 
@@ -103,14 +99,5 @@ public class ValidationResult<C> {
 
     public ToXContent errorMessage() {
         return errorMessage;
-    }
-
-    public C getContent() {
-        return content;
-    }
-
-    public ValidationResult<List<Tuple<CType, JsonNode>>> map(Object mapper) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'map'");
     }
 }
