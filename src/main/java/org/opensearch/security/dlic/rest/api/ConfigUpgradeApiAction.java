@@ -11,6 +11,11 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.AccessController;
@@ -25,27 +30,24 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.api.ConfigUpgradeApiAction.ConfigItemChanges;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -55,13 +57,14 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
-
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class ConfigUpgradeApiAction extends AbstractApiAction {
 
@@ -90,7 +93,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     void handleCanUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
         withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).valid(differencesList -> {
             final var allConfigItemChanges = differencesList.stream()
-                .map(kvp -> new ConfigItemChanges(kvp.v1(), classifyChanges(kvp.v2())))
+                .map(kvp -> new ConfigItemChanges(kvp.v1(), kvp.v2()))
                 .collect(Collectors.toList());
 
             final var upgradeAvaliable = allConfigItemChanges.stream().anyMatch(ConfigItemChanges::hasChanges);
@@ -124,15 +127,33 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     ValidationResult<List<ConfigItemChanges>> applyDifferences(
         final RestRequest request,
+        final Client client,
         final List<Tuple<CType, JsonNode>> differencesToUpdate
     ) throws IOException {
         final var updatedResources = new ArrayList<ValidationResult<ConfigItemChanges>>();
         for (final Tuple<CType, JsonNode> difference : differencesToUpdate) {
             updatedResources.add(
                 loadConfiguration(difference.v1(), false, false).map(
-                    configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration)).map(
+                    configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration))
+                    .map(patchResults -> {
+                        saveAndUpdateConfigs(securityApiDependencies.securityIndexName(), client, difference.v1(), configuration, new ActionListener<>(){
+
+                            @Override
+                            public void onResponse(IndexResponse response) {
+                                // TODO: oh my - how did we get here
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                            }
+                        });
+
+                    })
+                    .map(
                         patchResults -> {
-                            final var itemsGroupedByOperation = new ConfigItemChanges(difference.v1(), classifyChanges(difference.v2()));
+
+
+                            final var itemsGroupedByOperation = new ConfigItemChanges(difference.v1(), difference.v2());
                             return ValidationResult.success(itemsGroupedByOperation);
                         }
                     )
@@ -141,49 +162,6 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }
 
         return ValidationResult.merge(updatedResources);
-    }
-
-    /** Add syntaxic sugar for interacting with config changes */
-    static class ConfigItemChanges {
-
-        private final CType config;
-        private final Map<String, List<String>> itemsGroupedByOperation;
-
-        public ConfigItemChanges(final CType config, final Map<String, List<String>> itemsGroupedByOperation) {
-            this.config = config;
-            this.itemsGroupedByOperation = itemsGroupedByOperation;
-        }
-
-        public boolean hasChanges() {
-            return !itemsGroupedByOperation.isEmpty();
-        }
-
-        public void addToNode(final ObjectNode node) {
-            final var allOperations = JsonNodeFactory.instance.objectNode();
-            itemsGroupedByOperation.forEach((operation, items) -> {
-                final var arrayNode = allOperations.putArray(operation);
-                items.forEach(arrayNode::add);
-            });
-            node.set(config.toLCString(), allOperations);
-        }
-    }
-
-    private static Map<String, List<String>> classifyChanges(final JsonNode differences) {
-        final var items = new HashMap<String, String>();
-        differences.forEach(node -> {
-            final var item = pathRoot(node);
-            final var operation = node.get("op").asText();
-            if (items.containsKey(item) && !items.get(item).equals(operation)) {
-                items.put(item, "modify");
-            } else {
-                items.put(item, operation);
-            }
-        });
-
-        final var itemsGroupedByOperation = items.entrySet()
-            .stream()
-            .collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
-        return itemsGroupedByOperation;
     }
 
     private ValidationResult<List<Tuple<CType, JsonNode>>> verifyHasDifferences(List<Tuple<CType, JsonNode>> diffs) {
@@ -325,7 +303,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     }
 
     /** More permissions validation that default ContentValidator  */
-    public static class ConfigUpgradeContentValidator extends RequestContentValidator {
+    static class ConfigUpgradeContentValidator extends RequestContentValidator {
 
         protected ConfigUpgradeContentValidator(final ValidationContext validationContext) {
             super(validationContext);
@@ -338,4 +316,46 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     }
 
+    /** Tranforms config changes from a raw PATCH into simplier view */
+    static class ConfigItemChanges {
+
+        private final CType config;
+        private final Map<String, List<String>> itemsGroupedByOperation;
+
+        public ConfigItemChanges(final CType config, final JsonNode differences) {
+            this.config = config;
+            this.itemsGroupedByOperation = classifyChanges(differences);
+        }
+
+        public boolean hasChanges() {
+            return !itemsGroupedByOperation.isEmpty();
+        }
+
+        public void addToNode(final ObjectNode node) {
+            final var allOperations = JsonNodeFactory.instance.objectNode();
+            itemsGroupedByOperation.forEach((operation, items) -> {
+                final var arrayNode = allOperations.putArray(operation);
+                items.forEach(arrayNode::add);
+            });
+            node.set(config.toLCString(), allOperations);
+        }
+
+        private static Map<String, List<String>> classifyChanges(final JsonNode differences) {
+            final var items = new HashMap<String, String>();
+            differences.forEach(node -> {
+                final var item = pathRoot(node);
+                final var operation = node.get("op").asText();
+                if (items.containsKey(item) && !items.get(item).equals(operation)) {
+                    items.put(item, "modify");
+                } else {
+                    items.put(item, operation);
+                }
+            });
+    
+            final var itemsGroupedByOperation = items.entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+            return itemsGroupedByOperation;
+        }
+    }
 }

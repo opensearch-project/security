@@ -117,7 +117,7 @@ public class DefaultConfigurationTests {
 
             final var afterUpgradeRolesResponse = client.get("_plugins/_security/api/roles/");
             final var afterUpgradeRolesNames = extractFieldNames(afterUpgradeRolesResponse.getBodyAs(JsonNode.class));
-            assertThat(afterUpgradeRolesNames, equalTo(rolesNames));
+            assertThat(afterUpgradeRolesResponse.getBody(), afterUpgradeRolesNames, equalTo(rolesNames));
         }
     }
 
