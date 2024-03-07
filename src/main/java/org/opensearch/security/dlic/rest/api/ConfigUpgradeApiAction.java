@@ -51,6 +51,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -101,7 +102,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     }
 
     void handleCanUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        withIOException(() -> getConfigurations(request)
+        withIOException(() -> getAndValidateConfigurationsToUpgrade(request)
             .map(configurations -> {
                 final var differencesList = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
                 for (final var configuration : configurations) {
@@ -141,7 +142,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         });
     }
 
-    private ValidationResult<Set<CType>> getConfigurations(final RestRequest request) {
+    private ValidationResult<Set<CType>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
         final String[] configs = request.paramAsStringArray("configs", null);
         
         final var configurations = Optional.ofNullable(configs)
@@ -185,7 +186,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return node.get("op").asText().equals("remove");
     }
 
-    public JsonNode loadConfigFileAsJson(final CType cType) {
+    public JsonNode loadConfigFileAsJson(final CType cType) throws IOException {
         final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
         final var filepath = cType.configFile(Path.of(cd)).toString();
         try {
@@ -194,9 +195,8 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 return Utils.convertJsonToJackson(loadedConfiguration, false);
             });
         } catch (final PrivilegedActionException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            throw new RuntimeException(e);
+            LOGGER.error("Error when loading configuration from file", e);
+            throw (IOException) e.getCause();
         }
     }
 
