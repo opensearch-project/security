@@ -27,9 +27,14 @@ import org.junit.runner.RunWith;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -59,19 +64,22 @@ public class DefaultConfigurationTests {
         FileUtils.deleteDirectory(configurationFolder.toFile());
     }
 
-    // @Test
-    // public void shouldLoadDefaultConfiguration() {
-    // try (TestRestClient client = cluster.getRestClient(NEW_USER)) {
-    // Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
-    // }
-    // try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
-    // client.confirmCorrectCredentials(ADMIN_USER.getName());
-    // HttpResponse response = client.get("_plugins/_security/api/internalusers");
-    // response.assertStatusCode(200);
-    // Map<String, Object> users = response.getBodyAs(Map.class);
-    // assertThat(users, allOf(aMapWithSize(3), hasKey(ADMIN_USER.getName()), hasKey(NEW_USER.getName()), hasKey(LIMITED_USER.getName())));
-    // }
-    // }
+    @Test
+    public void shouldLoadDefaultConfiguration() {
+        try (TestRestClient client = cluster.getRestClient(NEW_USER)) {
+            Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+        }
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            client.confirmCorrectCredentials(ADMIN_USER.getName());
+            HttpResponse response = client.get("_plugins/_security/api/internalusers");
+            response.assertStatusCode(200);
+            Map<String, Object> users = response.getBodyAs(Map.class);
+            assertThat(
+                users,
+                allOf(aMapWithSize(3), hasKey(ADMIN_USER.getName()), hasKey(NEW_USER.getName()), hasKey(LIMITED_USER.getName()))
+            );
+        }
+    }
 
     @Test
     public void securityRolesUgrade() throws Exception {
@@ -108,7 +116,7 @@ public class DefaultConfigurationTests {
             System.out.println("upgrade Response: " + upgradeResponse.getBody());
 
             final var afterUpgradeRolesResponse = client.get("_plugins/_security/api/roles/");
-            final var afterUpgradeRolesNames = extractFieldNames(defaultRolesResponse.getBodyAs(JsonNode.class));
+            final var afterUpgradeRolesNames = extractFieldNames(afterUpgradeRolesResponse.getBodyAs(JsonNode.class));
             assertThat(afterUpgradeRolesNames, equalTo(rolesNames));
         }
     }
