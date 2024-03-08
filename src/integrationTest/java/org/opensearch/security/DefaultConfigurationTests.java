@@ -87,38 +87,53 @@ public class DefaultConfigurationTests {
         try (var client = cluster.getRestClient(ADMIN_USER)) {
             Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
 
-            final var defaultRolesResponse = client.get("_plugins/_security/api/roles/");
-            final var rolesNames = extractFieldNames(defaultRolesResponse.getBodyAs(JsonNode.class));
+            final var expectedRoles = client.get("_plugins/_security/api/roles/");
+            final var expectedRoleNames = extractFieldNames(expectedRoles.getBodyAs(JsonNode.class));
 
-            final var checkForUpgrade = client.get("_plugins/_security/api/_upgrade_check");
-            System.out.println("checkForUpgrade Response: " + checkForUpgrade.getBody());
+            final var upgradeCheck = client.get("_plugins/_security/api/_upgrade_check");
+            upgradeCheck.assertStatusCode(200);
+            assertThat(upgradeCheck.getBooleanFromJsonBody("/upgradeAvaliable"), equalTo(false));
 
             final var roleToDelete = "flow_framework_full_access";
-            final var deleteRoleResponse = client.delete("_plugins/_security/api/roles/" + roleToDelete);
-            deleteRoleResponse.assertStatusCode(200);
-
-            final var checkForUpgrade3 = client.get("_plugins/_security/api/_upgrade_check");
-            System.out.println("checkForUpgrade3 Response: " + checkForUpgrade3.getBody());
+            client.delete("_plugins/_security/api/roles/" + roleToDelete).assertStatusCode(200);
 
             final var roleToAlter = "flow_framework_read_access";
-            final String patchBody = "[{ \"op\": \"replace\", \"path\": \"/cluster_permissions\", \"value\":"
-                + "[\"a\",\"b\",\"c\"]"
-                + "},{ \"op\": \"add\", \"path\": \"/index_permissions\", \"value\":"
-                + "[{\"index_patterns\":[\"*\"],\"allowed_actions\":[\"*\"]}]"
-                + "}]";
-            final var updateRoleResponse = client.patch("_plugins/_security/api/roles/" + roleToAlter, patchBody);
-            updateRoleResponse.assertStatusCode(200);
-            System.out.println("Updated Role Response: " + updateRoleResponse.getBody());
+            client.patch("_plugins/_security/api/roles/" + roleToAlter, "[\n" + //
+                "  {\n" + //
+                "    \"op\": \"replace\",\n" + //
+                "    \"path\": \"/cluster_permissions\",\n" + //
+                "    \"value\": [\"a\", \"b\", \"c\"]\n" + //
+                "  },\n" + //
+                "  {\n" + //
+                "    \"op\": \"add\",\n" + //
+                "    \"path\": \"/index_permissions\",\n" + //
+                "    \"value\": [ {\n" + //
+                "        \"index_patterns\": [\"*\"],\n" + //
+                "        \"allowed_actions\": [\"*\"]\n" + //
+                "      }\n" + //
+                "    ]\n" + //
+                "  }\n" + //
+                "]").assertStatusCode(200);
 
-            final var checkForUpgrade2 = client.get("_plugins/_security/api/_upgrade_check");
-            System.out.println("checkForUpgrade2 Response: " + checkForUpgrade2.getBody());
+            final var upgradeCheckAfterChanges = client.get("_plugins/_security/api/_upgrade_check");
+            upgradeCheckAfterChanges.assertStatusCode(200);
+            assertThat(
+                upgradeCheckAfterChanges.getTextArrayFromJsonBody("/upgradeActions/roles/add"),
+                equalTo(List.of("flow_framework_full_access"))
+            );
+            assertThat(
+                upgradeCheckAfterChanges.getTextArrayFromJsonBody("/upgradeActions/roles/modify"),
+                equalTo(List.of("flow_framework_read_access"))
+            );
 
-            final var upgradeResponse = client.post("_plugins/_security/api/_upgrade_perform");
-            System.out.println("upgrade Response: " + upgradeResponse.getBody());
+            final var performUpgrade = client.post("_plugins/_security/api/_upgrade_perform");
+            performUpgrade.assertStatusCode(200);
+            assertThat(performUpgrade.getTextArrayFromJsonBody("/upgrades/roles/add"), equalTo(List.of("flow_framework_full_access")));
+            assertThat(performUpgrade.getTextArrayFromJsonBody("/upgrades/roles/modify"), equalTo(List.of("flow_framework_read_access")));
 
-            final var afterUpgradeRolesResponse = client.get("_plugins/_security/api/roles/");
-            final var afterUpgradeRolesNames = extractFieldNames(afterUpgradeRolesResponse.getBodyAs(JsonNode.class));
-            assertThat(afterUpgradeRolesResponse.getBody(), afterUpgradeRolesNames, equalTo(rolesNames));
+            final var afterUpgradeRoles = client.get("_plugins/_security/api/roles/");
+            final var afterUpgradeRolesNames = extractFieldNames(afterUpgradeRoles.getBodyAs(JsonNode.class));
+            assertThat(afterUpgradeRolesNames, equalTo(expectedRoleNames));
         }
     }
 

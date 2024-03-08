@@ -47,7 +47,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.api.ConfigUpgradeApiAction.ConfigItemChanges;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -127,7 +126,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             .error((status, toXContent) -> response(channel, status, toXContent));
     }
 
-    ValidationResult<List<ConfigItemChanges>> applyDifferences(
+    private ValidationResult<List<ConfigItemChanges>> applyDifferences(
         final RestRequest request,
         final Client client,
         final List<Tuple<CType, JsonNode>> differencesToUpdate
@@ -183,7 +182,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return ValidationResult.success(diffs);
     }
 
-    ValidationResult<List<Tuple<CType, JsonNode>>> configurationDifferences(final Set<CType> configurations) {
+    private ValidationResult<List<Tuple<CType, JsonNode>>> configurationDifferences(final Set<CType> configurations) {
         try {
             final var differences = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
             for (final var configuration : configurations) {
@@ -208,7 +207,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }));
     }
 
-    ValidationResult<Set<CType>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
+    private ValidationResult<Set<CType>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
         final String[] configs = request.paramAsStringArray(REQUEST_PARAM_CONFIGS_KEY, null);
 
         final Set<CType> configurations;
@@ -233,7 +232,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return ValidationResult.success(configurations);
     }
 
-    JsonNode filterRemoveOperations(final JsonNode diff) {
+    private JsonNode filterRemoveOperations(final JsonNode diff) {
         final ArrayNode filteredDiff = JsonNodeFactory.instance.arrayNode();
         diff.forEach(node -> {
             if (!isRemoveOperation(node)) {
@@ -261,7 +260,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return node.get("op").asText().equals("remove");
     }
 
-    <T> SecurityDynamicConfiguration<T> loadYamlFile(final String filepath, final CType cType) throws IOException {
+    private <T> SecurityDynamicConfiguration<T> loadYamlFile(final String filepath, final CType cType) throws IOException {
         return ConfigHelper.fromYamlFile(filepath, cType, ConfigurationRepository.DEFAULT_CONFIG_VERSION, 0, 0);
     }
 
