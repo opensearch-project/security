@@ -229,7 +229,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         );
     }
 
-    protected final ValidationResult<SecurityConfiguration> patchEntities(
+    protected ValidationResult<SecurityConfiguration> patchEntities(
         final RestRequest request,
         final JsonNode patchContent,
         final SecurityConfiguration securityConfiguration
@@ -370,7 +370,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         );
     }
 
-    protected final ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
+    protected ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
         final CType cType,
         boolean omitSensitiveData,
         final boolean logComplianceEvent

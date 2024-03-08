@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
@@ -53,6 +54,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -84,12 +86,12 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     ) {
         super(Endpoint.CONFIG, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(rhb -> {
-            rhb.allMethodsNotImplemented().add(Method.GET, this::handleCanUpgrade).add(Method.POST, this::handleUpgrade);
+            rhb.allMethodsNotImplemented().add(Method.GET, this::canUpgrade).add(Method.POST, this::performUpgrade);
         });
     }
 
-    void handleCanUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).valid(differencesList -> {
+    void canUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
+        getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences).valid(differencesList -> {
             final var allConfigItemChanges = differencesList.stream()
                 .map(kvp -> new ConfigItemChanges(kvp.v1(), kvp.v2()))
                 .collect(Collectors.toList());
@@ -108,53 +110,64 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }).error((status, toXContent) -> response(channel, status, toXContent));
     }
 
-    void handleUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        withIOException(() -> getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)).map(
-            this::verifyHasDifferences
-        ).map(diffs -> applyDifferences(request, client, diffs)).valid(updatedConfigs -> {
-            final var response = JsonNodeFactory.instance.objectNode();
-            response.put("status", "OK");
+    void performUpgrade(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
+        getAndValidateConfigurationsToUpgrade(request).map(this::configurationDifferences)
+            .map(this::verifyHasDifferences)
+            .map(diffs -> applyDifferences(request, client, diffs))
+            .valid(updatedConfigs -> {
+                final var response = JsonNodeFactory.instance.objectNode();
+                response.put("status", "OK");
 
-            final var allUpdates = JsonNodeFactory.instance.objectNode();
-            updatedConfigs.forEach(configItemChanges -> configItemChanges.addToNode(allUpdates));
-            response.set("upgrades", allUpdates);
+                final var allUpdates = JsonNodeFactory.instance.objectNode();
+                updatedConfigs.forEach(configItemChanges -> configItemChanges.addToNode(allUpdates));
+                response.set("upgrades", allUpdates);
 
-            channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
-        }).error((status, toXContent) -> response(channel, status, toXContent));
+                channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType(), response.toPrettyString()));
+            })
+            .error((status, toXContent) -> response(channel, status, toXContent));
     }
 
     ValidationResult<List<ConfigItemChanges>> applyDifferences(
         final RestRequest request,
         final Client client,
         final List<Tuple<CType, JsonNode>> differencesToUpdate
-    ) throws IOException {
-        final var updatedResources = new ArrayList<ValidationResult<ConfigItemChanges>>();
-        for (final Tuple<CType, JsonNode> difference : differencesToUpdate) {
-            updatedResources.add(
-                loadConfiguration(difference.v1(), false, false).map(
-                    configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration)).map(
-                        patchResults -> {
-                            final var response = saveAndUpdateConfigs(
-                                securityApiDependencies,
-                                client,
-                                difference.v1(),
-                                patchResults.configuration()
-                            );
-                            return ValidationResult.success(response.actionGet());
-                        }
-                    ).map(indexResponse -> {
+    ) {
+        try {
+            final var updatedResources = new ArrayList<ValidationResult<ConfigItemChanges>>();
+            for (final Tuple<CType, JsonNode> difference : differencesToUpdate) {
+                updatedResources.add(
+                    loadConfiguration(difference.v1(), false, false).map(
+                        configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration)).map(
+                            patchResults -> {
+                                final var response = saveAndUpdateConfigs(
+                                    securityApiDependencies,
+                                    client,
+                                    difference.v1(),
+                                    patchResults.configuration()
+                                );
+                                return ValidationResult.success(response.actionGet());
+                            }
+                        ).map(indexResponse -> {
 
-                        final var itemsGroupedByOperation = new ConfigItemChanges(difference.v1(), difference.v2());
-                        return ValidationResult.success(itemsGroupedByOperation);
-                    })
-                )
+                            final var itemsGroupedByOperation = new ConfigItemChanges(difference.v1(), difference.v2());
+                            return ValidationResult.success(itemsGroupedByOperation);
+                        })
+                    )
+                );
+            }
+
+            return ValidationResult.merge(updatedResources);
+        } catch (final Exception ioe) {
+            LOGGER.debug("Error while applying differences", ioe);
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Error applying configuration, see the log file to troubleshoot.")
             );
         }
 
-        return ValidationResult.merge(updatedResources);
     }
 
-    private ValidationResult<List<Tuple<CType, JsonNode>>> verifyHasDifferences(List<Tuple<CType, JsonNode>> diffs) {
+    ValidationResult<List<Tuple<CType, JsonNode>>> verifyHasDifferences(List<Tuple<CType, JsonNode>> diffs) {
         if (diffs.isEmpty()) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Unable to upgrade, no differences found"));
         }
@@ -170,34 +183,50 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return ValidationResult.success(diffs);
     }
 
-    private ValidationResult<List<Tuple<CType, JsonNode>>> configurationDifferences(final Set<CType> configurations) throws IOException {
-        final var differences = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
-        for (final var configuration : configurations) {
-            differences.add(computeDifferenceToUpdate(configuration));
+    ValidationResult<List<Tuple<CType, JsonNode>>> configurationDifferences(final Set<CType> configurations) {
+        try {
+            final var differences = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
+            for (final var configuration : configurations) {
+                differences.add(computeDifferenceToUpdate(configuration));
+            }
+            return ValidationResult.merge(differences);
+        } catch (final UncheckedIOException ioe) {
+            LOGGER.error("Error while processing differences", ioe.getCause());
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Error processing configuration, see the log file to troubleshoot.")
+            );
         }
-        return ValidationResult.merge(differences);
     }
 
-    private ValidationResult<Tuple<CType, JsonNode>> computeDifferenceToUpdate(final CType configType) throws IOException {
-        return loadConfiguration(configType, false, false).map(activeRoles -> {
-            final var activeRolesJson = Utils.convertJsonToJackson(activeRoles, false);
+    ValidationResult<Tuple<CType, JsonNode>> computeDifferenceToUpdate(final CType configType) {
+        return withIOException(() -> loadConfiguration(configType, false, false).map(activeRoles -> {
+            final var activeRolesJson = Utils.convertJsonToJackson(activeRoles, true);
             final var defaultRolesJson = loadConfigFileAsJson(configType);
             final var rawDiff = JsonDiff.asJson(activeRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
             return ValidationResult.success(new Tuple<>(configType, filterRemoveOperations(rawDiff)));
-        });
+        }));
     }
 
-    private ValidationResult<Set<CType>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
+    ValidationResult<Set<CType>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
         final String[] configs = request.paramAsStringArray(REQUEST_PARAM_CONFIGS_KEY, null);
 
-        final var configurations = Optional.ofNullable(configs).map(CType::fromStringValues).orElse(SUPPORTED_CTYPES);
+        final Set<CType> configurations;
+        try {
+            configurations = Optional.ofNullable(configs).map(CType::fromStringValues).orElse(SUPPORTED_CTYPES);
+        } catch (final IllegalArgumentException iae) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Found invalid configuration option, valid options are: " + CType.lcStringValues())
+            );
+        }
 
         if (!configurations.stream().allMatch(SUPPORTED_CTYPES::contains)) {
             // Remove all supported configurations
             configurations.removeAll(SUPPORTED_CTYPES);
             return ValidationResult.error(
                 RestStatus.BAD_REQUEST,
-                badRequestMessage("Unsupported configurations for upgrade" + configurations)
+                badRequestMessage("Unsupported configurations for upgrade, " + configurations)
             );
         }
 
@@ -232,13 +261,17 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return node.get("op").asText().equals("remove");
     }
 
-    public JsonNode loadConfigFileAsJson(final CType cType) throws IOException {
+    <T> SecurityDynamicConfiguration<T> loadYamlFile(final String filepath, final CType cType) throws IOException {
+        return ConfigHelper.fromYamlFile(filepath, cType, ConfigurationRepository.DEFAULT_CONFIG_VERSION, 0, 0);
+    }
+
+    JsonNode loadConfigFileAsJson(final CType cType) throws IOException {
         final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
         final var filepath = cType.configFile(Path.of(cd)).toString();
         try {
             return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> {
-                var loadedConfiguration = ConfigHelper.fromYamlFile(filepath, cType, ConfigurationRepository.DEFAULT_CONFIG_VERSION, 0, 0);
-                return Utils.convertJsonToJackson(loadedConfiguration, false);
+                final var loadedConfiguration = loadYamlFile(filepath, cType);
+                return Utils.convertJsonToJackson(loadedConfiguration, true);
             });
         } catch (final PrivilegedActionException e) {
             LOGGER.error("Error when loading configuration from file", e);
@@ -268,6 +301,18 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             @Override
             public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
                 return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> entityReserved(SecurityConfiguration securityConfiguration) {
+                // Allow modification of reserved entities
+                return ValidationResult.success(securityConfiguration);
+            }
+
+            @Override
+            public ValidationResult<SecurityConfiguration> entityHidden(SecurityConfiguration securityConfiguration) {
+                // Allow modification of hidden entities
+                return ValidationResult.success(securityConfiguration);
             }
 
             @Override
@@ -301,9 +346,8 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
         @Override
         public ValidationResult<JsonNode> validate(final RestRequest request, final JsonNode jsonContent) throws IOException {
-            return validateContentSize(jsonContent);// .map(this::validateJsonKeys); TODO use this on the request but disable on patching
+            return validateContentSize(jsonContent);
         }
-
     }
 
     /** Tranforms config changes from a raw PATCH into simplier view */
