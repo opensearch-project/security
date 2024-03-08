@@ -92,7 +92,7 @@ public class DefaultConfigurationTests {
 
             final var upgradeCheck = client.get("_plugins/_security/api/_upgrade_check");
             upgradeCheck.assertStatusCode(200);
-            assertThat(upgradeCheck.getBooleanFromJsonBody("/upgradeAvaliable"), equalTo(false));
+            assertThat(upgradeCheck.getBooleanFromJsonBody("/upgradeAvailable"), equalTo(false));
 
             final var roleToDelete = "flow_framework_full_access";
             client.delete("_plugins/_security/api/roles/" + roleToDelete).assertStatusCode(200);

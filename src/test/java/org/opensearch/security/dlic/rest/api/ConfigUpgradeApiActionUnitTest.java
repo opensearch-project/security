@@ -141,8 +141,9 @@ public class ConfigUpgradeApiActionUnitTest extends AbstractApiActionValidationT
 
         // Verify
         verify(restChannel).sendResponse(argThat(response -> {
-            String content = response.content().utf8ToString();
-            assertThat(content, equalTo("{\n" + //
+            final var rawResponseBody = response.content().utf8ToString();
+            final var newlineNormalizedBody = rawResponseBody.replace("\r\n", "\n");
+            assertThat(newlineNormalizedBody, equalTo("{\n" + //
                 "  \"status\" : \"OK\",\n" + //
                 "  \"upgrades\" : {\n" + //
                 "    \"roles\" : {\n" + //

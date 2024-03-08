@@ -95,12 +95,13 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                 .map(kvp -> new ConfigItemChanges(kvp.v1(), kvp.v2()))
                 .collect(Collectors.toList());
 
-            final var upgradeAvaliable = allConfigItemChanges.stream().anyMatch(ConfigItemChanges::hasChanges);
+            final var upgradeAvailable = allConfigItemChanges.stream().anyMatch(ConfigItemChanges::hasChanges);
 
             final ObjectNode response = JsonNodeFactory.instance.objectNode();
-            response.put("upgradeAvaliable", upgradeAvaliable);
+            response.put("status", "OK");
+            response.put("upgradeAvailable", upgradeAvailable);
 
-            if (upgradeAvaliable) {
+            if (upgradeAvailable) {
                 final ObjectNode differences = JsonNodeFactory.instance.objectNode();
                 allConfigItemChanges.forEach(configItemChanges -> configItemChanges.addToNode(differences));
                 response.set("upgradeActions", differences);
