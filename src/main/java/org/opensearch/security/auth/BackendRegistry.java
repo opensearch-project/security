@@ -295,7 +295,7 @@ public class BackendRegistry {
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
-
+                        return false;
                     }
                 } else {
                     // no reRequest possible
