@@ -28,6 +28,7 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,12 +39,14 @@ import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
+import com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
+import io.netty.handler.codec.base64.Base64Decoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -286,12 +289,6 @@ public class BackendRegistry {
 
             if (ac == null) {
                 // no credentials found in request
-                if (anonymousAuthEnabled && checkIfRequestIsForAnonymousLogin(request.header("_auth_request_type_"))) {
-                    log.info(httpAuthenticator.getClass().getName());
-                    log.info("Skipped {} because anonymous auth is enabled", authDomain.getBackend().getClass());
-                    continue;
-                }
-
                 if (authDomain.isChallenge()) {
                     final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
                     if (restResponse.isPresent()) {
@@ -301,7 +298,8 @@ public class BackendRegistry {
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
-                        return false;
+
+
                     }
                 } else {
                     // no reRequest possible
@@ -311,6 +309,10 @@ public class BackendRegistry {
                     continue;
                 }
             } else {
+                // credentials found for anonymous user. Skip looping over rest auth domains as this is a login request for anonymous user
+                if (anonymousAuthEnabled && ac.getUsername().equals(User.ANONYMOUS.getName())) {
+                    break;
+                }
                 org.apache.logging.log4j.ThreadContext.put("user", ac.getUsername());
                 if (!ac.isComplete()) {
                     // credentials found in request but we need another client challenge
@@ -390,21 +392,20 @@ public class BackendRegistry {
 
             log.info(request.uri());
             log.info(request.getHeaders());
-            if (authCredentials == null
-                && anonymousAuthEnabled
-                && checkIfRequestIsForAnonymousLogin(request.header("_auth_request_type_"))) {
-                // TODO why do we automatically assume anonymous user ??
-                final String tenant = resolveTenantFrom(request);
-                User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
-                anonymousUser.setRequestedTenant(tenant);
+            if (anonymousAuthEnabled) {
+                assert authCredentials != null;
+                if (authCredentials.getUsername().equals(User.ANONYMOUS.getName())) {
+                    final String tenant = resolveTenantFrom(request);
+                    User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
+                    anonymousUser.setRequestedTenant(tenant);
 
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
-                auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
-                if (isDebugEnabled) {
-                    log.debug("Anonymous User is authenticated");
+                    threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
+                    auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
+                    if (isDebugEnabled) {
+                        log.debug("Anonymous User is authenticated");
+                    }
+                    return true;
                 }
-                log.info("Anonymous User is authenticated");
-                return true;
             }
 
             Optional<SecurityResponse> challengeResponse = Optional.empty();
@@ -438,10 +439,6 @@ public class BackendRegistry {
             return false;
         }
         return authenticated;
-    }
-
-    private boolean checkIfRequestIsForAnonymousLogin(String authLoginType) {
-        return authLoginType != null && authLoginType.equalsIgnoreCase("anonymous");
     }
 
     private String resolveTenantFrom(final SecurityRequest request) {
