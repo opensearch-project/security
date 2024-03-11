@@ -28,7 +28,6 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,14 +38,12 @@ import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
-import io.netty.handler.codec.base64.Base64Decoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -299,7 +296,6 @@ public class BackendRegistry {
                         notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
 
-
                     }
                 } else {
                     // no reRequest possible
@@ -390,8 +386,6 @@ public class BackendRegistry {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
-            log.info(request.uri());
-            log.info(request.getHeaders());
             if (anonymousAuthEnabled) {
                 assert authCredentials != null;
                 if (authCredentials.getUsername().equals(User.ANONYMOUS.getName())) {
