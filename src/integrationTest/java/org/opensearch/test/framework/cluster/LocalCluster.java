@@ -155,12 +155,12 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     @Override
     protected void after() {
+        System.clearProperty(INIT_CONFIGURATION_DIR);
         close();
     }
 
     @Override
     public void close() {
-        System.clearProperty(INIT_CONFIGURATION_DIR);
         if (localOpenSearchCluster != null && localOpenSearchCluster.isStarted()) {
             try {
                 localOpenSearchCluster.destroy();
