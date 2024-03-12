@@ -37,6 +37,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
+import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authc;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -185,7 +186,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         }
         if (jsonContent.hasNonNull(SIGN_IN_OPTIONS) && jsonContent.findValue(SIGN_IN_OPTIONS).isEmpty() == false) {
             JsonNode newOptions = jsonContent.findValue(SIGN_IN_OPTIONS);
-            List<DashboardSignInOption> options = getNewSignInOptions(newOptions);
+            List<DashboardSignInOption> options = getNewSignInOptions(newOptions, config.dynamic.authc);
             config.dynamic.kibana.sign_in_options = options;
         }
 
@@ -214,16 +215,29 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         }
     }
 
-    private List<DashboardSignInOption> getNewSignInOptions(JsonNode newOptions) {
+    private List<DashboardSignInOption> getNewSignInOptions(JsonNode newOptions, Authc authc) {
         List<DashboardSignInOption> options = new ArrayList<>();
         for (int i = 0; i < newOptions.size(); i++) {
             try {
                 String option = newOptions.get(i).asText();
-                options.add(DashboardSignInOption.valueOf(option));
+                if (isOptionConfiguredAtBackEnd(authc, option)) {
+                    options.add(DashboardSignInOption.valueOf(option));
+                }
             } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid sign-in option. " + e.getMessage());
+                throw new IllegalArgumentException("Invalid sign-in option: " + e.getMessage());
             }
         }
         return options;
+    }
+
+    private boolean isOptionConfiguredAtBackEnd(Authc authc, String option) {
+        for (String key : authc.getDomains().keySet()) {
+            if (key.contains(option.toLowerCase())) {
+                return true;
+            }
+        }
+        throw new IllegalArgumentException(
+            "Validation failure: " + option.toUpperCase() + " authentication provider is not available for this cluster."
+        );
     }
 }

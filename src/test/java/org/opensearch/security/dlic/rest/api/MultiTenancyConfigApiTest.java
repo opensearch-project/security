@@ -59,10 +59,11 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         );
         assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem(DashboardSignInOption.BASIC.toString()));
         assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), not(hasItem(DashboardSignInOption.SAML.toString())));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), not(hasItem(DashboardSignInOption.OPENID.toString())));
 
         final HttpResponse updateDashboardSignInOptions = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
-            "{\"sign_in_options\": [\"BASIC\", \"SAML\"]}",
+            "{\"sign_in_options\": [\"BASIC\", \"OPENID\"]}",
             header
         );
         assertThat(updateDashboardSignInOptions.getBody(), updateDashboardSignInOptions.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -72,7 +73,27 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         assertThat(getDashboardsinfoResponse.findValueInJson("default_tenant"), equalTo("Private"));
 
         assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem((DashboardSignInOption.BASIC.toString())));
-        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem((DashboardSignInOption.SAML.toString())));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem((DashboardSignInOption.OPENID.toString())));
+
+        final HttpResponse updateUnavailableSignInOption = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"sign_in_options\": [\"BASIC\", \"SAML\"]}",
+            header
+        );
+        assertThat(updateUnavailableSignInOption.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
+        assertThat(
+            updateUnavailableSignInOption.findValueInJson("error.reason"),
+            containsString("Validation failure: SAML authentication provider is not available for this cluster.")
+        );
+
+        // Ensuring the sign in options array has not been modified due to the Bad Request response.
+        getDashboardsinfoResponse = rh.executeGetRequest("/_plugins/_security/dashboardsinfo", ADMIN_FULL_ACCESS_USER);
+        assertThat(getDashboardsinfoResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options").size(), equalTo(2));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem(DashboardSignInOption.BASIC.toString()));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem(DashboardSignInOption.OPENID.toString()));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), not(hasItem(DashboardSignInOption.SAML.toString())));
     }
 
     @Test
@@ -186,7 +207,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         assertThat(
             invalidSignInOption.getBody(),
             invalidSignInOption.findValueInJson("error.reason"),
-            containsString("Invalid sign-in option.")
+            containsString("Invalid sign-in option")
         );
     }
 
