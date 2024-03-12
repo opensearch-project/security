@@ -88,6 +88,7 @@ public class SecurityInfoAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        final boolean verbose = request.paramAsBoolean("verbose", false);
         return new RestChannelConsumer() {
 
             @Override
@@ -96,8 +97,6 @@ public class SecurityInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-
-                    final boolean verbose = request.paramAsBoolean("verbose", false);
 
                     final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES);
                     final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);

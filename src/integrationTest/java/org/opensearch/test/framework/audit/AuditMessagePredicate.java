@@ -29,6 +29,7 @@ import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVIL
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditMessage.REQUEST_LAYER;
 import static org.opensearch.security.auditlog.impl.AuditMessage.RESOLVED_INDICES;
+import static org.opensearch.security.auditlog.impl.AuditMessage.REST_REQUEST_PARAMS;
 import static org.opensearch.security.auditlog.impl.AuditMessage.REST_REQUEST_PATH;
 
 public class AuditMessagePredicate implements Predicate<AuditMessage> {
@@ -36,6 +37,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
     private final AuditCategory category;
     private final Origin requestLayer;
     private final String restRequestPath;
+    private final Map<String, String> restParams;
     private final String initiatingUser;
     private final Method requestMethod;
     private final String transportRequestType;
@@ -47,6 +49,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         AuditCategory category,
         Origin requestLayer,
         String restRequestPath,
+        Map<String, String> restParams,
         String initiatingUser,
         Method requestMethod,
         String transportRequestType,
@@ -57,6 +60,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         this.category = category;
         this.requestLayer = requestLayer;
         this.restRequestPath = restRequestPath;
+        this.restParams = restParams;
         this.initiatingUser = initiatingUser;
         this.requestMethod = requestMethod;
         this.transportRequestType = transportRequestType;
@@ -66,7 +70,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
     }
 
     private AuditMessagePredicate(AuditCategory category) {
-        this(category, null, null, null, null, null, null, null, null);
+        this(category, null, null, null, null, null, null, null, null, null);
     }
 
     public static AuditMessagePredicate auditPredicate(AuditCategory category) {
@@ -110,6 +114,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             layer,
             restRequestPath,
+            restParams,
             initiatingUser,
             requestMethod,
             transportRequestType,
@@ -124,6 +129,22 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             requestLayer,
             path,
+            restParams,
+            initiatingUser,
+            requestMethod,
+            transportRequestType,
+            effectiveUser,
+            index,
+            privilege
+        );
+    }
+
+    public AuditMessagePredicate withRestParams(Map<String, String> params) {
+        return new AuditMessagePredicate(
+            category,
+            requestLayer,
+            restRequestPath,
+            params,
             initiatingUser,
             requestMethod,
             transportRequestType,
@@ -138,6 +159,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             requestLayer,
             restRequestPath,
+            restParams,
             user,
             requestMethod,
             transportRequestType,
@@ -156,6 +178,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             requestLayer,
             restRequestPath,
+            restParams,
             initiatingUser,
             method,
             transportRequestType,
@@ -170,6 +193,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             requestLayer,
             restRequestPath,
+            restParams,
             initiatingUser,
             requestMethod,
             type,
@@ -184,6 +208,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             requestLayer,
             restRequestPath,
+            restParams,
             initiatingUser,
             requestMethod,
             transportRequestType,
@@ -206,6 +231,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             requestLayer,
             restRequestPath,
+            restParams,
             initiatingUser,
             requestMethod,
             transportRequestType,
@@ -220,6 +246,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
             category,
             requestLayer,
             restRequestPath,
+            restParams,
             initiatingUser,
             requestMethod,
             transportRequestType,
@@ -235,6 +262,7 @@ public class AuditMessagePredicate implements Predicate<AuditMessage> {
         predicates.add(audit -> Objects.isNull(category) || category.equals(audit.getCategory()));
         predicates.add(audit -> Objects.isNull(requestLayer) || requestLayer.equals(audit.getAsMap().get(REQUEST_LAYER)));
         predicates.add(audit -> Objects.isNull(restRequestPath) || restRequestPath.equals(audit.getAsMap().get(REST_REQUEST_PATH)));
+        predicates.add(audit -> Objects.isNull(restParams) || restParams.equals(auditMessage.getAsMap().get(REST_REQUEST_PARAMS)));
         predicates.add(audit -> Objects.isNull(initiatingUser) || initiatingUser.equals(audit.getInitiatingUser()));
         predicates.add(audit -> Objects.isNull(requestMethod) || requestMethod.equals(audit.getRequestMethod()));
         predicates.add(audit -> Objects.isNull(transportRequestType) || transportRequestType.equals(audit.getRequestType()));
