@@ -26,6 +26,7 @@
 
 package org.opensearch.security;
 
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
@@ -37,6 +38,7 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.user.User;
 
 public class SecurityRolesTests extends SingleClusterTest {
 
@@ -51,8 +53,9 @@ public class SecurityRolesTests extends SingleClusterTest {
         );
 
         RestHelper rh = nonSslRestHelper();
+        Header anonyAuthHeader = encodeBasicHeader(User.ANONYMOUS.getName(), randomAsciiAlphanumOfLength(8));
 
-        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", anonyAuthHeader);
         Assert.assertTrue(resc.getBody().contains("anonymous"));
         Assert.assertFalse(resc.getBody().contains("xyz_sr"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());

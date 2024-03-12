@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
@@ -56,6 +57,7 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.user.User;
 
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 
@@ -465,16 +467,17 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_anon.yml"), Settings.EMPTY, true);
 
         RestHelper rh = nonSslRestHelper();
+        Header anonyAuthHeader = encodeBasicHeader(User.ANONYMOUS.getName(), randomAsciiAlphanumOfLength(8));
 
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", anonyAuthHeader).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("worf", "wrong")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
 
-        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo");
+        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo", anonyAuthHeader);
         Assert.assertTrue(resc.getBody().contains("opendistro_security_anonymous"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
-        resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty=true");
+        resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty=true", anonyAuthHeader);
         Assert.assertTrue(resc.getBody().contains("\"remote_address\" : \"")); // check pretty print
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 

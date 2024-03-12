@@ -35,6 +35,7 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.user.User;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -613,13 +614,15 @@ public class MultitenancyTests extends SingleClusterTest {
             new BasicHeader("securitytenant", anonymousTenant)
         );
 
+        Header anonyAuthHeader = encodeBasicHeader(User.ANONYMOUS.getName(), randomAsciiAlphanumOfLength(8));
+
         /* The anonymous user has access to its tenant */
-        res = rh.executeGetRequest(url, new BasicHeader("securitytenant", anonymousTenant));
+        res = rh.executeGetRequest(url, new BasicHeader("securitytenant", anonymousTenant), anonyAuthHeader);
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertEquals(anonymousTenant, res.findValueInJson("_source.tenant"));
 
         /* No access to other tenants */
-        res = rh.executeGetRequest(url, new BasicHeader("securitytenant", "human_resources"));
+        res = rh.executeGetRequest(url, new BasicHeader("securitytenant", "human_resources"), anonyAuthHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
     }
 
@@ -660,6 +663,7 @@ public class MultitenancyTests extends SingleClusterTest {
     @Test
     public void testMultitenancyAnonymousUserReadOnlyActions() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_anonymous.yml"), Settings.EMPTY);
+        Header anonyAuthHeader = encodeBasicHeader(User.ANONYMOUS.getName(), randomAsciiAlphanumOfLength(8));
 
         /* Create the tenant for the anonymous user to run the tests */
         final String tenant = "anonymous_tenant";
@@ -671,12 +675,13 @@ public class MultitenancyTests extends SingleClusterTest {
         tenantExpectation.updateIndexStatusCode = HttpStatus.SC_FORBIDDEN;
         tenantExpectation.deleteIndexStatuCode = HttpStatus.SC_FORBIDDEN;
 
-        verifyTenantActions(nonSslRestHelper(), tenant, tenantExpectation, /* Anonymous user*/ null);
+        verifyTenantActions(nonSslRestHelper(), tenant, tenantExpectation, /* Anonymous user*/ anonyAuthHeader);
     }
 
     @Test
     public void testMultitenancyAnonymousUserWriteActionAllowed() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_anonymous.yml"), Settings.EMPTY);
+        Header anonyAuthHeader = encodeBasicHeader(User.ANONYMOUS.getName(), randomAsciiAlphanumOfLength(8));
 
         /* Create the tenant for the anonymous user to run the tests */
         final String tenant = "opendistro_security_anonymous";
@@ -688,7 +693,7 @@ public class MultitenancyTests extends SingleClusterTest {
         tenantExpectation.updateIndexStatusCode = HttpStatus.SC_OK;
         tenantExpectation.deleteIndexStatuCode = HttpStatus.SC_BAD_REQUEST; // tenant index cannot be deleted because its an alias
 
-        verifyTenantActions(nonSslRestHelper(), tenant, tenantExpectation, /* Anonymous user*/ null);
+        verifyTenantActions(nonSslRestHelper(), tenant, tenantExpectation, /* Anonymous user*/ anonyAuthHeader);
     }
 
     private static void verifyTenantActions(

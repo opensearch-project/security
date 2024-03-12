@@ -60,6 +60,7 @@ import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.user.User;
 
 public class InitializationIntegrationTests extends SingleClusterTest {
 
@@ -255,6 +256,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
 
+        Header anonyAuthHeader = encodeBasicHeader(User.ANONYMOUS.getName(), randomAsciiAlphanumOfLength(8));
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = iterator.next();
             HttpResponse res = rh.executeRequest(
@@ -265,7 +267,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                         + TransportAddress.getPort()
                         + "/"
                         + "_opendistro/_security/authinfo?pretty=true"
-                )
+                ),
+                anonyAuthHeader
             );
             log.debug(res.getBody());
             Assert.assertTrue(res.getBody().contains("role_host1"));
