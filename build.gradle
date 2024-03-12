@@ -501,7 +501,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.25.0"
             force "org.checkerframework:checker-qual:3.42.0"
-            force "ch.qos.logback:logback-classic:1.5.2"
+            force "ch.qos.logback:logback-classic:1.5.3"
         }
     }
 
@@ -611,7 +611,7 @@ dependencies {
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
     compileOnly 'com.google.errorprone:error_prone_annotations:2.25.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
-    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.1'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.6'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.1'
@@ -742,7 +742,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.20.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.21.0') {
         exclude group: 'com.google.guava'
     }
 }
