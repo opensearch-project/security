@@ -247,11 +247,11 @@ public class ConfigConstants {
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "plugins.security.unsupported.disable_rest_auth_initially";
     public static final String SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS = "plugins.security.unsupported.delay_initialization_seconds";
     public static final String SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY =
-  "plugins.security.unsupported.disable_intertransport_auth_initially";
+"plugins.security.unsupported.disable_intertransport_auth_initially";
     public static final String SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY =
-  "plugins.security.unsupported.passive_intertransport_auth_initially";
+"plugins.security.unsupported.passive_intertransport_auth_initially";
     public static final String SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED =
-  "plugins.security.unsupported.restore.securityindex.enabled";
+"plugins.security.unsupported.restore.securityindex.enabled";
     public static final String SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = "plugins.security.unsupported.inject_user.enabled";
     public static final String SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "plugins.security.unsupported.inject_user.admin.enabled";
     public static final String SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = "plugins.security.unsupported.allow_now_in_dls";
