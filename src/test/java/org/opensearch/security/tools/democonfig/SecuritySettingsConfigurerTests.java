@@ -187,7 +187,9 @@ public class SecuritySettingsConfigurerTests {
             "  type: \"internalusers\"",
             "  config_version: 2",
             "admin:",
-            "  hash: \"$2b$12$totallyAHashString\""
+            "  hash: \"$2b$12$totallyAHashString\"",
+            "  backend_roles:",
+            "  - \"admin\""
         );
         // overwriting existing content
         Files.write(internalUsersFilePath, newContent, StandardCharsets.UTF_8);
@@ -405,7 +407,17 @@ public class SecuritySettingsConfigurerTests {
     private void setUpInternalUsersYML() throws IOException {
         String internalUsersFile = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         Path internalUsersFilePath = Paths.get(internalUsersFile);
-        List<String> defaultContent = Arrays.asList("admin:", "  hash: " + DEFAULT_ADMIN_PASSWORD_HASH);
+        List<String> defaultContent = Arrays.asList(
+            "_meta:",
+            "  type: \"internalusers\"",
+            "  config_version: 2",
+            "admin:",
+            "  hash: " + DEFAULT_ADMIN_PASSWORD_HASH,
+            "  reserved: " + true,
+            "  backend_roles:",
+            "  - \"admin\"",
+            "  description: Demo admin user"
+        );
         Files.write(internalUsersFilePath, defaultContent, StandardCharsets.UTF_8);
     }
 }

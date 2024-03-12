@@ -213,7 +213,7 @@ public class SecuritySettingsConfigurer {
         }
 
         try {
-            var map = YAML_MAPPER.readValue(new File(internalUsersFile), new TypeReference<Map<String, Map<String, String>>>() {
+            var map = YAML_MAPPER.readValue(new File(internalUsersFile), new TypeReference<Map<String, LinkedHashMap<String, Object>>>() {
             });
             var admin = map.get("admin");
             if (admin != null && admin.get("hash").equals(DEFAULT_ADMIN_PASSWORD_HASH)) {
