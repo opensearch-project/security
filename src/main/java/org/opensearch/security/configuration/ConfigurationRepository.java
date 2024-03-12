@@ -138,15 +138,6 @@ public class ConfigurationRepository {
                             createSecurityIndexIfAbsent();
                             waitForSecurityIndexToBeAtLeastYellow();
 
-                            final int initializationDelaySeconds = settings.getAsInt(
-                                ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
-                                0
-                            );
-                            if (initializationDelaySeconds > 0) {
-                                LOGGER.error("Test setting loaded to delay initialization for {} seconds", initializationDelaySeconds);
-                                TimeUnit.SECONDS.sleep(initializationDelaySeconds);
-                            }
-
                             ConfigHelper.uploadFile(client, cd + "config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
                             ConfigHelper.uploadFile(client, cd + "roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
                             ConfigHelper.uploadFile(
