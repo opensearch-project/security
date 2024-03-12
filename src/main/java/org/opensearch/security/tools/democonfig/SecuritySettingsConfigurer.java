@@ -79,7 +79,7 @@ public class SecuritySettingsConfigurer {
     static String ADMIN_USERNAME = "admin";
 
     private final Installer installer;
-    static final String DEFAULT_ADMIN_PASSWORD = "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG";
+    static final String DEFAULT_ADMIN_PASSWORD_HASH = "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG";
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
@@ -134,7 +134,7 @@ public class SecuritySettingsConfigurer {
             return;
         }
 
-        // if hashed value for "admin" password found, update it with the custom password
+        // if hashed value for default password "admin" is found, update it with the custom password.
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -176,9 +176,9 @@ public class SecuritySettingsConfigurer {
                 System.exit(-1);
             }
 
+            // Update the custom password in internal_users.yml file
             writePasswordToInternalUsersFile(ADMIN_PASSWORD, INTERNAL_USERS_FILE_PATH);
 
-            // Print an update to the logs
             System.out.println("Admin password set successfully.");
 
         } catch (IOException e) {
@@ -195,7 +195,7 @@ public class SecuritySettingsConfigurer {
      */
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = YAML_MAPPER.readTree(new FileInputStream(internalUsersFile));
-        return internalUsers.has("admin") && internalUsers.get("admin").get("hash").asText().equals(DEFAULT_ADMIN_PASSWORD);
+        return internalUsers.has("admin") && internalUsers.get("admin").get("hash").asText().equals(DEFAULT_ADMIN_PASSWORD_HASH);
     }
 
     /**
@@ -216,15 +216,15 @@ public class SecuritySettingsConfigurer {
             var map = YAML_MAPPER.readValue(new File(internalUsersFile), new TypeReference<Map<String, Map<String, String>>>() {
             });
             var admin = map.get("admin");
-            if (admin != null && admin.get("hash").equals(DEFAULT_ADMIN_PASSWORD)) {
+            if (admin != null && admin.get("hash").equals(DEFAULT_ADMIN_PASSWORD_HASH)) {
                 // Replace the password if the default password was found
                 admin.put("hash", hashedAdminPassword);
             }
 
-            // Write the updated map back to the YAML file
+            // Write the updated map back to the internal_users.yml file
             YAML_MAPPER.writeValue(new File(internalUsersFile), map);
         } catch (IOException e) {
-            throw new IOException("Unable to update the internal users file with the hashed password.", e);
+            throw new IOException("Unable to update the internal users file with the hashed password.");
         }
     }
 

@@ -43,7 +43,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_ADMIN_PASSWORD;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_ADMIN_PASSWORD_HASH;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
@@ -405,7 +405,7 @@ public class SecuritySettingsConfigurerTests {
     private void setUpInternalUsersYML() throws IOException {
         String internalUsersFile = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         Path internalUsersFilePath = Paths.get(internalUsersFile);
-        List<String> defaultContent = Arrays.asList("admin:", "  hash: " + DEFAULT_ADMIN_PASSWORD);
+        List<String> defaultContent = Arrays.asList("admin:", "  hash: " + DEFAULT_ADMIN_PASSWORD_HASH);
         Files.write(internalUsersFilePath, defaultContent, StandardCharsets.UTF_8);
     }
 }
