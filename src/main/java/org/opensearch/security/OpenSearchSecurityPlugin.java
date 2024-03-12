@@ -1026,7 +1026,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false, Property.NodeScope,
                     Property.Filtered));
 
-            // compat
+            //compat
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.intSetting(ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS, 0, Property.NodeScope, Property.Filtered));
