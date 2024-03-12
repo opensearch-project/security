@@ -133,7 +133,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     }
 
     @Override
-    public void before() {
+    public void before() throws Throwable {
         if (localOpenSearchCluster == null) {
             for (LocalCluster dependency : clusterDependencies) {
                 if (!dependency.isStarted()) {
@@ -160,7 +160,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     @Override
     public void close() {
-        System.clearProperty(INIT_CONFIGURATION_DIR);
         if (localOpenSearchCluster != null && localOpenSearchCluster.isStarted()) {
             try {
                 localOpenSearchCluster.destroy();
@@ -293,16 +292,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))
         ).actionGet();
         if (configUpdateResponse.hasFailures()) {
-            throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
-        }
-    }
-
-    public void triggerConfigurationReloadForCTypes(Client client, List<CType> cTypes, boolean ignoreFailures) {
-        ConfigUpdateResponse configUpdateResponse = client.execute(
-            ConfigUpdateAction.INSTANCE,
-            new ConfigUpdateRequest(cTypes.stream().map(CType::toLCString).toArray(String[]::new))
-        ).actionGet();
-        if (!ignoreFailures && configUpdateResponse.hasFailures()) {
             throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
         }
     }
