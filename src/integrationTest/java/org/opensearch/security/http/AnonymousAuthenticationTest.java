@@ -9,14 +9,19 @@
 */
 package org.opensearch.security.http;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.user.User;
 import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -29,6 +34,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiAlphanumOfLength;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -80,7 +86,13 @@ public class AnonymousAuthenticationTest {
     public void shouldAuthenticate_positive_anonymousUser() {
         try (TestRestClient client = cluster.getRestClient()) {
 
-            TestRestClient.HttpResponse response = client.getAuthInfo();
+            Header anonyAuthHeader = new BasicHeader(
+                "Authorization",
+                "Basic "
+                    + Base64.getEncoder()
+                        .encodeToString((User.ANONYMOUS.getName() + ":" + randomAsciiAlphanumOfLength(8)).getBytes(StandardCharsets.UTF_8))
+            );
+            TestRestClient.HttpResponse response = client.getAuthInfo(anonyAuthHeader);
 
             response.assertStatusCode(200);
 
