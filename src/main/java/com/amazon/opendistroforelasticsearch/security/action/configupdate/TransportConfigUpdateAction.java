@@ -113,8 +113,10 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 	
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
-        backendRegistry.get().invalidateCache();
+        boolean didReload = configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
+        if (didReload) {
+            backendRegistry.get().invalidateCache();
+        }
         return new ConfigUpdateNodeResponse(clusterService.localNode(), request.request.getConfigTypes(), null);
     }
 

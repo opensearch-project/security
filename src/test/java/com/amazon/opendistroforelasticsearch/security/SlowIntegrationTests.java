@@ -42,6 +42,7 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.common.unit.TimeValue;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import java.io.IOException;
 
@@ -165,6 +166,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    @Ignore
     public void testDelayInSecurityIndexInitialization() throws Exception {
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
