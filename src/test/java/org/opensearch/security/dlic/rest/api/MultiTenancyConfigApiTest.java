@@ -207,7 +207,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         assertThat(
             invalidSignInOption.getBody(),
             invalidSignInOption.findValueInJson("error.reason"),
-            containsString("Invalid sign-in option")
+            containsString("authentication provider is not available for this cluster")
         );
     }
 

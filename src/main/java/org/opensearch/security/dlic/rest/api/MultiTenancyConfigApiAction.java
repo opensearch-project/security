@@ -12,13 +12,13 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -216,28 +216,19 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     private List<DashboardSignInOption> getNewSignInOptions(JsonNode newOptions, Authc authc) {
-        List<DashboardSignInOption> options = new ArrayList<>();
-        for (int i = 0; i < newOptions.size(); i++) {
-            try {
-                String option = newOptions.get(i).asText();
-                if (isOptionConfiguredAtBackEnd(authc, option)) {
-                    options.add(DashboardSignInOption.valueOf(option));
-                }
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid sign-in option: " + e.getMessage());
-            }
-        }
-        return options;
-    }
 
-    private boolean isOptionConfiguredAtBackEnd(Authc authc, String option) {
-        for (String key : authc.getDomains().keySet()) {
-            if (key.contains(option.toLowerCase())) {
+        Set<String> domains = authc.getDomains().keySet();
+
+        return IntStream.range(0, newOptions.size()).mapToObj(newOptions::get).map(JsonNode::asText).filter(option -> {
+            // Checking if the new sign-in options are set in backend.
+            if (option.equals(DashboardSignInOption.ANONYMOUS.toString())
+                || domains.stream().anyMatch(domain -> domain.contains(option.toLowerCase()))) {
                 return true;
+            } else {
+                throw new IllegalArgumentException(
+                    "Validation failure: " + option.toUpperCase() + " authentication provider is not available for this cluster."
+                );
             }
-        }
-        throw new IllegalArgumentException(
-            "Validation failure: " + option.toUpperCase() + " authentication provider is not available for this cluster."
-        );
+        }).map(DashboardSignInOption::valueOf).collect(Collectors.toList());
     }
 }
