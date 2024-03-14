@@ -29,12 +29,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.tools.Hasher;
 import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -43,7 +45,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_ADMIN_PASSWORD_HASH;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_ADMIN_PASSWORD;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
@@ -187,7 +189,7 @@ public class SecuritySettingsConfigurerTests {
             "  type: \"internalusers\"",
             "  config_version: 2",
             "admin:",
-            "  hash: \"$2b$12$totallyAHashString\"",
+            "  hash: " + Hasher.hash(RandomStringUtils.randomAlphanumeric(16).toCharArray()),
             "  backend_roles:",
             "  - \"admin\""
         );
@@ -412,7 +414,7 @@ public class SecuritySettingsConfigurerTests {
             "  type: \"internalusers\"",
             "  config_version: 2",
             "admin:",
-            "  hash: " + DEFAULT_ADMIN_PASSWORD_HASH,
+            "  hash: " + Hasher.hash(DEFAULT_ADMIN_PASSWORD.toCharArray()),
             "  reserved: " + true,
             "  backend_roles:",
             "  - \"admin\"",

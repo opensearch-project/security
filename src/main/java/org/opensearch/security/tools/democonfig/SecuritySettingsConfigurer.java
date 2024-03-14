@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
@@ -79,7 +80,7 @@ public class SecuritySettingsConfigurer {
     static String ADMIN_USERNAME = "admin";
 
     private final Installer installer;
-    static final String DEFAULT_ADMIN_PASSWORD_HASH = "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG";
+    static final String DEFAULT_ADMIN_PASSWORD = "admin";
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
@@ -195,7 +196,8 @@ public class SecuritySettingsConfigurer {
      */
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = YAML_MAPPER.readTree(new FileInputStream(internalUsersFile));
-        return internalUsers.has("admin") && internalUsers.get("admin").get("hash").asText().equals(DEFAULT_ADMIN_PASSWORD_HASH);
+        return internalUsers.has("admin")
+            && OpenBSDBCrypt.checkPassword(internalUsers.get("admin").get("hash").asText(), DEFAULT_ADMIN_PASSWORD.toCharArray());
     }
 
     /**
@@ -216,8 +218,8 @@ public class SecuritySettingsConfigurer {
             var map = YAML_MAPPER.readValue(new File(internalUsersFile), new TypeReference<Map<String, LinkedHashMap<String, Object>>>() {
             });
             var admin = map.get("admin");
-            if (admin != null && admin.get("hash").equals(DEFAULT_ADMIN_PASSWORD_HASH)) {
-                // Replace the password if the default password was found
+            if (admin != null) {
+                // Replace the password since the default password was found via the check: isAdminPasswordSetToAdmin(..)
                 admin.put("hash", hashedAdminPassword);
             }
 
