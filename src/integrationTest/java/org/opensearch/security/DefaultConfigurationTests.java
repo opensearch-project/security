@@ -36,6 +36,7 @@ import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -85,20 +86,26 @@ public class DefaultConfigurationTests {
     @Test
     public void securityRolesUgrade() throws Exception {
         try (var client = cluster.getRestClient(ADMIN_USER)) {
+            // Setup: Make sure the config is ready before starting modifications
             Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
 
+            // Setup: Collect default roles after cluster start
             final var expectedRoles = client.get("_plugins/_security/api/roles/");
             final var expectedRoleNames = extractFieldNames(expectedRoles.getBodyAs(JsonNode.class));
 
+            // Verify: Before any changes, nothing to upgrade
             final var upgradeCheck = client.get("_plugins/_security/api/_upgrade_check");
             upgradeCheck.assertStatusCode(200);
             assertThat(upgradeCheck.getBooleanFromJsonBody("/upgradeAvailable"), equalTo(false));
 
+            // Action: Select a role that is part of the defaults and delete that role
             final var roleToDelete = "flow_framework_full_access";
             client.delete("_plugins/_security/api/roles/" + roleToDelete).assertStatusCode(200);
 
+            // Action: Select a role that is part of the defaults and alter that role with removal, edits, and additions
             final var roleToAlter = "flow_framework_read_access";
-            client.patch("_plugins/_security/api/roles/" + roleToAlter, "[\n" + //
+            final var originalRoleConfig = client.get("_plugins/_security/api/roles/" + roleToAlter).getBodyAs(JsonNode.class);
+            final var alteredRoleReponse = client.patch("_plugins/_security/api/roles/" + roleToAlter, "[\n" + //
                 "  {\n" + //
                 "    \"op\": \"replace\",\n" + //
                 "    \"path\": \"/cluster_permissions\",\n" + //
@@ -113,8 +120,12 @@ public class DefaultConfigurationTests {
                 "      }\n" + //
                 "    ]\n" + //
                 "  }\n" + //
-                "]").assertStatusCode(200);
+                "]");
+            alteredRoleReponse.assertStatusCode(200);
+            final var alteredRoleJson = alteredRoleReponse.getBodyAs(JsonNode.class);
+            assertThat(originalRoleConfig, not(equalTo(alteredRoleJson)));
 
+            // Verify: Confirm that the upgrade check detects the changes associated with both role resources
             final var upgradeCheckAfterChanges = client.get("_plugins/_security/api/_upgrade_check");
             upgradeCheckAfterChanges.assertStatusCode(200);
             assertThat(
@@ -126,14 +137,20 @@ public class DefaultConfigurationTests {
                 equalTo(List.of("flow_framework_read_access"))
             );
 
+            // Action: Perform the upgrade to the roles configuration
             final var performUpgrade = client.post("_plugins/_security/api/_upgrade_perform");
             performUpgrade.assertStatusCode(200);
             assertThat(performUpgrade.getTextArrayFromJsonBody("/upgrades/roles/add"), equalTo(List.of("flow_framework_full_access")));
             assertThat(performUpgrade.getTextArrayFromJsonBody("/upgrades/roles/modify"), equalTo(List.of("flow_framework_read_access")));
 
+            // Verify: Same roles as the original state - the deleted role has been restored
             final var afterUpgradeRoles = client.get("_plugins/_security/api/roles/");
             final var afterUpgradeRolesNames = extractFieldNames(afterUpgradeRoles.getBodyAs(JsonNode.class));
             assertThat(afterUpgradeRolesNames, equalTo(expectedRoleNames));
+
+            // Verify: Altered role was restored to its expected state
+            final var afterUpgradeAlteredRoleConfig = client.get("_plugins/_security/api/roles/" + roleToAlter).getBodyAs(JsonNode.class);
+            assertThat(originalRoleConfig, equalTo(afterUpgradeAlteredRoleConfig));
         }
     }
 
