@@ -502,6 +502,7 @@ configurations {
             force "com.google.errorprone:error_prone_annotations:2.25.0"
             force "org.checkerframework:checker-qual:3.42.0"
             force "ch.qos.logback:logback-classic:1.5.3"
+            force "net.bytebuddy:byte-buddy:1.14.9"
         }
     }
 
