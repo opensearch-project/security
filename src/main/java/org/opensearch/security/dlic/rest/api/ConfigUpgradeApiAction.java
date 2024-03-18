@@ -365,6 +365,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             return !itemsGroupedByOperation.isEmpty();
         }
 
+        /** Adds the config item changes to the json node */
         public void addToNode(final ObjectNode node) {
             final var allOperations = JsonNodeFactory.instance.objectNode();
             itemsGroupedByOperation.forEach((operation, items) -> {
@@ -374,6 +375,10 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             node.set(config.toLCString(), allOperations);
         }
 
+        /**
+         * Classifies the changes to this config into groupings by the type of change, for
+         * multiple changes types on the same item they are groupped as 'modify'
+         */
         private static Map<String, List<String>> classifyChanges(final JsonNode differences) {
             final var items = new HashMap<String, String>();
             differences.forEach(node -> {
