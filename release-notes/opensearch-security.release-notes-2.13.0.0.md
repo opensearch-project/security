@@ -34,3 +34,4 @@ Compatible with OpenSearch 2.13.0
 * Bump com.google.errorprone:error_prone_annotations from 2.25.0 to 2.26.1 ([#4132](https://github.com/opensearch-project/security/pull/4132))
 * Bump spring_version from 5.3.32 to 5.3.33 ([#4131](https://github.com/opensearch-project/security/pull/4131))
 * Bump Wandalen/wretry.action from 1.4.8 to 1.4.10 ([#4135](https://github.com/opensearch-project/security/pull/4135))
+* 
