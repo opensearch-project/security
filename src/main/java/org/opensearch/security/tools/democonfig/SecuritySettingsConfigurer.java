@@ -47,7 +47,7 @@ public class SecuritySettingsConfigurer {
 
     static final List<String> REST_ENABLED_ROLES = List.of("all_access", "security_rest_api_access");
     static final List<String> SYSTEM_INDICES = List.of(
-            ".plugins-ml-agent",
+        ".plugins-ml-agent",
         ".plugins-ml-config",
         ".plugins-ml-connector",
         ".plugins-ml-controller",
