@@ -11,9 +11,6 @@ package org.opensearch.security;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -49,16 +46,7 @@ class SecurityAdminLauncher {
         return SecurityAdmin.execute(commandLineArguments);
     }
 
-    public Set<String> listFilesUsingJavaIO(String dir) {
-        return Stream.of(new File(dir).listFiles())
-                .filter(file -> !file.isDirectory())
-                .map(File::getName)
-                .collect(Collectors.toSet());
-    }
-
     public int runSecurityAdmin(Path configurationFolder) throws Exception {
-        System.out.println("configurationFolder: " + configurationFolder);
-        System.out.println("configFiles: " + listFilesUsingJavaIO(configurationFolder.toString()));
         String[] commandLineArguments = {
                 "-cacert",
                 certificates.getRootCertificate().getAbsolutePath(),
