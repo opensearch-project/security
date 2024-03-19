@@ -33,6 +33,7 @@ alerting_read_access:
     - 'cluster:admin/opendistro/alerting/monitor/get'
     - 'cluster:admin/opendistro/alerting/monitor/search'
     - 'cluster:admin/opensearch/alerting/findings/get'
+    - 'cluster:admin/opensearch/alerting/remote/indexes/get'
     - 'cluster:admin/opensearch/alerting/workflow/get'
     - 'cluster:admin/opensearch/alerting/workflow_alerts/get'
 
@@ -399,3 +400,9 @@ flow_framework_read_access:
     - 'cluster:admin/opensearch/flow_framework/workflow_state/get'
     - 'cluster:admin/opensearch/flow_framework/workflow_state/search'
     - 'cluster:admin/opensearch/flow_framework/workflow_step/get'
+
+# Allows users to use all query insights APIs
+query_insights_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/insights/top_queries/*'

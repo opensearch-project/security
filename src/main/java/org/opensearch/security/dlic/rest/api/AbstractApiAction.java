@@ -372,7 +372,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         boolean omitSensitiveData,
         final boolean logComplianceEvent
     ) {
-        final var configuration = load(cType, logComplianceEvent);
+        SecurityDynamicConfiguration<?> configuration;
+        if (omitSensitiveData) {
+            configuration = loadAndRedact(cType, logComplianceEvent);
+        } else {
+            configuration = load(cType, logComplianceEvent);
+        }
         if (configuration.getSeqNo() < 0) {
 
             return ValidationResult.error(
@@ -445,6 +450,14 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
             .get(config)
             .deepClone();
+        return DynamicConfigFactory.addStatics(loaded);
+    }
+
+    protected final SecurityDynamicConfiguration<?> loadAndRedact(final CType config, boolean logComplianceEvent) {
+        SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
+            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
+            .get(config)
+            .deepCloneWithRedaction();
         return DynamicConfigFactory.addStatics(loaded);
     }
 

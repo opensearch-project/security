@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
@@ -71,8 +72,6 @@ import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
-
 public class SecurityInterceptor {
 
     protected final Logger log = LogManager.getLogger(getClass());
@@ -86,6 +85,7 @@ public class SecurityInterceptor {
     private final SslExceptionHandler sslExceptionHandler;
     private final ClusterInfoHolder clusterInfoHolder;
     private final SSLConfig SSLConfig;
+    private final Supplier<Boolean> actionTraceEnabled;
 
     public SecurityInterceptor(
         final Settings settings,
@@ -97,7 +97,8 @@ public class SecurityInterceptor {
         final ClusterService cs,
         final SslExceptionHandler sslExceptionHandler,
         final ClusterInfoHolder clusterInfoHolder,
-        final SSLConfig SSLConfig
+        final SSLConfig SSLConfig,
+        final Supplier<Boolean> actionTraceSupplier
     ) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
@@ -109,6 +110,7 @@ public class SecurityInterceptor {
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
         this.SSLConfig = SSLConfig;
+        this.actionTraceEnabled = actionTraceSupplier;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
@@ -247,7 +249,7 @@ public class SecurityInterceptor {
                 useJDKSerialization
             );
 
-            if (isActionTraceEnabled()) {
+            if (actionTraceEnabled.get()) {
                 getThreadContext().putHeader(
                     "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
                     Thread.currentThread().getName()
@@ -407,5 +409,4 @@ public class SecurityInterceptor {
             return innerHandler.executor();
         }
     }
-
 }

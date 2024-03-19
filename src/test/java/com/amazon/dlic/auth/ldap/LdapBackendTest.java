@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.ldap;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
@@ -39,6 +40,7 @@ import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 
 public class LdapBackendTest {
 
@@ -577,6 +579,90 @@ public class LdapBackendTest {
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(4, user.getRoles().size());
         MatcherAssert.assertThat(user.getRoles(), hasItem("nested1"));
+    }
+
+    @Test
+    public void testLdapNestedRoleFiltering() {
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
+            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("nested1", "nested2"))
+            .build();
+
+        final User user = new User("spock");
+
+        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+
+        Assert.assertNotNull(user);
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(2, user.getRoles().size());
+        // filtered out
+        MatcherAssert.assertThat(user.getRoles(), not(hasItem("nested1")));
+        MatcherAssert.assertThat(user.getRoles(), not(hasItem("nested2")));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("role2"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
+    }
+
+    @Test
+    public void testLdapNestedRoleFilteringWithExcludedRolesWildcard() {
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
+            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("nested*"))
+            .build();
+
+        final User user = new User("spock");
+
+        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+
+        Assert.assertNotNull(user);
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(2, user.getRoles().size());
+        // filtered out
+        MatcherAssert.assertThat(user.getRoles(), not(hasItem("nested1")));
+        MatcherAssert.assertThat(user.getRoles(), not(hasItem("nested2")));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("role2"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("ceo"));
+    }
+
+    @Test
+    public void testLdapdRoleFiltering() {
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
+            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("ceo", "role1", "role2"))
+            .build();
+
+        final User user = new User("spock");
+
+        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+
+        Assert.assertNotNull(user);
+        Assert.assertEquals("spock", user.getName());
+        Assert.assertEquals(2, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested1"));
+        MatcherAssert.assertThat(user.getRoles(), hasItem("nested2"));
+        // filtered out
+        MatcherAssert.assertThat(user.getRoles(), not(hasItem("role2")));
+        MatcherAssert.assertThat(user.getRoles(), not(hasItem("ceo")));
     }
 
     @Test

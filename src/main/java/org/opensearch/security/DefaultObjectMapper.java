@@ -35,6 +35,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -42,13 +43,39 @@ import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import org.opensearch.SpecialPermission;
+
+class ConfigMapSerializer extends StdSerializer<Map<String, Object>> {
+    private static final Set<String> SENSITIVE_CONFIG_KEYS = Set.of("password");
+
+    @SuppressWarnings("unchecked")
+    public ConfigMapSerializer() {
+        // Pass Map<String, Object>.class to the superclass
+        super((Class<Map<String, Object>>) (Class<?>) Map.class);
+    }
+
+    @Override
+    public void serialize(Map<String, Object> value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        gen.writeStartObject();
+        for (Map.Entry<String, Object> entry : value.entrySet()) {
+            if (SENSITIVE_CONFIG_KEYS.contains(entry.getKey())) {
+                gen.writeStringField(entry.getKey(), "******"); // Redact
+            } else {
+                gen.writeObjectField(entry.getKey(), entry.getValue());
+            }
+        }
+        gen.writeEndObject();
+    }
+}
 
 public class DefaultObjectMapper {
     public static final ObjectMapper objectMapper = new ObjectMapper();
@@ -174,6 +201,27 @@ public class DefaultObjectMapper {
                     value
                 )
             );
+        } catch (final PrivilegedActionException e) {
+            throw (JsonProcessingException) e.getCause();
+        }
+
+    }
+
+    @SuppressWarnings("removal")
+    public static String writeValueAsStringAndRedactSensitive(Object value) throws JsonProcessingException {
+        final SecurityManager sm = System.getSecurityManager();
+
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(new ConfigMapSerializer());
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(module);
+
+        try {
+            return AccessController.doPrivileged((PrivilegedExceptionAction<String>) () -> mapper.writeValueAsString(value));
         } catch (final PrivilegedActionException e) {
             throw (JsonProcessingException) e.getCause();
         }
