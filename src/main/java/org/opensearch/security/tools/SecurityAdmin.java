@@ -522,7 +522,6 @@ public class SecurityAdmin {
         TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
                 .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
 
-            
             final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
             System.out.println("Connected as "+whoAmIRes.getDn());
 
