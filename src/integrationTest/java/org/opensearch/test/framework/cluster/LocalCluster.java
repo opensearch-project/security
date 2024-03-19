@@ -55,7 +55,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
-import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -133,7 +132,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     }
 
     @Override
-    public void before() throws Throwable {
+    public void before() {
         if (localOpenSearchCluster == null) {
             for (LocalCluster dependency : clusterDependencies) {
                 if (!dependency.isStarted()) {
@@ -293,6 +292,16 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))
         ).actionGet();
         if (configUpdateResponse.hasFailures()) {
+            throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
+        }
+    }
+
+    public void triggerConfigurationReloadForCTypes(Client client, List<CType> cTypes, boolean ignoreFailures) {
+        ConfigUpdateResponse configUpdateResponse = client.execute(
+                ConfigUpdateAction.INSTANCE,
+                new ConfigUpdateRequest(cTypes.stream().map(CType::toLCString).toArray(String[]::new))
+        ).actionGet();
+        if (!ignoreFailures && configUpdateResponse.hasFailures()) {
             throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
         }
     }
@@ -469,11 +478,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder xff(XffConfig xffConfig) {
             testSecurityConfig.xff(xffConfig);
-            return this;
-        }
-
-        public Builder onBehalfOf(OnBehalfOfConfig onBehalfOfConfig) {
-            testSecurityConfig.onBehalfOf(onBehalfOfConfig);
             return this;
         }
 
