@@ -1,17 +1,16 @@
 package org.opensearch.security;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.telemetry.OTelTelemetryPlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
-import org.opensearch.telemetry.OTelTelemetryPlugin;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.*;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -23,11 +22,11 @@ public class TelemetryPluginIntegrationTests {
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .anonymousAuth(false)
-            .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(TEST_USER)
-            .plugin(OTelTelemetryPlugin.class)
-            .build();
+        .anonymousAuth(false)
+        .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .users(TEST_USER)
+        .plugin(OTelTelemetryPlugin.class)
+        .build();
 
     @Test
     public void clusterShouldComeUpHealthy() {
