@@ -27,8 +27,10 @@
 
 package org.opensearch.security.securityconf.impl.v6;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -43,6 +45,7 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.setting.DeprecatedSettings;
 
 public class ConfigV6 {
@@ -100,6 +103,8 @@ public class ConfigV6 {
         public String opendistro_role = null;
         public String index = ".kibana";
         public boolean do_not_fail_on_forbidden;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public List<DashboardSignInOption> sign_in_options = Arrays.asList(DashboardSignInOption.BASIC);
 
         @Override
         public String toString() {
@@ -113,6 +118,8 @@ public class ConfigV6 {
                 + index
                 + ", do_not_fail_on_forbidden="
                 + do_not_fail_on_forbidden
+                + ", sign_in_options="
+                + sign_in_options
                 + "]";
         }
 

@@ -21,6 +21,18 @@ config:
         internalProxies: "192\\.168\\.0\\.10|192\\.168\\.0\\.11"
         remoteIpHeader: "x-forwarded-for"
     authc:
+      openid_auth_domain:
+        http_enabled: true
+        transport_enabled: true
+        order: 4
+        http_authenticator:
+          type: openid
+          challenge: false
+          config: {}
+        authentication_backend:
+          type: "noop"
+          config: {}
+        description: "Migrated from v6"
       authentication_domain_kerb:
         http_enabled: false
         transport_enabled: false
