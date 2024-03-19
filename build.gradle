@@ -88,9 +88,10 @@ configurations.all {
         force "org.scala-lang:scala-library:2.13.9"
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
         force "org.xerial.snappy:snappy-java:1.1.10.5"
-        force "org.apache.zookeeper:zookeeper:3.9.1"
+        force "org.apache.zookeeper:zookeeper:3.9.2"
         force "ch.qos.logback:logback-core:1.2.13"
         force "ch.qos.logback:logback-classic:1.2.13"
+        force "org.bitbucket.b_c:jose4j:0.9.4"
     }
 }
 
