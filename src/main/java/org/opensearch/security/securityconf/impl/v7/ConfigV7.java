@@ -27,8 +27,10 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,6 +46,7 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.setting.DeprecatedSettings;
 
@@ -76,6 +79,7 @@ public class ConfigV7 {
         dynamic.kibana.private_tenant_enabled = true;
         dynamic.kibana.default_tenant = "";
         dynamic.kibana.server_username = c6.dynamic.kibana.server_username;
+        dynamic.kibana.sign_in_options = c6.dynamic.kibana.sign_in_options;
 
         dynamic.http = new Http();
 
@@ -168,6 +172,8 @@ public class ConfigV7 {
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
         public String index = ".kibana";
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public List<DashboardSignInOption> sign_in_options = Arrays.asList(DashboardSignInOption.BASIC);
 
         @Override
         public String toString() {
@@ -183,6 +189,8 @@ public class ConfigV7 {
                 + opendistro_role
                 + ", index="
                 + index
+                + ", sign_in_options="
+                + sign_in_options
                 + "]";
         }
 

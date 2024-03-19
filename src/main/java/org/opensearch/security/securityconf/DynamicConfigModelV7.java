@@ -60,6 +60,7 @@ import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.http.OnBehalfOfAuthenticator;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authc;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
@@ -219,6 +220,11 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     @Override
     public Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries() {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
+    }
+
+    @Override
+    public List<DashboardSignInOption> getSignInOptions() {
+        return config.dynamic.kibana.sign_in_options;
     }
 
     @Override
