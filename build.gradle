@@ -618,6 +618,7 @@ dependencies {
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.1'
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.15"
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     implementation "org.opensaml:opensaml-core:${open_saml_version}"
@@ -643,7 +644,6 @@ dependencies {
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.25'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
@@ -704,12 +704,12 @@ dependencies {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.13'
-    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
+    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 

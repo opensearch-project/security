@@ -1,12 +1,12 @@
 /*
-* Copyright OpenSearch Contributors
-* SPDX-License-Identifier: Apache-2.0
-*
-* The OpenSearch Contributors require contributions made to
-* this file be licensed under the Apache-2.0 license or a
-* compatible open source license.
-*
-*/
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ */
 package org.opensearch.security;
 
 import java.io.IOException;
@@ -19,17 +19,16 @@ import java.util.Set;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.FileUtils;
+import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.test.framework.TestSecurityConfig.User;
-import org.opensearch.test.framework.cluster.ClusterManager;
+import org.opensearch.security.state.SecurityMetadata;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
-import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
@@ -37,29 +36,22 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class DefaultConfigurationTests {
+public abstract class AbstractDefaultConfigurationTests {
+    public final static Path configurationFolder = ConfigurationFiles.createConfigurationDirectory();
+    private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin");
+    private static final TestSecurityConfig.User NEW_USER = new TestSecurityConfig.User("new-user");
+    private static final TestSecurityConfig.User LIMITED_USER = new TestSecurityConfig.User("limited-user");
 
-    private final static Path configurationFolder = ConfigurationFiles.createConfigurationDirectory();
-    private static final User ADMIN_USER = new User("admin");
-    private static final User NEW_USER = new User("new-user");
-    private static final User LIMITED_USER = new User("limited-user");
+    private final LocalCluster cluster;
 
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .nodeSettings(
-            Map.of(
-                "plugins.security.allow_default_init_securityindex",
-                true,
-                "plugins.security.restapi.roles_enabled",
-                List.of("user_admin__all_access")
-            )
-        )
-        .defaultConfigurationInitDirectory(configurationFolder.toString())
-        .loadConfigurationIntoIndex(false)
-        .build();
+    protected AbstractDefaultConfigurationTests(LocalCluster cluster) {
+        this.cluster = cluster;
+    }
 
     @AfterClass
     public static void cleanConfigurationDirectory() throws IOException {
@@ -73,18 +65,43 @@ public class DefaultConfigurationTests {
         }
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             client.confirmCorrectCredentials(ADMIN_USER.getName());
-            HttpResponse response = client.get("_plugins/_security/api/internalusers");
-            response.assertStatusCode(200);
+            TestRestClient.HttpResponse response = client.get("_plugins/_security/api/internalusers");
+            response.assertStatusCode(HttpStatus.SC_OK);
             Map<String, Object> users = response.getBodyAs(Map.class);
             assertThat(
+                response.getBody(),
                 users,
                 allOf(aMapWithSize(3), hasKey(ADMIN_USER.getName()), hasKey(NEW_USER.getName()), hasKey(LIMITED_USER.getName()))
             );
         }
     }
 
+    void assertClusterState(final TestRestClient client) {
+        if (cluster.node().settings().getAsBoolean("plugins.security.allow_default_init_securityindex.use_cluster_state", false)) {
+            final TestRestClient.HttpResponse response = client.get("_cluster/state");
+            response.assertStatusCode(HttpStatus.SC_OK);
+            final var clusterState = response.getBodyAs(Map.class);
+            assertTrue(response.getBody(), clusterState.containsKey(SecurityMetadata.TYPE));
+            @SuppressWarnings("unchecked")
+            final var securityClusterState = (Map<String, Object>) clusterState.get(SecurityMetadata.TYPE);
+            @SuppressWarnings("unchecked")
+            final var securityConfiguration = (Map<String, Object>) ((Map<?, ?>) clusterState.get(SecurityMetadata.TYPE)).get(
+                "configuration"
+            );
+            assertTrue(response.getBody(), securityClusterState.containsKey("created"));
+            assertNotNull(response.getBody(), securityClusterState.get("created"));
+
+            for (final var k : securityConfiguration.keySet()) {
+                @SuppressWarnings("unchecked")
+                final var sc = (Map<String, Object>) securityConfiguration.get(k);
+                assertTrue(response.getBody(), sc.containsKey("hash"));
+                assertTrue(response.getBody(), sc.containsKey("last_modified"));
+            }
+        }
+    }
+
     @Test
-    public void securityRolesUgrade() throws Exception {
+    public void securityRolesUpgrade() throws Exception {
         try (var client = cluster.getRestClient(ADMIN_USER)) {
             // Setup: Make sure the config is ready before starting modifications
             Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
@@ -159,4 +176,5 @@ public class DefaultConfigurationTests {
         json.fieldNames().forEachRemaining(set::add);
         return set;
     }
+
 }
