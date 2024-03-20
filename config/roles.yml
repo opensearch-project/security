@@ -271,6 +271,15 @@ cross_cluster_search_remote_full_access:
         - 'indices:admin/shards/search_shards'
         - 'indices:data/read/search'
 
+# Allow users to operate query assistant
+ml_query_assistant_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/ml/execute'
+    - 'cluster:admin/opensearch/ml/memory/conversation/create'
+    - 'cluster:admin/opensearch/ml/memory/interaction/create'
+    - 'cluster:admin/opensearch/ml/predict'
+
 # Allow users to read ML stats/models/tasks
 ml_read_access:
   reserved: true
