@@ -272,7 +272,7 @@ cross_cluster_search_remote_full_access:
         - 'indices:data/read/search'
 
 # Allow users to operate query assistant
-ml_query_assistant_access:
+query_assistant_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/ml/execute'
@@ -284,13 +284,25 @@ ml_query_assistant_access:
 ml_read_access:
   reserved: true
   cluster_permissions:
+    - 'cluster:admin/opensearch/ml/config/get'
     - 'cluster:admin/opensearch/ml/connectors/get'
     - 'cluster:admin/opensearch/ml/connectors/search'
+    - 'cluster:admin/opensearch/ml/controllers/get'
+    - 'cluster:admin/opensearch/ml/memory/conversation/get'
+    - 'cluster:admin/opensearch/ml/memory/conversation/interaction/search'
+    - 'cluster:admin/opensearch/ml/memory/conversation/list'
+    - 'cluster:admin/opensearch/ml/memory/conversation/search'
+    - 'cluster:admin/opensearch/ml/memory/interaction/get'
+    - 'cluster:admin/opensearch/ml/memory/interaction/list'
+    - 'cluster:admin/opensearch/ml/memory/trace/get'
     - 'cluster:admin/opensearch/ml/model_groups/search'
     - 'cluster:admin/opensearch/ml/models/get'
     - 'cluster:admin/opensearch/ml/models/search'
+    - 'cluster:admin/opensearch/ml/profile/nodes'
     - 'cluster:admin/opensearch/ml/tasks/get'
     - 'cluster:admin/opensearch/ml/tasks/search'
+    - 'cluster:admin/opensearch/ml/tools/get'
+    - 'cluster:admin/opensearch/ml/tools/list'
 
 # Allows users to use all ML functionality
 ml_full_access:
