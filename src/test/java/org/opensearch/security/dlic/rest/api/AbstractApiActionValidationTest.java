@@ -116,10 +116,12 @@ public abstract class AbstractApiActionValidationTest {
 
     }
 
-    protected JsonNode xContentToJsonNode(final ToXContent toXContent) throws IOException {
+    protected JsonNode xContentToJsonNode(final ToXContent toXContent) {
         try (final var xContentBuilder = XContentFactory.jsonBuilder()) {
             toXContent.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
             return DefaultObjectMapper.readTree(xContentBuilder.toString());
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
         }
     }
 

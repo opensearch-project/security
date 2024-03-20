@@ -22,6 +22,7 @@ import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
@@ -32,9 +33,13 @@ import org.opensearch.security.util.FakeRestRequest;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 public class InternalUsersApiActionValidationTest extends AbstractApiActionValidationTest {
@@ -145,19 +150,26 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         // should ok to set regular role with mutable role mapping
         var userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("regular_role"));
         var result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
-        assertTrue(result.isValid());
+        assertValidationResultIsValid(result);
         // should be ok to set reserved role with mutable role mapping
         userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("kibana_read_only"));
         result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
-        assertTrue(result.isValid());
+        assertValidationResultIsValid(result);
         // should be ok to set static role with mutable role mapping
         userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("all_access"));
         result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
-        assertTrue(result.isValid());
+        assertValidationResultIsValid(result);
         // should not be ok to set hidden role with mutable role mapping
         userJson = objectMapper.createObjectNode().set("opendistro_security_roles", objectMapper.createArrayNode().add("some_hidden_role"));
         result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
-        assertFalse(result.isValid());
+        final var errorMessage = xContentToJsonNode(result.errorMessage()).toPrettyString();
+        assertThat(errorMessage, allOf(containsString("NOT_FOUND"), containsString("Resource 'some_hidden_role' is not available.")));
+    }
+
+    <T> void assertValidationResultIsValid(final ValidationResult<T> result) {
+        if (!result.isValid()) {
+            fail("Expected valid result, error message: " + xContentToJsonNode(result.errorMessage()).toPrettyString());
+        }
     }
 
     @Test
