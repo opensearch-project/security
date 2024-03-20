@@ -14,6 +14,7 @@ package org.opensearch.security.tools.democonfig;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -97,7 +98,7 @@ public class Installer {
      * Installs the demo security configuration
      * @param options the options passed to the script
      */
-    public void installDemoConfiguration(String[] options) {
+    public void installDemoConfiguration(String[] options) throws IOException {
         readOptions(options);
         printScriptHeaders();
         gatherUserInputs();
@@ -108,7 +109,7 @@ public class Installer {
         finishScriptExecution();
     }
 
-    public static void main(String[] options) {
+    public static void main(String[] options) throws IOException {
         Installer installer = Installer.getInstance();
         installer.buildOptions();
         installer.installDemoConfiguration(options);
