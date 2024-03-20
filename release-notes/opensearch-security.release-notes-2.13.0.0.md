@@ -4,6 +4,7 @@ Compatible with OpenSearch 2.13.0
 
 ### Enhancements
 * Admin role for Query insights plugin ([#4022](https://github.com/opensearch-project/security/pull/4022))
+* Add query assistant role and new ml system indices ([#4143](https://github.com/opensearch-project/security/pull/4143))
 * Redact sensitive configuration values when retrieving security configuration ([#4028](https://github.com/opensearch-project/security/pull/4028))
 * v2.12 update roles.yml with new API for experimental alerting plugin feature ([#4035](https://github.com/opensearch-project/security/pull/4035))
 * Add deprecate message that TLSv1 and TLSv1.1 support will be removed in the next major version ([#4083](https://github.com/opensearch-project/security/pull/4083))
