@@ -282,6 +282,14 @@ query_assistant_access:
     - 'cluster:admin/opensearch/ml/predict'
     - 'cluster:monitor/health'
     - 'cluster:monitor/state'
+  index_permissions:
+    index_patterns:
+        - '*'
+    allowed_actions:
+        - 'indices:data/read/search*'
+        - 'indices:monitor/settings/get'
+        - 'indices:monitor/stats'
+        - 'indices:admin/mappings/get'
 
 # Allow users to read ML stats/models/tasks
 ml_read_access:
