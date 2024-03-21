@@ -278,7 +278,10 @@ query_assistant_access:
     - 'cluster:admin/opensearch/ml/execute'
     - 'cluster:admin/opensearch/ml/memory/conversation/create'
     - 'cluster:admin/opensearch/ml/memory/interaction/create'
+    - 'cluster:admin/opensearch/ml/memory/interaction/update'
     - 'cluster:admin/opensearch/ml/predict'
+    - 'cluster:monitor/state'
+    - 'cluster:monitor/health'
 
 # Allow users to read ML stats/models/tasks
 ml_read_access:
