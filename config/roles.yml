@@ -284,12 +284,12 @@ query_assistant_access:
     - 'cluster:monitor/state'
   index_permissions:
     index_patterns:
-        - '*'
+      - '*'
     allowed_actions:
-        - 'indices:data/read/search*'
-        - 'indices:monitor/settings/get'
-        - 'indices:monitor/stats'
-        - 'indices:admin/mappings/get'
+      - 'indices:admin/mappings/get'
+      - 'indices:data/read/search*'
+      - 'indices:monitor/settings/get'
+      - 'indices:monitor/stats'
 
 # Allow users to read ML stats/models/tasks
 ml_read_access:
