@@ -45,6 +45,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
+import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -403,7 +404,10 @@ public class BackendRegistry {
                 }
             }
 
-            if (authCredentials == null && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params())) {
+            if (authCredentials == null
+                && anonymousAuthEnabled
+                && isRequestForAnonymousLogin(request.params())
+                && checkIfRequestContainsBasicAuthHeader(request.getHeaders())) {
                 final String tenant = resolveTenantFrom(request);
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
@@ -431,6 +435,16 @@ public class BackendRegistry {
             return false;
         }
         return authenticated;
+    }
+
+    /**
+     * Checks whether request contains Authorization header. If so return yes
+     * Solves: <a href="https://github.com/opensearch-project/security-dashboards-plugin/issues/1840">...</a>
+     * @param headers headers in the current request
+     * @return true if request contains `authorization` header, else return false
+     */
+    private boolean checkIfRequestContainsBasicAuthHeader(Map<String, List<String>> headers) {
+        return headers.containsKey(HttpHeaders.AUTHORIZATION);
     }
 
     /**
