@@ -407,7 +407,7 @@ public class BackendRegistry {
             if (authCredentials == null
                 && anonymousAuthEnabled
                 && isRequestForAnonymousLogin(request.params())
-                && checkIfRequestContainsBasicAuthHeader(request.getHeaders())) {
+                && !checkIfRequestContainsBasicAuthHeader(request.getHeaders())) {
                 final String tenant = resolveTenantFrom(request);
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
