@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.security.KeyStore;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -414,9 +415,40 @@ public class RestHelper {
         }
 
         /**
-         * Given a json path with dots delimiated returns the object at the leaf
+         * Given a json path with dots delimiated returns the object at the leaf as a string
          */
         public String findValueInJson(final String jsonDotPath) {
+            final JsonNode node = this.findObjectInJson(jsonDotPath);
+            throwIfNotValueNode(node);
+            return node.asText();
+        }
+
+        /**
+         * Given a json path with dots delimited, returns the array at the leaf
+         */
+        public List<String> findArrayInJson(final String jsonDotPath) {
+            final JsonNode node = this.findObjectInJson(jsonDotPath);
+            if (!node.isArray()) {
+                throw new RuntimeException("Found object was not an array, object\n" + node.toPrettyString());
+            }
+            final List<String> elements = new ArrayList<>();
+            for (int i = 0; i < node.size(); i++) {
+                final JsonNode currentNode = node.get(i);
+                throwIfNotValueNode(currentNode);
+                elements.add(currentNode.asText());
+            }
+            return elements;
+        }
+
+        private void throwIfNotValueNode(final JsonNode node) {
+            if (!node.isValueNode()) {
+                throw new RuntimeException(
+                    "Unexpected value note, index directly to the object to reference, object\n" + node.toPrettyString()
+                );
+            }
+        }
+
+        private JsonNode findObjectInJson(final String jsonDotPath) {
             // Make sure its json / then parse it
             if (!isJsonContentType()) {
                 throw new RuntimeException("Response was expected to be JSON, body was: \n" + body);
@@ -494,7 +526,7 @@ public class RestHelper {
                         "Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString()
                     );
                 }
-                return currentNode.asText();
+                return currentNode;
             }
         }
     }
