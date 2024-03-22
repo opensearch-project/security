@@ -275,21 +275,10 @@ cross_cluster_search_remote_full_access:
 query_assistant_access:
   reserved: true
   cluster_permissions:
+    - 'cluster:admin/opensearch/ml/config/get'
     - 'cluster:admin/opensearch/ml/execute'
-    - 'cluster:admin/opensearch/ml/memory/conversation/create'
-    - 'cluster:admin/opensearch/ml/memory/interaction/create'
-    - 'cluster:admin/opensearch/ml/memory/interaction/update'
+    - 'cluster:admin/opensearch/ppl'
     - 'cluster:admin/opensearch/ml/predict'
-    - 'cluster:monitor/health'
-    - 'cluster:monitor/state'
-  index_permissions:
-    index_patterns:
-      - '*'
-    allowed_actions:
-      - 'indices:admin/mappings/get'
-      - 'indices:data/read/search*'
-      - 'indices:monitor/settings/get'
-      - 'indices:monitor/stats'
 
 # Allow users to read ML stats/models/tasks
 ml_read_access:
