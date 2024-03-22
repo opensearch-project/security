@@ -88,6 +88,12 @@ public class SinkProviderTest {
         Assert.assertEquals("loggername", lsink.loggerName);
         Assert.assertEquals(Level.DEBUG, lsink.logLevel);
 
+        sink = provider.getSink("endpoint13");
+        Assert.assertEquals(Log4JSink.class, sink.getClass());
+        lsink = (Log4JSink) sink;
+        Assert.assertEquals("audit", lsink.loggerName);
+        Assert.assertEquals(Level.INFO, lsink.logLevel);
+
     }
 
     @Test
