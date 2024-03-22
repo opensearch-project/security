@@ -117,7 +117,8 @@ public class DoNotFailOnForbiddenTests {
             "indices:data/read/msearch",
             "indices:data/read/scroll",
             "cluster:monitor/state",
-            "cluster:monitor/health"
+            "cluster:monitor/health",
+            "cluster:monitor/term"
         )
             .indexPermissions(
                 "indices:data/read/search",
