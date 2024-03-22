@@ -521,11 +521,6 @@ public class RestHelper {
                     }
                 } while (jsonPathScanner.hasNext());
 
-                if (!currentNode.isValueNode()) {
-                    throw new RuntimeException(
-                        "Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString()
-                    );
-                }
                 return currentNode;
             }
         }
