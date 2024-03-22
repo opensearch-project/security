@@ -13,6 +13,7 @@ Compatible with OpenSearch 2.13.0
 * Fix unconsumed parameter exception when authenticating with jwtUrlParameter ([#4065](https://github.com/opensearch-project/security/pull/4065))
 * Regenerates root-ca, kirk and esnode certificates to address already expired root ca certificate ([#4066](https://github.com/opensearch-project/security/pull/4066))
 * Add exclude_roles configuration parameter to LDAP authorization backend ([#4043](https://github.com/opensearch-project/security/pull/4043))
+* Refactor and update existing ml roles ([#4157](https://github.com/opensearch-project/security/pull/4157))
 
 ### Maintenance
 * Add exlusion for logback-core to resolve CVE-2023-6378 ([#4050](https://github.com/opensearch-project/security/pull/4050))
