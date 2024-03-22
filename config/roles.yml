@@ -277,8 +277,8 @@ query_assistant_access:
   cluster_permissions:
     - 'cluster:admin/opensearch/ml/config/get'
     - 'cluster:admin/opensearch/ml/execute'
-    - 'cluster:admin/opensearch/ppl'
     - 'cluster:admin/opensearch/ml/predict'
+    - 'cluster:admin/opensearch/ppl'
 
 # Allow users to read ML stats/models/tasks
 ml_read_access:
@@ -297,6 +297,7 @@ ml_read_access:
     - 'cluster:admin/opensearch/ml/memory/trace/get'
     - 'cluster:admin/opensearch/ml/models/get'
     - 'cluster:admin/opensearch/ml/models/search'
+    - 'cluster:admin/opensearch/ml/model_groups/get'
     - 'cluster:admin/opensearch/ml/model_groups/search'
     - 'cluster:admin/opensearch/ml/profile/nodes'
     - 'cluster:admin/opensearch/ml/stats/nodes'
