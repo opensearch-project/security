@@ -599,7 +599,7 @@ dependencies {
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.5.0'
+    runtimeOnly 'net.minidev:accessors-smart:2.5.1'
 
     runtimeOnly "org.apache.cxf:cxf-core:${apache_cxf_version}"
     implementation "org.apache.cxf:cxf-rt-rs-json-basic:${apache_cxf_version}"
