@@ -153,8 +153,8 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.SecurityHttpServerTransport;
-import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
+import org.opensearch.security.http.NonSslHttpServerTransport;
+import org.opensearch.security.http.SecureHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -949,7 +949,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     evaluateSslExceptionHandler()
                 );
                 // TODO close odshst
-                final SecurityHttpServerTransport odshst = new SecurityHttpServerTransport(
+                final SecureHttpServerTransport odshst = new SecureHttpServerTransport(
                     migrateSettings(settings),
                     networkService,
                     bigArrays,
@@ -967,7 +967,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             } else if (!client) {
                 return Collections.singletonMap(
                     "org.opensearch.security.http.SecurityHttpServerTransport",
-                    () -> new SecurityNonSslHttpServerTransport(
+                    () -> new NonSslHttpServerTransport(
                         migrateSettings(settings),
                         networkService,
                         bigArrays,

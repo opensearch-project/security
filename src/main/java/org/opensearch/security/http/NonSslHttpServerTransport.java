@@ -26,52 +26,42 @@
 
 package org.opensearch.security.http;
 
-import java.util.Set;
-
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.BigArrays;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.http.HttpHandlingSettings;
+import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
-import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
-import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.AttributeKey;
 
-public class SecurityHttpServerTransport extends SecureNetty4HttpServerTransport {
-
-    public static final AttributeKey<SecurityResponse> EARLY_RESPONSE = AttributeKey.newInstance("opensearch-http-early-response");
-    public static final AttributeKey<Set<String>> UNCONSUMED_PARAMS = AttributeKey.newInstance("opensearch-http-request-consumed-params");
-    public static final AttributeKey<ThreadContext.StoredContext> CONTEXT_TO_RESTORE = AttributeKey.newInstance(
-        "opensearch-http-request-thread-context"
-    );
-    public static final AttributeKey<Boolean> SHOULD_DECOMPRESS = AttributeKey.newInstance("opensearch-http-should-decompress");
-    public static final AttributeKey<Boolean> IS_AUTHENTICATED = AttributeKey.newInstance("opensearch-http-is-authenticated");
+public class NonSslHttpServerTransport extends SecureNetty4HttpServerTransport {
 
     private final ChannelInboundHandlerAdapter headerVerifier;
 
-    public SecurityHttpServerTransport(
+    public NonSslHttpServerTransport(
         final Settings settings,
         final NetworkService networkService,
         final BigArrays bigArrays,
         final ThreadPool threadPool,
         final NamedXContentRegistry namedXContentRegistry,
-        final ValidatingDispatcher dispatcher,
+        final Dispatcher dispatcher,
         final ClusterSettings clusterSettings,
-        SharedGroupFactory sharedGroupFactory,
+        final SharedGroupFactory sharedGroupFactory,
         final SecureTransportSettingsProvider secureTransportSettingsProvider,
-        Tracer tracer,
-        SecurityRestFilter restFilter
+        final Tracer tracer,
+        final SecurityRestFilter restFilter
     ) {
         super(
             settings,
@@ -85,8 +75,24 @@ public class SecurityHttpServerTransport extends SecureNetty4HttpServerTransport
             secureTransportSettingsProvider,
             tracer
         );
-
         headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+    }
+
+    @Override
+    public ChannelHandler configureServerChannelHandler() {
+        return new NonSslHttpChannelHandler(this, handlingSettings);
+    }
+
+    protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
+
+        protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings) {
+            super(transport, handlingSettings);
+        }
+
+        @Override
+        protected void initChannel(Channel ch) throws Exception {
+            super.initChannel(ch);
+        }
     }
 
     @Override
