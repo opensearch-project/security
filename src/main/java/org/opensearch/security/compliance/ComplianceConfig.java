@@ -539,6 +539,12 @@ public class ComplianceConfig {
         if (securityIndex.equals(index)) {
             return logInternalConfig;
         }
+        // if the index is used for audit logging (rolling index name), return false
+        if (auditLogPattern != null) {
+            if (index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
+                return false;
+            }
+        }
         try {
             return readEnabledFieldsCache.get(index) != WildcardMatcher.NONE;
         } catch (ExecutionException e) {
@@ -560,6 +566,12 @@ public class ComplianceConfig {
         // if security index (internal index) check if internal config logging is enabled
         if (securityIndex.equals(index)) {
             return logInternalConfig;
+        }
+        // if the index is used for audit logging (rolling index name), return false
+        if (auditLogPattern != null) {
+            if (index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
+                return false;
+            }
         }
         WildcardMatcher matcher;
         try {
