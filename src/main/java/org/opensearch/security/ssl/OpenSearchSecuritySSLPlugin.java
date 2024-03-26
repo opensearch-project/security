@@ -99,14 +99,16 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION,
         true,
         Property.NodeScope,
-        Property.Filtered
+        Property.Filtered,
+        Property.Deprecated
     );
 
     private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME = Setting.boolSetting(
         SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME,
         true,
         Property.NodeScope,
-        Property.Filtered
+        Property.Filtered,
+        Property.Deprecated
     );
 
     private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(
@@ -675,19 +677,53 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected Settings migrateSettings(Settings settings) {
         final Settings.Builder builder = Settings.builder().put(settings);
 
-        builder.remove(NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY);
-        builder.remove(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY);
-        builder.remove(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY);
+        if (!NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED.exists(settings)) {
+            builder.put(NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY, SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings));
+        } else {
+            if (SecuritySettings.SSL_DUAL_MODE_SETTING.exists(settings)) {
+                throw new OpenSearchException(
+                    "Only one of the settings ["
+                        + NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY
+                        + ", "
+                        + SecuritySettings.SSL_DUAL_MODE_SETTING.getKey()
+                        + "(deprecated)] could be specified but not both"
+                );
+            }
+        }
 
-        builder.put(NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY, SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings));
-        builder.put(
-            NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY,
-            SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.get(settings)
-        );
-        builder.put(
-            NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
-            SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.get(settings)
-        );
+        if (!NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.exists(settings)) {
+            builder.put(
+                NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY,
+                SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.get(settings)
+            );
+        } else {
+            if (SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.exists(settings)) {
+                throw new OpenSearchException(
+                    "Only one of the settings ["
+                        + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME
+                        + ", "
+                        + SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.getKey()
+                        + "(deprecated)] could be specified but not both"
+                );
+            }
+        }
+
+        if (!NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION.exists(settings)) {
+            builder.put(
+                NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
+                SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.get(settings)
+            );
+        } else {
+            if (SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.exists(settings)) {
+                throw new OpenSearchException(
+                    "Only one of the settings ["
+                        + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
+                        + ", "
+                        + SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.getKey()
+                        + "(deprecated)] could be specified but not both"
+                );
+            }
+        }
 
         return builder.build();
     }
