@@ -33,6 +33,8 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
+import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
@@ -44,11 +46,11 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
+public class NonSslHttpServerTransport extends SecureNetty4HttpServerTransport {
 
     private final ChannelInboundHandlerAdapter headerVerifier;
 
-    public SecurityNonSslHttpServerTransport(
+    public NonSslHttpServerTransport(
         final Settings settings,
         final NetworkService networkService,
         final BigArrays bigArrays,
@@ -57,6 +59,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
         final Dispatcher dispatcher,
         final ClusterSettings clusterSettings,
         final SharedGroupFactory sharedGroupFactory,
+        final SecureTransportSettingsProvider secureTransportSettingsProvider,
         final Tracer tracer,
         final SecurityRestFilter restFilter
     ) {
@@ -69,6 +72,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
             dispatcher,
             clusterSettings,
             sharedGroupFactory,
+            secureTransportSettingsProvider,
             tracer
         );
         headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
