@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -112,6 +113,8 @@ import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
+import org.opensearch.plugins.SecureSettingsFactory;
+import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -148,8 +151,8 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.SecurityHttpServerTransport;
-import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
+import org.opensearch.security.http.NonSslHttpServerTransport;
+import org.opensearch.security.http.SecureHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -165,11 +168,11 @@ import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
-import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.GuardedSearchOperationWrapper;
@@ -197,6 +200,7 @@ import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
@@ -855,25 +859,27 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public Map<String, Supplier<Transport>> getTransports(
+    public Map<String, Supplier<Transport>> getSecureTransports(
         Settings settings,
         ThreadPool threadPool,
         PageCacheRecycler pageCacheRecycler,
         CircuitBreakerService circuitBreakerService,
         NamedWriteableRegistry namedWriteableRegistry,
         NetworkService networkService,
+        SecureTransportSettingsProvider secureTransportSettingsProvider,
         Tracer tracer
     ) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
 
         if (SSLConfig.isSslOnlyMode()) {
-            return super.getTransports(
+            return super.getSecureTransports(
                 settings,
                 threadPool,
                 pageCacheRecycler,
                 circuitBreakerService,
                 namedWriteableRegistry,
                 networkService,
+                secureTransportSettingsProvider,
                 tracer
             );
         }
@@ -881,18 +887,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (transportSSLEnabled) {
             transports.put(
                 "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
-                () -> new SecuritySSLNettyTransport(
-                    settings,
+                () -> new SecureNetty4Transport(
+                    migrateSettings(settings),
                     Version.CURRENT,
                     threadPool,
                     networkService,
                     pageCacheRecycler,
                     namedWriteableRegistry,
                     circuitBreakerService,
-                    sks,
-                    evaluateSslExceptionHandler(),
                     sharedGroupFactory,
-                    SSLConfig,
+                    secureTransportSettingsProvider,
                     tracer
                 )
             );
@@ -901,7 +905,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(
+    public Map<String, Supplier<HttpServerTransport>> getSecureHttpTransports(
         Settings settings,
         ThreadPool threadPool,
         BigArrays bigArrays,
@@ -911,11 +915,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         NetworkService networkService,
         Dispatcher dispatcher,
         ClusterSettings clusterSettings,
+        SecureTransportSettingsProvider secureTransportSettingsProvider,
         Tracer tracer
     ) {
 
         if (SSLConfig.isSslOnlyMode()) {
-            return super.getHttpTransports(
+            return super.getSecureHttpTransports(
                 settings,
                 threadPool,
                 bigArrays,
@@ -925,6 +930,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 networkService,
                 dispatcher,
                 clusterSettings,
+                secureTransportSettingsProvider,
                 tracer
             );
         }
@@ -940,17 +946,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     evaluateSslExceptionHandler()
                 );
                 // TODO close odshst
-                final SecurityHttpServerTransport odshst = new SecurityHttpServerTransport(
-                    settings,
+                final SecureHttpServerTransport odshst = new SecureHttpServerTransport(
+                    migrateSettings(settings),
                     networkService,
                     bigArrays,
                     threadPool,
-                    sks,
-                    evaluateSslExceptionHandler(),
                     xContentRegistry,
                     validatingDispatcher,
                     clusterSettings,
                     sharedGroupFactory,
+                    secureTransportSettingsProvider,
                     tracer,
                     securityRestHandler
                 );
@@ -959,8 +964,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             } else if (!client) {
                 return Collections.singletonMap(
                     "org.opensearch.security.http.SecurityHttpServerTransport",
-                    () -> new SecurityNonSslHttpServerTransport(
-                        settings,
+                    () -> new NonSslHttpServerTransport(
+                        migrateSettings(settings),
                         networkService,
                         bigArrays,
                         threadPool,
@@ -968,6 +973,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         dispatcher,
                         clusterSettings,
                         sharedGroupFactory,
+                        secureTransportSettingsProvider,
                         tracer,
                         securityRestHandler
                     )
@@ -2001,6 +2007,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public SecurityTokenManager getTokenManager() {
         return tokenManager;
+    }
+
+    @Override
+    public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
+        return Optional.of(new OpenSearchSecureSettingsFactory(settings, sks, sslExceptionHandler));
     }
 
     public static class GuiceHolder implements LifecycleComponent {
