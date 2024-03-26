@@ -32,11 +32,11 @@ import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
 
-import static org.opensearch.security.http.SecurityHttpServerTransport.CONTEXT_TO_RESTORE;
-import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
-import static org.opensearch.security.http.SecurityHttpServerTransport.IS_AUTHENTICATED;
-import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
-import static org.opensearch.security.http.SecurityHttpServerTransport.UNCONSUMED_PARAMS;
+import static org.opensearch.security.http.SecureHttpServerTransport.CONTEXT_TO_RESTORE;
+import static org.opensearch.security.http.SecureHttpServerTransport.EARLY_RESPONSE;
+import static org.opensearch.security.http.SecureHttpServerTransport.IS_AUTHENTICATED;
+import static org.opensearch.security.http.SecureHttpServerTransport.SHOULD_DECOMPRESS;
+import static org.opensearch.security.http.SecureHttpServerTransport.UNCONSUMED_PARAMS;
 
 @Sharable
 public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler<DefaultHttpRequest> {

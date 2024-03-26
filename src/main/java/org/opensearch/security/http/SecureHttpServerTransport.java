@@ -34,19 +34,21 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
+import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.ssl.SecurityKeyStore;
-import org.opensearch.security.ssl.SslExceptionHandler;
-import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
+import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
+import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.AttributeKey;
 
-public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTransport {
+public class SecureHttpServerTransport extends SecureNetty4HttpServerTransport {
 
     public static final AttributeKey<SecurityResponse> EARLY_RESPONSE = AttributeKey.newInstance("opensearch-http-early-response");
     public static final AttributeKey<Set<String>> UNCONSUMED_PARAMS = AttributeKey.newInstance("opensearch-http-request-consumed-params");
@@ -56,17 +58,18 @@ public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTrans
     public static final AttributeKey<Boolean> SHOULD_DECOMPRESS = AttributeKey.newInstance("opensearch-http-should-decompress");
     public static final AttributeKey<Boolean> IS_AUTHENTICATED = AttributeKey.newInstance("opensearch-http-is-authenticated");
 
-    public SecurityHttpServerTransport(
+    private final ChannelInboundHandlerAdapter headerVerifier;
+
+    public SecureHttpServerTransport(
         final Settings settings,
         final NetworkService networkService,
         final BigArrays bigArrays,
         final ThreadPool threadPool,
-        final SecurityKeyStore odsks,
-        final SslExceptionHandler sslExceptionHandler,
         final NamedXContentRegistry namedXContentRegistry,
         final ValidatingDispatcher dispatcher,
         final ClusterSettings clusterSettings,
         SharedGroupFactory sharedGroupFactory,
+        final SecureTransportSettingsProvider secureTransportSettingsProvider,
         Tracer tracer,
         SecurityRestFilter restFilter
     ) {
@@ -75,14 +78,24 @@ public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTrans
             networkService,
             bigArrays,
             threadPool,
-            odsks,
             namedXContentRegistry,
             dispatcher,
-            sslExceptionHandler,
             clusterSettings,
             sharedGroupFactory,
-            tracer,
-            restFilter
+            secureTransportSettingsProvider,
+            tracer
         );
+
+        headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
+        return headerVerifier;
+    }
+
+    @Override
+    protected ChannelInboundHandlerAdapter createDecompressor() {
+        return new Netty4ConditionalDecompressor();
     }
 }
