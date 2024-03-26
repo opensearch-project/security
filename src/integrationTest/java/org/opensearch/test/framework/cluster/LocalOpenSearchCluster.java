@@ -213,17 +213,19 @@ public class LocalOpenSearchCluster {
         for (Node node : nodes) {
             stopFutures.add(node.stop(2, TimeUnit.SECONDS));
         }
-        CompletableFuture.allOf(stopFutures.toArray(size -> new CompletableFuture[size])).join();
+        CompletableFuture.allOf(stopFutures.toArray(CompletableFuture[]::new)).join();
     }
 
     public void destroy() {
-        stop();
-        nodes.clear();
-
         try {
-            FileUtils.deleteDirectory(clusterHomeDir);
-        } catch (IOException e) {
-            log.warn("Error while deleting " + clusterHomeDir, e);
+            stop();
+            nodes.clear();
+        } finally {
+            try {
+                FileUtils.deleteDirectory(clusterHomeDir);
+            } catch (IOException e) {
+                log.warn("Error while deleting " + clusterHomeDir, e);
+            }
         }
     }
 

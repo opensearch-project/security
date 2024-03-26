@@ -17,7 +17,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -45,9 +44,9 @@ public class AnonymousAuthenticationTest {
     /**
     * Maps {@link #ANONYMOUS_USER_CUSTOM_ROLE} to {@link #DEFAULT_ANONYMOUS_USER_BACKEND_ROLE_NAME}
     */
-    private static final RolesMapping ANONYMOUS_USER_CUSTOM_ROLE_MAPPING = new RolesMapping(ANONYMOUS_USER_CUSTOM_ROLE).backendRoles(
-        DEFAULT_ANONYMOUS_USER_BACKEND_ROLE_NAME
-    );
+    private static final TestSecurityConfig.RoleMapping ANONYMOUS_USER_CUSTOM_ROLE_MAPPING = new TestSecurityConfig.RoleMapping(
+        ANONYMOUS_USER_CUSTOM_ROLE.getName()
+    ).backendRoles(DEFAULT_ANONYMOUS_USER_BACKEND_ROLE_NAME);
 
     /**
     * User who is stored in the internal user database and can authenticate
