@@ -12,24 +12,22 @@
 package org.opensearch.security.tools.democonfig;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.support.ConfigConstants;
@@ -38,6 +36,7 @@ import org.opensearch.security.tools.Hasher;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
 
@@ -48,8 +47,10 @@ public class SecuritySettingsConfigurer {
 
     static final List<String> REST_ENABLED_ROLES = List.of("all_access", "security_rest_api_access");
     static final List<String> SYSTEM_INDICES = List.of(
+        ".plugins-ml-agent",
         ".plugins-ml-config",
         ".plugins-ml-connector",
+        ".plugins-ml-controller",
         ".plugins-ml-model-group",
         ".plugins-ml-model",
         ".plugins-ml-task",
@@ -81,6 +82,7 @@ public class SecuritySettingsConfigurer {
     static String ADMIN_USERNAME = "admin";
 
     private final Installer installer;
+    static final String DEFAULT_ADMIN_PASSWORD = "admin";
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
@@ -92,7 +94,7 @@ public class SecuritySettingsConfigurer {
      * 2. Sets the custom admin password (Generates one if none is provided)
      * 3. Write the security config to opensearch.yml
      */
-    public void configureSecuritySettings() {
+    public void configureSecuritySettings() throws IOException {
         checkIfSecurityPluginIsAlreadyConfigured();
         updateAdminPassword();
         writeSecurityConfigToOpenSearchYML();
@@ -125,9 +127,17 @@ public class SecuritySettingsConfigurer {
     /**
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
-    void updateAdminPassword() {
+    void updateAdminPassword() throws IOException {
         String INTERNAL_USERS_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         boolean shouldValidatePassword = installer.environment.equals(ExecutionEnvironment.DEMO);
+
+        // check if the password `admin` is present, if not skip updating admin password
+        if (!isAdminPasswordSetToAdmin(INTERNAL_USERS_FILE_PATH)) {
+            System.out.println("Admin password seems to be custom configured. Skipping update to admin password.");
+            return;
+        }
+
+        // if hashed value for default password "admin" is found, update it with the custom password.
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
@@ -169,15 +179,27 @@ public class SecuritySettingsConfigurer {
                 System.exit(-1);
             }
 
-            // Print an update to the logs
-            System.out.println("Admin password set successfully.");
-
+            // Update the custom password in internal_users.yml file
             writePasswordToInternalUsersFile(ADMIN_PASSWORD, INTERNAL_USERS_FILE_PATH);
+
+            System.out.println("Admin password set successfully.");
 
         } catch (IOException e) {
             System.out.println("Exception updating the admin password : " + e.getMessage());
             System.exit(-1);
         }
+    }
+
+    /**
+     * Check if the password for admin user was already updated. (Possibly via a custom internal_users.yml)
+     * @param internalUsersFile Path to internal_users.yml file
+     * @return true if password was already updated, false otherwise
+     * @throws IOException if there was an error while reading the file
+     */
+    private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
+        JsonNode internalUsers = YAML_MAPPER.readTree(new FileInputStream(internalUsersFile));
+        return internalUsers.has("admin")
+            && OpenBSDBCrypt.checkPassword(internalUsers.get("admin").get("hash").asText(), DEFAULT_ADMIN_PASSWORD.toCharArray());
     }
 
     /**
@@ -190,31 +212,24 @@ public class SecuritySettingsConfigurer {
         String hashedAdminPassword = Hasher.hash(adminPassword.toCharArray());
 
         if (hashedAdminPassword.isEmpty()) {
-            System.out.println("Hash the admin password failure, see console for details");
+            System.out.println("Failure while hashing the admin password, see console for details.");
             System.exit(-1);
         }
 
-        Path tempFilePath = Paths.get(internalUsersFile + ".tmp");
-        Path internalUsersPath = Paths.get(internalUsersFile);
-
-        try (
-            BufferedReader reader = new BufferedReader(new FileReader(internalUsersFile, StandardCharsets.UTF_8));
-            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFilePath.toFile(), StandardCharsets.UTF_8))
-        ) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.matches(" *hash: *\"\\$2a\\$12\\$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"")) {
-                    line = line.replace(
-                        "\"$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\"",
-                        "\"" + hashedAdminPassword + "\""
-                    );
-                }
-                writer.write(line + System.lineSeparator());
+        try {
+            var map = YAML_MAPPER.readValue(new File(internalUsersFile), new TypeReference<Map<String, LinkedHashMap<String, Object>>>() {
+            });
+            var admin = map.get("admin");
+            if (admin != null) {
+                // Replace the password since the default password was found via the check: isAdminPasswordSetToAdmin(..)
+                admin.put("hash", hashedAdminPassword);
             }
+
+            // Write the updated map back to the internal_users.yml file
+            YAML_MAPPER.writeValue(new File(internalUsersFile), map);
         } catch (IOException e) {
             throw new IOException("Unable to update the internal users file with the hashed password.");
         }
-        Files.move(tempFilePath, internalUsersPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
@@ -329,7 +344,7 @@ public class SecuritySettingsConfigurer {
     static boolean isKeyPresentInYMLFile(String filePath, String key) throws IOException {
         JsonNode node;
         try {
-            node = DefaultObjectMapper.YAML_MAPPER.readTree(new File(filePath));
+            node = YAML_MAPPER.readTree(new File(filePath));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

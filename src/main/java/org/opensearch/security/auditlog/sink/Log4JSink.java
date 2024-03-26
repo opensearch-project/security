@@ -27,7 +27,7 @@ public final class Log4JSink extends AuditLogSink {
 
     public Log4JSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, settingsPrefix, fallbackSink);
-        loggerName = settings.get(settingsPrefix + ".log4j.logger_name", "sgaudit");
+        loggerName = settings.get(settingsPrefix + ".log4j.logger_name", "audit");
         auditLogger = LogManager.getLogger(loggerName);
         logLevel = Level.toLevel(settings.get(settingsPrefix + ".log4j.level", "INFO").toUpperCase());
         enabled = auditLogger.isEnabled(logLevel);

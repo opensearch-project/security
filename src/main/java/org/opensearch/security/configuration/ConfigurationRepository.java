@@ -123,6 +123,14 @@ public class ConfigurationRepository {
         configCache = CacheBuilder.newBuilder().build();
     }
 
+    public String getConfigDirectory() {
+        String lookupDir = System.getProperty("security.default_init.dir");
+        final String cd = lookupDir != null
+            ? (lookupDir + "/")
+            : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+        return cd;
+    }
+
     private void initalizeClusterConfiguration(final boolean installDefaultConfig) {
         try {
             LOGGER.info("Background init thread started. Install default config?: " + installDefaultConfig);
@@ -135,10 +143,7 @@ public class ConfigurationRepository {
             if (installDefaultConfig) {
 
                 try {
-                    String lookupDir = System.getProperty("security.default_init.dir");
-                    final String cd = lookupDir != null
-                        ? (lookupDir + "/")
-                        : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+                    final String cd = getConfigDirectory();
                     File confFile = new File(cd + "config.yml");
                     if (confFile.exists()) {
                         final ThreadContext threadContext = threadPool.getThreadContext();

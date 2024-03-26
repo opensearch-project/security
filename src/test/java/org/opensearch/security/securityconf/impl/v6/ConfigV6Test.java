@@ -20,6 +20,10 @@ import org.junit.runners.Parameterized;
 
 import org.opensearch.security.DefaultObjectMapper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+
 @RunWith(Parameterized.class)
 public class ConfigV6Test {
     private final boolean omitDefaults;
@@ -31,6 +35,9 @@ public class ConfigV6Test {
 
     public void assertEquals(ConfigV6.Kibana expected, JsonNode node) {
         Assert.assertEquals(expected.multitenancy_enabled, node.get("multitenancy_enabled").asBoolean());
+        assertThat(node.get("sign_in_options").isArray(), is(true));
+        assertThat(node.get("sign_in_options").toString(), containsString(expected.sign_in_options.get(0).toString()));
+
         if (expected.server_username == null) {
             Assert.assertNull(node.get("server_username"));
         } else {
@@ -57,6 +64,7 @@ public class ConfigV6Test {
 
     private void assertEquals(ConfigV6.Kibana expected, ConfigV6.Kibana actual) {
         Assert.assertEquals(expected.multitenancy_enabled, actual.multitenancy_enabled);
+        assertThat(expected.sign_in_options, is(actual.sign_in_options));
         if (expected.server_username == null) {
             // null is restored to default instead of null
             Assert.assertEquals(new ConfigV6.Kibana().server_username, actual.server_username);

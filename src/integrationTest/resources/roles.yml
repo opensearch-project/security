@@ -17,3 +17,21 @@ user_limited-user__limited-role:
       allowed_actions:
         - "indices:data/read/get"
         - "indices:data/read/search"
+flow_framework_full_access:
+  cluster_permissions:
+    - 'cluster:admin/opensearch/flow_framework/*'
+    - 'cluster_monitor'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/aliases/get'
+        - 'indices:admin/mappings/get'
+        - 'indices_monitor'
+flow_framework_read_access:
+  cluster_permissions:
+    - 'cluster:admin/opensearch/flow_framework/workflow/get'
+    - 'cluster:admin/opensearch/flow_framework/workflow/search'
+    - 'cluster:admin/opensearch/flow_framework/workflow_state/get'
+    - 'cluster:admin/opensearch/flow_framework/workflow_state/search'
+    - 'cluster:admin/opensearch/flow_framework/workflow_step/get'
