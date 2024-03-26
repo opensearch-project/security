@@ -32,13 +32,14 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.identity.SecurityTokenManager;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new NamedRoute.Builder().method(POST).path("/generateonbehalfoftoken").uniqueName("security:obo/create").build()),
-        "/_plugins/_security/api"
+        PLUGIN_API_ROUTE_PREFIX
     );
 
     public static final long OBO_DEFAULT_EXPIRY_SECONDS = 5 * 60;
