@@ -79,6 +79,7 @@ public class BasicWithAnonymousAuthTests {
         }
     }
 
+    /** Test `?auth_request_type=""` param to authinfo request **/
     @Test
     public void testShouldAutomaticallyLoginAsAnonymousIfNoCredentialsArePassed() {
         try (TestRestClient client = cluster.getRestClient()) {
