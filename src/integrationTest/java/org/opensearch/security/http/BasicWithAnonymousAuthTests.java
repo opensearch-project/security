@@ -92,7 +92,7 @@ public class BasicWithAnonymousAuthTests {
             HttpResponse response2 = client.getAuthInfo(Map.of("auth_request_type", "anonymous"));
 
             assertThat(response2, is(notNullValue()));
-            response.assertStatusCode(SC_OK);
+            response2.assertStatusCode(SC_OK);
         }
     }
 
