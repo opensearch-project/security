@@ -17,6 +17,7 @@ import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -52,6 +53,7 @@ public class RolesMappingTests {
             List<String> roles = response.getTextArrayFromJsonBody("/roles");
             List<String> backendRoles = response.getTextArrayFromJsonBody("/backend_roles");
             assertThat(roles, contains(ROLE_A.getName()));
+            assertThat(roles, not(contains(ROLE_B.getName())));
             assertThat(backendRoles, contains("mapsToRoleA"));
             response.assertStatusCode(SC_OK);
         }
@@ -64,6 +66,7 @@ public class RolesMappingTests {
             List<String> roles = response.getTextArrayFromJsonBody("/roles");
             List<String> backendRoles = response.getTextArrayFromJsonBody("/backend_roles");
             assertThat(roles, contains(ROLE_B.getName()));
+            assertThat(roles, not(contains(ROLE_A.getName())));
             assertThat(backendRoles, contains("mapsToRoleB"));
             response.assertStatusCode(SC_OK);
         }
