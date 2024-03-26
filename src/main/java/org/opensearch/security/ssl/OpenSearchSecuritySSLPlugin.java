@@ -454,8 +454,13 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 Property.Filtered
             )
         );
-        settings.add(SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION);
-        settings.add(SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME);
+        if (!settings.stream().anyMatch(s -> s.getKey().equalsIgnoreCase(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY))) {
+            settings.add(SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION);
+        }
+        if (!settings.stream()
+            .anyMatch(s -> s.getKey().equalsIgnoreCase(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY))) {
+            settings.add(SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME);
+        }
         settings.add(
             Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered)
         );
@@ -686,7 +691,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                         + NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY
                         + ", "
                         + SecuritySettings.SSL_DUAL_MODE_SETTING.getKey()
-                        + "(deprecated)] could be specified but not both"
+                        + " (deprecated)] could be specified but not both"
                 );
             }
         }
@@ -700,10 +705,10 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             if (SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.exists(settings)) {
                 throw new OpenSearchException(
                     "Only one of the settings ["
-                        + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME
+                        + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY
                         + ", "
                         + SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.getKey()
-                        + "(deprecated)] could be specified but not both"
+                        + " (deprecated)] could be specified but not both"
                 );
             }
         }
@@ -720,7 +725,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                         + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
                         + ", "
                         + SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.getKey()
-                        + "(deprecated)] could be specified but not both"
+                        + " (deprecated)] could be specified but not both"
                 );
             }
         }
