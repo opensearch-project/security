@@ -124,6 +124,7 @@ public class SecurityConfigurationBootstrapTests {
                     .put("action_groups.yml", CType.ACTIONGROUPS)
                     .put("config.yml", CType.CONFIG)
                     .put("roles.yml", CType.ROLES)
+                    .put("roles_mapping.yml", CType.ROLESMAPPING)
                     .put("tenants.yml", CType.TENANTS)
                     .build();
 
@@ -146,7 +147,7 @@ public class SecurityConfigurationBootstrapTests {
                     // After the configuration has been loaded, the rest clients should be able to connect successfully
                     cluster.triggerConfigurationReloadForCTypes(
                         internalNodeClient,
-                        List.of(CType.ACTIONGROUPS, CType.CONFIG, CType.ROLES, CType.TENANTS),
+                        List.of(CType.ACTIONGROUPS, CType.CONFIG, CType.ROLES, CType.ROLESMAPPING, CType.TENANTS),
                         true
                     );
                     try (final TestRestClient freshClient = cluster.getRestClient(USER_ADMIN)) {

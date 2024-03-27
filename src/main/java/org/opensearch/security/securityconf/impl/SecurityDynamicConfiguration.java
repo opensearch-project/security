@@ -68,6 +68,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return new SecurityDynamicConfiguration<T>();
     }
 
+    @JsonIgnore
+    public boolean notEmpty() {
+        return !centries.isEmpty();
+    }
+
     public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm)
         throws IOException {
         return fromJson(json, ctype, version, seqNo, primaryTerm, false);

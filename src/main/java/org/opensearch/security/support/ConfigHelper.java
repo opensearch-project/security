@@ -57,6 +57,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
+@Deprecated
 public class ConfigHelper {
 
     private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
