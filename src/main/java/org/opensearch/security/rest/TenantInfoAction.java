@@ -61,13 +61,15 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantInfoAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/tenantinfo"), new Route(POST, "/tenantinfo")),
-        "/_opendistro/_security",
-        "/_plugins/_security"
+        LEGACY_PLUGIN_ROUTE_PREFIX,
+        PLUGIN_ROUTE_PREFIX
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
