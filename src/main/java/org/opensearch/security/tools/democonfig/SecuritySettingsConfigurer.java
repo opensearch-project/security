@@ -58,6 +58,7 @@ public class SecuritySettingsConfigurer {
         ".plugins-ml-conversation-interactions",
         ".plugins-ml-memory-meta",
         ".plugins-ml-memory-message",
+        ".plugins-ml-stop-words",
         ".opendistro-alerting-config",
         ".opendistro-alerting-alert*",
         ".opendistro-anomaly-results*",
