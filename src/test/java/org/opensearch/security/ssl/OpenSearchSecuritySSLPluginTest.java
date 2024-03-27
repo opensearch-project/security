@@ -26,13 +26,14 @@ import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.HttpServerTransport;
+import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
+import org.opensearch.plugins.TransportExceptionHandler;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.telemetry.tracing.noop.NoopTracer;
-import org.opensearch.transport.TcpTransport;
 import org.opensearch.transport.Transport;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -44,6 +45,7 @@ import static org.junit.Assert.assertThrows;
 
 public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
     private Settings settings;
+    private SecureHttpTransportSettingsProvider secureHttpTransportSettingsProvider;
     private SecureTransportSettingsProvider secureTransportSettingsProvider;
     private ClusterSettings clusterSettings;
 
@@ -76,27 +78,29 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
 
         secureTransportSettingsProvider = new SecureTransportSettingsProvider() {
             @Override
-            public Optional<ServerExceptionHandler> buildHttpServerExceptionHandler(Settings settings, HttpServerTransport transport) {
+            public Optional<TransportExceptionHandler> buildServerTransportExceptionHandler(Settings settings, Transport transport) {
                 return Optional.empty();
             }
 
             @Override
-            public Optional<ServerExceptionHandler> buildServerTransportExceptionHandler(Settings settings, TcpTransport transport) {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<SSLEngine> buildSecureHttpServerEngine(Settings settings, HttpServerTransport transport) throws SSLException {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<SSLEngine> buildSecureServerTransportEngine(Settings settings, TcpTransport transport) throws SSLException {
+            public Optional<SSLEngine> buildSecureServerTransportEngine(Settings settings, Transport transport) throws SSLException {
                 return Optional.empty();
             }
 
             @Override
             public Optional<SSLEngine> buildSecureClientTransportEngine(Settings settings, String hostname, int port) throws SSLException {
+                return Optional.empty();
+            }
+        };
+
+        secureHttpTransportSettingsProvider = new SecureHttpTransportSettingsProvider() {
+            @Override
+            public Optional<TransportExceptionHandler> buildHttpServerExceptionHandler(Settings settings, HttpServerTransport transport) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<SSLEngine> buildSecureHttpServerEngine(Settings settings, HttpServerTransport transport) throws SSLException {
                 return Optional.empty();
             }
         };
@@ -117,7 +121,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 null,
                 null,
                 clusterSettings,
-                secureTransportSettingsProvider,
+                secureHttpTransportSettingsProvider,
                 NoopTracer.INSTANCE
             );
             assertThat(transports, hasKey("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport"));

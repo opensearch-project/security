@@ -61,8 +61,10 @@ import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.NetworkPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.plugins.SystemIndexPlugin;
@@ -73,7 +75,6 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.SecureHttpServerTransport;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
@@ -131,6 +132,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
     };
     protected final SSLConfig SSLConfig;
+    protected volatile ThreadPool threadPool;
 
     // public OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath) {
     // this(settings, configPath, false);
@@ -266,7 +268,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         NetworkService networkService,
         Dispatcher dispatcher,
         ClusterSettings clusterSettings,
-        SecureTransportSettingsProvider secureTransportSettingsProvider,
+        SecureHttpTransportSettingsProvider secureHttpTransportSettingsProvider,
         Tracer tracer
     ) {
 
@@ -279,7 +281,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 configPath,
                 NOOP_SSL_EXCEPTION_HANDLER
             );
-            final SecureHttpServerTransport sgsnht = new SecureHttpServerTransport(
+            final SecureNetty4HttpServerTransport sgsnht = new SecureNetty4HttpServerTransport(
                 migrateSettings(settings),
                 networkService,
                 bigArrays,
@@ -288,9 +290,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 validatingDispatcher,
                 clusterSettings,
                 sharedGroupFactory,
-                secureTransportSettingsProvider,
-                tracer,
-                securityRestHandler
+                secureHttpTransportSettingsProvider,
+                tracer
             );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
@@ -381,6 +382,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
 
+        this.threadPool = threadPool;
         final List<Object> components = new ArrayList<>(1);
 
         if (client) {
@@ -676,7 +678,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     @Override
     public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
-        return Optional.of(new OpenSearchSecureSettingsFactory(settings, sks, NOOP_SSL_EXCEPTION_HANDLER));
+        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, NOOP_SSL_EXCEPTION_HANDLER, securityRestHandler));
     }
 
     protected Settings migrateSettings(Settings settings) {

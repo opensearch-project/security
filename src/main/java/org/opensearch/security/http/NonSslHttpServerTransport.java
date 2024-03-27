@@ -34,22 +34,15 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpHandlingSettings;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
-import org.opensearch.plugins.SecureTransportSettingsProvider;
-import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
-import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
+import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 
 public class NonSslHttpServerTransport extends SecureNetty4HttpServerTransport {
-
-    private final ChannelInboundHandlerAdapter headerVerifier;
-
     public NonSslHttpServerTransport(
         final Settings settings,
         final NetworkService networkService,
@@ -59,9 +52,8 @@ public class NonSslHttpServerTransport extends SecureNetty4HttpServerTransport {
         final Dispatcher dispatcher,
         final ClusterSettings clusterSettings,
         final SharedGroupFactory sharedGroupFactory,
-        final SecureTransportSettingsProvider secureTransportSettingsProvider,
-        final Tracer tracer,
-        final SecurityRestFilter restFilter
+        final SecureHttpTransportSettingsProvider secureHttpTransportSettingsProvider,
+        final Tracer tracer
     ) {
         super(
             settings,
@@ -72,10 +64,9 @@ public class NonSslHttpServerTransport extends SecureNetty4HttpServerTransport {
             dispatcher,
             clusterSettings,
             sharedGroupFactory,
-            secureTransportSettingsProvider,
+            secureHttpTransportSettingsProvider,
             tracer
         );
-        headerVerifier = new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings);
     }
 
     @Override
@@ -93,15 +84,5 @@ public class NonSslHttpServerTransport extends SecureNetty4HttpServerTransport {
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
         }
-    }
-
-    @Override
-    protected ChannelInboundHandlerAdapter createHeaderVerifier() {
-        return headerVerifier;
-    }
-
-    @Override
-    protected ChannelInboundHandlerAdapter createDecompressor() {
-        return new Netty4ConditionalDecompressor();
     }
 }
