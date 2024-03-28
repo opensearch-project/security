@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -84,13 +83,13 @@ abstract class CommonProxyAuthenticationTests {
         .indexPermissions("indices:data/read/search")
         .on(PERSONAL_INDEX_NAME_PATTERN);
 
-    protected static final RolesMapping ROLES_MAPPING_CAPTAIN = new RolesMapping(ROLE_PERSONAL_INDEX_SEARCH).backendRoles(
-        BACKEND_ROLE_CAPTAIN
-    );
+    protected static final TestSecurityConfig.RoleMapping ROLES_MAPPING_CAPTAIN = new TestSecurityConfig.RoleMapping(
+        ROLE_PERSONAL_INDEX_SEARCH.getName()
+    ).backendRoles(BACKEND_ROLE_CAPTAIN);
 
-    protected static final RolesMapping ROLES_MAPPING_FIRST_MATE = new RolesMapping(ROLE_ALL_INDEX_SEARCH).backendRoles(
-        BACKEND_ROLE_FIRST_MATE
-    );
+    protected static final TestSecurityConfig.RoleMapping ROLES_MAPPING_FIRST_MATE = new TestSecurityConfig.RoleMapping(
+        ROLE_ALL_INDEX_SEARCH.getName()
+    ).backendRoles(BACKEND_ROLE_FIRST_MATE);
 
     protected abstract LocalCluster getCluster();
 

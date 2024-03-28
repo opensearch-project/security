@@ -27,7 +27,6 @@ import org.opensearch.test.framework.AuthorizationBackend;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.LdapAuthorizationConfigBuilder;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AuthenticationBackend;
@@ -118,7 +117,7 @@ public class LdapAuthenticationTest {
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
-        .rolesMapping(new RolesMapping(ALL_ACCESS).backendRoles(CN_GROUP_ADMIN))
+        .rolesMapping(new TestSecurityConfig.RoleMapping(ALL_ACCESS.getName()).backendRoles(CN_GROUP_ADMIN))
         .authz(
             new AuthzDomain("ldap_roles").httpEnabled(true)
                 .authorizationBackend(
