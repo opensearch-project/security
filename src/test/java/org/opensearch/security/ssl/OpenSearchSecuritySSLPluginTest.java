@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
@@ -26,6 +27,7 @@ import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.HttpServerTransport;
+import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.plugins.TransportExceptionHandler;
@@ -35,8 +37,12 @@ import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.transport.Transport;
+import org.opensearch.transport.TransportAdapterProvider;
+
+import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -125,6 +131,10 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 NoopTracer.INSTANCE
             );
             assertThat(transports, hasKey("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport"));
+            assertThat(
+                transports.get("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport").get(),
+                not(nullValue())
+            );
         }
     }
 
@@ -142,6 +152,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 NoopTracer.INSTANCE
             );
             assertThat(transports, hasKey("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport"));
+            assertThat(transports.get("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport").get(), not(nullValue()));
         }
     }
 
@@ -245,6 +256,71 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                     )
                 );
             }
+        }
+    }
+
+    @Test
+    public void testRegisterSecureHttpTransportWithRequestHeaderVerifier() throws IOException {
+        final AtomicBoolean created = new AtomicBoolean(false);
+
+        class LocalHeaderVerifier extends ChannelInboundHandlerAdapter {
+            public LocalHeaderVerifier() {
+                created.set(true);
+            }
+        }
+
+        final SecureHttpTransportSettingsProvider provider = new SecureHttpTransportSettingsProvider() {
+            @Override
+            public Collection<TransportAdapterProvider<HttpServerTransport>> getHttpTransportAdapterProviders(Settings settings) {
+                return List.of(new TransportAdapterProvider<HttpServerTransport>() {
+
+                    @Override
+                    public String name() {
+                        return SecureNetty4HttpServerTransport.REQUEST_HEADER_VERIFIER;
+                    }
+
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    public <C> Optional<C> create(Settings settings, HttpServerTransport transport, Class<C> adapterClass) {
+                        return Optional.of((C) new LocalHeaderVerifier());
+                    }
+
+                });
+            }
+
+            @Override
+            public Optional<TransportExceptionHandler> buildHttpServerExceptionHandler(Settings settings, HttpServerTransport transport) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<SSLEngine> buildSecureHttpServerEngine(Settings settings, HttpServerTransport transport) throws SSLException {
+                return Optional.empty();
+            }
+        };
+
+        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(settings, null, false)) {
+            final Map<String, Supplier<HttpServerTransport>> transports = plugin.getSecureHttpTransports(
+                settings,
+                MOCK_POOL,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                clusterSettings,
+                provider,
+                NoopTracer.INSTANCE
+            );
+            assertThat(transports, hasKey("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport"));
+
+            assertThat(
+                transports.get("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport").get(),
+                not(nullValue())
+            );
+
+            assertThat(created.get(), is(true));
         }
     }
 }
