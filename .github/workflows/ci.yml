@@ -51,7 +51,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./build/reports/jacoco/test/jacocoTestReport.xml
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
