@@ -396,11 +396,6 @@ opensearchplugin {
 // This requires an additional Jar not published as part of build-tools
 loggerUsageCheck.enabled = false
 
-// No need to validate pom, as we do not upload to maven/sonatype
-tasks.matching {it.path in [":validateMavenPom", ":validateNebulaPom", ":validatePluginZipPom"]}.all { task ->
-    task.dependsOn ':generatePomFileForNebulaPublication', ':generatePomFileForPluginZipPublication', ':generatePomFileForMavenPublication'
-}
-
 publishing {
     publications {
         pluginZip(MavenPublication) { publication ->
