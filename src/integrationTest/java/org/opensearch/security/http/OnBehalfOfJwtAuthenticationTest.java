@@ -32,7 +32,6 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.test.framework.OnBehalfOfConfig;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -137,7 +136,7 @@ public class OnBehalfOfJwtAuthenticationTest {
             )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .rolesMapping(new RolesMapping(HOST_MAPPING_ROLE).hostIPs(HOST_MAPPING_IP))
+        .rolesMapping(new TestSecurityConfig.RoleMapping(HOST_MAPPING_ROLE.getName()).hosts(HOST_MAPPING_IP))
         .onBehalfOf(defaultOnBehalfOfConfig())
         .build();
 

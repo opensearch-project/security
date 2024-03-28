@@ -26,7 +26,6 @@ import org.junit.runner.RunWith;
 import org.opensearch.security.IndexOperationsHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AsyncActions;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -44,7 +43,7 @@ public class AsyncTests {
     public static LocalCluster cluster = new LocalCluster.Builder().singleNode()
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
-        .rolesMapping(new RolesMapping(ALL_ACCESS).backendRoles("admin"))
+        .rolesMapping(new TestSecurityConfig.RoleMapping(ALL_ACCESS.getName()).backendRoles("admin"))
         .anonymousAuth(false)
         .nodeSettings(Map.of(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of(ALL_ACCESS.getName())))
         .build();
