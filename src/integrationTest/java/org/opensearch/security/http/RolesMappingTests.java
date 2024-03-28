@@ -16,7 +16,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -48,7 +47,10 @@ public class RolesMappingTests {
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .roles(ROLE_A, ROLE_B)
-        .rolesMapping(new RolesMapping(ROLE_A).backendRoles("mapsToRoleA"), new RolesMapping(ROLE_B).backendRoles("mapsToRoleB"))
+        .rolesMapping(
+            new TestSecurityConfig.RoleMapping(ROLE_A.getName()).backendRoles("mapsToRoleA"),
+            new TestSecurityConfig.RoleMapping(ROLE_B.getName()).backendRoles("mapsToRoleB")
+        )
         .users(USER_A, USER_B)
         .build();
 

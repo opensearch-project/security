@@ -56,7 +56,6 @@ import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.OnBehalfOfConfig;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
@@ -442,7 +441,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder rolesMapping(RolesMapping... mappings) {
+        public Builder rolesMapping(TestSecurityConfig.RoleMapping... mappings) {
             testSecurityConfig.rolesMapping(mappings);
             return this;
         }

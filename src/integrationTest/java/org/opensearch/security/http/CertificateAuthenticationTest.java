@@ -17,7 +17,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.test.framework.RolesMapping;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.HttpAuthenticator;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
@@ -69,7 +69,7 @@ public class CertificateAuthenticationTest {
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .roles(ROLE_ALL_INDEX_SEARCH)
         .users(USER_ADMIN)
-        .rolesMapping(new RolesMapping(ROLE_ALL_INDEX_SEARCH).backendRoles(BACKEND_ROLE_BRIDGE))
+        .rolesMapping(new TestSecurityConfig.RoleMapping(ROLE_ALL_INDEX_SEARCH.getName()).backendRoles(BACKEND_ROLE_BRIDGE))
         .build();
 
     private static final TestCertificates TEST_CERTIFICATES = cluster.getTestCertificates();
