@@ -55,6 +55,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -69,10 +70,6 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.http.SecureHttpServerTransport.CONTEXT_TO_RESTORE;
-import static org.opensearch.security.http.SecureHttpServerTransport.EARLY_RESPONSE;
-import static org.opensearch.security.http.SecureHttpServerTransport.IS_AUTHENTICATED;
-import static org.opensearch.security.http.SecureHttpServerTransport.UNCONSUMED_PARAMS;
 
 public class SecurityRestFilter {
 
@@ -128,15 +125,18 @@ public class SecurityRestFilter {
 
         @Override
         public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
-            final Optional<SecurityResponse> maybeSavedResponse = NettyAttribute.popFrom(request, EARLY_RESPONSE);
+            final Optional<SecurityResponse> maybeSavedResponse = NettyAttribute.popFrom(
+                request,
+                Netty4HttpRequestHeaderVerifier.EARLY_RESPONSE
+            );
             if (maybeSavedResponse.isPresent()) {
-                NettyAttribute.clearAttribute(request, CONTEXT_TO_RESTORE);
-                NettyAttribute.clearAttribute(request, IS_AUTHENTICATED);
+                NettyAttribute.clearAttribute(request, Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE);
+                NettyAttribute.clearAttribute(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED);
                 channel.sendResponse(maybeSavedResponse.get().asRestResponse());
                 return;
             }
 
-            NettyAttribute.popFrom(request, CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
+            NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE).ifPresent(storedContext -> {
                 // X_OPAQUE_ID will be overritten on restore - save to apply after restoring the saved context
                 final String xOpaqueId = threadContext.getHeader(Task.X_OPAQUE_ID);
                 storedContext.restore();
@@ -145,7 +145,7 @@ public class SecurityRestFilter {
                 }
             });
 
-            NettyAttribute.popFrom(request, UNCONSUMED_PARAMS).ifPresent(unconsumedParams -> {
+            NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.UNCONSUMED_PARAMS).ifPresent(unconsumedParams -> {
                 for (String unconsumedParam : unconsumedParams) {
                     // Consume the parameter on the RestRequest
                     request.param(unconsumedParam);
@@ -155,7 +155,7 @@ public class SecurityRestFilter {
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
 
             // Authenticate request
-            if (!NettyAttribute.popFrom(request, IS_AUTHENTICATED).orElse(false)) {
+            if (!NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).orElse(false)) {
                 // we aren't authenticated so we should skip this step
                 checkAndAuthenticateRequest(requestChannel);
             }
