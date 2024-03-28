@@ -107,6 +107,7 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.index.IndexModule;
@@ -117,6 +118,7 @@ import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
+import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.repositories.RepositoriesService;
@@ -156,7 +158,6 @@ import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.NonSslHttpServerTransport;
-import org.opensearch.security.http.SecureHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -239,7 +240,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
-    private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
@@ -927,7 +927,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         NetworkService networkService,
         Dispatcher dispatcher,
         ClusterSettings clusterSettings,
-        SecureTransportSettingsProvider secureTransportSettingsProvider,
+        SecureHttpTransportSettingsProvider secureHttpTransportSettingsProvider,
         Tracer tracer
     ) {
 
@@ -942,7 +942,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 networkService,
                 dispatcher,
                 clusterSettings,
-                secureTransportSettingsProvider,
+                secureHttpTransportSettingsProvider,
                 tracer
             );
         }
@@ -958,7 +958,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     evaluateSslExceptionHandler()
                 );
                 // TODO close odshst
-                final SecureHttpServerTransport odshst = new SecureHttpServerTransport(
+                final SecureNetty4HttpServerTransport odshst = new SecureNetty4HttpServerTransport(
                     migrateSettings(settings),
                     networkService,
                     bigArrays,
@@ -967,9 +967,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     validatingDispatcher,
                     clusterSettings,
                     sharedGroupFactory,
-                    secureTransportSettingsProvider,
-                    tracer,
-                    securityRestHandler
+                    secureHttpTransportSettingsProvider,
+                    tracer
                 );
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
@@ -985,9 +984,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         dispatcher,
                         clusterSettings,
                         sharedGroupFactory,
-                        secureTransportSettingsProvider,
-                        tracer,
-                        securityRestHandler
+                        secureHttpTransportSettingsProvider,
+                        tracer
                     )
                 );
             }
@@ -2032,7 +2030,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
-        return Optional.of(new OpenSearchSecureSettingsFactory(settings, sks, sslExceptionHandler));
+        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, sslExceptionHandler, securityRestHandler));
     }
 
     public static class GuiceHolder implements LifecycleComponent {
