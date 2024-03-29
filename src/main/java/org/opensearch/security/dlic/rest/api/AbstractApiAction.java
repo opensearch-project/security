@@ -238,10 +238,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
         return withIOException(() -> withJsonPatchException(() -> {
             final var patchedConfigurationAsJson = JsonPatch.apply(patchContent, configurationAsJson);
+            SecurityDynamicConfiguration<?> onUpdateOrCreatePatchedConfiguration = null;
             for (final var entityName : patchEntityNames(patchContent)) {
-                final var beforePatchEntity = configurationAsJson.get(entityName);
                 final var patchedEntity = patchedConfigurationAsJson.get(entityName);
-                // verify we can process exising or updated entities
+                final var beforePatchEntity = configurationAsJson.get(entityName);
+                // verify we can process existing or updated entities
                 if (beforePatchEntity != null && !Objects.equals(beforePatchEntity, patchedEntity)) {
                     final var checkEntityCanBeProcess = endpointValidator.isAllowedToChangeImmutableEntity(
                         SecurityConfiguration.of(entityName, configuration)
@@ -261,26 +262,40 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                         return ValidationResult.error(requestCheck.status(), requestCheck.errorMessage());
                     }
                 }
-                // verify new JSON content for each entity using same set of validator we use for PUT, PATCH and DELETE
-                final var additionalValidatorCheck = endpointValidator.onConfigChange(
-                    SecurityConfiguration.of(patchedEntity, entityName, configuration)
-                );
-                if (!additionalValidatorCheck.isValid()) {
-                    return additionalValidatorCheck;
-                }
-            }
-            return ValidationResult.success(
-                SecurityConfiguration.of(
-                    null,// there is no entity name in case of patch, since there could be more the one diff entity within configuration
-                    SecurityDynamicConfiguration.fromNode(
+
+                // since we are in the loop and it could be unparseable json in the request
+                // build new sec config here once and validate new or updated values against it
+                if (onUpdateOrCreatePatchedConfiguration == null) {
+                    onUpdateOrCreatePatchedConfiguration = SecurityDynamicConfiguration.fromNode(
                         patchedConfigurationAsJson,
                         configuration.getCType(),
                         configuration.getVersion(),
                         configuration.getSeqNo(),
                         configuration.getPrimaryTerm()
-                    )
+                    );
+                }
+
+                // verify new JSON content for each entity using same set of validator we use for PUT, PATCH and DELETE
+                final var additionalValidatorCheck = endpointValidator.onConfigChange(
+                    SecurityConfiguration.of(patchedEntity, entityName, onUpdateOrCreatePatchedConfiguration)
+                );
+                if (!additionalValidatorCheck.isValid()) {
+                    return additionalValidatorCheck;
+                }
+            }
+            // it could be that someone wants to delete only one entity config
+            final var newSecurityConfig = onUpdateOrCreatePatchedConfiguration == null
+                ? SecurityDynamicConfiguration.fromNode(
+                    patchedConfigurationAsJson,
+                    configuration.getCType(),
+                    configuration.getVersion(),
+                    configuration.getSeqNo(),
+                    configuration.getPrimaryTerm()
                 )
-            );
+                : onUpdateOrCreatePatchedConfiguration;
+
+            // there is no entity name in case of patch, since there could be more the one diff entity within configuration
+            return ValidationResult.success(SecurityConfiguration.of(null, newSecurityConfig));
         }));
     }
 
