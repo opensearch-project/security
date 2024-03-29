@@ -97,7 +97,7 @@ public class BasicWithAnonymousAuthTests {
     }
 
     @Test
-    public void testShouldAutomaticallyLoginAsAnonymousIfRequestIsNonAnonymousLogin() {
+    public void testShouldNotAutomaticallyLoginAsAnonymousIfRequestIsNonAnonymousLogin() {
         try (TestRestClient client = cluster.getRestClient()) {
 
             HttpResponse response = client.getAuthInfo(Map.of("auth_request_type", "saml"));
