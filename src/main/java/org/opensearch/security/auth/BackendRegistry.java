@@ -192,7 +192,7 @@ public class BackendRegistry {
      * @param request
      * @return The authenticated user, null means another roundtrip
      * @throws OpenSearchSecurityException
-     */
+    */
     public boolean authenticate(final SecurityRequestChannel request) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
@@ -451,11 +451,12 @@ public class BackendRegistry {
      * Checks if incoming auth request is from an anonymous user
      * Defaults all requests to yes, to allow anonymous authentication to succeed
      * @param params the query parameters passed in this request
-     * @return true if no params or `anonymous` were found, false otherwise
+     * @return false only if an explicit `auth_type` param is supplied and its value is not anonymous,
+     * otherwise returns true
      */
     private boolean isRequestForAnonymousLogin(Map<String, String> params) {
-        if (params.containsKey("auth_request_type")) {
-            return params.get("auth_request_type").equals("anonymous");
+        if (params.containsKey("auth_type")) {
+            return params.get("auth_type").equals("anonymous");
         }
         return true;
     }
