@@ -79,7 +79,7 @@ public class BasicWithAnonymousAuthTests {
         }
     }
 
-    /** Test `?auth_request_type=""` param to authinfo request **/
+    /** Test `?auth_type=""` param to authinfo request **/
     @Test
     public void testShouldAutomaticallyLoginAsAnonymousIfNoCredentialsArePassed() {
         try (TestRestClient client = cluster.getRestClient()) {
@@ -89,7 +89,7 @@ public class BasicWithAnonymousAuthTests {
             assertThat(response, is(notNullValue()));
             response.assertStatusCode(SC_OK);
 
-            HttpResponse response2 = client.getAuthInfo(Map.of("auth_request_type", "anonymous"));
+            HttpResponse response2 = client.getAuthInfo(Map.of("auth_type", "anonymous"));
 
             assertThat(response2, is(notNullValue()));
             response2.assertStatusCode(SC_OK);
@@ -100,7 +100,7 @@ public class BasicWithAnonymousAuthTests {
     public void testShouldNotAutomaticallyLoginAsAnonymousIfRequestIsNonAnonymousLogin() {
         try (TestRestClient client = cluster.getRestClient()) {
 
-            HttpResponse response = client.getAuthInfo(Map.of("auth_request_type", "saml"));
+            HttpResponse response = client.getAuthInfo(Map.of("auth_type", "saml"));
 
             assertThat(response, is(notNullValue()));
             response.assertStatusCode(SC_UNAUTHORIZED);
