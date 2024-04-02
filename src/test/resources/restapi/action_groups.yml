@@ -132,3 +132,16 @@ OPENDISTRO_SECURITY_SUGGEST:
   - "indices:data/read/suggest*"
   type: "index"
   description: "Migrated from v6"
+rest_admin_action_group:
+  allowed_actions:
+    - 'restapi:admin/actiongroups'
+    - 'restapi:admin/allowlist'
+    - 'restapi:admin/config/update'
+    - 'restapi:admin/internalusers'
+    - 'restapi:admin/nodesdn'
+    - 'restapi:admin/roles'
+    - 'restapi:admin/rolesmapping'
+    - 'restapi:admin/ssl/certs/info'
+    - 'restapi:admin/ssl/certs/reload'
+    - 'restapi:admin/tenants'
+  type: "cluster"

@@ -393,6 +393,32 @@ opendistro_security_role_starfleet_captains:
       allowed_actions:
         - "CRUD_UT"
   tenant_permissions: []
+rest_api_admin_roles_mapping_test_without_mapping:
+  reserved: true
+  cluster_permissions:
+    - 'restapi:admin/actiongroups'
+    - 'restapi:admin/allowlist'
+    - 'restapi:admin/config/update'
+    - 'restapi:admin/internalusers'
+    - 'restapi:admin/nodesdn'
+    - 'restapi:admin/roles'
+    - 'restapi:admin/rolesmapping'
+    - 'restapi:admin/ssl/certs/info'
+    - 'restapi:admin/ssl/certs/reload'
+    - 'restapi:admin/tenants'
+rest_api_admin_roles_mapping_test_with_mapping:
+  reserved: true
+  cluster_permissions:
+    - 'restapi:admin/actiongroups'
+    - 'restapi:admin/allowlist'
+    - 'restapi:admin/config/update'
+    - 'restapi:admin/internalusers'
+    - 'restapi:admin/nodesdn'
+    - 'restapi:admin/roles'
+    - 'restapi:admin/rolesmapping'
+    - 'restapi:admin/ssl/certs/info'
+    - 'restapi:admin/ssl/certs/reload'
+    - 'restapi:admin/tenants'
 rest_api_admin_full_access:
   reserved: true
   cluster_permissions:
