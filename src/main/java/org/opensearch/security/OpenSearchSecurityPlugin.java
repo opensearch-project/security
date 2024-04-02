@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -72,6 +73,8 @@ import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.NamedDiff;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -104,6 +107,7 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.index.IndexModule;
@@ -114,6 +118,9 @@ import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
+import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
+import org.opensearch.plugins.SecureSettingsFactory;
+import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -150,8 +157,7 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.SecurityHttpServerTransport;
-import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
+import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -167,12 +173,13 @@ import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
-import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.state.SecurityMetadata;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.GuardedSearchOperationWrapper;
 import org.opensearch.security.support.HeaderHelper;
@@ -199,11 +206,14 @@ import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 // CS-ENFORCE-SINGLE
 
@@ -230,7 +240,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
-    private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
@@ -282,6 +291,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     private static boolean isDisabled(final Settings settings) {
         return settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false);
+    }
+
+    private static boolean useClusterStateToInitSecurityConfig(final Settings settings) {
+        return settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, false);
     }
 
     /**
@@ -858,25 +871,27 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public Map<String, Supplier<Transport>> getTransports(
+    public Map<String, Supplier<Transport>> getSecureTransports(
         Settings settings,
         ThreadPool threadPool,
         PageCacheRecycler pageCacheRecycler,
         CircuitBreakerService circuitBreakerService,
         NamedWriteableRegistry namedWriteableRegistry,
         NetworkService networkService,
+        SecureTransportSettingsProvider secureTransportSettingsProvider,
         Tracer tracer
     ) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
 
         if (SSLConfig.isSslOnlyMode()) {
-            return super.getTransports(
+            return super.getSecureTransports(
                 settings,
                 threadPool,
                 pageCacheRecycler,
                 circuitBreakerService,
                 namedWriteableRegistry,
                 networkService,
+                secureTransportSettingsProvider,
                 tracer
             );
         }
@@ -884,18 +899,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (transportSSLEnabled) {
             transports.put(
                 "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
-                () -> new SecuritySSLNettyTransport(
-                    settings,
+                () -> new SecureNetty4Transport(
+                    migrateSettings(settings),
                     Version.CURRENT,
                     threadPool,
                     networkService,
                     pageCacheRecycler,
                     namedWriteableRegistry,
                     circuitBreakerService,
-                    sks,
-                    evaluateSslExceptionHandler(),
                     sharedGroupFactory,
-                    SSLConfig,
+                    secureTransportSettingsProvider,
                     tracer
                 )
             );
@@ -904,7 +917,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(
+    public Map<String, Supplier<HttpServerTransport>> getSecureHttpTransports(
         Settings settings,
         ThreadPool threadPool,
         BigArrays bigArrays,
@@ -914,11 +927,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         NetworkService networkService,
         Dispatcher dispatcher,
         ClusterSettings clusterSettings,
+        SecureHttpTransportSettingsProvider secureHttpTransportSettingsProvider,
         Tracer tracer
     ) {
 
         if (SSLConfig.isSslOnlyMode()) {
-            return super.getHttpTransports(
+            return super.getSecureHttpTransports(
                 settings,
                 threadPool,
                 bigArrays,
@@ -928,6 +942,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 networkService,
                 dispatcher,
                 clusterSettings,
+                secureHttpTransportSettingsProvider,
                 tracer
             );
         }
@@ -943,27 +958,25 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     evaluateSslExceptionHandler()
                 );
                 // TODO close odshst
-                final SecurityHttpServerTransport odshst = new SecurityHttpServerTransport(
-                    settings,
+                final SecureNetty4HttpServerTransport odshst = new SecureNetty4HttpServerTransport(
+                    migrateSettings(settings),
                     networkService,
                     bigArrays,
                     threadPool,
-                    sks,
-                    evaluateSslExceptionHandler(),
                     xContentRegistry,
                     validatingDispatcher,
                     clusterSettings,
                     sharedGroupFactory,
-                    tracer,
-                    securityRestHandler
+                    secureHttpTransportSettingsProvider,
+                    tracer
                 );
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
             } else if (!client) {
                 return Collections.singletonMap(
                     "org.opensearch.security.http.SecurityHttpServerTransport",
-                    () -> new SecurityNonSslHttpServerTransport(
-                        settings,
+                    () -> new NonSslHttpServerTransport(
+                        migrateSettings(settings),
                         networkService,
                         bigArrays,
                         threadPool,
@@ -971,8 +984,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         dispatcher,
                         clusterSettings,
                         sharedGroupFactory,
-                        tracer,
-                        securityRestHandler
+                        secureHttpTransportSettingsProvider,
+                        tracer
                     )
                 );
             }
@@ -1166,9 +1179,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(si);
         components.add(dcf);
         components.add(userService);
-
+        final var allowDefaultInit = settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
+        final var useClusterState = useClusterStateToInitSecurityConfig(settings);
+        if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
+            clusterService.addListener(cr);
+        }
         return components;
 
+    }
+
+    @Override
+    public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
+        return List.of(
+            new NamedWriteableRegistry.Entry(ClusterState.Custom.class, SecurityMetadata.TYPE, SecurityMetadata::new),
+            new NamedWriteableRegistry.Entry(NamedDiff.class, SecurityMetadata.TYPE, SecurityMetadata::readDiffFrom)
+        );
     }
 
     @Override
@@ -1311,9 +1336,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.boolSetting(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered)
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(Setting.boolSetting(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, false, Property.NodeScope, Property.Filtered));
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST,
@@ -1909,11 +1933,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        log.info("Node started");
-        if (!SSLConfig.isSslOnlyMode() && !client && !disabled) {
+        this.localNode.set(localNode);
+        if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
         }
-        this.localNode.set(localNode);
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -2003,6 +2026,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public SecurityTokenManager getTokenManager() {
         return tokenManager;
+    }
+
+    @Override
+    public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
+        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, sslExceptionHandler, securityRestHandler));
     }
 
     public static class GuiceHolder implements LifecycleComponent {

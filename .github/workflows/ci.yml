@@ -81,7 +81,7 @@ jobs:
         working-directory: downloaded-artifacts
 
       - name: Upload Coverage with retry
-        uses: Wandalen/wretry.action@v1.4.10
+        uses: Wandalen/wretry.action@v3.0.0
         with:
           attempt_limit: 5
           attempt_delay: 2000
@@ -245,6 +245,8 @@ jobs:
     - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.zip
 
     - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
+
+    - run: ./gradlew clean publishPluginZipPublicationToZipStagingRepository && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.zip && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.pom
 
     - name: List files in the build directory if there was an error
       run: ls -al ./build/distributions/

@@ -417,6 +417,14 @@ public class TestRestClient implements AutoCloseable {
             }
         }
 
+        public JsonNode bodyAsJsonNode() {
+            try {
+                return DefaultObjectMapper.readTree(getBody());
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot parse response body", e);
+            }
+        }
+
         public void assertStatusCode(int expectedHttpStatus) {
             String reason = format("Expected status code is '%d', but was '%d'. Response body '%s'.", expectedHttpStatus, statusCode, body);
             assertThat(reason, statusCode, equalTo(expectedHttpStatus));
