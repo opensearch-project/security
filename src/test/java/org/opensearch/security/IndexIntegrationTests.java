@@ -126,16 +126,13 @@ public class IndexIntegrationTests extends SingleClusterTest {
         "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
         "{ \"delete\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"5\" } }"+System.lineSeparator();
        
-        System.out.println("############ _bulk");
         HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
-        System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
         Assert.assertTrue(res.getBody().contains("\"errors\" : true"));
         Assert.assertTrue(res.getBody().contains("\"status\" : 201"));
         Assert.assertTrue(res.getBody().contains("no permissions for"));
         
-        System.out.println("############ check shards");
-        System.out.println(rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("nagilum", "nagilum")));
+        rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("nagilum", "nagilum"));
 
         
     }
@@ -344,7 +341,6 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/_cat/indices?v" ,encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
 
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("logstash-b"));
         Assert.assertTrue(res.getBody().contains("logstash-new-20"));
         Assert.assertTrue(res.getBody().contains("logstash-cnew-20"));
@@ -386,16 +382,12 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/mysgi/_search?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         assertContains(res, "*\"hits\" : {*\"value\" : 0,*\"hits\" : [ ]*");
         
-        System.out.println("#### add alias to allowed index");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("/logstash-1/_alias/alog1", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
-        System.out.println("#### add alias to not existing (no perm)");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/nonexitent/_alias/alnp", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
         
-        System.out.println("#### add alias to not existing (with perm)");
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (res = rh.executePutRequest("/logstash-nonex/_alias/alnp", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
         
-        System.out.println("#### add alias to not allowed index");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/nopermindex/_alias/alnp", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
         String aliasRemoveIndex = "{"+
@@ -405,19 +397,15 @@ public class IndexIntegrationTests extends SingleClusterTest {
             "]"+
         "}";
         
-        System.out.println("#### remove_index");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("/_aliases", aliasRemoveIndex,encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
         
-        System.out.println("#### get alias for permitted index");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash-1/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
         
-        System.out.println("#### get alias for all indices");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
         
-        System.out.println("#### get alias no perm");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_alias/nopermalias", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
         
         String alias =
@@ -428,7 +416,6 @@ public class IndexIntegrationTests extends SingleClusterTest {
         "}";
         
         
-        System.out.println("#### create alias along with index");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/beats-withalias", alias,encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());        
     }
 
@@ -519,10 +506,8 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:noperm/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res.getBody());
         res = rh.executeGetRequest("/*:noexists/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        System.out.println(res.getBody());
     }
 
     @Test

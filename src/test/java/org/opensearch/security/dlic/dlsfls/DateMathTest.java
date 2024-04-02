@@ -60,7 +60,6 @@ public class DateMathTest extends AbstractDlsFlsTest{
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/logs/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertTrue(res.getBody().contains("ipaddr"));
@@ -69,7 +68,6 @@ public class DateMathTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("msgid"));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/logs/_search?pretty", encodeBasicHeader("opendistro_security_logstash", "password"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("ipaddr"));
@@ -86,13 +84,11 @@ public class DateMathTest extends AbstractDlsFlsTest{
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("ipaddr"));
         Assert.assertTrue(res.getBody().contains("message"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty", encodeBasicHeader("opendistro_security_logstash", "password"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("ipaddr"));
         Assert.assertFalse(res.getBody().contains("message"));
         Assert.assertTrue(res.getBody().contains("msgid"));
@@ -106,7 +102,6 @@ public class DateMathTest extends AbstractDlsFlsTest{
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-*/logs/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertTrue(res.getBody().contains("ipaddr"));
@@ -115,7 +110,6 @@ public class DateMathTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("msgid"));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-*/logs/_search?pretty", encodeBasicHeader("opendistro_security_logstash", "password"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("ipaddr"));
@@ -132,7 +126,6 @@ public class DateMathTest extends AbstractDlsFlsTest{
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-1-*,logstash-20*/logs/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertTrue(res.getBody().contains("ipaddr"));
@@ -141,7 +134,6 @@ public class DateMathTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("msgid"));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-1-*,logstash-20*/logs/_search?pretty", encodeBasicHeader("regex", "password"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("ipaddr"));

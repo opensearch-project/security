@@ -58,18 +58,12 @@ public class ConfigTests {
         Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesResult = Migration.migrateRoles((SecurityDynamicConfiguration<RoleV6>)load("./legacy/securityconfig_v6/roles.yml", CType.ROLES),
                 (SecurityDynamicConfiguration<RoleMappingsV6>)load("./legacy/securityconfig_v6/roles_mapping.yml", CType.ROLESMAPPING));
         
-        System.out.println(Strings.toString(rolesResult.v2(), true, false));
-        System.out.println(Strings.toString(rolesResult.v1(), true, false));
         
         
         SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsResult = Migration.migrateActionGroups((SecurityDynamicConfiguration<ActionGroupsV6>)load("./legacy/securityconfig_v6/action_groups.yml", CType.ACTIONGROUPS));
-        System.out.println(Strings.toString(actionGroupsResult, true, false));
         SecurityDynamicConfiguration<ConfigV7> configResult =Migration.migrateConfig((SecurityDynamicConfiguration<ConfigV6>)load("./legacy/securityconfig_v6/config.yml", CType.CONFIG));
-        System.out.println(Strings.toString(configResult, true, false));
         SecurityDynamicConfiguration<InternalUserV7> internalUsersResult = Migration.migrateInternalUsers((SecurityDynamicConfiguration<InternalUserV6>)load("./legacy/securityconfig_v6/internal_users.yml", CType.INTERNALUSERS));
-        System.out.println(Strings.toString(internalUsersResult, true, false));
         SecurityDynamicConfiguration<RoleMappingsV7> rolemappingsResult = Migration.migrateRoleMappings((SecurityDynamicConfiguration<RoleMappingsV6>)load("./legacy/securityconfig_v6/roles_mapping.yml", CType.ROLESMAPPING));
-        System.out.println(Strings.toString(rolemappingsResult, true, false));
     }
     
     @Test
@@ -97,14 +91,12 @@ public class ConfigTests {
     private void check(String file, CType cType) throws Exception {
         JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
         int configVersion = 1;
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST %%%%%%%");
         if(jsonNode.get("_meta") != null) {
             Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
 
 
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST: CONFIG VERSION: "+ configVersion + "%%%%%%%");
         
         SecurityDynamicConfiguration<?> dc = load(file, cType);
         Assert.assertNotNull(dc);
@@ -119,12 +111,10 @@ public class ConfigTests {
         JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
         int configVersion = 1;
 
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST LOAD: CONFIG VERSION: %%%%%%%");
         if(jsonNode.get("_meta") != null) {
             Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
-        System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST: CONFIG VERSION: "+ configVersion + "%%%%%%%");
         return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);
     }
 }

@@ -82,61 +82,49 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.build();
 
-		System.out.println("------- 0 ---------");
 
 		try (TransportClient tc = getInternalTransportClient(clusterInfo, tcSettings)) {         
 
 			Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
-			System.out.println("------- 1 ---------");
 
 			CreateIndexResponse cir = tc.admin().indices().create(new CreateIndexRequest("vulcan")).actionGet();
 			Assert.assertTrue(cir.isAcknowledged());
 
-			System.out.println("------- 2 ---------");
 
 			IndexResponse ir = tc.index(new IndexRequest("vulcan").type("secrets").id("s1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"secret\":true}", XContentType.JSON)).actionGet();
 			Assert.assertTrue(ir.getResult() == Result.CREATED);
 
-			System.out.println("------- 3 ---------");
 
 			GetResponse gr =tc.prepareGet("vulcan", "secrets", "s1").setRealtime(true).get();
 			Assert.assertTrue(gr.isExists());
 
-			System.out.println("------- 4 ---------");
 
 			gr =tc.prepareGet("vulcan", "secrets", "s1").setRealtime(false).get();
 			Assert.assertTrue(gr.isExists());
 
-			System.out.println("------- 5 ---------");
 
 			SearchResponse actionGet = tc.search(new SearchRequest("vulcan").types("secrets")).actionGet();
 			Assert.assertEquals(1, actionGet.getHits().getHits().length);
-			System.out.println("------- 6 ---------");
 
 			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(false).get();
 			Assert.assertFalse(gr.isExists());
 
-			System.out.println("------- 7 ---------");
 
 			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(true).get();
 			Assert.assertFalse(gr.isExists());
 
-			System.out.println("------- 8 ---------");
 
 			actionGet = tc.search(new SearchRequest(".opendistro_security")).actionGet();
 			Assert.assertEquals(0, actionGet.getHits().getHits().length);
 
-			System.out.println("------- 9 ---------");
 
 			try {
 				tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
-				System.out.println(e.getMessage());
 			}
 
-			System.out.println("------- 10 ---------");
 
 			//impersonation
 			try {
@@ -153,7 +141,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				Assert.assertTrue(e.getMessage(), e.getMessage().startsWith("no permissions for [indices:data/read/get]"));
 			}
 
-			System.out.println("------- 11 ---------");
 
 			StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -167,7 +154,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 12 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				Header header = encodeBasicHeader("worf", "worf111");
@@ -180,8 +166,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			} finally {
 				ctx.close();
 			}
-
-			System.out.println("------- 13 ---------");       
 
 			//impersonation
 			try {
@@ -198,7 +182,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
 			}
 
-			System.out.println("------- 12 ---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -210,7 +193,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 13 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
@@ -220,7 +202,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			} finally {
 				ctx.close();
 			}
-			System.out.println("------- 13.1 ---------");
 
 			String scrollId = null;
 			ctx = tc.threadPool().getThreadContext().stashContext();
@@ -232,7 +213,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 13.2 ---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -243,7 +223,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			}
 
 
-			System.out.println("------- 14 ---------");
 
 			boolean ok=false;
 			ctx = tc.threadPool().getThreadContext().stashContext();
@@ -265,7 +244,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 15 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
@@ -276,7 +254,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 15 0---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -292,7 +269,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			}
 
 
-			System.out.println("------- 15 1---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -305,7 +281,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 16---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -354,10 +329,8 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- TRC end ---------");
 		}
 
-		System.out.println("------- CTC end ---------");
 	}
 
 	@Test
@@ -440,61 +413,49 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.build();
 
-		System.out.println("------- 0 ---------");
 
 		try (TransportClient tc = getInternalTransportClient(clusterInfo, tcSettings)) {         
 
 			Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
-			System.out.println("------- 1 ---------");
 
 			CreateIndexResponse cir = tc.admin().indices().create(new CreateIndexRequest("vulcan")).actionGet();
 			Assert.assertTrue(cir.isAcknowledged());
 
-			System.out.println("------- 2 ---------");
 
 			IndexResponse ir = tc.index(new IndexRequest("vulcan").type("secrets").id("s1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"secret\":true}", XContentType.JSON)).actionGet();
 			Assert.assertTrue(ir.getResult() == Result.CREATED);
 
-			System.out.println("------- 3 ---------");
 
 			GetResponse gr =tc.prepareGet("vulcan", "secrets", "s1").setRealtime(true).get();
 			Assert.assertTrue(gr.isExists());
 
-			System.out.println("------- 4 ---------");
 
 			gr =tc.prepareGet("vulcan", "secrets", "s1").setRealtime(false).get();
 			Assert.assertTrue(gr.isExists());
 
-			System.out.println("------- 5 ---------");
 
 			SearchResponse actionGet = tc.search(new SearchRequest("vulcan").types("secrets")).actionGet();
 			Assert.assertEquals(1, actionGet.getHits().getHits().length);
-			System.out.println("------- 6 ---------");
 
 			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(false).get();
 			Assert.assertFalse(gr.isExists());
 
-			System.out.println("------- 7 ---------");
 
 			gr =tc.prepareGet(".opendistro_security", "security", "config").setRealtime(true).get();
 			Assert.assertFalse(gr.isExists());
 
-			System.out.println("------- 8 ---------");
 
 			actionGet = tc.search(new SearchRequest(".opendistro_security")).actionGet();
 			Assert.assertEquals(0, actionGet.getHits().getHits().length);
 
-			System.out.println("------- 9 ---------");
 
 			try {
 				tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
 				Assert.fail();
 			} catch (Exception e) {
-				System.out.println(e.getMessage());
 			}
 
-			System.out.println("------- 10 ---------");
 
 			//impersonation
 			try {
@@ -511,7 +472,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				Assert.assertTrue(e.getMessage(), e.getMessage().startsWith("no permissions for [indices:data/read/get]"));
 			}
 
-			System.out.println("------- 11 ---------");
 
 			StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -525,7 +485,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 12 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				Header header = encodeBasicHeader("worf", "worf111");
@@ -538,8 +497,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			} finally {
 				ctx.close();
 			}
-
-			System.out.println("------- 13 ---------");       
 
 			//impersonation
 			try {
@@ -556,7 +513,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				Assert.assertEquals("'CN=spock,OU=client,O=client,L=Test,C=DE' is not allowed to impersonate as 'gkar'", e.getMessage());
 			}
 
-			System.out.println("------- 12 ---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -568,7 +524,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 13 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
@@ -578,7 +533,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			} finally {
 				ctx.close();
 			}
-			System.out.println("------- 13.1 ---------");
 
 			String scrollId = null;
 			ctx = tc.threadPool().getThreadContext().stashContext();
@@ -590,7 +544,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 13.2 ---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -601,7 +554,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			}
 
 
-			System.out.println("------- 14 ---------");
 
 			boolean ok=false;
 			ctx = tc.threadPool().getThreadContext().stashContext();
@@ -623,7 +575,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 15 ---------");
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
 				tc.threadPool().getThreadContext().putHeader("opendistro_security_impersonate_as", "nagilum");
@@ -634,7 +585,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 15 0---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -650,7 +600,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 			}
 
 
-			System.out.println("------- 15 1---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -663,7 +612,6 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- 16---------");
 
 			ctx = tc.threadPool().getThreadContext().stashContext();
 			try {
@@ -712,10 +660,8 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				ctx.close();
 			}
 
-			System.out.println("------- TRC end ---------");
 		}
 
-		System.out.println("------- CTC end ---------");
 	}
 
 	@Test

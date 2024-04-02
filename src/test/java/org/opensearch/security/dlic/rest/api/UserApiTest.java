@@ -448,7 +448,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh
                 .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        System.out.println(response.getBody());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(56, settings.size());
 

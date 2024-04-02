@@ -64,15 +64,12 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         // check roles exists
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/admin", FileHelper.loadFile("restapi/simple_role.json"));
-        System.out.println(response.getBody());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         response = rh.executePutRequest(ENDPOINT + "/roles/lala", "{ \"cluster_permissions\": [\"*\"] }");
-        System.out.println(response.getBody());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         response = rh.executePutRequest(ENDPOINT + "/roles/empty", "{ \"cluster_permissions\": [] }");
-        System.out.println(response.getBody());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
     }
 
@@ -318,7 +315,6 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        System.out.println(response.getBody());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(1, settings.size());
         Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(1).get("tenant_patterns").get(0).asString(), "tenant1");

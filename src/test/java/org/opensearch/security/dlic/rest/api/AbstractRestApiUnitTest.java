@@ -75,7 +75,6 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"))
 				.put(nodeOverride);
 
-		System.out.println(builder.toString());
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
 		rh = restHelper();
