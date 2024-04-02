@@ -1,4 +1,4 @@
-## 2024-03-19 Version 2.13.0.0
+## 2024-04-02 Version 2.13.0.0
 
 Compatible with OpenSearch 2.13.0
 
