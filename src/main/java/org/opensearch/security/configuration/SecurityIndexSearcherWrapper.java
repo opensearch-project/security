@@ -64,6 +64,8 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     private final Boolean systemIndexEnabled;
     private final WildcardMatcher systemIndexMatcher;
 
+    private final boolean isSystemIndexPermissionEnabled;
+
     // constructor is called per index, so avoid costly operations here
     public SecurityIndexSearcherWrapper(
         final IndexService indexService,
@@ -91,6 +93,11 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
         );
         this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY));
+
+        this.isSystemIndexPermissionEnabled = settings.getAsBoolean(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT
+        );
     }
 
     @Subscribe
@@ -108,7 +115,7 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
-        if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()) {
+        if (systemIndexEnabled && !isSystemIndexPermissionEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()) {
             log.warn("search action for {} is not allowed for a non adminDN user", index.getName());
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
