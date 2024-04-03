@@ -101,7 +101,7 @@ public class SSLTest extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "node-untspec5-keystore.p12";
         
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true").contains("EMAILADDRESS=unt@tst.com"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true").contains("local_certificates_list"));
         Assert.assertFalse(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=false").contains("local_certificates_list"));
@@ -117,8 +117,6 @@ public class SSLTest extends SingleClusterTest {
     public void testCipherAndProtocols() throws Exception {
         
         Security.setProperty("jdk.tls.disabledAlgorithms","");
-        System.out.println("Disabled algos: "+Security.getProperty("jdk.tls.disabledAlgorithms"));
-        System.out.println("allowOpenSSL: "+allowOpenSSL);
 
         Settings settings = Settings.builder().put("plugins.security.ssl.transport.enabled", false)
                 .put(ConfigConstants.SECURITY_SSL_ONLY, true)
@@ -195,7 +193,6 @@ public class SSLTest extends SingleClusterTest {
                 Assert.assertEquals("SSL_RSA_EXPORT_WITH_RC4_40_MD5",enabledCiphers[0]);
             }
         } catch (OpenSearchSecurityException e) {
-            System.out.println("EXPECTED "+e.getClass().getSimpleName()+" for "+System.getProperty("java.specification.version")+": "+e.toString());
             e.printStackTrace();
             Assert.assertTrue("Check if error contains 'no valid cipher suites' -> "+e.toString(),e.toString().contains("no valid cipher suites")
                     || e.toString().contains("failed to set cipher suite")
@@ -224,7 +221,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
 
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/settings?pretty").contains("\"opendistro_security\""));
@@ -258,7 +255,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
@@ -299,7 +296,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
@@ -336,7 +333,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
@@ -372,7 +369,6 @@ public class SSLTest extends SingleClusterTest {
             Assert.fail();
         } catch (Exception e1) {
             e1.printStackTrace();
-            System.out.println("##1 "+e1.toString());
             Throwable e = ExceptionUtils.getRootCause(e1);
             Assert.assertTrue(e.toString(), e.toString().contains("no valid cipher"));
         }
@@ -452,7 +448,6 @@ public class SSLTest extends SingleClusterTest {
             Assert.fail();
         } catch (SocketException | SSLException e) {
             //expected
-            System.out.println("Expected SSLHandshakeException "+e.toString());
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail("Unexpected exception "+e.toString());
@@ -676,7 +671,6 @@ public class SSLTest extends SingleClusterTest {
         // example
         // TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
         // TLS_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA
-        System.out.println("JDK enabled ciphers: " + jdkEnabledCiphers);
         Assert.assertTrue(jdkEnabledCiphers.size() > 0);
     }
     
@@ -913,7 +907,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
         
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
@@ -962,7 +956,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
 
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
@@ -1039,7 +1033,7 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
 
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
+        rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));

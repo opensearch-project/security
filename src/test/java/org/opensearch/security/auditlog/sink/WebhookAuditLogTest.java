@@ -146,7 +146,6 @@ public class WebhookAuditLogTest {
 				.build();
 		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
-		System.out.println(auditlog.payload);
 		Assert.assertEquals(WebhookFormat.JSON, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, !auditlog.payload.startsWith("{\"text\":"));
@@ -269,7 +268,6 @@ public class WebhookAuditLogTest {
 		auditlog.store(msg);
 		Assert.assertTrue(handler.method.equals("POST"));
 		Assert.assertTrue(handler.body != null);
-		System.out.println(handler.body);
 		Assert.assertFalse(handler.body.contains("{"));
 		assertStringContainsAllKeysAndValues(handler.body);
 		handler.reset();
@@ -722,8 +720,7 @@ public class WebhookAuditLogTest {
 	}
 
 	private void assertStringContainsAllKeysAndValues(String in) {
-	    System.out.println(in);
-		Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
+			Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
 		Assert.assertTrue(in, in.contains(AuditMessage.CATEGORY));
 		Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
 		Assert.assertTrue(in, in.contains(AuditMessage.REMOTE_ADDRESS));

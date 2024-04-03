@@ -100,7 +100,6 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK,
                 (res = rh.executePostRequest("/data/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("a-normal-0"));
         Assert.assertTrue(res.getBody().contains("response"));
@@ -110,7 +109,6 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
         //therefore non-existing does not exist so we expect c-missing2-0 to be returned
         Assert.assertEquals(HttpStatus.SC_OK,
                 (res = rh.executePostRequest("/data/_search?pretty", query, encodeBasicHeader("fls_exists", "password"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("a-normal-0"));
         Assert.assertTrue(res.getBody().contains("c-missing2-0"));

@@ -48,8 +48,7 @@ public class DlsTest extends AbstractDlsFlsTest{
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        System.out.println("q");
-        System.out.println(Strings.toString(tc.search(new SearchRequest().indices(".opendistro_security")).actionGet()));
+        tc.search(new SearchRequest().indices(".opendistro_security")).actionGet();
         tc.search(new SearchRequest().indices("deals")).actionGet();
     }
 

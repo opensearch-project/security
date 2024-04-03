@@ -65,13 +65,10 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
         initialize(cl2Info, Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles(remoteRoles));
-        System.out.println("### cl2 complete ###");
 
         //cl1 is coordinating
         cl1Info = cl1.startCluster(minimumSecuritySettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
-        System.out.println("### cl1 start ###");
         initialize(cl1Info, Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_983.yml"));
-        System.out.println("### cl1 initialized ###");
     }
 
     @After
@@ -124,10 +121,8 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### query 1");
         //on coordinating cluster
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:humanresources/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("human_resources_trainee", "password"));
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));
@@ -181,10 +176,8 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### query 1");
         //on coordinating cluster
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:humanresources/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("human_resources_trainee", "password"));
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));
@@ -261,10 +254,8 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### query 1");
         //on coordinating cluster
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:humanresources,humanresources/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("human_resources_trainee", "password"));
-        System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));

@@ -116,7 +116,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {  
             WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
-            System.out.println(wres);
             Assert.assertEquals(wres.toString(), "CN=spock,OU=client,O=client,L=Test,C=DE", wres.getDn());
             Assert.assertFalse(wres.toString(), wres.isAdmin());
             Assert.assertFalse(wres.toString(), wres.isAuthenticated());
@@ -126,7 +125,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getUserTransportClient(clusterInfo, "node-0-keystore.jks", Settings.EMPTY)) {  
             WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();    
-            System.out.println(wres);
             Assert.assertEquals(wres.toString(), "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE", wres.getDn());
             Assert.assertFalse(wres.toString(), wres.isAdmin());
             Assert.assertFalse(wres.toString(), wres.isAuthenticated());

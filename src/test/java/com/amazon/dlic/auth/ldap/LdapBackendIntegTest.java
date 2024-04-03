@@ -56,7 +56,6 @@ public class LdapBackendIntegTest extends SingleClusterTest {
     public void testIntegLdapAuthenticationSSL() throws Exception {
         String securityConfigAsYamlString = FileHelper.loadFile("ldap/config.yml");
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
-        System.out.println(securityConfigAsYamlString);
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("jacksonm", "secret")).getStatusCode());
@@ -66,7 +65,6 @@ public class LdapBackendIntegTest extends SingleClusterTest {
     public void testIntegLdapAuthenticationSSLFail() throws Exception {
         String securityConfigAsYamlString = FileHelper.loadFile("ldap/config.yml");
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
-        System.out.println(securityConfigAsYamlString);
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("wrong", "wrong")).getStatusCode());
@@ -84,7 +82,6 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "jacksonm")
                 ,encodeBasicHeader("spock", "spocksecret"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("ldap.dn"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.entryDN"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.subschemaSubentry"));

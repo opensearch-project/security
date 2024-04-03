@@ -47,7 +47,6 @@ public class Fls983Test extends AbstractDlsFlsTest{
         "}}";
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/.kibana/config/0/_update?pretty", doc, encodeBasicHeader("human_resources_trainee", "password"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("updated"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
     }
