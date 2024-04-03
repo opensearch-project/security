@@ -15,36 +15,40 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
+
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
-import org.apache.http.HttpHeaders;
-import org.apache.logging.log4j.Logger;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 
 import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.JwtVerifier;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
+
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator {
@@ -66,8 +70,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
-        jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
-        isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
+        jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
+        isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
@@ -83,8 +87,9 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     }
 
     @Override
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context)
-            throws OpenSearchSecurityException {
+    @SuppressWarnings("removal")
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
+        throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -101,7 +106,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         return creds;
     }
 
-    private AuthCredentials extractCredentials0(final RestRequest request) throws OpenSearchSecurityException {
+    private AuthCredentials extractCredentials0(final SecurityRequest request) throws OpenSearchSecurityException {
 
         String jwtString = getJwtTokenString(request);
 
@@ -142,7 +147,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     }
 
-    protected String getJwtTokenString(RestRequest request) {
+    protected String getJwtTokenString(SecurityRequest request) {
         String jwtToken = request.header(jwtHeaderName);
         if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
             jwtToken = null;
@@ -150,10 +155,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         if (jwtUrlParameter != null) {
             if (jwtToken == null || jwtToken.isEmpty()) {
-                jwtToken = request.param(jwtUrlParameter);
+                jwtToken = request.params().get(jwtUrlParameter);
             } else {
                 // just consume to avoid "contains unrecognized parameter"
-                request.param(jwtUrlParameter);
+                request.params().get(jwtUrlParameter);
             }
         }
 
@@ -234,11 +239,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     protected abstract KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception;
 
     @Override
-    public boolean reRequestAuthentication(RestChannel channel, AuthCredentials authCredentials) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
-        channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials authCredentials) {
+        return Optional.of(
+            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, ImmutableMap.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+        );
     }
 
 }

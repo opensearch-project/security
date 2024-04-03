@@ -32,6 +32,7 @@ package org.opensearch.security.http.proxy;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map.Entry;
 
 import org.apache.logging.log4j.Logger;
@@ -39,9 +40,8 @@ import org.apache.logging.log4j.LogManager;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
-
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.http.HTTPProxyAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
 import com.google.common.base.Joiner;
@@ -59,12 +59,12 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator{
     }
 
     @Override
-    public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
-    	AuthCredentials credentials = super.extractCredentials(request, context);
-    	if(credentials == null) {
-    	    return null;
-    	}
-        
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) {
+        AuthCredentials credentials = super.extractCredentials(request, context);
+        if (credentials == null) {
+            return null;
+        }
+
         String attrHeaderPrefix = settings.get("attr_header_prefix");
         if(Strings.isNullOrEmpty(attrHeaderPrefix)) {
             log.debug("attr_header_prefix is null. Skipping additional attribute extraction");
@@ -89,8 +89,8 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator{
     }
 
     @Override
-    public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        return false;
+    public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest channel, AuthCredentials creds) {
+        return Optional.empty();
     }
 
     @Override

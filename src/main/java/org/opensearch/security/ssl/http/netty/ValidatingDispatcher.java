@@ -32,7 +32,8 @@ import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
-
+import org.opensearch.security.filter.SecurityRequestChannel;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -59,19 +60,19 @@ public class ValidatingDispatcher implements Dispatcher {
 
     @Override
     public void dispatchRequest(RestRequest request, RestChannel channel, ThreadContext threadContext) {
-        checkRequest(request, channel);
+        checkRequest(SecurityRequestFactory.from(request, channel));
         originalDispatcher.dispatchRequest(request, channel, threadContext);
     }
 
     @Override
     public void dispatchBadRequest(RestChannel channel, ThreadContext threadContext, Throwable cause) {
-        checkRequest(channel.request(), channel);
+        checkRequest(SecurityRequestFactory.from(channel.request(), channel));
         originalDispatcher.dispatchBadRequest(channel, threadContext, cause);
     }
-    
-    protected void checkRequest(final RestRequest request, final RestChannel channel) {
-        
-        if(SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
+
+    protected void checkRequest(final SecurityRequestChannel request) {
+
+        if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             errorHandler.logError(exception, request, 1);
             throw exception;

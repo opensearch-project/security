@@ -1,0 +1,17 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
+  dynamic:
+    authc:
+      basic:
+        http_enabled: true
+        order: 0
+        http_authenticator:
+          type: "basic"
+          challenge: true
+          config: {}
+        authentication_backend:
+          type: "internal"
+          config: {}

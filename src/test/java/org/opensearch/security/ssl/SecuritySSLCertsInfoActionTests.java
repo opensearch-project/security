@@ -15,6 +15,10 @@
 
 package org.opensearch.security.ssl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
@@ -22,7 +26,6 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import net.minidev.json.JSONObject;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
@@ -52,11 +55,11 @@ public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        final RestHelper.HttpResponse transportInfoRestResponse = rh.executeGetRequest(ENDPOINT);
-        JSONObject expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
-        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
-        Assert.assertEquals(expectedJsonResponse.toString(), transportInfoRestResponse.getBody());
+        final String certInfoRestResponse = rh.executeSimpleRequest(ENDPOINT);
+        final ObjectNode expectedJsonResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        expectedJsonResponse.set("http_certificates_list", SecuritySSLReloadCertsActionTests.buildCertsInfoNode(NODE_CERT_DETAILS));
+        expectedJsonResponse.set("transport_certificates_list", SecuritySSLReloadCertsActionTests.buildCertsInfoNode(NODE_CERT_DETAILS));
+        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certInfoRestResponse));
     }
 
     @Test

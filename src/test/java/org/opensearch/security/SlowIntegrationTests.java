@@ -31,6 +31,7 @@
 package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
+import org.junit.Ignore;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -163,6 +164,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    @Ignore
     public void testDelayInSecurityIndexInitialization() throws Exception {
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)

@@ -208,7 +208,6 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertFalse(cur.hasFailures());
             Assert.assertEquals(currentClusterConfig.getNodes(), cur.getNodes().size());
-            System.out.println(cur.getNodesMap());
         }
     
         RestHelper rh = nonSslRestHelper();

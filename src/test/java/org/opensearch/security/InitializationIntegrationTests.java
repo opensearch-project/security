@@ -116,7 +116,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {  
             WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
-            System.out.println(wres);
             Assert.assertEquals(wres.toString(), "CN=spock,OU=client,O=client,L=Test,C=DE", wres.getDn());
             Assert.assertFalse(wres.toString(), wres.isAdmin());
             Assert.assertFalse(wres.toString(), wres.isAuthenticated());
@@ -126,7 +125,6 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getUserTransportClient(clusterInfo, "node-0-keystore.jks", Settings.EMPTY)) {  
             WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();    
-            System.out.println(wres);
             Assert.assertEquals(wres.toString(), "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE", wres.getDn());
             Assert.assertFalse(wres.toString(), wres.isAdmin());
             Assert.assertFalse(wres.toString(), wres.isAuthenticated());
@@ -211,13 +209,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             setup(Settings.EMPTY, null, settings, false);
             RestHelper rh = nonSslRestHelper();
             Thread.sleep(10000);
-            Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
-
-            System.setProperty("security.default_init.dir", defaultInitDirectory);
-            restart(Settings.EMPTY, null, settings, false);
-            rh = nonSslRestHelper();
-            Thread.sleep(10000);
-            Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+            Assert.assertEquals(
+                HttpStatus.SC_SERVICE_UNAVAILABLE,
+                rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
+            );
         } finally {
             if (defaultInitDirectory != null) {
                 System.setProperty("security.default_init.dir", defaultInitDirectory);

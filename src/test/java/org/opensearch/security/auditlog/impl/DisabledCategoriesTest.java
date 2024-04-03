@@ -176,7 +176,6 @@ public class DisabledCategoriesTest {
 		List<AuditCategory> allButDisablesCategories = new LinkedList<>(Arrays.asList(AuditCategory.values()));
 		allButDisablesCategories.removeAll(Arrays.asList(disabledCategories));
 
-		System.out.println(result+"###"+disabledCategoriesString);
 		Assert.assertFalse(categoriesPresentInLog(result, disabledCategories));
 		Assert.assertTrue(categoriesPresentInLog(result, filterComplianceCategories(allButDisablesCategories.toArray(new AuditCategory[] {}))));
 	}
@@ -187,7 +186,6 @@ public class DisabledCategoriesTest {
 		result = result.replaceAll(" ", "");
 		for (AuditCategory category : categories) {
 			if(!result.contains("\""+AuditMessage.CATEGORY+"\":\""+category.name()+"\"")) {
-				System.out.println("MISSING: "+category.name());
 			    return false;
 			}
 		}
@@ -214,7 +212,7 @@ public class DisabledCategoriesTest {
     }
 
 	 protected void logRestSucceededLogin(AuditLog auditLog) {
-	     auditLog.logSucceededLogin("testuser.rest.succeededlogin", false, "testuser.rest.succeededlogin", new MockRestRequest());
+	     auditLog.logSucceededLogin("testuser.rest.succeededlogin", false, "testuser.rest.succeededlogin", new MockRestRequest().asSecurityRequest());
 	 }
 
 	 protected void logTransportSucceededLogin(AuditLog auditLog) {
@@ -223,10 +221,10 @@ public class DisabledCategoriesTest {
 
 
     protected void logRestFailedLogin(AuditLog auditLog) {
-    	auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest());
-    }
+        auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest().asSecurityRequest());
+	}
 
-    protected void logTransportFailedLogin(AuditLog auditLog) {
+	protected void logTransportFailedLogin(AuditLog auditLog) {
     	auditLog.logFailedLogin("testuser.transport.failedlogin", false, "testuser.transport.failedlogin", new TransportRequest.Empty(), null);
     }
 
@@ -239,7 +237,7 @@ public class DisabledCategoriesTest {
     }
 
     protected void logRestBadHeaders(AuditLog auditLog) {
-    	auditLog.logBadHeaders(new MockRestRequest());
+        auditLog.logBadHeaders(new MockRestRequest().asSecurityRequest());
     }
 
     protected void logSecurityIndexAttempt(AuditLog auditLog) {
@@ -247,7 +245,7 @@ public class DisabledCategoriesTest {
     }
 
     protected void logRestSSLException(AuditLog auditLog) {
-    	auditLog.logSSLException(new MockRestRequest(), new Exception());
+        auditLog.logSSLException(new MockRestRequest().asSecurityRequest(), new Exception());
     }
 
     protected void logTransportSSLException(AuditLog auditLog) {

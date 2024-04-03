@@ -133,7 +133,6 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("field50\""));
         Assert.assertTrue(res.getBody().contains("field997\""));
 
-        System.out.println(sw.prettyPrint());
     }
 
     @Test
@@ -180,7 +179,6 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
         Assert.assertFalse(res.getBody().contains("field50\""));
         Assert.assertFalse(res.getBody().contains("field997\""));
 
-        System.out.println(sw.prettyPrint());
     }
 
     @Test
@@ -227,7 +225,6 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
         Assert.assertFalse(res.getBody().contains("field50\""));
         Assert.assertFalse(res.getBody().contains("field997\""));
 
-        System.out.println(sw.prettyPrint());
     }
 
     @Test
@@ -271,6 +268,5 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("field50\""));
         Assert.assertTrue(res.getBody().contains("field997\""));
 
-        System.out.println(sw.prettyPrint());
     }
 }
