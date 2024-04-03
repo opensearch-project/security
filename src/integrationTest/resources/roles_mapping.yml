@@ -1,0 +1,9 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+readall:
+  reserved: false
+  backend_roles:
+  - "readall"

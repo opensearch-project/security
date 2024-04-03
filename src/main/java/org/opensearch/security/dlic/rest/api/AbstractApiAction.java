@@ -57,6 +57,8 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator.ErrorType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
@@ -380,14 +382,15 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 		final String userName = user == null ? null : user.getName();
+		final SecurityRequest securityRequest = SecurityRequestFactory.from(request);
 		if (authError != null) {
 			log.error("No permission to access REST API: " + authError);
-			auditLog.logMissingPrivileges(authError, userName, request);
+			auditLog.logMissingPrivileges(authError, userName, securityRequest);
 			// for rest request
 			request.params().clear();
 			return channel -> forbidden(channel, "No permission to access REST API: " + authError);
 		} else {
-			auditLog.logGrantedPrivileges(userName, request);
+			auditLog.logGrantedPrivileges(userName, securityRequest);
 		}
 
 		final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);

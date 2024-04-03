@@ -42,6 +42,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
@@ -176,8 +177,7 @@ public class UserInjector {
         return injectedUser;
     }
 
-
-    boolean injectUser(RestRequest request) {
+    boolean injectUser(SecurityRequestChannel request) {
         InjectedUser injectedUser = getInjectedUser();
         if(injectedUser == null) {
             return false;

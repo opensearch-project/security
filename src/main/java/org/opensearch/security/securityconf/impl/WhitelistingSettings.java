@@ -15,15 +15,18 @@
 
 package org.opensearch.security.securityconf.impl;
 
-import org.opensearch.client.node.NodeClient;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import org.apache.http.HttpStatus;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
 
 public class WhitelistingSettings {
     private boolean enabled;
@@ -79,7 +82,7 @@ public class WhitelistingSettings {
      *      GET /_cluster/settings  - OK
      *      GET /_cluster/settings/ - OK
      */
-    private boolean requestIsWhitelisted(RestRequest request){
+    private boolean requestIsWhitelisted(final SecurityRequest request) {
 
         //ALSO ALLOWS REQUEST TO HAVE TRAILING '/'
         //pathWithoutTrailingSlash stores the endpoint path without extra '/'. eg: /_cat/nodes
@@ -111,17 +114,30 @@ public class WhitelistingSettings {
      * then all PUT /_opendistro/_security/api/rolesmapping/{resource_name} work.
      * Currently, each resource_name has to be whitelisted separately
      */
-    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel,
-                                          NodeClient client) throws IOException {
+    public Optional<SecurityResponse> checkRequestIsAllowed(final SecurityRequest request) {
         // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
-        if (this.enabled && !requestIsWhitelisted(request)){
-            channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, channel.newErrorBuilder().startObject()
-                    .field("error", request.method() + " " + request.path() + " API not whitelisted")
-                    .field("status", RestStatus.FORBIDDEN)
-                    .endObject()
-            ));
-            return false;
+        if (this.enabled && !requestIsWhitelisted(request)) {
+            return Optional.of(
+                new SecurityResponse(HttpStatus.SC_FORBIDDEN, null, generateFailureMessage(request), XContentType.JSON.mediaType())
+            );
         }
-        return true;
+        return Optional.empty();
+    }
+
+    protected String getVerb() {
+        return "whitelisted";
+    }
+
+    protected String generateFailureMessage(final SecurityRequest request) {
+        try {
+            return XContentFactory.jsonBuilder()
+                .startObject()
+                .field("error", request.method() + " " + request.path() + " API not " + getVerb())
+                .field("status", RestStatus.FORBIDDEN)
+                .endObject()
+                .toString();
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 }

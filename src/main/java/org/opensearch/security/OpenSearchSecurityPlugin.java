@@ -206,7 +206,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     public static final String PLUGINS_PREFIX = "_plugins/_security";
 
     private boolean sslCertReloadEnabled;
-    private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
     private volatile ThreadPool threadPool;
@@ -722,13 +721,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         settings, configPath, evaluateSslExceptionHandler());
                 //TODO close odshst
                 final SecurityHttpServerTransport odshst = new SecurityHttpServerTransport(settings, networkService, bigArrays,
-                        threadPool, sks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory);
+                        threadPool, sks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory, securityRestHandler);
 
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport",
                         () -> odshst);
             } else if (!client) {
                 return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport",
-                        () -> new SecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings, sharedGroupFactory));
+                        () -> new SecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings, sharedGroupFactory, securityRestHandler));
             }
         }
         return Collections.emptyMap();
@@ -1030,6 +1029,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             //compat
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.intSetting(ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS, 0, Property.NodeScope, Property.Filtered));
 
             // system integration
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false, Property.NodeScope, Property.Filtered));

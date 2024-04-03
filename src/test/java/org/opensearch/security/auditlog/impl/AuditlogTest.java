@@ -25,9 +25,11 @@ import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestRequest;
+import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.helper.RetrySink;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.transport.TransportRequest;
 import org.junit.Assert;
@@ -90,7 +92,7 @@ public class AuditlogTest {
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
-        al.logSSLException(null, new Exception("test rest"));
+        al.logSSLException((SecurityRequest)null, new Exception("test rest"));
         al.logSSLException(null, new Exception("test rest"), null, null);
         Assert.assertEquals(2, TestAuditlogImpl.messages.size());
     }
@@ -109,7 +111,7 @@ public class AuditlogTest {
                 .put(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
-        al.logSSLException(null, new Exception("test retry"));
+        al.logSSLException((SecurityRequest)null, new Exception("test retry"));
         Assert.assertNotNull(RetrySink.getMsg());
         Assert.assertTrue(RetrySink.getMsg().toJson().contains("test retry"));
     }
@@ -128,18 +130,16 @@ public class AuditlogTest {
                 .put(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
-        al.logSSLException(null, new Exception("test retry"));
+        al.logSSLException((SecurityRequest)null, new Exception("test retry"));
         Assert.assertNull(RetrySink.getMsg());
     }
 
     @Test
     public void testRestFilterEnabledCheck() {
-        final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
-                .build();
-        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
-        for (AuditCategory category: AuditCategory.values()) {
-            Assert.assertFalse(al.checkRestFilter(category, "user", mock(RestRequest.class)));
+        final Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false).build();
+        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+        for (AuditCategory category : AuditCategory.values()) {
+            Assert.assertFalse(al.checkRestFilter(category, "user", mock(SecurityRequestChannel.class)));
         }
     }
 
