@@ -990,7 +990,6 @@ public class LdapBackendTest {
                 .getBytes(StandardCharsets.UTF_8)));
         Assert.assertNotNull(user);
         Assert.assertEquals("cn=cabc,ou=people,o=TEST", user.getName());
-        System.out.println(user.getUserEntry().getAttribute("cn"));
     }
 
 

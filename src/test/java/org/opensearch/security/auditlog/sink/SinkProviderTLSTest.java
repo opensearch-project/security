@@ -131,8 +131,7 @@ public class SinkProviderTLSTest {
 	}
 
 	private void assertStringContainsAllKeysAndValues(String in) {
-	    System.out.println(in);
-		Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
+			Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
 		Assert.assertTrue(in, in.contains(AuditMessage.CATEGORY));
 		Assert.assertTrue(in, in.contains(AuditMessage.FORMAT_VERSION));
 		Assert.assertTrue(in, in.contains(AuditMessage.REMOTE_ADDRESS));

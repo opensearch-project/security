@@ -52,11 +52,9 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest{
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 5,\n      \"relation"));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password"))).getStatusCode());
-        System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
     }
 }

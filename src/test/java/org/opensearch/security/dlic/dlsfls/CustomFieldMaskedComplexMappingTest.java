@@ -69,7 +69,6 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
 
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
-        System.out.println(res.getBody());
 
         Assert.assertTrue(res.getBody().contains("win 8"));
         Assert.assertTrue(res.getBody().contains("win xp"));
@@ -90,7 +89,6 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
 
         for(int i=0;i<10;i++) {
             Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("user_masked_nowc1", "password"))).getStatusCode());
-            System.out.println(res.getBody());
         }
 
 
@@ -98,7 +96,6 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
         for(int i=0;i<10;i++) {
 
             Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("user_masked_nowc", "password"))).getStatusCode());
-            System.out.println(res.getBody());
 
             Assert.assertFalse(res.getBody().contains("\"aaa"));
 
