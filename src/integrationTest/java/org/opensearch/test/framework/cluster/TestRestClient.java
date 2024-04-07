@@ -114,6 +114,10 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
 
+    public HttpResponse securityHealth(Header... headers) {
+        return executeRequest(new HttpGet(getHttpServerUri() + "/_plugins/_security/health"), headers);
+    }
+
     public HttpResponse getAuthInfo(Map<String, String> urlParams, Header... headers) {
         String urlParamsString = "?"
             + urlParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
@@ -181,6 +185,10 @@ public class TestRestClient implements AutoCloseable {
     public HttpResponse post(String path) {
         HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path);
         return executeRequest(uriRequest);
+    }
+
+    public HttpResponse patch(String path, ToXContentObject body) {
+        return patch(path, Strings.toString(XContentType.JSON, body));
     }
 
     public HttpResponse patch(String path, String body) {

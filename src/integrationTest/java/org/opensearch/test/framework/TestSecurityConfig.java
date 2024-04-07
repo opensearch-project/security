@@ -78,6 +78,8 @@ public class TestSecurityConfig {
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
+    public final static String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
+
     private Config config = new Config();
     private Map<String, User> internalUsers = new LinkedHashMap<>();
     private Map<String, Role> roles = new LinkedHashMap<>();
@@ -142,6 +144,17 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
+        if (internalUsers.containsKey(name)) throw new RuntimeException("REST Admin " + name + " already exists");
+        user(new User(name, "REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
+        final var roleName = name + "__rest_admin_role";
+        roles(new Role(roleName).clusterPermissions(permissions));
+
+        rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
+        rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
+        return this;
+    }
+
     public List<User> getUsers() {
         return new ArrayList<>(internalUsers.values());
     }
@@ -155,6 +168,10 @@ public class TestSecurityConfig {
         }
 
         return this;
+    }
+
+    public List<Role> roles() {
+        return List.copyOf(roles.values());
     }
 
     public TestSecurityConfig audit(AuditConfiguration auditConfiguration) {
@@ -173,11 +190,19 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public List<RoleMapping> rolesMapping() {
+        return List.copyOf(rolesMapping.values());
+    }
+
     public TestSecurityConfig actionGroups(ActionGroup... groups) {
         for (final var group : groups) {
             this.actionGroups.put(group.name, group);
         }
         return this;
+    }
+
+    public List<ActionGroup> actionGroups() {
+        return List.copyOf(actionGroups.values());
     }
 
     public static class Config implements ToXContentObject {
