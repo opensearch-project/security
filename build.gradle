@@ -737,7 +737,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.21.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.22.0') {
         exclude group: 'com.google.guava'
     }
 }
