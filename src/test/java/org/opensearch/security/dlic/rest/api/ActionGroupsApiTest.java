@@ -442,25 +442,46 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testCreateActionGroupWithRestAdminPermissionsForbidden() throws Exception {
+    public void testCreateOrUpdateRestApiAdminActionGroupForbidden() throws Exception {
         setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         rh.sendAdminCertificate = false;
-        final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
-        final Header restApiAdminActionGroupsHeader = encodeBasicHeader("rest_api_admin_actiongroups", "rest_api_admin_actiongroups");
-        final Header restApiHeader = encodeBasicHeader("test", "test");
+        final var userHeaders = List.of(
+            encodeBasicHeader("admin", "admin"),
+            encodeBasicHeader("test", "test"),
+            encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user"),
+            encodeBasicHeader("rest_api_admin_actiongroups", "rest_api_admin_actiongroups")
+        );
+        for (final var userHeader : userHeaders) {
+            // attempt to create new action group with REST admin permissions
+            verifyPutForbidden("new_rest_api_admin_group", restAdminAllowedActions(), userHeader);
+            verifyPatchForbidden(createPatchRestAdminPermissionsPayload("new_rest_api_admin_group", "add"), userHeader);
 
-        HttpResponse response = rh.executePutRequest(ENDPOINT + "/rest_api_admin_group", restAdminAllowedActions(), restApiAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executePutRequest(ENDPOINT + "/rest_api_admin_group", restAdminAllowedActions(), restApiAdminActionGroupsHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executePutRequest(ENDPOINT + "/rest_api_admin_group", restAdminAllowedActions(), restApiHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+            // attempt to update existing action group which has REST admin permissions
+            verifyPutForbidden("rest_admin_action_group", restAdminAllowedActions(), userHeader);
+            verifyPatchForbidden(createPatchRestAdminPermissionsPayload("rest_admin_action_group", "replace"), userHeader);
 
-        response = rh.executePatchRequest(ENDPOINT, restAdminPatchBody(), restApiAdminHeader);
+            // attempt to update existing action group with REST admin permissions
+            verifyPutForbidden("OPENDISTRO_SECURITY_CLUSTER_ALL", restAdminAllowedActions(), userHeader);
+            verifyPatchForbidden(createPatchRestAdminPermissionsPayload("OPENDISTRO_SECURITY_CLUSTER_ALL", "replace"), userHeader);
+
+            // attempt to delete
+            verifyDeleteForbidden("rest_admin_action_group", userHeader);
+            verifyPatchForbidden(createPatchRestAdminPermissionsPayload("rest_admin_action_group", "remove"), userHeader);
+        }
+    }
+
+    void verifyPutForbidden(final String actionGroupName, final String payload, final Header... header) {
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/" + actionGroupName, payload, header);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executePatchRequest(ENDPOINT, restAdminPatchBody(), restApiAdminActionGroupsHeader);
+    }
+
+    void verifyPatchForbidden(final String payload, final Header... header) {
+        HttpResponse response = rh.executePatchRequest(ENDPOINT, payload, header);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executePatchRequest(ENDPOINT, restAdminPatchBody(), restApiHeader);
+    }
+
+    void verifyDeleteForbidden(final String actionGroupName, final Header... header) {
+        HttpResponse response = rh.executeDeleteRequest(ENDPOINT + "/" + actionGroupName, header);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
 
@@ -470,13 +491,30 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         return DefaultObjectMapper.objectMapper.writeValueAsString(rootNode);
     }
 
-    String restAdminPatchBody() throws JsonProcessingException {
+    private String createPatchRestAdminPermissionsPayload(final String actionGroup, final String op) throws JsonProcessingException {
         final ArrayNode rootNode = DefaultObjectMapper.objectMapper.createArrayNode();
-        final ObjectNode opAddRootNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode opAddObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
         final ObjectNode allowedActionsNode = DefaultObjectMapper.objectMapper.createObjectNode();
         allowedActionsNode.set("allowed_actions", clusterPermissionsForRestAdmin("cluster/*"));
-        opAddRootNode.put("op", "add").put("path", "/rest_api_admin_group").set("value", allowedActionsNode);
-        rootNode.add(opAddRootNode);
+        if ("add".equals(op)) {
+            opAddObjectNode.put("op", "add").put("path", "/" + actionGroup).set("value", allowedActionsNode);
+            rootNode.add(opAddObjectNode);
+        }
+
+        if ("remove".equals(op)) {
+            final ObjectNode opRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
+            opRemoveObjectNode.put("op", "remove").put("path", "/" + actionGroup);
+            rootNode.add(opRemoveObjectNode);
+        }
+
+        if ("replace".equals(op)) {
+            final ObjectNode replaceRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
+            replaceRemoveObjectNode.put("op", "replace")
+                .put("path", "/" + actionGroup + "/allowed_actions")
+                .set("value", clusterPermissionsForRestAdmin("*"));
+
+            rootNode.add(replaceRemoveObjectNode);
+        }
         return DefaultObjectMapper.objectMapper.writeValueAsString(rootNode);
     }
 
