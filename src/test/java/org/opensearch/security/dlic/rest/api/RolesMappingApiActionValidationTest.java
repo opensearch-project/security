@@ -35,18 +35,16 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void isAllowedRightsToChangeRoleEntity() throws Exception {
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.ROLESMAPPING)).thenReturn(true);
         final var rolesMappingApiActionEndpointValidator = new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies)
             .createEndpointValidator();
         final var result = rolesMappingApiActionEndpointValidator.isAllowedToChangeImmutableEntity(
-                SecurityConfiguration.of("rest_api_admin_role", configuration)
+            SecurityConfiguration.of("rest_api_admin_role", configuration)
         );
         assertTrue(result.isValid());
     }
 
     @Test
     public void isNotAllowedNoRightsToChangeRoleEntity() throws Exception {
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.ROLESMAPPING)).thenReturn(false);
         when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
          final var rolesApiActionEndpointValidator =
@@ -61,7 +59,6 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void onConfigChangeShouldCheckRoles() throws Exception {
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.ROLESMAPPING)).thenReturn(false);
         when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
         when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false))
                 .thenReturn(Map.of(CType.ROLES, rolesConfiguration));

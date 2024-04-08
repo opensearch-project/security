@@ -14,6 +14,7 @@ package org.opensearch.security.dlic.rest.api;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.core5.http.Header;
@@ -558,97 +559,83 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testChangeRestApiAdminRoleMappingForbiddenForNonSuperAdmin() throws Exception {
+    public void testChangeRestApiAdminRoleMappingForbidden() throws Exception {
         setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         rh.sendAdminCertificate = false;
 
-        final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
-        final Header adminHeader = encodeBasicHeader("admin", "admin");
-        final Header restApiHeader = encodeBasicHeader("test", "test");
-
-        HttpResponse response = rh.executePutRequest(
-            ENDPOINT + "/roles/new_rest_api_role",
-            createRestAdminPermissionsPayload(),
-            restApiAdminHeader
+        final var userHeaders = List.of(
+            encodeBasicHeader("admin", "admin"),
+            encodeBasicHeader("test", "test"),
+            encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user"),
+            encodeBasicHeader("rest_api_admin_rolesmapping", "rest_api_admin_rolesmapping")
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
-        response = rh.executePutRequest(
-            ENDPOINT + "/roles/new_rest_api_role_without_mapping",
-            createRestAdminPermissionsPayload(),
-            restApiAdminHeader
-        );
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        response = rh.executePutRequest(
-            ENDPOINT + "/rolesmapping/new_rest_api_role",
-            createUsersPayload("a", "b", "c"),
-            restApiAdminHeader
-        );
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
-        verifyRestApiPutAndDeleteForNonRestApiAdmin(adminHeader);
-        verifyRestApiPutAndDeleteForNonRestApiAdmin(restApiHeader);
-        verifyRestApiPatchForNonRestApiAdmin(adminHeader, false);
-        verifyRestApiPatchForNonRestApiAdmin(restApiHeader, false);
-        verifyRestApiPatchForNonRestApiAdmin(adminHeader, true);
-        verifyRestApiPatchForNonRestApiAdmin(restApiHeader, true);
-    }
+        for (final var userHeader : userHeaders) {
+            // create new mapping for existing group
+            verifyPutForbidden("rest_api_admin_roles_mapping_test_without_mapping", createUsers("c", "d"), userHeader);
+            verifyPatchForbidden(createPatchPayload("rest_api_admin_roles_mapping_test_without_mapping", "add"), userHeader);
 
-    private void verifyRestApiPutAndDeleteForNonRestApiAdmin(final Header header) throws Exception {
-        HttpResponse response = rh.executePutRequest(
-            ENDPOINT + "/rolesmapping/new_rest_api_role",
-            createUsersPayload("a", "b", "c"),
-            header
-        );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+            // update existing mapping with additional users
+            verifyPutForbidden("rest_api_admin_roles_mapping_test_with_mapping", createUsers("c", "d"), userHeader);
+            verifyPatchForbidden(createPatchPayload("rest_api_admin_roles_mapping_test_with_mapping", "replace"), userHeader);
 
-        response = rh.executeDeleteRequest(ENDPOINT + "/rolesmapping/new_rest_api_role", "", header);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-    }
-
-    private void verifyRestApiPatchForNonRestApiAdmin(final Header header, boolean bulk) throws Exception {
-        String path = ENDPOINT + "/rolesmapping";
-        if (!bulk) {
-            path += "/new_rest_api_role";
+            // delete existing role mapping forbidden
+            verifyDeleteForbidden("rest_api_admin_roles_mapping_test_with_mapping", userHeader);
+            verifyPatchForbidden(createPatchPayload("rest_api_admin_roles_mapping_test_with_mapping", "remove"), userHeader);
         }
-        HttpResponse response = rh.executePatchRequest(path, createPathPayload("add"), header);
-        System.err.println(response.getBody());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
 
-        response = rh.executePatchRequest(path, createPathPayload("replace"), header);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executePatchRequest(path, createPathPayload("remove"), header);
+    void verifyPutForbidden(final String roleMappingName, final String payload, final Header... header) {
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/rolesmapping/" + roleMappingName, payload, header);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
 
-    private ObjectNode createUsersObjectNode(final String... users) {
+    void verifyPatchForbidden(final String payload, final Header... header) {
+        HttpResponse response = rh.executePatchRequest(ENDPOINT + "/rolesmapping", payload, header);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
+
+    void verifyDeleteForbidden(final String roleMappingName, final Header... header) {
+        HttpResponse response = rh.executeDeleteRequest(ENDPOINT + "/rolesmapping/" + roleMappingName, header);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
+
+    private String createPatchPayload(final String roleName, final String op) throws JsonProcessingException {
+        final ArrayNode rootNode = DefaultObjectMapper.objectMapper.createArrayNode();
+        final ObjectNode opAddObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode clusterPermissionsNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        clusterPermissionsNode.set("users", createUsersArray("c", "d"));
+        if ("add".equals(op)) {
+            opAddObjectNode.put("op", "add").put("path", "/" + roleName).set("value", clusterPermissionsNode);
+            rootNode.add(opAddObjectNode);
+        }
+
+        if ("remove".equals(op)) {
+            final ObjectNode opRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
+            opRemoveObjectNode.put("op", "remove").put("path", "/" + roleName);
+            rootNode.add(opRemoveObjectNode);
+        }
+
+        if ("replace".equals(op)) {
+            final ObjectNode replaceRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
+            replaceRemoveObjectNode.put("op", "replace").put("path", "/" + roleName + "/users").set("value", createUsersArray("c", "d"));
+
+            rootNode.add(replaceRemoveObjectNode);
+        }
+        return DefaultObjectMapper.objectMapper.writeValueAsString(rootNode);
+    }
+
+    private String createUsers(final String... users) throws JsonProcessingException {
+        final var o = DefaultObjectMapper.objectMapper.createObjectNode().set("users", createUsersArray("c", "d"));
+        return DefaultObjectMapper.writeValueAsString(o, false);
+    }
+
+    private JsonNode createUsersArray(final String... users) {
         final ArrayNode usersArray = DefaultObjectMapper.objectMapper.createArrayNode();
         for (final String user : users) {
             usersArray.add(user);
         }
-        return DefaultObjectMapper.objectMapper.createObjectNode().set("users", usersArray);
-    }
-
-    private String createUsersPayload(final String... users) throws JsonProcessingException {
-        return DefaultObjectMapper.objectMapper.writeValueAsString(createUsersObjectNode(users));
-    }
-
-    private String createPathPayload(final String op) throws JsonProcessingException {
-        final ArrayNode arrayNode = DefaultObjectMapper.objectMapper.createArrayNode();
-        final ObjectNode opNode = DefaultObjectMapper.objectMapper.createObjectNode();
-        opNode.put("op", op);
-        if ("add".equals(op)) {
-            opNode.put("path", "/new_rest_api_role_without_mapping");
-            opNode.set("value", createUsersObjectNode("d", "e", "f"));
-        }
-        if ("replace".equals(op)) {
-            opNode.put("path", "/new_rest_api_role");
-            opNode.set("value", createUsersObjectNode("g", "h", "i"));
-        }
-        if ("remove".equals(op)) {
-            opNode.put("path", "/new_rest_api_role");
-        }
-        return DefaultObjectMapper.objectMapper.writeValueAsString(arrayNode.add(opNode));
+        return usersArray;
     }
 
     @Test
