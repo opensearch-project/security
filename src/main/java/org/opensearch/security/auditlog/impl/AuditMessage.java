@@ -28,6 +28,8 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hc.core5.net.URIBuilder;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
@@ -58,6 +60,8 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public final class AuditMessage {
+
+    private static final Logger log = LogManager.getLogger(AuditMessage.class);
 
     // clustername and cluster uuid
     private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
@@ -417,8 +421,9 @@ public final class AuditMessage {
                     } else {
                         auditInfo.put(REQUEST_BODY, requestBody);
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     auditInfo.put(REQUEST_BODY, "ERROR: Unable to generate request body");
+                    log.error("Error while generating request body for audit log", e);
                 }
             }
         }
