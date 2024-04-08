@@ -217,6 +217,9 @@ opendistro_security_role_host2:
   - "opendistro_security_host_localhost"
   and_backend_roles: []
   description: "Migrated from v6"
+rest_api_admin_roles_mapping_test_with_mapping:
+  reserved: true
+  users: [a, b]
 rest_api_admin_full_access:
   reserved: false
   hidden: true

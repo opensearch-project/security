@@ -141,12 +141,9 @@ public class RolesApiAction extends AbstractApiAction {
             @Override
             public ValidationResult<SecurityConfiguration> isAllowedToChangeImmutableEntity(SecurityConfiguration securityConfiguration)
                 throws IOException {
-                return EndpointValidator.super.isAllowedToChangeImmutableEntity(securityConfiguration).map(ignore -> {
-                    if (isCurrentUserAdmin()) {
-                        return ValidationResult.success(securityConfiguration);
-                    }
-                    return isAllowedToChangeEntityWithRestAdminPermissions(securityConfiguration);
-                });
+                return EndpointValidator.super.isAllowedToChangeImmutableEntity(securityConfiguration).map(
+                    ignore -> isAllowedToChangeEntityWithRestAdminPermissions(securityConfiguration)
+                );
             }
 
             @Override
