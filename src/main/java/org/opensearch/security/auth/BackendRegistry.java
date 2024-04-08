@@ -288,7 +288,7 @@ public class BackendRegistry {
 
             if (ac == null) {
                 // no credentials found in request
-                if (anonymousAuthEnabled && isRequestForAnonymousLogin(request.params())) {
+                if (anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
                     continue;
                 }
 
@@ -404,10 +404,7 @@ public class BackendRegistry {
                 }
             }
 
-            if (authCredentials == null
-                && anonymousAuthEnabled
-                && isRequestForAnonymousLogin(request.params())
-                && !checkIfRequestContainsBasicAuthHeader(request.getHeaders())) {
+            if (authCredentials == null && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
                 final String tenant = resolveTenantFrom(request);
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
@@ -438,27 +435,18 @@ public class BackendRegistry {
     }
 
     /**
-     * Checks whether request contains Authorization header. If so return yes
-     * Solves: <a href="https://github.com/opensearch-project/security-dashboards-plugin/issues/1840">...</a>
-     * @param headers headers in the current request
-     * @return true if request contains `authorization` header, else return false
-     */
-    private boolean checkIfRequestContainsBasicAuthHeader(Map<String, List<String>> headers) {
-        return headers.containsKey(HttpHeaders.AUTHORIZATION);
-    }
-
-    /**
      * Checks if incoming auth request is from an anonymous user
      * Defaults all requests to yes, to allow anonymous authentication to succeed
      * @param params the query parameters passed in this request
-     * @return false only if an explicit `auth_type` param is supplied and its value is not anonymous,
+     * @return false only if an explicit `auth_type` param is supplied, and its value is not anonymous, OR
+     * if request contains no authorization headers
      * otherwise returns true
      */
-    private boolean isRequestForAnonymousLogin(Map<String, String> params) {
+    private boolean isRequestForAnonymousLogin(Map<String, String> params, Map<String, List<String>> headers) {
         if (params.containsKey("auth_type")) {
             return params.get("auth_type").equals("anonymous");
         }
-        return true;
+        return !headers.containsKey(HttpHeaders.AUTHORIZATION);
     }
 
     private String resolveTenantFrom(final SecurityRequest request) {

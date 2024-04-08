@@ -50,7 +50,7 @@ public class BasicWithAnonymousAuthTests {
 
     /** No automatic login post anonymous auth request **/
     @Test
-    public void shouldRespondWith401WhenUserDoesNotExist() {
+    public void testShouldRespondWith401WhenUserDoesNotExist() {
         try (TestRestClient client = cluster.getRestClient(NOT_EXISTING_USER, INVALID_PASSWORD)) {
             HttpResponse response = client.getAuthInfo();
 
@@ -60,7 +60,7 @@ public class BasicWithAnonymousAuthTests {
     }
 
     @Test
-    public void shouldRespondWith401WhenUserNameIsIncorrect() {
+    public void testShouldRespondWith401WhenUserNameIsIncorrect() {
         try (TestRestClient client = cluster.getRestClient(NOT_EXISTING_USER, TEST_USER.getPassword())) {
             HttpResponse response = client.getAuthInfo();
 
@@ -70,7 +70,7 @@ public class BasicWithAnonymousAuthTests {
     }
 
     @Test
-    public void shouldRespondWith401WhenPasswordIsIncorrect() {
+    public void testShouldRespondWith401WhenPasswordIsIncorrect() {
         try (TestRestClient client = cluster.getRestClient(TEST_USER.getName(), INVALID_PASSWORD)) {
             HttpResponse response = client.getAuthInfo();
 
@@ -109,5 +109,4 @@ public class BasicWithAnonymousAuthTests {
             assertThat(response.containHeader("WWW-Authenticate"), is(true));
         }
     }
-
 }
