@@ -106,14 +106,11 @@ public class RolesMappingApiAction extends AbstractApiAction {
             public ValidationResult<SecurityConfiguration> isAllowedToChangeRoleMappingWithRestAdminPermissions(
                 SecurityConfiguration securityConfiguration
             ) throws IOException {
-                return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
-                    if (isCurrentUserAdmin()) {
-                        return ValidationResult.success(securityConfiguration);
-                    }
-                    return isAllowedToChangeEntityWithRestAdminPermissions(
+                return loadConfiguration(CType.ROLES, false, false).map(
+                    rolesConfiguration -> isAllowedToChangeEntityWithRestAdminPermissions(
                         SecurityConfiguration.of(securityConfiguration.entityName(), rolesConfiguration)
-                    );
-                }).map(ignore -> ValidationResult.success(securityConfiguration));
+                    )
+                ).map(ignore -> ValidationResult.success(securityConfiguration));
             }
 
             @Override
