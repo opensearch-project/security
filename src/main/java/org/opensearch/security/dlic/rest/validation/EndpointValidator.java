@@ -156,21 +156,19 @@ public interface EndpointValidator {
     default ValidationResult<SecurityConfiguration> isAllowedToChangeEntityWithRestAdminPermissions(
         final SecurityConfiguration securityConfiguration
     ) throws IOException {
+        final var configuration = securityConfiguration.configuration();
         if (securityConfiguration.entityExists()) {
-            final var configuration = securityConfiguration.configuration();
             final var existingEntity = configuration.getCEntry(securityConfiguration.entityName());
             if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(existingEntity)) {
-
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
-        } else {
-            final var configuration = securityConfiguration.configuration();
-            final var configEntityContent = Utils.toConfigObject(
+        }
+        if (securityConfiguration.requestContent() != null) {
+            final var newConfigEntityContent = Utils.toConfigObject(
                 securityConfiguration.requestContent(),
                 configuration.getImplementingClass()
             );
-            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(configEntityContent)) {
-
+            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(newConfigEntityContent)) {
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         }

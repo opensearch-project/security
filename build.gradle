@@ -407,11 +407,6 @@ opensearchplugin {
 // This requires an additional Jar not published as part of build-tools
 loggerUsageCheck.enabled = false
 
-// No need to validate pom, as we do not upload to maven/sonatype
-tasks.matching {it.path in [":validateMavenPom", ":validateNebulaPom", ":validatePluginZipPom"]}.all { task ->
-    task.dependsOn ':generatePomFileForNebulaPublication', ':generatePomFileForPluginZipPublication', ':generatePomFileForMavenPublication'
-}
-
 publishing {
     publications {
         pluginZip(MavenPublication) { publication ->
@@ -618,6 +613,7 @@ dependencies {
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.1'
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.25"
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     implementation "org.opensaml:opensaml-core:${open_saml_version}"
@@ -635,7 +631,7 @@ dependencies {
     runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
 
-    implementation "com.nulab-inc:zxcvbn:1.8.2"
+    implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.2'
     runtimeOnly 'org.apache.commons:commons-text:1.11.0'
@@ -643,13 +639,12 @@ dependencies {
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.25'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
-    runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.6.1'
+    runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.6.2'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
@@ -704,12 +699,12 @@ dependencies {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.13'
-    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
+    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
@@ -725,7 +720,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.15.1'
+    integrationTestImplementation 'commons-io:commons-io:2.16.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
@@ -742,7 +737,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.21.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.22.0') {
         exclude group: 'com.google.guava'
     }
 }

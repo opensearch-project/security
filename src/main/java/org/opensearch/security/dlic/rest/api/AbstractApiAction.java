@@ -241,7 +241,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             for (final var entityName : patchEntityNames(patchContent)) {
                 final var beforePatchEntity = configurationAsJson.get(entityName);
                 final var patchedEntity = patchedConfigurationAsJson.get(entityName);
-                // verify we can process exising or updated entities
+                // verify we can process existing or updated entities
                 if (beforePatchEntity != null && !Objects.equals(beforePatchEntity, patchedEntity)) {
                     final var checkEntityCanBeProcess = endpointValidator.isAllowedToChangeImmutableEntity(
                         SecurityConfiguration.of(entityName, configuration)

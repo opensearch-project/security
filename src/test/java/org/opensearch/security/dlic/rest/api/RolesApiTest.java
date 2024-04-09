@@ -691,105 +691,74 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testCreateOrUpdateRestApiAdminRoleForbiddenForNonSuperAdmin() throws Exception {
+    public void testCrudRestApiAdminRoleForbidden() throws Exception {
         setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         rh.sendAdminCertificate = false;
 
-        final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
-        final Header adminHeader = encodeBasicHeader("admin", "admin");
-        final Header restApiHeader = encodeBasicHeader("test", "test");
-
-        final String restAdminPermissionsPayload = createRestAdminPermissionsPayload("cluster/*");
-        HttpResponse response = rh.executePutRequest(
-            ENDPOINT + "/roles/new_rest_admin_role",
-            restAdminPermissionsPayload,
-            restApiAdminHeader
+        final var userHeaders = List.of(
+            encodeBasicHeader("admin", "admin"),
+            encodeBasicHeader("test", "test"),
+            encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user"),
+            encodeBasicHeader("rest_api_admin_roles", "rest_api_admin_roles")
         );
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        response = rh.executePutRequest(ENDPOINT + "/roles/rest_admin_role_to_delete", restAdminPermissionsPayload, restApiAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        for (final var userHeader : userHeaders) {
+            final String restAdminPermissionsPayload = createRestAdminPermissionsPayload("cluster/*");
+            // attempt to create a new role
+            verifyPutForbidden("new_rest_admin_role", restAdminPermissionsPayload, userHeader);
+            verifyPatchForbidden(createPatchRestAdminPermissionsPayload("new_rest_admin_role", "add"), userHeader);
 
-        // attempt to create a new rest admin role by admin
-        response = rh.executePutRequest(ENDPOINT + "/roles/some_rest_admin_role", restAdminPermissionsPayload, adminHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+            // attempt to update existing rest admin role
+            verifyPutForbidden("rest_api_admin_full_access", restAdminPermissionsPayload, userHeader);
+            verifyPatchForbidden(createPatchRestAdminPermissionsPayload("rest_api_admin_full_access", "replace"), userHeader);
 
-        // attempt to update exiting admin role
-        response = rh.executePutRequest(ENDPOINT + "/roles/new_rest_admin_role", restAdminPermissionsPayload, adminHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+            // attempt to update non rest admin role with REST admin permissions
+            verifyPutForbidden("opendistro_security_role_starfleet_captains", restAdminPermissionsPayload, userHeader);
+            verifyPatchForbidden(
+                createPatchRestAdminPermissionsPayload("opendistro_security_role_starfleet_captains", "replace"),
+                userHeader
+            );
 
-        // attempt to patch exiting admin role
-        response = rh.executePatchRequest(
-            ENDPOINT + "/roles/new_rest_admin_role",
-            createPatchRestAdminPermissionsPayload("replace"),
-            adminHeader
-        );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+            // attempt to remove REST admin role
+            verifyDeleteForbidden("rest_api_admin_full_access", userHeader);
+            verifyPatchForbidden(createPatchRestAdminPermissionsPayload("rest_api_admin_full_access", "remove"), userHeader);
+        }
+    }
 
-        // attempt to update exiting admin role
-        response = rh.executePutRequest(ENDPOINT + "/roles/new_rest_admin_role", restAdminPermissionsPayload, restApiHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        // attempt to create a new rest admin role by admin
-        response = rh.executePutRequest(ENDPOINT + "/roles/some_rest_admin_role", restAdminPermissionsPayload, restApiHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        // attempt to patch exiting admin role and crate a new one
-        response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("replace"), restApiHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("add"), restApiHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("remove"), restApiHeader);
+    void verifyPutForbidden(final String roleName, final String restAdminPermissionsPayload, final Header... header) {
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/" + roleName, restAdminPermissionsPayload, header);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
 
-    @Test
-    public void testDeleteRestApiAdminRoleForbiddenForNonSuperAdmin() throws Exception {
-        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
-        rh.sendAdminCertificate = false;
+    void verifyPatchForbidden(final String restAdminPermissionsPayload, final Header... header) {
+        HttpResponse response = rh.executePatchRequest(ENDPOINT + "/roles", restAdminPermissionsPayload, header);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
 
-        final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
-        final Header adminHeader = encodeBasicHeader("admin", "admin");
-        final Header restApiHeader = encodeBasicHeader("test", "test");
-
-        final String allRestAdminPermissionsPayload = createRestAdminPermissionsPayload("cluster/*");
-
-        HttpResponse response = rh.executePutRequest(
-            ENDPOINT + "/roles/new_rest_admin_role",
-            allRestAdminPermissionsPayload,
-            restApiAdminHeader
-        );
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-
-        // attempt to update exiting admin role
-        response = rh.executeDeleteRequest(ENDPOINT + "/roles/new_rest_admin_role", adminHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        // true to change
-        response = rh.executeDeleteRequest(ENDPOINT + "/roles/new_rest_admin_role", allRestAdminPermissionsPayload, restApiHeader);
+    void verifyDeleteForbidden(final String roleName, final Header... header) {
+        HttpResponse response = rh.executeDeleteRequest(ENDPOINT + "/roles/" + roleName, header);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
 
-    private String createPatchRestAdminPermissionsPayload(final String op) throws JsonProcessingException {
+    private String createPatchRestAdminPermissionsPayload(final String roleName, final String op) throws JsonProcessingException {
         final ArrayNode rootNode = DefaultObjectMapper.objectMapper.createArrayNode();
         final ObjectNode opAddObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
         final ObjectNode clusterPermissionsNode = DefaultObjectMapper.objectMapper.createObjectNode();
         clusterPermissionsNode.set("cluster_permissions", clusterPermissionsForRestAdmin("cluster/*"));
         if ("add".equals(op)) {
-            opAddObjectNode.put("op", "add").put("path", "/some_rest_admin_role").set("value", clusterPermissionsNode);
+            opAddObjectNode.put("op", "add").put("path", "/" + roleName).set("value", clusterPermissionsNode);
             rootNode.add(opAddObjectNode);
         }
 
         if ("remove".equals(op)) {
             final ObjectNode opRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
-            opRemoveObjectNode.put("op", "remove").put("path", "/rest_admin_role_to_delete");
+            opRemoveObjectNode.put("op", "remove").put("path", "/" + roleName);
             rootNode.add(opRemoveObjectNode);
         }
 
         if ("replace".equals(op)) {
             final ObjectNode replaceRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
             replaceRemoveObjectNode.put("op", "replace")
-                .put("path", "/new_rest_admin_role/cluster_permissions")
+                .put("path", "/" + roleName + "/cluster_permissions")
                 .set("value", clusterPermissionsForRestAdmin("*"));
 
             rootNode.add(replaceRemoveObjectNode);

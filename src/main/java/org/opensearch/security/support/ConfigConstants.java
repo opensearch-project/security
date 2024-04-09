@@ -220,9 +220,14 @@ public class ConfigConstants {
     public static final String SECURITY_NODES_DN = "plugins.security.nodes_dn";
     public static final String SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED = "plugins.security.nodes_dn_dynamic_config_enabled";
     public static final String SECURITY_DISABLED = "plugins.security.disabled";
+
     public static final String SECURITY_CACHE_TTL_MINUTES = "plugins.security.cache.ttl_minutes";
     public static final String SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES = "plugins.security.allow_unsafe_democertificates";
     public static final String SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX = "plugins.security.allow_default_init_securityindex";
+
+    public static final String SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE =
+        "plugins.security.allow_default_init_securityindex.use_cluster_state";
+
     public static final String SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST =
         "plugins.security.background_init_if_securityindex_not_exist";
 
