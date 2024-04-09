@@ -91,6 +91,9 @@ public class SecurityInfoAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         final boolean verbose = request.paramAsBoolean("verbose", false);
+        // need to consume `auth_type` param, without which a 500 is thrown on front-end
+        final String authType = request.param("auth_type", "");
+
         return new RestChannelConsumer() {
 
             @Override
