@@ -414,3 +414,8 @@ query_insights_full_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/insights/top_queries/*'
+  index_permissions:
+    - index_patterns:
+        - 'top_queries_by_*'
+      allowed_actions:
+        - "indices_all"
