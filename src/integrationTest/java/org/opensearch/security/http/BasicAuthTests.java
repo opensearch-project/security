@@ -107,6 +107,19 @@ public class BasicAuthTests {
     }
 
     @Test
+    public void shouldRespondWithChallengeWhenNoCredentialsArePresent() {
+        try (TestRestClient client = cluster.getRestClient()) {
+            HttpResponse response = client.getAuthInfo();
+
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_UNAUTHORIZED);
+            assertThat(response.getHeader("WWW-Authenticate"), is(notNullValue()));
+            assertThat(response.getHeader("WWW-Authenticate").getValue(), equalTo("Basic realm=\"OpenSearch Security\""));
+            assertThat(response.getBody(), equalTo("Unauthorized"));
+        }
+    }
+
+    @Test
     public void testUserShouldNotHaveAssignedCustomAttributes() {
         try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
 
