@@ -85,7 +85,7 @@ jobs:
         with:
           attempt_limit: 5
           attempt_delay: 2000
-          action: codecov/codecov-action@v3
+          action: codecov/codecov-action@v4
           with: |
             token: ${{ secrets.CODECOV_TOKEN }}
             fail_ci_if_error: true
