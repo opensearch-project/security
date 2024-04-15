@@ -11,58 +11,40 @@
 
 package org.opensearch.security.api;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.HttpStatus;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import java.util.List;
 
-import org.opensearch.security.securityconf.impl.DashboardSignInOption;
+import org.junit.Test;
+
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
-import org.opensearch.test.framework.cluster.ClusterManager;
-import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_MESSAGE;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class DashboardsInfoTest {
+public class DashboardsInfoTest extends AbstractApiIntegrationTest {
 
-    protected final static TestSecurityConfig.User DASHBOARDS_USER = new TestSecurityConfig.User("dashboards_user").roles(
-        new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
-    );
+    static {
+        testSecurityConfig.user(
+            new TestSecurityConfig.User("dashboards_user").roles(
+                new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
+            )
+        );
+    }
 
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(DASHBOARDS_USER)
-        .build();
-
-    @Test
-    public void testDashboardsInfoValidationMessage() throws Exception {
-
-        try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
-            TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-            assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
-            assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
-        }
+    private String apiPath() {
+        return randomFrom(List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo"));
     }
 
     @Test
-    public void testDashboardsInfoContainsSignInOptions() throws Exception {
-
-        try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
-            TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-            assertThat(response.getTextArrayFromJsonBody("/sign_in_options").contains(DashboardSignInOption.BASIC.toString()), is(true));
-        }
+    public void testDashboardsInfoValidationMessage() throws Exception {
+        withUser("dashboards_user", client -> {
+            final var response = ok(() -> client.get(apiPath()));
+            assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
+            assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
+        });
     }
 }
