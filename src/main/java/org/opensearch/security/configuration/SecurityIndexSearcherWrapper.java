@@ -32,7 +32,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
-
+import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -46,8 +46,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
-
-import org.greenrobot.eventbus.Subscribe;
 
 public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
 
@@ -116,8 +114,7 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
 
-        if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()
-            && (!systemIndexPermissionEnabled || !isPermittedOnSystemIndex())) {
+        if (systemIndexEnabled && isBlockedSystemIndexRequest() && !isAdminDnOrPluginRequest()) {
             log.warn("search action for {} is not allowed for a non adminDN user", index.getName());
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
@@ -153,6 +150,17 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     }
 
     protected final boolean isBlockedSystemIndexRequest() {
+        if (systemIndexPermissionEnabled) {
+            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            if (user == null) {
+                // allow request without user from plugin.
+                return systemIndexMatcher.test(index.getName());
+            }
+            final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+            final Set<String> mappedRoles = evaluator.mapRoles(user, caller);
+            final SecurityRoles securityRoles = evaluator.getSecurityRoles(mappedRoles);
+            return !securityRoles.isPermittedOnSystemIndex(index.getName());
+        }
         return systemIndexMatcher.test(index.getName());
     }
 
@@ -176,14 +184,5 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
             return true;
         }
         return false;
-    }
-
-    private boolean isPermittedOnSystemIndex() {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final Set<String> mappedRoles = evaluator.mapRoles(user, caller);
-        final SecurityRoles securityRoles = evaluator.getSecurityRoles(mappedRoles);
-
-        return securityRoles.isPermittedOnSystemIndex(index.getName());
     }
 }
