@@ -142,7 +142,7 @@ public class RequestContentValidator implements ToXContent {
         }
     }
 
-    private ValidationResult<JsonNode> validateContentSize(final JsonNode jsonContent) {
+    protected ValidationResult<JsonNode> validateContentSize(final JsonNode jsonContent) {
         if (jsonContent.isEmpty()) {
             this.validationError = ValidationError.PAYLOAD_MANDATORY;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -150,7 +150,7 @@ public class RequestContentValidator implements ToXContent {
         return ValidationResult.success(jsonContent);
     }
 
-    private ValidationResult<JsonNode> validateJsonKeys(final JsonNode jsonContent) {
+    protected ValidationResult<JsonNode> validateJsonKeys(final JsonNode jsonContent) {
         final Set<String> requestedKeys = new HashSet<>();
         jsonContent.fieldNames().forEachRemaining(requestedKeys::add);
         // mandatory settings, one of ...
