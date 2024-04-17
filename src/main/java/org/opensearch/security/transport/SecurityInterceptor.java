@@ -38,6 +38,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
@@ -272,10 +273,11 @@ public class SecurityInterceptor {
     private static final String USE_JDK_SERIALIZATION = "plugins.security.use_jdk_serialization";
     private static final Version FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION = Version.V_2_11_0;
     private static final Version CUSTOM_SERIALIZATION_NO_LONGER_SUPPORTED_OS_VERSION = Version.V_2_14_0;
+
     private SerializationFormat shouldUseJdkSerialization(final Connection connection) {
         var version = connection.getVersion();
         if (version.after(FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION)
-        && version.before(CUSTOM_SERIALIZATION_NO_LONGER_SUPPORTED_OS_VERSION)) {
+            && version.before(CUSTOM_SERIALIZATION_NO_LONGER_SUPPORTED_OS_VERSION)) {
             return SerializationFormat.CustomSerializer_2_11;
         }
         return SerializationFormat.JDK;

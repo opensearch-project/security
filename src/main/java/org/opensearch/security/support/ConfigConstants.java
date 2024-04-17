@@ -35,7 +35,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 
