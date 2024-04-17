@@ -38,7 +38,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.get.GetRequest;
@@ -150,7 +150,8 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final boolean useJDKSerialization = connection.getVersion().before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION);
+
+        final var serializationFormat = shouldUseJdkSerialization(connection);
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -228,7 +229,7 @@ public class SecurityInterceptor {
                 );
             }
 
-            if (useJDKSerialization) {
+            if (serializationFormat == SerializationFormat.JDK) {
                 Map<String, String> jdkSerializedHeaders = new HashMap<>();
                 HeaderHelper.getAllSerializedHeaderNames()
                     .stream()
@@ -246,7 +247,7 @@ public class SecurityInterceptor {
                 injectedUserString,
                 injectedRolesString,
                 isSameNodeRequest,
-                useJDKSerialization
+                serializationFormat
             );
 
             if (actionTraceEnabled.get()) {
@@ -268,6 +269,23 @@ public class SecurityInterceptor {
         }
     }
 
+    private static final String USE_JDK_SERIALIZATION = "plugins.security.use_jdk_serialization";
+    private static final Version FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION = Version.V_2_11_0;
+    private static final Version CUSTOM_SERIALIZATION_NO_LONGER_SUPPORTED_OS_VERSION = Version.V_2_14_0;
+    private SerializationFormat shouldUseJdkSerialization(final Connection connection) {
+        var version = connection.getVersion();
+        if (version.after(FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION)
+        && version.before(CUSTOM_SERIALIZATION_NO_LONGER_SUPPORTED_OS_VERSION)) {
+            return SerializationFormat.CustomSerializer_2_11;
+        }
+        return SerializationFormat.JDK;
+    }
+
+    private enum SerializationFormat {
+        JDK,
+        CustomSerializer_2_11
+    }
+
     private void ensureCorrectHeaders(
         final Object remoteAdr,
         final User origUser,
@@ -275,7 +293,7 @@ public class SecurityInterceptor {
         final String injectedUserString,
         final String injectedRolesString,
         final boolean isSameNodeRequest,
-        final boolean useJDKSerialization
+        final SerializationFormat format
     ) {
         // keep original address
 
@@ -313,6 +331,7 @@ public class SecurityInterceptor {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserString);
             }
         } else {
+            final var useJDKSerialization = format == SerializationFormat.JDK;
             if (transportAddress != null) {
                 getThreadContext().putHeader(
                     ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER,
