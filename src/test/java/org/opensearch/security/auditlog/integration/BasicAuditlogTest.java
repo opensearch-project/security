@@ -554,7 +554,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testDataStreamAsBackend() throws Exception {
 
-        // Set config to use the a datastream as auditlog.
+        // Set config to use a datastream as auditlog.
         Settings additionalSettings = Settings.builder()
             .put("plugins.security.audit.type", "internal_opensearch")
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
@@ -593,7 +593,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testIndexAsBackend() throws Exception {
 
-        // Set config to use the a datastream as auditlog.
+        // Set config to use an index as auditlog.
         Settings additionalSettings = Settings.builder()
             .put("plugins.security.audit.type", "internal_opensearch")
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
