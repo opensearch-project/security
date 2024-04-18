@@ -41,6 +41,8 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -127,11 +129,13 @@ public class ResourceFocusedTests {
             final var requests = AsyncActions.generate(() -> {
                 final HttpPost post = new HttpPost(client.getHttpServerUri() + requestPath);
                 post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
-                return client.executeRequest(post);
+                TestRestClient.HttpResponse response = client.executeRequest(post);
+                return response.getStatusCode();
             }, parrallelism, totalNumberOfRequests);
 
-            AsyncActions.getAll(requests, 2, TimeUnit.MINUTES)
-                .forEach((response) -> { response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED); });
+            AsyncActions.getAll(requests, 2, TimeUnit.MINUTES).forEach((responseCode) -> {
+                assertThat(responseCode, equalTo(HttpStatus.SC_UNAUTHORIZED));
+            });
         }
     }
 
