@@ -580,6 +580,7 @@ dependencies {
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.37.3'
+    implementation 'com.rfksystems:blake2b:2.0.0'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
