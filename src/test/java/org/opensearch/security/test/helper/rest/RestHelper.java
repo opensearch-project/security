@@ -309,8 +309,12 @@ public class RestHelper {
         public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
             super();
             this.inner = inner;
+<<<<<<< HEAD
             final HttpEntity entity = inner.getEntity();
             if (entity == null) { // head request does not have a entity
+=======
+            if (inner.getBody() == null) { // head request does not have an entity
+>>>>>>> 0d7af4d3 (Replace bouncy castle blake2b (#4275))
                 this.body = "";
             } else {
                 this.body = CharStreams.toString(new InputStreamReader(entity.getContent(), Charsets.UTF_8));
