@@ -21,8 +21,9 @@ import java.util.Objects;
 
 import com.google.common.base.Splitter;
 import org.apache.lucene.util.BytesRef;
-import org.bouncycastle.crypto.digests.Blake2bDigest;
 import org.bouncycastle.util.encoders.Hex;
+
+import com.rfksystems.blake2b.Blake2b;
 
 public class MaskedField {
 
@@ -164,10 +165,12 @@ public class MaskedField {
     }
 
     private byte[] blake2bHash(byte[] in) {
-        final Blake2bDigest hash = new Blake2bDigest(null, 32, null, defaultSalt);
+        // Salt is passed incorrectly but order of parameters is retained at present to ensure full backwards compatibility
+        // Tracking with https://github.com/opensearch-project/security/issues/4274
+        final Blake2b hash = new Blake2b(null, 32, null, defaultSalt);
         hash.update(in, 0, in.length);
         final byte[] out = new byte[hash.getDigestSize()];
-        hash.doFinal(out, 0);
+        hash.digest(out, 0);
         return Hex.encode(out);
     }
 
