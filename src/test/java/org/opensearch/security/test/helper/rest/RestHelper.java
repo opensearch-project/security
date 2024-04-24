@@ -310,7 +310,7 @@ public class RestHelper {
             super();
             this.inner = inner;
             final HttpEntity entity = inner.getEntity();
-            if (entity == null) { // head request does not have a entity
+            if (entity == null) { // head request does not have an entity
                 this.body = "";
             } else {
                 this.body = CharStreams.toString(new InputStreamReader(entity.getContent(), Charsets.UTF_8));
