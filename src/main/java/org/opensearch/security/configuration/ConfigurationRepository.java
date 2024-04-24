@@ -29,6 +29,7 @@ package org.opensearch.security.configuration;
 import java.io.File;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,12 +37,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -56,13 +61,19 @@ import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.cluster.ClusterStateUpdateTask;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Priority;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
@@ -73,12 +84,16 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.state.SecurityMetadata;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
+import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
 
-public class ConfigurationRepository {
+import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
+
+public class ConfigurationRepository implements ClusterStateListener {
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
 
     private final String securityIndex;
@@ -94,20 +109,27 @@ public class ConfigurationRepository {
     private DynamicConfigFactory dynamicConfigFactory;
     public static final int DEFAULT_CONFIG_VERSION = 2;
     private final CompletableFuture<Void> initalizeConfigTask = new CompletableFuture<>();
+
     private final boolean acceptInvalid;
 
-    private ConfigurationRepository(
-        Settings settings,
+    private final AtomicBoolean auditHotReloadingEnabled = new AtomicBoolean(false);
+
+    private final AtomicBoolean initializationInProcess = new AtomicBoolean(false);
+
+    private final SecurityIndexHandler securityIndexHandler;
+
+    // visible for testing
+    protected ConfigurationRepository(
+        final String securityIndex,
+        final Settings settings,
         final Path configPath,
-        ThreadPool threadPool,
-        Client client,
-        ClusterService clusterService,
-        AuditLog auditLog
+        final ThreadPool threadPool,
+        final Client client,
+        final ClusterService clusterService,
+        final AuditLog auditLog,
+        final SecurityIndexHandler securityIndexHandler
     ) {
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        this.securityIndex = securityIndex;
         this.settings = settings;
         this.configPath = configPath;
         this.client = client;
@@ -117,8 +139,38 @@ public class ConfigurationRepository {
         this.configurationChangedListener = new ArrayList<>();
         this.acceptInvalid = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
-
         configCache = CacheBuilder.newBuilder().build();
+        this.securityIndexHandler = securityIndexHandler;
+    }
+
+    private Path resolveConfigDir() {
+        return Optional.ofNullable(System.getProperty("security.default_init.dir"))
+            .map(Path::of)
+            .orElseGet(() -> new Environment(settings, configPath).configFile().resolve("opensearch-security/"));
+    }
+
+    @Override
+    public void clusterChanged(final ClusterChangedEvent event) {
+        final SecurityMetadata securityMetadata = event.state().custom(SecurityMetadata.TYPE);
+        // init and upload sec index on the manager node only as soon as
+        // creation of index and upload config are done a new cluster state will be created.
+        // in case of failures it repeats attempt after restart
+        if (nodeSelectedAsManager(event)) {
+            if (securityMetadata == null) {
+                initSecurityIndex(event);
+            }
+        }
+        // executes reload of cache on each node on the cluster,
+        // since sec initialization has been finished
+        if (securityMetadata != null) {
+            executeConfigurationInitialization(securityMetadata);
+        }
+    }
+
+    private boolean nodeSelectedAsManager(final ClusterChangedEvent event) {
+        boolean wasClusterManager = event.previousState().nodes().isLocalNodeElectedClusterManager();
+        boolean isClusterManager = event.localNodeClusterManager();
+        return !wasClusterManager && isClusterManager;
     }
 
     public String getConfigDirectory() {
@@ -234,7 +286,7 @@ public class ConfigurationRepository {
                 } catch (Exception e) {
                     LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
                     try {
-                        Thread.sleep(3000);
+                        TimeUnit.MILLISECONDS.sleep(3000);
                     } catch (InterruptedException e1) {
                         Thread.currentThread().interrupt();
                         LOGGER.debug("Thread was interrupted so we cancel initialization");
@@ -242,31 +294,32 @@ public class ConfigurationRepository {
                     }
                 }
             }
-
-            final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
-            if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                LOGGER.warn(
-                    "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0",
-                    deprecatedAuditKeysInSettings
-                );
-            }
-            final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
-            if (isAuditConfigDocPresentInIndex) {
-                if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                    LOGGER.warn("Audit configuration settings found in both index and opensearch settings (deprecated)");
-                }
-                LOGGER.info("Hot-reloading of audit configuration is enabled");
-            } else {
-                LOGGER.info(
-                    "Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it."
-                );
-                auditLog.setConfig(AuditConfig.from(settings));
-            }
-
+            setupAuditConfigurationIfAny(cl.isAuditConfigDocPresentInIndex());
             LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
 
         } catch (Exception e) {
             LOGGER.error("Unexpected exception while initializing node " + e, e);
+        }
+    }
+
+    private void setupAuditConfigurationIfAny(final boolean auditConfigDocPresent) {
+        final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
+        if (!deprecatedAuditKeysInSettings.isEmpty()) {
+            LOGGER.warn(
+                "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0",
+                deprecatedAuditKeysInSettings
+            );
+        }
+        if (auditConfigDocPresent) {
+            if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                LOGGER.warn("Audit configuration settings found in both index and opensearch settings (deprecated)");
+            }
+            LOGGER.info("Hot-reloading of audit configuration is enabled");
+        } else {
+            LOGGER.info(
+                "Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it."
+            );
+            auditLog.setConfig(AuditConfig.from(settings));
         }
     }
 
@@ -302,7 +355,7 @@ public class ConfigurationRepository {
                 response == null ? "no response" : (response.isTimedOut() ? "timeout" : "other, maybe red cluster")
             );
             try {
-                Thread.sleep(500);
+                TimeUnit.MILLISECONDS.sleep(500);
             } catch (InterruptedException e) {
                 // ignore
                 Thread.currentThread().interrupt();
@@ -315,6 +368,69 @@ public class ConfigurationRepository {
         }
     }
 
+    void initSecurityIndex(final ClusterChangedEvent event) {
+        if (!event.state().metadata().hasIndex(securityIndex)) {
+            securityIndexHandler.createIndex(
+                ActionListener.wrap(r -> uploadDefaultConfiguration0(), e -> LOGGER.error("Couldn't create index {}", securityIndex, e))
+            );
+        } else {
+            // in case index was created and cluster state has not been changed (e.g. restart of the node or something)
+            // just upload default configuration
+            uploadDefaultConfiguration0();
+        }
+    }
+
+    private void uploadDefaultConfiguration0() {
+        securityIndexHandler.uploadDefaultConfiguration(
+            resolveConfigDir(),
+            ActionListener.wrap(
+                configuration -> clusterService.submitStateUpdateTask(
+                    "init-security-configuration",
+                    new ClusterStateUpdateTask(Priority.IMMEDIATE) {
+                        @Override
+                        public ClusterState execute(ClusterState clusterState) throws Exception {
+                            return ClusterState.builder(clusterState)
+                                .putCustom(SecurityMetadata.TYPE, new SecurityMetadata(Instant.now(), configuration))
+                                .build();
+                        }
+
+                        @Override
+                        public void onFailure(String s, Exception e) {
+                            LOGGER.error(s, e);
+                        }
+                    }
+                ),
+                e -> LOGGER.error("Couldn't upload default configuration", e)
+            )
+        );
+    }
+
+    Future<Void> executeConfigurationInitialization(final SecurityMetadata securityMetadata) {
+        if (!initalizeConfigTask.isDone()) {
+            if (initializationInProcess.compareAndSet(false, true)) {
+                return threadPool.generic().submit(() -> {
+                    securityIndexHandler.loadConfiguration(securityMetadata.configuration(), ActionListener.wrap(cTypeConfigs -> {
+                        notifyConfigurationListeners(cTypeConfigs);
+                        final var auditConfigDocPresent = cTypeConfigs.containsKey(CType.AUDIT) && cTypeConfigs.get(CType.AUDIT).notEmpty();
+                        setupAuditConfigurationIfAny(auditConfigDocPresent);
+                        auditHotReloadingEnabled.getAndSet(auditConfigDocPresent);
+                        initalizeConfigTask.complete(null);
+                        LOGGER.info(
+                            "Security configuration initialized. Applied hashes: {}",
+                            securityMetadata.configuration()
+                                .stream()
+                                .map(c -> String.format("%s:%s", c.type().toLCString(), c.hash()))
+                                .collect(Collectors.toList())
+                        );
+                    }, e -> LOGGER.error("Couldn't reload security configuration", e)));
+                    return null;
+                });
+            }
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Deprecated
     public CompletableFuture<Boolean> initOnNodeStart() {
         final boolean installDefaultConfig = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
 
@@ -331,13 +447,15 @@ public class ConfigurationRepository {
                 return startInitialization.get();
             } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)) {
                 LOGGER.info(
-                    "Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
+                    "Will not attempt to create index {} and default configs if they are absent."
+                        + " Use securityadmin to initialize cluster",
                     securityIndex
                 );
                 return startInitialization.get();
             } else {
                 LOGGER.info(
-                    "Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
+                    "Will not attempt to create index {} and default configs if they are absent. "
+                        + "Will not perform background initialization",
                     securityIndex
                 );
                 initalizeConfigTask.complete(null);
@@ -350,7 +468,11 @@ public class ConfigurationRepository {
     }
 
     public boolean isAuditHotReloadingEnabled() {
-        return cl.isAuditConfigDocPresentInIndex();
+        if (settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, false)) {
+            return auditHotReloadingEnabled.get();
+        } else {
+            return cl.isAuditConfigDocPresentInIndex();
+        }
     }
 
     public static ConfigurationRepository create(
@@ -361,15 +483,20 @@ public class ConfigurationRepository {
         ClusterService clusterService,
         AuditLog auditLog
     ) {
-        final ConfigurationRepository repository = new ConfigurationRepository(
+        final var securityIndex = settings.get(
+            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
+        return new ConfigurationRepository(
+            securityIndex,
             settings,
             configPath,
             threadPool,
             client,
             clusterService,
-            auditLog
+            auditLog,
+            new SecurityIndexHandler(securityIndex, settings, client)
         );
-        return repository;
     }
 
     public void setDynamicConfigFactory(DynamicConfigFactory dynamicConfigFactory) {
@@ -401,6 +528,10 @@ public class ConfigurationRepository {
             LOGGER.warn("Unable to reload configuration, initalization thread has not yet completed.");
             return false;
         }
+        return loadConfigurationWithLock(configTypes);
+    }
+
+    private boolean loadConfigurationWithLock(Collection<CType> configTypes) {
         try {
             if (LOCK.tryLock(60, TimeUnit.SECONDS)) {
                 try {
@@ -420,8 +551,12 @@ public class ConfigurationRepository {
 
     private void reloadConfiguration0(Collection<CType> configTypes, boolean acceptInvalid) {
         final Map<CType, SecurityDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false, acceptInvalid);
-        configCache.putAll(loaded);
-        notifyAboutChanges(loaded);
+        notifyConfigurationListeners(loaded);
+    }
+
+    private void notifyConfigurationListeners(final Map<CType, SecurityDynamicConfiguration<?>> configuration) {
+        configCache.putAll(configuration);
+        notifyAboutChanges(configuration);
     }
 
     public synchronized void subscribeOnChange(ConfigurationChangeListener listener) {
