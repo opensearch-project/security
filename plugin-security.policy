@@ -61,6 +61,8 @@ grant {
   permission java.security.SecurityPermission "putProviderProperty.BC";
   permission java.security.SecurityPermission "insertProvider.BC";
   permission java.security.SecurityPermission "removeProviderProperty.BC";
+  permission java.security.SecurityPermission "getProperty.org.bouncycastle.ec.max_f2m_field_size";
+  permission java.security.SecurityPermission "getProperty.org.bouncycastle.pkcs12.default";
   permission java.security.SecurityPermission "getProperty.org.bouncycastle.rsa.max_size";
   permission java.security.SecurityPermission "getProperty.org.bouncycastle.rsa.max_mr_tests";
 

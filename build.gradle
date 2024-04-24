@@ -496,7 +496,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.26.1"
             force "org.checkerframework:checker-qual:3.42.0"
-            force "ch.qos.logback:logback-classic:1.5.5"
+            force "ch.qos.logback:logback-classic:1.5.6"
         }
     }
 
@@ -580,6 +580,7 @@ dependencies {
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.37.3'
+    implementation 'com.rfksystems:blake2b:2.0.0'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
@@ -634,7 +635,7 @@ dependencies {
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.2'
-    runtimeOnly 'org.apache.commons:commons-text:1.11.0'
+    runtimeOnly 'org.apache.commons:commons-text:1.12.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
