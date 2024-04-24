@@ -63,6 +63,7 @@ import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.SerializationFormat;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
@@ -152,7 +153,7 @@ public class SecurityInterceptor {
 
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        final var serializationFormat = shouldUseJdkSerialization(connection);
+        final var serializationFormat = SerializationFormat.determineFormat(connection.getVersion());
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -230,16 +231,19 @@ public class SecurityInterceptor {
                 );
             }
 
-            if (serializationFormat == SerializationFormat.JDK) {
-                Map<String, String> jdkSerializedHeaders = new HashMap<>();
-                HeaderHelper.getAllSerializedHeaderNames()
-                    .stream()
-                    .filter(k -> headerMap.get(k) != null)
-                    .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
-                headerMap.putAll(jdkSerializedHeaders);
+            try {
+                if (serializationFormat == SerializationFormat.JDK) {
+                    Map<String, String> jdkSerializedHeaders = new HashMap<>();
+                    HeaderHelper.getAllSerializedHeaderNames()
+                        .stream()
+                        .filter(k -> headerMap.get(k) != null)
+                        .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
+                    headerMap.putAll(jdkSerializedHeaders);
+                }
+                getThreadContext().putHeader(headerMap);
+            } catch (IllegalArgumentException iae) {
+                log.debug("Failed to add headers information onto on thread context", iae);
             }
-
-            getThreadContext().putHeader(headerMap);
 
             ensureCorrectHeaders(
                 remoteAddress0,
@@ -268,24 +272,6 @@ public class SecurityInterceptor {
 
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
-    }
-
-    private static final String USE_JDK_SERIALIZATION = "plugins.security.use_jdk_serialization";
-    private static final Version FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION = Version.V_2_11_0;
-    private static final Version CUSTOM_SERIALIZATION_NO_LONGER_SUPPORTED_OS_VERSION = Version.V_2_14_0;
-
-    private SerializationFormat shouldUseJdkSerialization(final Connection connection) {
-        var version = connection.getVersion();
-        if (version.after(FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION)
-            && version.before(CUSTOM_SERIALIZATION_NO_LONGER_SUPPORTED_OS_VERSION)) {
-            return SerializationFormat.CustomSerializer_2_11;
-        }
-        return SerializationFormat.JDK;
-    }
-
-    private enum SerializationFormat {
-        JDK,
-        CustomSerializer_2_11
     }
 
     private void ensureCorrectHeaders(

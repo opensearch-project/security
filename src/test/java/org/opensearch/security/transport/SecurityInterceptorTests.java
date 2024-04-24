@@ -12,8 +12,11 @@ package org.opensearch.security.transport;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -120,7 +123,7 @@ public class SecurityInterceptorTests {
 
     private AsyncSender sender;
     private AsyncSender serializedSender;
-    private AsyncSender nullSender;
+    private AtomicReference<CountDownLatch> senderLatch = new AtomicReference<>(new CountDownLatch(1));
 
     @Before
     public void setup() {
@@ -208,6 +211,7 @@ public class SecurityInterceptorTests {
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
                 assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, true));
+                senderLatch.get().countDown();
             }
         };
 
@@ -222,6 +226,7 @@ public class SecurityInterceptorTests {
             ) {
                 User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 assertEquals(transientUser, user);
+                senderLatch.get().countDown();
             }
         };
 
@@ -249,17 +254,16 @@ public class SecurityInterceptorTests {
         TransportResponseHandler handler,
         DiscoveryNode localNode
     ) {
+        securityInterceptor.sendRequestDecorate(sender, connection, action, request, options, handler, localNode);
+        verifyOriginalContext(user);
+        try {
+            senderLatch.get().await(1, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
-        ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
-
-        singleThreadExecutor.execute(() -> {
-            try {
-                securityInterceptor.sendRequestDecorate(sender, connection, action, request, options, handler, localNode);
-                verifyOriginalContext(user);
-            } finally {
-                singleThreadExecutor.shutdown();
-            }
-        });
+        // Reset the latch so another request can be processed
+        senderLatch.set(new CountDownLatch(1));
     }
 
     @Test
