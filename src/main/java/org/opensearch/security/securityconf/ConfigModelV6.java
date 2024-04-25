@@ -542,6 +542,26 @@ public class ConfigModelV6 extends ConfigModel {
             roles.stream().forEach(p -> ipatterns.addAll(p.getIpatterns()));
             return ConfigModelV6.impliesTypePerm(ipatterns, resolved, user, actions, resolver, cs);
         }
+
+        @Override
+        public boolean isPermittedOnSystemIndex(String indexName) {
+            boolean isPatternMatched = false;
+            boolean isPermitted = false;
+            for (SecurityRole role : roles) {
+                for (IndexPattern ip : role.getIpatterns()) {
+                    WildcardMatcher wildcardMatcher = WildcardMatcher.from(ip.indexPattern);
+                    if (wildcardMatcher.test(indexName)) {
+                        isPatternMatched = true;
+                    }
+                    for (TypePerm tp : ip.getTypePerms()) {
+                        if (tp.perms.contains(ConfigConstants.SYSTEM_INDEX_PERMISSION)) {
+                            isPermitted = true;
+                        }
+                    }
+                }
+            }
+            return isPatternMatched && isPermitted;
+        }
     }
 
     public static class SecurityRole {
