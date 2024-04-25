@@ -79,7 +79,8 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
             if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN) || index.equals(SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS)) {
                 validateForbiddenResponse(response, "", normalUser);
             } else {
-                validateSearchResponse(response, 0);
+                // got 1 hits because system index permissions are enabled
+                validateSearchResponse(response, 1);
             }
         }
 

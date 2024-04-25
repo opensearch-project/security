@@ -193,7 +193,7 @@ public class PrivilegesEvaluator {
         this.dcm = dcm;
     }
 
-    private SecurityRoles getSecurityRoles(Set<String> roles) {
+    public SecurityRoles getSecurityRoles(Set<String> roles) {
         return configModel.getSecurityRoles().filter(roles);
     }
 

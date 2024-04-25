@@ -563,6 +563,24 @@ public class ConfigModelV7 extends ConfigModel {
 
             return false;
         }
+
+        @Override
+        public boolean isPermittedOnSystemIndex(String indexName) {
+            boolean isPatternMatched = false;
+            boolean isPermitted = false;
+            for (SecurityRole role : roles) {
+                for (IndexPattern ip : role.getIpatterns()) {
+                    WildcardMatcher wildcardMatcher = WildcardMatcher.from(ip.indexPattern);
+                    if (wildcardMatcher.test(indexName)) {
+                        isPatternMatched = true;
+                    }
+                    if (ip.perms.contains(ConfigConstants.SYSTEM_INDEX_PERMISSION)) {
+                        isPermitted = true;
+                    }
+                }
+            }
+            return isPatternMatched && isPermitted;
+        }
     }
 
     public static class SecurityRole {
