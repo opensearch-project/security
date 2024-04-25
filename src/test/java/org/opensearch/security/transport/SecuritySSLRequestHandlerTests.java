@@ -92,6 +92,16 @@ public class SecuritySSLRequestHandlerTests {
         when(transportChannel.getVersion()).thenReturn(Version.V_2_11_0);
         Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
         Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        threadPool.getThreadContext().stashContext();
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_13_0);
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
+        Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        threadPool.getThreadContext().stashContext();
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_14_0);
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, transportChannel, task));
+        Assert.assertTrue(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
     }
 
     @Test
@@ -111,6 +121,16 @@ public class SecuritySSLRequestHandlerTests {
         when(transportChannel.getVersion()).thenReturn(Version.V_2_11_0);
         Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
         Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        threadPool.getThreadContext().stashContext();
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_13_0);
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
+        Assert.assertFalse(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
+
+        threadPool.getThreadContext().stashContext();
+        when(transportChannel.getVersion()).thenReturn(Version.V_2_14_0);
+        Assert.assertThrows(Exception.class, () -> securitySSLRequestHandler.messageReceived(transportRequest, wrappedChannel, task));
+        Assert.assertTrue(threadPool.getThreadContext().getTransient(ConfigConstants.USE_JDK_SERIALIZATION));
     }
 
     @Test
