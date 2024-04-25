@@ -96,4 +96,6 @@ public interface SecurityRoles {
     );
 
     SecurityRoles filter(Set<String> roles);
+
+    boolean isPermittedOnSystemIndex(String indexName);
 }
