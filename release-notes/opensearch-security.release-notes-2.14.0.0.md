@@ -10,6 +10,7 @@ Compatible with OpenSearch 2.14.0
 * Add index permissions for query insights exporters ([#4231](https://github.com/opensearch-project/security/pull/4231))
 * Add new stop words system index ([#4181](https://github.com/opensearch-project/security/pull/4181))
 * Switch to built-in security transports from core ([#4119](https://github.com/opensearch-project/security/pull/4119)) ([#4174](https://github.com/opensearch-project/security/pull/4174)) ([#4187](https://github.com/opensearch-project/security/pull/4187))
+* System index permission grants reading access to documents in the index ([#4291](https://github.com/opensearch-project/security/pull/4291))
 
 ### Bug Fixes
 * Ensure that challenge response contains body ([#4268](https://github.com/opensearch-project/security/pull/4268))
