@@ -126,6 +126,17 @@ public class SecurityRolesPermissionsV6Test {
         );
     }
 
+    @Test
+    public void isPermittedOnSystemIndex() {
+        final SecurityRoles securityRoleWithExplicitAccess = configModel.getSecurityRoles()
+            .filter(ImmutableSet.of("has_system_index_permission"));
+        Assert.assertTrue(securityRoleWithExplicitAccess.isPermittedOnSystemIndex(TEST_INDEX));
+
+        final SecurityRoles securityRoleWithStarAccess = configModel.getSecurityRoles()
+            .filter(ImmutableSet.of("all_access_without_system_index_permission"));
+        Assert.assertFalse(securityRoleWithStarAccess.isPermittedOnSystemIndex(TEST_INDEX));
+    }
+
     static <T> SecurityDynamicConfiguration<T> createRolesConfig() throws IOException {
         final ObjectNode rolesNode = DefaultObjectMapper.objectMapper.createObjectNode();
         NO_EXPLICIT_SYSTEM_INDEX_PERMISSION.forEach(rolesNode::set);

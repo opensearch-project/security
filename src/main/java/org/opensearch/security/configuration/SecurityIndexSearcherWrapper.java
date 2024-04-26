@@ -41,6 +41,7 @@ import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.WildcardMatcher;
@@ -63,6 +64,8 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
 
     private final Boolean systemIndexEnabled;
     private final WildcardMatcher systemIndexMatcher;
+
+    private final Boolean systemIndexPermissionEnabled;
 
     // constructor is called per index, so avoid costly operations here
     public SecurityIndexSearcherWrapper(
@@ -91,6 +94,11 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
         );
         this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY));
+
+        this.systemIndexPermissionEnabled = settings.getAsBoolean(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT
+        );
     }
 
     @Subscribe
@@ -144,6 +152,17 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     }
 
     protected final boolean isBlockedSystemIndexRequest() {
+        if (systemIndexPermissionEnabled) {
+            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            if (user == null) {
+                // allow request without user from plugin.
+                return systemIndexMatcher.test(index.getName());
+            }
+            final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+            final Set<String> mappedRoles = evaluator.mapRoles(user, caller);
+            final SecurityRoles securityRoles = evaluator.getSecurityRoles(mappedRoles);
+            return !securityRoles.isPermittedOnSystemIndex(index.getName());
+        }
         return systemIndexMatcher.test(index.getName());
     }
 
