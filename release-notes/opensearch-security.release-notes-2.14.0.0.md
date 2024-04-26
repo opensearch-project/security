@@ -9,17 +9,14 @@ Compatible with OpenSearch 2.14.0
 * Dynamic sign in options ([#4137](https://github.com/opensearch-project/security/pull/4137))
 * Add index permissions for query insights exporters ([#4231](https://github.com/opensearch-project/security/pull/4231))
 * Add new stop words system index ([#4181](https://github.com/opensearch-project/security/pull/4181))
-* Add query assistant role and new ml system indices ([#4142](https://github.com/opensearch-project/security/pull/4142))
 * Switch to built-in security transports from core ([#4119](https://github.com/opensearch-project/security/pull/4119)) ([#4174](https://github.com/opensearch-project/security/pull/4174)) ([#4187](https://github.com/opensearch-project/security/pull/4187))
 
 ### Bug Fixes
-* Fix bug for PATCH in EndpointValidator ([#4223](https://github.com/opensearch-project/security/pull/4223))
 * Ensure that challenge response contains body ([#4268](https://github.com/opensearch-project/security/pull/4268))
 * Add logging for audit log that are unable to saving the request body ([#4272](https://github.com/opensearch-project/security/pull/4272))
 * Use predictable serialization logic for transport headers ([#4288](https://github.com/opensearch-project/security/pull/4288))
 * Improve cluster initialization reliability ([#4002](https://github.com/opensearch-project/security/pull/4002)) ([#4256](https://github.com/opensearch-project/security/pull/4256))
 * Update Log4JSink Default from sgaudit to audit and add test for default values ([#4155](https://github.com/opensearch-project/security/pull/4155))
-* Updates admin password string only if correct hash is present ([#4138](https://github.com/opensearch-project/security/pull/4138))
 * Remove Pom task dependencies rewrite ([#4178](https://github.com/opensearch-project/security/pull/4178)) ([#4186](https://github.com/opensearch-project/security/pull/4186))
 * Misc changes for tests ([#4184](https://github.com/opensearch-project/security/pull/4184))
 * Add simple roles mapping integ test to test mapping of backend role to role ([#4176](https://github.com/opensearch-project/security/pull/4176))
