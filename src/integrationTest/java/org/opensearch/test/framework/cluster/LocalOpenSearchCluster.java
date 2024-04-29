@@ -105,6 +105,8 @@ public class LocalOpenSearchCluster {
 
     private File snapshotDir;
 
+    private int nodeCounter = 0;
+
     public LocalOpenSearchCluster(
         String clusterName,
         ClusterManager clusterManager,
@@ -163,7 +165,6 @@ public class LocalOpenSearchCluster {
         this.initialClusterManagerHosts = toHostList(clusterManagerPorts);
 
         started = true;
-
         CompletableFuture<Void> clusterManagerNodeFuture = startNodes(
             clusterManager.getClusterManagerNodeSettings(),
             clusterManagerNodeTransportPorts,
@@ -195,7 +196,6 @@ public class LocalOpenSearchCluster {
         log.info("Startup finished. Waiting for GREEN");
 
         waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), nodes.size());
-
         log.info("Started: {}", this);
 
     }
@@ -303,10 +303,10 @@ public class LocalOpenSearchCluster {
         List<CompletableFuture<StartStage>> futures = new ArrayList<>();
 
         for (NodeSettings nodeSettings : nodeSettingList) {
-            Node node = new Node(nodeSettings, transportPortIterator.next(), httpPortIterator.next());
+            Node node = new Node(nodeCounter, nodeSettings, transportPortIterator.next(), httpPortIterator.next());
             futures.add(node.start());
+            nodeCounter += 1;
         }
-
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
@@ -386,8 +386,10 @@ public class LocalOpenSearchCluster {
         private PluginAwareNode node;
         private boolean running = false;
         private boolean portCollision = false;
+        private final int nodeNumber;
 
-        Node(NodeSettings nodeSettings, int transportPort, int httpPort) {
+        Node(int nodeNumber, NodeSettings nodeSettings, int transportPort, int httpPort) {
+            this.nodeNumber = nodeNumber;
             this.nodeName = createNextNodeName(requireNonNull(nodeSettings, "Node settings are required."));
             this.nodeSettings = nodeSettings;
             this.nodeHomeDir = new File(clusterHomeDir, nodeName);
@@ -517,7 +519,7 @@ public class LocalOpenSearchCluster {
 
             if (nodeSettingsSupplier != null) {
                 // TODO node number
-                return Settings.builder().put(settings).put(nodeSettingsSupplier.get(0)).build();
+                return Settings.builder().put(settings).put(nodeSettingsSupplier.get(nodeNumber)).build();
             }
             return settings;
         }

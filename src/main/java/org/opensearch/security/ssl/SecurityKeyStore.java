@@ -23,25 +23,25 @@ import javax.net.ssl.SSLException;
 
 public interface SecurityKeyStore {
 
-    public SSLEngine createHTTPSSLEngine() throws SSLException;
+    SSLEngine createHTTPSSLEngine() throws SSLException;
 
-    public SSLEngine createServerTransportSSLEngine() throws SSLException;
+    SSLEngine createServerTransportSSLEngine() throws SSLException;
 
-    public SSLEngine createClientTransportSSLEngine(String peerHost, int peerPort) throws SSLException;
+    SSLEngine createClientTransportSSLEngine(String peerHost, int peerPort) throws SSLException;
 
-    public String getHTTPProviderName();
+    String getHTTPProviderName();
 
-    public String getTransportServerProviderName();
+    String getTransportServerProviderName();
 
-    public String getTransportClientProviderName();
+    String getTransportClientProviderName();
 
-    public String getSubjectAlternativeNames(X509Certificate cert);
+    String getSubjectAlternativeNames(X509Certificate cert);
 
-    public void initHttpSSLConfig();
+    void initHttpSSLConfig();
 
-    public void initTransportSSLConfig();
+    void initTransportSSLConfig();
 
-    public X509Certificate[] getTransportCerts();
+    X509Certificate[] getTransportCerts();
 
-    public X509Certificate[] getHttpCerts();
+    X509Certificate[] getHttpCerts();
 }

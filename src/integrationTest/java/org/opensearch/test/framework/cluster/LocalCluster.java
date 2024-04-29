@@ -141,7 +141,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             }
 
             for (Map.Entry<String, LocalCluster> entry : remotes.entrySet()) {
-                @SuppressWarnings("resource")
                 InetSocketAddress transportAddress = entry.getValue().localOpenSearchCluster.clusterManagerNode().getTransportAddress();
                 String key = "cluster.remote." + entry.getKey() + ".seeds";
                 String value = transportAddress.getHostString() + ":" + transportAddress.getPort();
@@ -509,7 +508,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         public LocalCluster build() {
             try {
                 if (testCertificates == null) {
-                    testCertificates = new TestCertificates();
+                    testCertificates = new TestCertificates(clusterManager.getNodes());
                 }
                 clusterName += "_" + num.incrementAndGet();
                 Settings settings = nodeOverrideSettingsBuilder.build();
