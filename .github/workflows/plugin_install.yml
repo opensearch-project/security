@@ -26,7 +26,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout Branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Assemble target plugin
         uses: gradle/gradle-build-action@v3
@@ -40,7 +40,7 @@ jobs:
         shell: bash
 
       - name: Run Opensearch with A Single Plugin
-        uses: derek-ho/start-opensearch@v2
+        uses: derek-ho/start-opensearch@v4
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugins: "file:$(pwd)/${{ env.PLUGIN_NAME }}.zip"
