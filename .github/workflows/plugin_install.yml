@@ -40,7 +40,7 @@ jobs:
         shell: bash
 
       - name: Run Opensearch with A Single Plugin
-        uses: derek-ho/start-opensearch@v3
+        uses: derek-ho/start-opensearch@v4
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugins: "file:$(pwd)/${{ env.PLUGIN_NAME }}.zip"
