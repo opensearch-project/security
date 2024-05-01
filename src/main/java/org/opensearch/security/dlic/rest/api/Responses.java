@@ -50,7 +50,7 @@ public class Responses {
         response(channel, RestStatus.CONFLICT, message);
     }
 
-    public static void internalSeverError(final RestChannel channel, final String message) {
+    public static void internalServerError(final RestChannel channel, final String message) {
         response(channel, RestStatus.INTERNAL_SERVER_ERROR, message);
     }
 

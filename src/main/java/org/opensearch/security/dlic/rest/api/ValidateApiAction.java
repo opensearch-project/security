@@ -40,7 +40,7 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
-import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -125,7 +125,7 @@ public class ValidateApiAction extends AbstractApiAction {
 
             ok(channel, "OK.");
         } catch (Exception e) {
-            internalSeverError(channel, "Configuration is not valid.");
+            internalServerError(channel, "Configuration is not valid.");
         }
     }
 
