@@ -61,7 +61,7 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
-import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 // CS-ENFORCE-SINGLE
@@ -209,7 +209,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                         }
                                     } catch (final IOException e1) {
                                         LOGGER.error("Unable to create bulk request " + e1, e1);
-                                        internalSeverError(channel, "Unable to create bulk request.");
+                                        internalServerError(channel, "Unable to create bulk request.");
                                         return;
                                     }
 
@@ -226,7 +226,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                                             "Unable to upload migrated configuration because of "
                                                                 + response.buildFailureMessage()
                                                         );
-                                                        internalSeverError(
+                                                        internalServerError(
                                                             channel,
                                                             "Unable to upload migrated configuration (bulk index failed)."
                                                         );
@@ -240,7 +240,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                                 @Override
                                                 public void onFailure(Exception e) {
                                                     LOGGER.error("Unable to upload migrated configuration because of " + e, e);
-                                                    internalSeverError(channel, "Unable to upload migrated configuration.");
+                                                    internalServerError(channel, "Unable to upload migrated configuration.");
                                                 }
                                             }
                                         )
@@ -251,7 +251,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                 @Override
                                 public void onFailure(Exception e) {
                                     LOGGER.error("Unable to create opendistro_security index because of " + e, e);
-                                    internalSeverError(channel, "Unable to create opendistro_security index.");
+                                    internalServerError(channel, "Unable to create opendistro_security index.");
                                 }
                             });
 
@@ -263,7 +263,7 @@ public class MigrateApiAction extends AbstractApiAction {
                 @Override
                 public void onFailure(Exception e) {
                     LOGGER.error("Unable to delete opendistro_security index because of " + e, e);
-                    internalSeverError(channel, "Unable to delete opendistro_security index.");
+                    internalServerError(channel, "Unable to delete opendistro_security index.");
                 }
             });
 

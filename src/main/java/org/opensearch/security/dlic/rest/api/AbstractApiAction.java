@@ -74,7 +74,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.conflict;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
@@ -482,7 +482,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                 conflict(channel, e.getMessage());
             } else {
-                internalSeverError(channel, "Error " + e.getMessage());
+                internalServerError(channel, "Error " + e.getMessage());
             }
         }
 
@@ -579,7 +579,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
-            return channel -> internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
+            return channel -> internalServerError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
         }
 
         // check if request is authorized

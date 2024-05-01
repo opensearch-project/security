@@ -28,7 +28,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -73,7 +73,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
                         public void onResponse(ConfigUpdateResponse configUpdateResponse) {
                             if (configUpdateResponse.hasFailures()) {
                                 LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
-                                internalSeverError(
+                                internalServerError(
                                     channel,
                                     "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
                                 );
@@ -86,7 +86,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
                         @Override
                         public void onFailure(final Exception e) {
                             LOGGER.error("Cannot flush cache due to", e);
-                            internalSeverError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
+                            internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
                         }
 
                     }
