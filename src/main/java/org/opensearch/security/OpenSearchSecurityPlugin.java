@@ -36,7 +36,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -62,11 +61,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.PitService;
@@ -370,19 +367,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         demoCertHashes.add("a3556d6bb61f7bd63cb19b1c8d0078d30c12739dedb0455c5792ac8627782042"); // kirk
         demoCertHashes.add("a2ce3f577a5031398c1b4f58761444d837b031d0aff7614f8b9b5e4a9d59dbd1"); // esnode
         demoCertHashes.add("cd708e8dc707ae065f7ad8582979764b497f062e273d478054ab2f49c5469c6"); // root-ca
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
-            if (Security.getProvider("BC") == null) {
-                Security.addProvider(new BouncyCastleProvider());
-            }
-            return null;
-        });
 
         final String advancedModulesEnabledKey = ConfigConstants.SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
