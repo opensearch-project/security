@@ -55,9 +55,13 @@ public class TestCertificates {
 
     private static final Logger log = LogManager.getLogger(TestCertificates.class);
 
-    public static final Integer MAX_NUMBER_OF_NODE_CERTIFICATES = 3;
+    public static final Integer DEFAULT_NUMBER_OF_NODE_CERTIFICATES = 3;
 
-    private static final String CA_SUBJECT = "DC=com,DC=example,O=Example Com Inc.,OU=Example Com Inc. Root CA,CN=Example Com Inc. Root CA";
+    public static final String CA_SUBJECT = "DC=com,DC=example,O=Example Com Inc.,OU=Example Com Inc. Root CA,CN=Example Com Inc. Root CA";
+
+    public static final String LDAP_SUBJECT = "DC=de,L=test,O=node,OU=node,CN=ldap.example.com";
+    public static final String NODE_SUBJECT_PATTERN = "DC=de,L=test,O=node,OU=node,CN=node-%d.example.com";
+
     private static final String ADMIN_DN = "CN=kirk,OU=client,O=client,L=test,C=de";
     private static final int CERTIFICATE_VALIDITY_DAYS = 365;
     private static final String CERTIFICATE_FILE_EXT = ".cert";
@@ -66,13 +70,18 @@ public class TestCertificates {
     private final CertificateData adminCertificate;
     private final List<CertificateData> nodeCertificates;
 
+    private final int numberOfNodes;
+
     private final CertificateData ldapCertificate;
 
     public TestCertificates() {
+        this(DEFAULT_NUMBER_OF_NODE_CERTIFICATES);
+    }
+
+    public TestCertificates(final int numberOfNodes) {
         this.caCertificate = createCaCertificate();
-        this.nodeCertificates = IntStream.range(0, MAX_NUMBER_OF_NODE_CERTIFICATES)
-            .mapToObj(this::createNodeCertificate)
-            .collect(Collectors.toList());
+        this.numberOfNodes = numberOfNodes;
+        this.nodeCertificates = IntStream.range(0, this.numberOfNodes).mapToObj(this::createNodeCertificate).collect(Collectors.toList());
         this.ldapCertificate = createLdapCertificate();
         this.adminCertificate = createAdminCertificate(ADMIN_DN);
         log.info("Test certificates successfully generated");
@@ -109,7 +118,7 @@ public class TestCertificates {
 
     /**
     * Certificate for Open Search node. The certificate is derived from root certificate, returned by method {@link #getRootCertificate()}
-    * @param node is a node index. It has to be less than {@link #MAX_NUMBER_OF_NODE_CERTIFICATES}
+    * @param node is a node index. It has to be less than {@link #DEFAULT_NUMBER_OF_NODE_CERTIFICATES}
     * @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
     */
     public File getNodeCertificate(int node) {
@@ -123,18 +132,18 @@ public class TestCertificates {
     }
 
     private void isCorrectNodeNumber(int node) {
-        if (node >= MAX_NUMBER_OF_NODE_CERTIFICATES) {
+        if (node >= numberOfNodes) {
             String message = String.format(
                 "Cannot get certificate for node %d, number of created certificates for nodes is %d",
                 node,
-                MAX_NUMBER_OF_NODE_CERTIFICATES
+                numberOfNodes
             );
             throw new RuntimeException(message);
         }
     }
 
     private CertificateData createNodeCertificate(Integer node) {
-        String subject = String.format("DC=de,L=test,O=node,OU=node,CN=node-%d.example.com", node);
+        final var subject = String.format(NODE_SUBJECT_PATTERN, node);
         String domain = String.format("node-%d.example.com", node);
         CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
             .withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH)
@@ -150,8 +159,7 @@ public class TestCertificates {
     }
 
     private CertificateData createLdapCertificate() {
-        String subject = "DC=de,L=test,O=node,OU=node,CN=ldap.example.com";
-        CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
+        CertificateMetadata metadata = CertificateMetadata.basicMetadata(LDAP_SUBJECT, CERTIFICATE_VALIDITY_DAYS)
             .withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH)
             .withSubjectAlternativeName(null, List.of("localhost"), "127.0.0.1");
         return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSignedCertificate(metadata, caCertificate);
@@ -164,7 +172,7 @@ public class TestCertificates {
     /**
     * It returns private key associated with node certificate returned by method {@link #getNodeCertificate(int)}
     *
-    * @param node is a node index. It has to be less than {@link #MAX_NUMBER_OF_NODE_CERTIFICATES}
+    * @param node is a node index. It has to be less than {@link #DEFAULT_NUMBER_OF_NODE_CERTIFICATES}
     * @param privateKeyPassword is a password used to encode private key, can be <code>null</code> to retrieve unencrypted key.
     * @return file which contains private key encoded in PEM format, defined
     * by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
