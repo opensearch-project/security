@@ -504,7 +504,7 @@ configurations {
             force 'org.checkerframework:checker-qual:3.40.0'
             force "com.google.errorprone:error_prone_annotations:2.27.1"
             force "org.checkerframework:checker-qual:3.42.0"
-            force "ch.qos.logback:logback-classic:1.5.5"
+            force "ch.qos.logback:logback-classic:1.5.6"
         }
     }
 
@@ -643,7 +643,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.42.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.43.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
