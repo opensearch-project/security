@@ -112,6 +112,10 @@ public enum CType {
         return configDir.resolve(this.configFileName);
     }
 
+    public String configFileName() {
+        return configFileName;
+    }
+
     private static Map<Integer, Class<?>> toMap(Object... objects) {
         final ImmutableMap.Builder<Integer, Class<?>> map = ImmutableMap.builder();
         for (int i = 0; i < objects.length; i = i + 2) {

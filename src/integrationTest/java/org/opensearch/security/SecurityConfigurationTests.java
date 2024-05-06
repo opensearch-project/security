@@ -29,6 +29,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 
 import org.opensearch.client.Client;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
@@ -225,8 +226,8 @@ public class SecurityConfigurationTests {
     @Test
     public void shouldUseSecurityAdminTool() throws Exception {
         SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
-        File rolesMapping = configurationDirectory.newFile("roles_mapping.yml");
-        ConfigurationFiles.createRoleMappingFile(rolesMapping);
+        File rolesMapping = configurationDirectory.newFile(CType.ROLESMAPPING.configFileName());
+        ConfigurationFiles.copyResourceToFile(CType.ROLESMAPPING.configFileName(), rolesMapping.toPath());
 
         int exitCode = securityAdminLauncher.updateRoleMappings(rolesMapping);
 

@@ -11,60 +11,47 @@
 
 package org.opensearch.security.api;
 
-import java.util.Map;
+import java.util.List;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.HttpStatus;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
-import org.opensearch.test.framework.cluster.ClusterManager;
-import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class DashboardsInfoWithSettingsTest {
+public class DashboardsInfoWithSettingsTest extends AbstractApiIntegrationTest {
 
-    protected final static TestSecurityConfig.User DASHBOARDS_USER = new TestSecurityConfig.User("dashboards_user").roles(
-        new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
-    );
+    private static final String CUSTOM_PASSWORD_REGEX = "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{5,}";
 
     private static final String CUSTOM_PASSWORD_MESSAGE =
         "Password must be minimum 5 characters long and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
 
-    private static final String CUSTOM_PASSWORD_REGEX = "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{5,}";
-
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(DASHBOARDS_USER)
-        .nodeSettings(
-            Map.of(
-                ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
-                CUSTOM_PASSWORD_REGEX,
-                ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
-                CUSTOM_PASSWORD_MESSAGE
+    static {
+        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, CUSTOM_PASSWORD_REGEX)
+            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, CUSTOM_PASSWORD_MESSAGE);
+        testSecurityConfig.user(
+            new TestSecurityConfig.User("dashboards_user").roles(
+                new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
             )
-        )
-        .build();
+        );
+    }
+
+    private String apiPath() {
+        return randomFrom(List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo"));
+    }
 
     @Test
     public void testDashboardsInfoValidationMessageWithCustomMessage() throws Exception {
 
-        try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
-            TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        withUser("dashboards_user", client -> {
+            final var response = ok(() -> client.get(apiPath()));
             assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(CUSTOM_PASSWORD_MESSAGE));
             assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(CUSTOM_PASSWORD_REGEX));
-        }
+        });
     }
 }
