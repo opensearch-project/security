@@ -17,6 +17,8 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.opensearch.security.api.PatchPayloadHelper.patch;
+import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 
 public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegrationTest {
 
@@ -49,18 +51,7 @@ public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegratio
         methodNotAllowed(() -> client.putJson(apiPath("securityconfig"), EMPTY_BODY));
         methodNotAllowed(() -> client.postJson(apiPath("securityconfig"), EMPTY_BODY));
         methodNotAllowed(() -> client.delete(apiPath("securityconfig")));
-        forbidden(
-            () -> client.patch(
-                apiPath("securityconfig"),
-                (builder, params) -> builder.startArray()
-                    .startObject()
-                    .field("op", "replace")
-                    .field("path", "/a/b/c")
-                    .field("value", "other")
-                    .endObject()
-                    .endArray()
-            )
-        );
+        forbidden(() -> client.patch(apiPath("securityconfig"), patch(replaceOp("/a/b/c", "other"))));
     }
 
     @Test

@@ -134,10 +134,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final SSLConfig SSLConfig;
     protected volatile ThreadPool threadPool;
 
-    // public OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath) {
-    // this(settings, configPath, false);
-    // }
-
     @SuppressWarnings("removal")
     protected OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
 
