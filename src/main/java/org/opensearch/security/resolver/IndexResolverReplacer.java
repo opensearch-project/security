@@ -82,6 +82,7 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.util.IndexUtils;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
@@ -91,7 +92,6 @@ import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.snapshots.SnapshotInfo;
-import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.TransportRequest;
 
@@ -694,7 +694,7 @@ public class IndexResolverReplacer {
                 );
                 provider.provide(new String[] { "*" }, request, false);
             } else {
-                final List<String> requestedResolvedIndices = SnapshotUtils.filterIndices(
+                final List<String> requestedResolvedIndices = IndexUtils.filterIndices(
                     snapshotInfo.indices(),
                     restoreRequest.indices(),
                     restoreRequest.indicesOptions()

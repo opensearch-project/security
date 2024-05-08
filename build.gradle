@@ -25,6 +25,7 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
+
         kafka_version  = '3.7.0'
         apache_cxf_version = '4.0.4'
         open_saml_version = '4.3.2'
@@ -471,7 +472,7 @@ configurations {
         resolutionStrategy {
             force 'commons-codec:commons-codec:1.17.0'
             force 'org.slf4j:slf4j-api:1.7.36'
-            force 'org.scala-lang:scala-library:2.13.13'
+            force 'org.scala-lang:scala-library:2.13.14'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
@@ -494,8 +495,8 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.27.0"
-            force "org.checkerframework:checker-qual:3.42.0"
+            force "com.google.errorprone:error_prone_annotations:2.27.1"
+            force "org.checkerframework:checker-qual:3.43.0"
             force "ch.qos.logback:logback-classic:1.5.6"
         }
     }
@@ -605,12 +606,12 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.17.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.27.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.27.1'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.1'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.2'
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.2'
@@ -649,7 +650,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.42.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.43.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
@@ -699,7 +700,7 @@ dependencies {
     testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.13'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.14'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
