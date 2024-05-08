@@ -105,8 +105,6 @@ public class LocalOpenSearchCluster {
 
     private File snapshotDir;
 
-    private int nodeCounter = 0;
-
     public LocalOpenSearchCluster(
         String clusterName,
         ClusterManager clusterManager,
@@ -302,10 +300,9 @@ public class LocalOpenSearchCluster {
         Iterator<Integer> httpPortIterator = httpPorts.iterator();
         List<CompletableFuture<StartStage>> futures = new ArrayList<>();
 
-        for (NodeSettings nodeSettings : nodeSettingList) {
-            Node node = new Node(nodeCounter, nodeSettings, transportPortIterator.next(), httpPortIterator.next());
+        for (var i = 0; i < nodeSettingList.size(); i++) {
+            Node node = new Node(i, nodeSettingList.get(i), transportPortIterator.next(), httpPortIterator.next());
             futures.add(node.start());
-            nodeCounter += 1;
         }
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
@@ -518,7 +515,6 @@ public class LocalOpenSearchCluster {
                 .build();
 
             if (nodeSettingsSupplier != null) {
-                // TODO node number
                 return Settings.builder().put(settings).put(nodeSettingsSupplier.get(nodeNumber)).build();
             }
             return settings;
