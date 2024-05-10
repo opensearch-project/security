@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.google.common.base.Splitter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.util.BytesRef;
 import org.bouncycastle.util.encoders.Hex;
 
@@ -53,35 +54,35 @@ public class MaskedField {
     }
 
     public final void isValid() throws Exception {
-        mask(new byte[] { 1, 2, 3, 4, 5 });
+        mask(new byte[] { 1, 2, 3, 4, 5 }, "");
     }
 
-    public byte[] mask(byte[] value) {
-        if (isDefault()) {
-            return blake2bHash(value);
+    public byte[] mask(byte[] value, String algorithmDefault) {
+        if (algo != null) {
+            return customHash(value, algo);
+        } else if (regexReplacements != null) {
+            String cur = new String(value, StandardCharsets.UTF_8);
+            for (RegexReplacement rr : regexReplacements) {
+                cur = cur.replaceAll(rr.getRegex(), rr.getReplacement());
+            }
+            return cur.getBytes(StandardCharsets.UTF_8);
+        } else if (StringUtils.isNotEmpty(algorithmDefault)) {
+            return customHash(value, algorithmDefault);
         } else {
-            return customHash(value);
+            return blake2bHash(value);
         }
     }
 
-    public String mask(String value) {
-        if (isDefault()) {
-            return blake2bHash(value);
-        } else {
-            return customHash(value);
-        }
+    public String mask(String value, String algorithmDefault) {
+        return new String(mask(value.getBytes(StandardCharsets.UTF_8), algorithmDefault), StandardCharsets.UTF_8);
     }
 
-    public BytesRef mask(BytesRef value) {
+    public BytesRef mask(BytesRef value, String algorithmDefault) {
         if (value == null) {
             return null;
         }
-
-        if (isDefault()) {
-            return blake2bHash(value);
-        } else {
-            return customHash(value);
-        }
+        final BytesRef copy = BytesRef.deepCopyOf(value);
+        return new BytesRef(mask(copy.bytes, algorithmDefault));
     }
 
     public String getName() {
@@ -135,33 +136,13 @@ public class MaskedField {
         return regexReplacements == null && algo == null;
     }
 
-    private byte[] customHash(byte[] in) {
-        if (algo != null) {
-            try {
-                MessageDigest digest = MessageDigest.getInstance(algo);
-                return Hex.encode(digest.digest(in));
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalArgumentException(e);
-            }
-        } else if (regexReplacements != null) {
-            String cur = new String(in, StandardCharsets.UTF_8);
-            for (RegexReplacement rr : regexReplacements) {
-                cur = cur.replaceAll(rr.getRegex(), rr.getReplacement());
-            }
-            return cur.getBytes(StandardCharsets.UTF_8);
-
-        } else {
-            throw new IllegalArgumentException();
+    private static byte[] customHash(byte[] in, String algorithm) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
+            return Hex.encode(digest.digest(in));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(e);
         }
-    }
-
-    private BytesRef customHash(BytesRef in) {
-        final BytesRef copy = BytesRef.deepCopyOf(in);
-        return new BytesRef(customHash(copy.bytes));
-    }
-
-    private String customHash(String in) {
-        return new String(customHash(in.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
     private byte[] blake2bHash(byte[] in) {
@@ -172,15 +153,6 @@ public class MaskedField {
         final byte[] out = new byte[hash.getDigestSize()];
         hash.digest(out, 0);
         return Hex.encode(out);
-    }
-
-    private BytesRef blake2bHash(BytesRef in) {
-        final BytesRef copy = BytesRef.deepCopyOf(in);
-        return new BytesRef(blake2bHash(copy.bytes));
-    }
-
-    private String blake2bHash(String in) {
-        return new String(blake2bHash(in.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
     private static class RegexReplacement {

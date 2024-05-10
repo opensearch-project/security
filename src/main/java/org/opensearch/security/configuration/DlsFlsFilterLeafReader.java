@@ -106,6 +106,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     private final ShardId shardId;
     private final boolean maskFields;
     private final Salt salt;
+    private final String maskingAlgorithmDefault;
 
     private DlsGetEvaluator dge = null;
 
@@ -131,6 +132,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         this.auditlog = auditlog;
         this.salt = salt;
         this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt);
+        this.maskingAlgorithmDefault = clusterService.getSettings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT);
 
         this.shardId = shardId;
         flsEnabled = includesExcludes != null && !includesExcludes.isEmpty();
@@ -788,9 +790,9 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                         final Object listFieldItem = iterator.next();
 
                         if (listFieldItem instanceof String) {
-                            iterator.set(mf.mask(((String) listFieldItem)));
+                            iterator.set(mf.mask(((String) listFieldItem), maskingAlgorithmDefault));
                         } else if (listFieldItem instanceof byte[]) {
-                            iterator.set(mf.mask(((byte[]) listFieldItem)));
+                            iterator.set(mf.mask(((byte[]) listFieldItem), maskingAlgorithmDefault));
                         }
                     }
                 }
@@ -802,9 +804,9 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 final MaskedField mf = maskedFieldsMap.getMaskedField(field).orElse(null);
                 if (mf != null) {
                     if (v instanceof String) {
-                        map.replace(key, mf.mask(((String) v)));
+                        map.replace(key, mf.mask(((String) v), maskingAlgorithmDefault));
                     } else {
-                        map.replace(key, mf.mask(((byte[]) v)));
+                        map.replace(key, mf.mask(((byte[]) v), maskingAlgorithmDefault));
                     }
                 }
             }
@@ -893,7 +895,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public BytesRef binaryValue() throws IOException {
-                        return mf.mask(binaryDocValues.binaryValue());
+                        return mf.mask(binaryDocValues.binaryValue(), maskingAlgorithmDefault);
                     }
                 };
             }
@@ -923,12 +925,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public TermsEnum termsEnum() throws IOException {
-                        return new MaskedTermsEnum(sortedDocValues.termsEnum(), mf);
+                        return new MaskedTermsEnum(sortedDocValues.termsEnum(), mf, maskingAlgorithmDefault);
                     }
 
                     @Override
                     public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                        return new MaskedTermsEnum(sortedDocValues.intersect(automaton), mf);
+                        return new MaskedTermsEnum(sortedDocValues.intersect(automaton), mf, maskingAlgorithmDefault);
                     }
 
                     @Override
@@ -963,7 +965,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public BytesRef lookupOrd(int ord) throws IOException {
-                        return mf.mask(sortedDocValues.lookupOrd(ord));
+                        return mf.mask(sortedDocValues.lookupOrd(ord), maskingAlgorithmDefault);
                     }
 
                     @Override
@@ -1003,12 +1005,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public TermsEnum termsEnum() throws IOException {
-                        return new MaskedTermsEnum(sortedSetDocValues.termsEnum(), mf);
+                        return new MaskedTermsEnum(sortedSetDocValues.termsEnum(), mf, maskingAlgorithmDefault);
                     }
 
                     @Override
                     public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                        return new MaskedTermsEnum(sortedSetDocValues.intersect(automaton), mf);
+                        return new MaskedTermsEnum(sortedSetDocValues.intersect(automaton), mf, maskingAlgorithmDefault);
                     }
 
                     @Override
@@ -1048,7 +1050,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public BytesRef lookupOrd(long ord) throws IOException {
-                        return mf.mask(sortedSetDocValues.lookupOrd(ord));
+                        return mf.mask(sortedSetDocValues.lookupOrd(ord), maskingAlgorithmDefault);
                     }
 
                     @Override
@@ -1229,11 +1231,13 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         private final TermsEnum delegate;
         private final MaskedField mf;
+        private final String algorithmDefault;
 
-        public MaskedTermsEnum(TermsEnum delegate, MaskedField mf) {
+        public MaskedTermsEnum(TermsEnum delegate, MaskedField mf, String algorithmDefault) {
             super();
             this.delegate = delegate;
             this.mf = mf;
+            this.algorithmDefault = algorithmDefault;
         }
 
         @Override
@@ -1268,7 +1272,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public BytesRef term() throws IOException {
-            return mf.mask(delegate.term());
+            return mf.mask(delegate.term(), algorithmDefault);
         }
 
         @Override
