@@ -438,9 +438,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
         } catch (Exception ex) {
             throw new OpenSearchSecurityException(
-                    "JVM does not support algorithm for {}",
-                    ex,
-                    ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT
+                "JVM does not support algorithm for {}",
+                ex,
+                ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT
             );
         }
 
@@ -1398,7 +1398,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered)
             );
             settings.add(
-                    Setting.simpleString(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, Property.NodeScope, Property.Filtered)
+                Setting.simpleString(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, Property.NodeScope, Property.Filtered)
             );
             final List<String> disabledCategories = new ArrayList<String>(2);
             disabledCategories.add("AUTHENTICATED");

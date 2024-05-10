@@ -284,8 +284,8 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
         HttpResponse res;
 
         Assert.assertEquals(
-                HttpStatus.SC_OK,
-                (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
         );
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
         Assert.assertTrue(res.getBody().contains("cust1"));
@@ -293,17 +293,17 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("100.100.1.1"));
         Assert.assertFalse(res.getBody().contains("100.100.2.2"));
         Assert.assertFalse(
-                res.getBody()
-                        .contains(
-                                "8976994d0491e35f74fcac67ede9c83334a6ad34dae07c176df32f10225f93c5077ddd302c02ddd618b2406b1e4dfe50a727cbc880cfe264c552decf2d224ffc"
-                        )
+            res.getBody()
+                .contains(
+                    "8976994d0491e35f74fcac67ede9c83334a6ad34dae07c176df32f10225f93c5077ddd302c02ddd618b2406b1e4dfe50a727cbc880cfe264c552decf2d224ffc"
+                )
         );
         Assert.assertFalse(res.getBody().contains("***"));
         Assert.assertFalse(res.getBody().contains("XXX"));
 
         Assert.assertEquals(
-                HttpStatus.SC_OK,
-                (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("user_masked_custom", "password"))).getStatusCode()
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("user_masked_custom", "password"))).getStatusCode()
         );
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
         Assert.assertFalse(res.getBody().contains("cust1"));
@@ -311,10 +311,10 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("100.100.1.1"));
         Assert.assertFalse(res.getBody().contains("100.100.2.2"));
         Assert.assertTrue(
-                res.getBody()
-                        .contains(
-                                "8976994d0491e35f74fcac67ede9c83334a6ad34dae07c176df32f10225f93c5077ddd302c02ddd618b2406b1e4dfe50a727cbc880cfe264c552decf2d224ffc"
-                        )
+            res.getBody()
+                .contains(
+                    "8976994d0491e35f74fcac67ede9c83334a6ad34dae07c176df32f10225f93c5077ddd302c02ddd618b2406b1e4dfe50a727cbc880cfe264c552decf2d224ffc"
+                )
         );
         Assert.assertTrue(res.getBody().contains("***.100.1.XXX"));
         Assert.assertTrue(res.getBody().contains("123.123.1.XXX"));
