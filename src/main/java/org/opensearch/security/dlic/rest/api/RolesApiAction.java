@@ -91,7 +91,7 @@ public class RolesApiAction extends AbstractApiAction {
 
         private Pair<String, String> validateMaskedFieldSyntax(final JsonNode maskedFieldNode) {
             try {
-                new MaskedField(maskedFieldNode.asText(), SALT).isValid();
+                new MaskedField(maskedFieldNode.asText(), SALT, "").isValid();
             } catch (Exception e) {
                 return Pair.of(maskedFieldNode.asText(), e.getMessage());
             }

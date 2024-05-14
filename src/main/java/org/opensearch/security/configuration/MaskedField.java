@@ -32,9 +32,11 @@ public class MaskedField {
     private String algo = null;
     private List<RegexReplacement> regexReplacements;
     private final byte[] defaultSalt;
+    private final String defaultAlgorithm;
 
-    public MaskedField(final String value, final Salt salt) {
+    public MaskedField(final String value, final Salt salt, final String defaultAlgorithm) {
         this.defaultSalt = salt.getSalt16();
+        this.defaultAlgorithm = defaultAlgorithm;
         final List<String> tokens = Splitter.on("::").splitToList(Objects.requireNonNull(value));
         final int tokenCount = tokens.size();
         if (tokenCount == 1) {
@@ -54,10 +56,10 @@ public class MaskedField {
     }
 
     public final void isValid() throws Exception {
-        mask(new byte[] { 1, 2, 3, 4, 5 }, "");
+        mask(new byte[] { 1, 2, 3, 4, 5 });
     }
 
-    public byte[] mask(byte[] value, String algorithmDefault) {
+    public byte[] mask(byte[] value) {
         if (algo != null) {
             return customHash(value, algo);
         } else if (regexReplacements != null) {
@@ -66,23 +68,23 @@ public class MaskedField {
                 cur = cur.replaceAll(rr.getRegex(), rr.getReplacement());
             }
             return cur.getBytes(StandardCharsets.UTF_8);
-        } else if (StringUtils.isNotEmpty(algorithmDefault)) {
-            return customHash(value, algorithmDefault);
+        } else if (StringUtils.isNotEmpty(defaultAlgorithm)) {
+            return customHash(value, defaultAlgorithm);
         } else {
             return blake2bHash(value);
         }
     }
 
-    public String mask(String value, String algorithmDefault) {
-        return new String(mask(value.getBytes(StandardCharsets.UTF_8), algorithmDefault), StandardCharsets.UTF_8);
+    public String mask(String value) {
+        return new String(mask(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
-    public BytesRef mask(BytesRef value, String algorithmDefault) {
+    public BytesRef mask(BytesRef value) {
         if (value == null) {
             return null;
         }
         final BytesRef copy = BytesRef.deepCopyOf(value);
-        return new BytesRef(mask(copy.bytes, algorithmDefault));
+        return new BytesRef(mask(copy.bytes));
     }
 
     public String getName() {
@@ -127,6 +129,8 @@ public class MaskedField {
             + regexReplacements
             + ", defaultSalt="
             + Arrays.toString(defaultSalt)
+            + ", defaultAlgorithm="
+            + defaultAlgorithm
             + ", isDefault()="
             + isDefault()
             + "]";
@@ -136,7 +140,7 @@ public class MaskedField {
         return regexReplacements == null && algo == null;
     }
 
-    private static byte[] customHash(byte[] in, String algorithm) {
+    private static byte[] customHash(byte[] in, final String algorithm) {
         try {
             MessageDigest digest = MessageDigest.getInstance(algorithm);
             return Hex.encode(digest.digest(in));

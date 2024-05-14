@@ -131,8 +131,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         this.clusterService = clusterService;
         this.auditlog = auditlog;
         this.salt = salt;
-        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt);
         this.maskingAlgorithmDefault = clusterService.getSettings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT);
+        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt, maskingAlgorithmDefault);
 
         this.shardId = shardId;
         flsEnabled = includesExcludes != null && !includesExcludes.isEmpty();
@@ -294,11 +294,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             this.maskedFieldsMap = maskedFieldsMap;
         }
 
-        public static MaskedFieldsMap extractMaskedFields(boolean maskFields, Set<String> maskedFields, final Salt salt) {
+        public static MaskedFieldsMap extractMaskedFields(boolean maskFields, Set<String> maskedFields, final Salt salt, String algorithmDefault) {
             if (maskFields) {
                 return new MaskedFieldsMap(
                     maskedFields.stream()
-                        .map(mf -> new MaskedField(mf, salt))
+                        .map(mf -> new MaskedField(mf, salt, algorithmDefault))
                         .collect(ImmutableMap.toImmutableMap(mf -> WildcardMatcher.from(mf.getName()), Function.identity()))
                 );
             } else {
@@ -790,9 +790,9 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                         final Object listFieldItem = iterator.next();
 
                         if (listFieldItem instanceof String) {
-                            iterator.set(mf.mask(((String) listFieldItem), maskingAlgorithmDefault));
+                            iterator.set(mf.mask(((String) listFieldItem)));
                         } else if (listFieldItem instanceof byte[]) {
-                            iterator.set(mf.mask(((byte[]) listFieldItem), maskingAlgorithmDefault));
+                            iterator.set(mf.mask(((byte[]) listFieldItem)));
                         }
                     }
                 }
@@ -804,9 +804,9 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 final MaskedField mf = maskedFieldsMap.getMaskedField(field).orElse(null);
                 if (mf != null) {
                     if (v instanceof String) {
-                        map.replace(key, mf.mask(((String) v), maskingAlgorithmDefault));
+                        map.replace(key, mf.mask(((String) v)));
                     } else {
-                        map.replace(key, mf.mask(((byte[]) v), maskingAlgorithmDefault));
+                        map.replace(key, mf.mask(((byte[]) v)));
                     }
                 }
             }
@@ -895,7 +895,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public BytesRef binaryValue() throws IOException {
-                        return mf.mask(binaryDocValues.binaryValue(), maskingAlgorithmDefault);
+                        return mf.mask(binaryDocValues.binaryValue());
                     }
                 };
             }
@@ -965,7 +965,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public BytesRef lookupOrd(int ord) throws IOException {
-                        return mf.mask(sortedDocValues.lookupOrd(ord), maskingAlgorithmDefault);
+                        return mf.mask(sortedDocValues.lookupOrd(ord));
                     }
 
                     @Override
@@ -1050,7 +1050,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public BytesRef lookupOrd(long ord) throws IOException {
-                        return mf.mask(sortedSetDocValues.lookupOrd(ord), maskingAlgorithmDefault);
+                        return mf.mask(sortedSetDocValues.lookupOrd(ord));
                     }
 
                     @Override
@@ -1212,7 +1212,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         if (maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);
             if (mf != null && !mf.isEmpty()) {
-                return MaskedFieldsMap.extractMaskedFields(true, mf, salt);
+                return MaskedFieldsMap.extractMaskedFields(true, mf, salt, maskingAlgorithmDefault);
             }
 
         }
@@ -1272,7 +1272,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public BytesRef term() throws IOException {
-            return mf.mask(delegate.term(), algorithmDefault);
+            return mf.mask(delegate.term());
         }
 
         @Override
