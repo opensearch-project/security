@@ -930,12 +930,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public TermsEnum termsEnum() throws IOException {
-                        return new MaskedTermsEnum(sortedDocValues.termsEnum(), mf, maskingAlgorithmDefault);
+                        return new MaskedTermsEnum(sortedDocValues.termsEnum(), mf);
                     }
 
                     @Override
                     public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                        return new MaskedTermsEnum(sortedDocValues.intersect(automaton), mf, maskingAlgorithmDefault);
+                        return new MaskedTermsEnum(sortedDocValues.intersect(automaton), mf);
                     }
 
                     @Override
@@ -1010,12 +1010,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public TermsEnum termsEnum() throws IOException {
-                        return new MaskedTermsEnum(sortedSetDocValues.termsEnum(), mf, maskingAlgorithmDefault);
+                        return new MaskedTermsEnum(sortedSetDocValues.termsEnum(), mf);
                     }
 
                     @Override
                     public TermsEnum intersect(CompiledAutomaton automaton) throws IOException {
-                        return new MaskedTermsEnum(sortedSetDocValues.intersect(automaton), mf, maskingAlgorithmDefault);
+                        return new MaskedTermsEnum(sortedSetDocValues.intersect(automaton), mf);
                     }
 
                     @Override
@@ -1236,13 +1236,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         private final TermsEnum delegate;
         private final MaskedField mf;
-        private final String algorithmDefault;
 
-        public MaskedTermsEnum(TermsEnum delegate, MaskedField mf, String algorithmDefault) {
+        public MaskedTermsEnum(TermsEnum delegate, MaskedField mf) {
             super();
             this.delegate = delegate;
             this.mf = mf;
-            this.algorithmDefault = algorithmDefault;
         }
 
         @Override
