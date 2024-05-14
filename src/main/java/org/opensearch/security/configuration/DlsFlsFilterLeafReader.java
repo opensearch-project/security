@@ -294,7 +294,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             this.maskedFieldsMap = maskedFieldsMap;
         }
 
-        public static MaskedFieldsMap extractMaskedFields(boolean maskFields, Set<String> maskedFields, final Salt salt, String algorithmDefault) {
+        public static MaskedFieldsMap extractMaskedFields(
+            boolean maskFields,
+            Set<String> maskedFields,
+            final Salt salt,
+            String algorithmDefault
+        ) {
             if (maskFields) {
                 return new MaskedFieldsMap(
                     maskedFields.stream()
