@@ -36,6 +36,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
@@ -91,7 +92,11 @@ public class RolesApiAction extends AbstractApiAction {
 
         private Pair<String, String> validateMaskedFieldSyntax(final JsonNode maskedFieldNode) {
             try {
-                new MaskedField(maskedFieldNode.asText(), SALT).isValid();
+                new MaskedField(
+                    maskedFieldNode.asText(),
+                    SALT,
+                    validationContext.settings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT)
+                ).isValid();
             } catch (Exception e) {
                 return Pair.of(maskedFieldNode.asText(), e.getMessage());
             }
