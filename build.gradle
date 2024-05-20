@@ -580,7 +580,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.6.0'
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.39'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.39.1'
     implementation 'com.rfksystems:blake2b:2.0.0'
 
     //JWT
