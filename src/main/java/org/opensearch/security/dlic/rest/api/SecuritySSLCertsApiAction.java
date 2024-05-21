@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
@@ -48,9 +50,16 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * This action serves GET request for _plugins/_security/api/ssl/certs endpoint and
  * PUT _plugins/_security/api/ssl/{certType}/reloadcerts
  */
+@Deprecated
 public class SecuritySSLCertsApiAction extends AbstractApiAction {
+
+    private final static Logger LOGGER = LogManager.getLogger(SecuritySSLCertsApiAction.class);
+
     private static final List<Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(new Route(Method.GET, "/ssl/certs"), new Route(Method.PUT, "/ssl/{certType}/reloadcerts"))
+        ImmutableList.of(
+            new DeprecatedRoute(Method.GET, "/ssl/certs", "[/ssl/certs] is a deprecated endpoint. Please use [/certificates] instead."),
+            new Route(Method.PUT, "/ssl/{certType}/reloadcerts")
+        )
     );
 
     private final SecurityKeyStore securityKeyStore;
