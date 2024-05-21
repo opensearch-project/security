@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
+@Deprecated
 public class SslCertsRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     final static String REST_API_ADMIN_SSL_INFO = "rest-api-admin-ssl-info";
