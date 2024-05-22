@@ -137,7 +137,9 @@ class AuthTokenProcessorHandler {
         String samlResponseBase64,
         String samlRequestId,
         String acsEndpoint,
-        Saml2Settings saml2Settings
+        Saml2Settings saml2Settings,
+        String requestPath // the parameter will be removed in the future as soon as we will read of legacy paths aka
+                           // /_opendistro/_security/...
     ) {
         if (token_log.isDebugEnabled()) {
             try {
@@ -156,7 +158,7 @@ class AuthTokenProcessorHandler {
             SamlResponse samlResponse = new SamlResponse(saml2Settings, acsEndpoint, samlResponseBase64);
 
             if (!samlResponse.isValid(samlRequestId)) {
-                log.warn("Error while validating SAML response in /_opendistro/_security/api/authtoken");
+                log.warn("Error while validating SAML response in {}", requestPath);
                 return null;
             }
 
@@ -178,17 +180,14 @@ class AuthTokenProcessorHandler {
 
             if (restRequest.getMediaType() != XContentType.JSON) {
                 throw new OpenSearchSecurityException(
-                    "/_opendistro/_security/api/authtoken expects content with type application/json",
+                    restRequest.path() + " expects content with type application/json",
                     RestStatus.UNSUPPORTED_MEDIA_TYPE
                 );
 
             }
 
             if (restRequest.method() != Method.POST) {
-                throw new OpenSearchSecurityException(
-                    "/_opendistro/_security/api/authtoken expects POST requests",
-                    RestStatus.METHOD_NOT_ALLOWED
-                );
+                throw new OpenSearchSecurityException(restRequest.path() + " expects POST requests", RestStatus.METHOD_NOT_ALLOWED);
             }
 
             Saml2Settings saml2Settings = this.saml2SettingsProvider.getCached();
@@ -218,7 +217,13 @@ class AuthTokenProcessorHandler {
                 acsEndpoint = getAbsoluteAcsEndpoint(((ObjectNode) jsonRoot).get("acsEndpoint").textValue());
             }
 
-            AuthTokenProcessorAction.Response responseBody = this.handleImpl(samlResponseBase64, samlRequestId, acsEndpoint, saml2Settings);
+            AuthTokenProcessorAction.Response responseBody = this.handleImpl(
+                samlResponseBase64,
+                samlRequestId,
+                acsEndpoint,
+                saml2Settings,
+                restRequest.path()
+            );
 
             if (responseBody == null) {
                 return Optional.empty();
@@ -228,7 +233,7 @@ class AuthTokenProcessorHandler {
 
             return Optional.of(new SecurityResponse(HttpStatus.SC_OK, null, responseBodyString, XContentType.JSON.mediaType()));
         } catch (JsonProcessingException e) {
-            log.warn("Error while parsing JSON for /_opendistro/_security/api/authtoken", e);
+            log.warn("Error while parsing JSON for {}", restRequest.path(), e);
             return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, "JSON could not be parsed"));
         }
     }
