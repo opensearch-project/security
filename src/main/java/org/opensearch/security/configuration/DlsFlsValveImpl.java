@@ -521,12 +521,30 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         }
                     }
                 } else {
-                    threadContext.putHeader(
-                        ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
-                        Base64Helper.serializeObject((Serializable) maskedFieldsMap)
-                    );
-                    if (log.isDebugEnabled()) {
-                        log.debug("attach masked fields info: {}", maskedFieldsMap);
+                    boolean shouldIncludeFlsHeaders = true;
+                    if (request instanceof SearchRequest) {
+                        SearchRequest searchRequest = (SearchRequest) request;
+                        boolean hasOnlyCountOrCardinality = true;
+                        if (searchRequest.source().aggregations() != null) {
+                            for (AggregationBuilder af : searchRequest.source().aggregations().getAggregatorFactories()) {
+                                if (!(af.getType().equals("cardinality") || af.getType().equals("count"))) {
+                                    hasOnlyCountOrCardinality = false;
+                                }
+                            }
+                        }
+                        if (hasOnlyCountOrCardinality && searchRequest.source().size() == 0) {
+                            shouldIncludeFlsHeaders = false;
+                        }
+                    }
+
+                    if (shouldIncludeFlsHeaders) {
+                        threadContext.putHeader(
+                            ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
+                            Base64Helper.serializeObject((Serializable) maskedFieldsMap)
+                        );
+                        if (log.isDebugEnabled()) {
+                            log.debug("attach masked fields info: {}", maskedFieldsMap);
+                        }
                     }
                 }
             }

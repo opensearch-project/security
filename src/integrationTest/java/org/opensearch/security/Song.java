@@ -23,6 +23,7 @@ public class Song {
     public static final String ARTIST_STRING = "String";
     public static final String ARTIST_TWINS = "Twins";
     public static final String TITLE_MAGNUM_OPUS = "Magnum Opus";
+    public static final String TITLE_ABC = "ABC";
     public static final String TITLE_SONG_1_PLUS_1 = "Song 1+1";
     public static final String TITLE_NEXT_SONG = "Next song";
     public static final String ARTIST_NO = "No!";
@@ -41,6 +42,7 @@ public class Song {
     public static final String LYRICS_4 = "Much too much";
     public static final String LYRICS_5 = "Little to little";
     public static final String LYRICS_6 = "confidential secret classified";
+    public static final String LYRICS_7 = "abcdefghijklmnopqrstuvwxyz";
 
     public static final String GENRE_ROCK = "rock";
     public static final String GENRE_JAZZ = "jazz";
@@ -56,7 +58,8 @@ public class Song {
         new Song(ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3, 3, GENRE_JAZZ),
         new Song(ARTIST_NO, TITLE_POISON, LYRICS_4, 4, GENRE_ROCK),
         new Song(ARTIST_YES, TITLE_AFFIRMATIVE, LYRICS_5, 5, GENRE_BLUES),
-        new Song(ARTIST_UNKNOWN, TITLE_CONFIDENTIAL, LYRICS_6, 6, GENRE_JAZZ) };
+        new Song(ARTIST_UNKNOWN, TITLE_CONFIDENTIAL, LYRICS_6, 6, GENRE_JAZZ),
+        new Song(ARTIST_FIRST, TITLE_ABC, LYRICS_7, 7, GENRE_ROCK), };
 
     private final String artist;
     private final String title;

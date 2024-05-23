@@ -46,7 +46,10 @@ import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.Aggregation;
+import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.metrics.ParsedAvg;
+import org.opensearch.search.aggregations.metrics.ParsedCardinality;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -55,6 +58,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
@@ -105,6 +109,7 @@ public class FlsAndFieldMaskingTests {
     static final String FIRST_INDEX_ID_SONG_2 = "INDEX_1_S2";
     static final String FIRST_INDEX_ID_SONG_3 = "INDEX_1_S3";
     static final String FIRST_INDEX_ID_SONG_4 = "INDEX_1_S4";
+    static final String FIRST_INDEX_ID_SONG_5 = "INDEX_1_S5";
     static final String SECOND_INDEX_ID_SONG_1 = "INDEX_2_S1";
     static final String SECOND_INDEX_ID_SONG_2 = "INDEX_2_S2";
     static final String SECOND_INDEX_ID_SONG_3 = "INDEX_2_S3";
@@ -159,6 +164,19 @@ public class FlsAndFieldMaskingTests {
                 .maskedFields(FIELD_LYRICS.concat("::/(?<=.{1})./::").concat(MASK_VALUE))
                 .on(SECOND_INDEX_NAME)
         );
+
+    /**
+     * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} except artist
+     * <ul>
+     *     <li>values of the artist fields should be masked on index {@link #FIRST_INDEX_NAME}</li>
+     * </ul>
+     */
+    static final TestSecurityConfig.User MASKED_ARTIST_READER = new TestSecurityConfig.User("masked_title_lyrics_reader").roles(
+        new TestSecurityConfig.Role("masked_title_lyrics_reader").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .maskedFields(FIELD_ARTIST)
+            .on(FIRST_INDEX_NAME)
+    );
 
     /**
     * Function that converts field value to value masked with {@link #MASK_VALUE}
@@ -219,7 +237,8 @@ public class FlsAndFieldMaskingTests {
             MASKED_ARTIST_LYRICS_READER,
             ALL_INDICES_STRING_ARTIST_READER,
             ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
-            TWINS_FIRST_ARTIST_READER
+            TWINS_FIRST_ARTIST_READER,
+            MASKED_ARTIST_READER
         )
         .build();
 
@@ -251,6 +270,7 @@ public class FlsAndFieldMaskingTests {
             put(FIRST_INDEX_ID_SONG_2, SONGS[1]);
             put(FIRST_INDEX_ID_SONG_3, SONGS[2]);
             put(FIRST_INDEX_ID_SONG_4, SONGS[3]);
+            put(FIRST_INDEX_ID_SONG_5, SONGS[6]);
         }
     };
 
@@ -808,6 +828,22 @@ public class FlsAndFieldMaskingTests {
             assertThat(response, containsFieldWithNameAndType(FIELD_ARTIST, "text"));
             assertThat(response, containsFieldWithNameAndType(FIELD_TITLE, "text"));
             assertThat(response, containsFieldWithNameAndType(FIELD_LYRICS, "text"));
+        }
+    }
+
+    @Test
+    public void getCardinalityAggregationOnMaskedField() throws IOException {
+        // FIELD MASKING
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_READER)) {
+            SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.aggregation(AggregationBuilders.cardinality("unique_artists_agg").field("artist.keyword"));
+            sourceBuilder.size(0);
+            searchRequest.source(sourceBuilder);
+            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            ParsedCardinality parsedCardinality = response.getAggregations().get("unique_artists_agg");
+            long cardinality = parsedCardinality.getValue();
+            assertThat(cardinality, equalTo(4L));
         }
     }
 
