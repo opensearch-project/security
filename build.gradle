@@ -582,7 +582,7 @@ dependencies {
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.37.3'
     implementation 'com.rfksystems:blake2b:2.0.0'
-
+    implementation 'com.password4j:password4j:1.8.2'
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"

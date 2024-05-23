@@ -31,6 +31,8 @@ import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.hasher.BCryptPasswordHasher;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -47,9 +49,10 @@ import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends AbstractApiAction {
+
+    private final PasswordHasher passwordHasher;
 
     @Override
     protected void consumeParameters(final RestRequest request) {
@@ -92,6 +95,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         super(Endpoint.INTERNALUSERS, clusterService, threadPool, securityApiDependencies);
         this.userService = userService;
         this.requestHandlersBuilder.configureRequestHandlers(this::internalUsersApiRequestHandlers);
+        this.passwordHasher = new BCryptPasswordHasher();
     }
 
     @Override
@@ -268,7 +272,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 if (content.has("password")) {
                     final var plainTextPassword = content.get("password").asText();
                     content.remove("password");
-                    content.put("hash", hash(plainTextPassword.toCharArray()));
+                    content.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
                 }
                 return ValidationResult.success(securityConfiguration);
             }

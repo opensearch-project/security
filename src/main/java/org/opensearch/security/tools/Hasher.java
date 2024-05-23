@@ -27,9 +27,6 @@
 package org.opensearch.security.tools;
 
 import java.io.Console;
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Objects;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -37,7 +34,9 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+
+import org.opensearch.security.hasher.BCryptPasswordHasher;
+import org.opensearch.security.hasher.PasswordHasher;
 
 public class Hasher {
 
@@ -82,11 +81,7 @@ public class Hasher {
     }
 
     public static String hash(final char[] clearTextPassword) {
-        final byte[] salt = new byte[16];
-        new SecureRandom().nextBytes(salt);
-        final String hash = OpenBSDBCrypt.generate((Objects.requireNonNull(clearTextPassword)), salt, 12);
-        Arrays.fill(salt, (byte) 0);
-        Arrays.fill(clearTextPassword, '\0');
-        return hash;
+        PasswordHasher passwordHasher = new BCryptPasswordHasher();
+        return passwordHasher.hash(clearTextPassword);
     }
 }

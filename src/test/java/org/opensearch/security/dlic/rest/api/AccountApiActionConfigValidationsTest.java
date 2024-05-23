@@ -11,10 +11,8 @@ package org.opensearch.security.dlic.rest.api;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 
 import org.mockito.Mockito;
@@ -35,7 +33,7 @@ public class AccountApiActionConfigValidationsTest extends AbstractApiActionVali
         assertFalse(result.isValid());
         assertEquals(RestStatus.BAD_REQUEST, result.status());
 
-        u.setHash(Utils.hash("aaaa".toCharArray()));
+        u.setHash(passwordHasher.hash("aaaa".toCharArray()));
         result = accountApiAction.validCurrentPassword(SecurityConfiguration.of(requestContent(), "u", configuration));
         assertTrue(result.isValid());
     }
@@ -56,13 +54,13 @@ public class AccountApiActionConfigValidationsTest extends AbstractApiActionVali
         requestContent.put("password", "cccccc");
         result = accountApiAction.updatePassword(SecurityConfiguration.of(requestContent, "u", configuration));
         assertTrue(result.isValid());
-        assertTrue(OpenBSDBCrypt.checkPassword(u.getHash(), "cccccc".toCharArray()));
+        assertTrue(passwordHasher.check("cccccc".toCharArray(), u.getHash()));
 
         requestContent.remove("password");
-        requestContent.put("hash", Utils.hash("dddddd".toCharArray()));
+        requestContent.put("hash", passwordHasher.hash("dddddd".toCharArray()));
         result = accountApiAction.updatePassword(SecurityConfiguration.of(requestContent, "u", configuration));
         assertTrue(result.isValid());
-        assertTrue(OpenBSDBCrypt.checkPassword(u.getHash(), "dddddd".toCharArray()));
+        assertTrue(passwordHasher.check("dddddd".toCharArray(), u.getHash()));
     }
 
     private ObjectNode requestContent() {
@@ -71,7 +69,7 @@ public class AccountApiActionConfigValidationsTest extends AbstractApiActionVali
 
     private InternalUserV7 createExistingUser() {
         final var u = new InternalUserV7();
-        u.setHash(Utils.hash("sssss".toCharArray()));
+        u.setHash(passwordHasher.hash("sssss".toCharArray()));
         Mockito.<Object>when(configuration.getCEntry("u")).thenReturn(u);
         return u;
     }

@@ -20,7 +20,6 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
@@ -110,7 +109,10 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
             TEST_USER,
             TEST_USER_PASSWORD,
             client -> ok(
-                () -> client.putJson(accountPath(), changePasswordWithHashPayload(TEST_USER_PASSWORD, hash(newPassword.toCharArray())))
+                () -> client.putJson(
+                    accountPath(),
+                    changePasswordWithHashPayload(TEST_USER_PASSWORD, passwordHasher.hash(newPassword.toCharArray()))
+                )
             )
         );
         withUser(

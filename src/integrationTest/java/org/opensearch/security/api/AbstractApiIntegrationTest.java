@@ -35,6 +35,8 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.ConfigurationFiles;
 import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.hasher.BCryptPasswordHasher;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
@@ -82,6 +84,8 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
     protected static TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
 
     public static LocalCluster localCluster;
+
+    public static PasswordHasher passwordHasher = new BCryptPasswordHasher();
 
     @BeforeClass
     public static void startCluster() throws IOException {
