@@ -483,6 +483,33 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
+    public void testRequiredAudienceWithCorrectAtLeastOneAudience() {
+
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
+                .put("required_audience", "test_audience,test_audience_2"),
+            Jwts.builder().setSubject("Leonard McCoy").setAudience("test_audience_2")
+        );
+
+        Assert.assertNotNull(credentials);
+        Assert.assertEquals("Leonard McCoy", credentials.getUsername());
+    }
+
+    @Test
+    public void testRequiredAudienceWithInCorrectAtLeastOneAudience() {
+
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder()
+                .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
+                .put("required_audience", "test_audience,test_audience_2"),
+            Jwts.builder().setSubject("Leonard McCoy").setAudience("wrong_audience")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
     public void testRequiredIssuerWithCorrectAudience() {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(

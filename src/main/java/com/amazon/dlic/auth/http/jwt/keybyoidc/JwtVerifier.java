@@ -13,6 +13,8 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -38,9 +40,9 @@ public class JwtVerifier {
     private final KeyProvider keyProvider;
     private final int clockSkewToleranceSeconds;
     private final String requiredIssuer;
-    private final String requiredAudience;
+    private final List<String> requiredAudience;
 
-    public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, String requiredAudience) {
+    public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, List<String> requiredAudience) {
         this.keyProvider = keyProvider;
         this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
         this.requiredIssuer = requiredIssuer;
@@ -116,9 +118,10 @@ public class JwtVerifier {
 
         if (claims != null) {
             DefaultJWTClaimsVerifier<SimpleSecurityContext> claimsVerifier = new DefaultJWTClaimsVerifier<>(
-                requiredAudience,
+                requiredAudience.isEmpty() ? null : new HashSet<>(requiredAudience),
                 null,
-                Collections.emptySet()
+                Collections.emptySet(),
+                null
             );
             claimsVerifier.setMaxClockSkew(clockSkewToleranceSeconds);
             claimsVerifier.verify(claims, null);
@@ -127,10 +130,10 @@ public class JwtVerifier {
     }
 
     private void validateRequiredAudienceAndIssuer(JWTClaimsSet claims) throws BadJWTException {
-        String audience = claims.getAudience().stream().findFirst().orElse("");
+        List<String> audience = claims.getAudience();
         String issuer = claims.getIssuer();
 
-        if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience)) {
+        if (!requiredAudience.isEmpty() && Collections.disjoint(requiredAudience, audience)) {
             throw new BadJWTException("Invalid audience");
         }
 
