@@ -119,6 +119,28 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
+    public void jwksMatchAtLeastOneRequiredAudienceInClaimTest() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .put("required_issuer", TestJwts.TEST_ISSUER)
+            .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+            .build();
+
+        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds);
+        Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
+        Assert.assertEquals(List.of(TestJwts.TEST_AUDIENCE).toString(), creds.getAttributes().get("attr.jwt.aud"));
+        Assert.assertEquals(0, creds.getBackendRoles().size());
+        Assert.assertEquals(4, creds.getAttributes().size());
+    }
+
+    @Test
     public void jwksMissingRequiredAudienceInClaimTest() {
         Settings settings = Settings.builder()
             .put("jwks_uri", mockIdpServer.getJwksUri())

@@ -16,6 +16,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.ParseException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -61,7 +62,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String jwtUrlParameter;
     private final String subjectKey;
     private final String rolesKey;
-    private final String requiredAudience;
+    private final List<String> requiredAudience;
     private final String requiredIssuer;
 
     public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
@@ -74,7 +75,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
-        requiredAudience = settings.get("required_audience");
+        requiredAudience = settings.getAsList("required_audience");
         requiredIssuer = settings.get("required_issuer");
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
@@ -255,7 +256,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         );
     }
 
-    public String getRequiredAudience() {
+    public List<String> getRequiredAudience() {
         return requiredAudience;
     }
 
