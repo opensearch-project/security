@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.12.5'
         guava_version = '32.1.3-jre'
         jaxb_version = '2.3.9'
-        spring_version = '5.3.35'
+        spring_version = '5.3.36'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
