@@ -450,8 +450,8 @@ public class SecurityAdmin {
             ksAlias = line.getOptionValue("ksalias", ksAlias);
             index = line.getOptionValue("i", index);
 
-            String enabledCiphersString = line.getOptionValue("ec", null);
-            String enabledProtocolsString = line.getOptionValue("ep", null);
+            String enabledCiphersString = line.getOptionValue("ec", (String) null);
+            String enabledProtocolsString = line.getOptionValue("ep", (String) null);
 
             if (enabledCiphersString != null) {
                 enabledCiphers = enabledCiphersString.split(",");
