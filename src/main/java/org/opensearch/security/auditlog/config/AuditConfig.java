@@ -502,7 +502,7 @@ public class AuditConfig {
             logger.info("Auditing of request body is {}.", logRequestBody ? "enabled" : "disabled");
             logger.info("Bulk requests resolution is {} during request auditing.", resolveBulkRequests ? "enabled" : "disabled");
             logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
-            logger.info("Sensitive headers auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
+            logger.info("Sensitive headers exclusion from auditing is {}.", excludeSensitiveHeaders ? "enabled" : "disabled");
             logger.info("Auditing requests from {} users is disabled.", ignoredAuditUsersMatcher);
             logger.info("Auditing request headers {} is disabled.", ignoredCustomHeadersMatcher);
             logger.info("Auditing request url params {} is disabled.", ignoredUrlParamsMatcher);
