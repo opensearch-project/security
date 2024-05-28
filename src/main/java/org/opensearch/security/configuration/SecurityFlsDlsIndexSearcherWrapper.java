@@ -27,6 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.mapper.MapperService;
+import org.opensearch.index.mapper.SeqNoFieldMapper;
 import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.shard.ShardUtils;
 import org.opensearch.security.auditlog.AuditLog;
@@ -59,6 +60,8 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         super(indexService, settings, adminDNs, evaluator);
         Set<String> metadataFieldsCopy = new HashSet<>(indexService.mapperService().getMetadataFields());
         metadataFieldsCopy.addAll(MapperService.META_FIELDS_BEFORE_7DOT8);
+        SeqNoFieldMapper.SequenceIDFields sequenceIDFields = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
+        metadataFieldsCopy.add(sequenceIDFields.primaryTerm.name());
         metaFields = metadataFieldsCopy;
         ciol.setIs(indexService);
         this.clusterService = clusterService;
