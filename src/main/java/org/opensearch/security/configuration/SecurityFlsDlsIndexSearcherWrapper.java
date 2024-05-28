@@ -26,7 +26,6 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
-import org.opensearch.index.mapper.IgnoredFieldMapper;
 import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.shard.ShardUtils;
 import org.opensearch.security.auditlog.AuditLog;
@@ -38,25 +37,7 @@ import org.opensearch.security.support.SecurityUtils;
 
 public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWrapper {
 
-    // TODO: the list is outdated. It is necessary to change how meta fields are handled in the near future.
-    // We may consider using MapperService.isMetadataField() instead of relying on the static set or
-    // (if it is too costly or does not meet requirements) use IndicesModule.getBuiltInMetadataFields()
-    // for OpenSearch version specific Set of meta fields
-    private static final Set<String> metaFields = Sets.newHashSet(
-        "_source",
-        "_version",
-        "_field_names",
-        "_seq_no",
-        "_primary_term",
-        "_id",
-        IgnoredFieldMapper.NAME,
-        "_index",
-        "_routing",
-        "_size",
-        "_timestamp",
-        "_ttl",
-        "_type"
-    );
+    private final Set<String> metaFields;
     private final ClusterService clusterService;
     private final IndexService indexService;
     private final AuditLog auditlog;
@@ -75,6 +56,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         final Salt salt
     ) {
         super(indexService, settings, adminDNs, evaluator);
+        metaFields = indexService.mapperService().getMetadataFields();
         ciol.setIs(indexService);
         this.clusterService = clusterService;
         this.indexService = indexService;
