@@ -26,6 +26,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
+import org.opensearch.index.mapper.MapperService;
 import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.shard.ShardUtils;
 import org.opensearch.security.auditlog.AuditLog;
@@ -56,7 +57,9 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         final Salt salt
     ) {
         super(indexService, settings, adminDNs, evaluator);
-        metaFields = indexService.mapperService().getMetadataFields();
+        Set<String> metadataFieldsCopy = new HashSet<>(indexService.mapperService().getMetadataFields());
+        metadataFieldsCopy.addAll(MapperService.META_FIELDS_BEFORE_7DOT8);
+        metaFields = metadataFieldsCopy;
         ciol.setIs(indexService);
         this.clusterService = clusterService;
         this.indexService = indexService;
