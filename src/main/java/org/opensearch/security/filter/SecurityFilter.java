@@ -461,7 +461,7 @@ public class SecurityFilter implements ActionFilter {
                         ? String.format(
                             "no permissions for %s and associated roles %s",
                             pres.getMissingPrivileges(),
-                            pres.getResolvedSecurityRoles()
+                            context.getMappedRoles()
                         )
                         : String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }

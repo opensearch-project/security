@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
@@ -104,13 +106,17 @@ public class IndexResolverReplacer {
     private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
     private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
-    private final ClusterService clusterService;
+    private final Supplier<ClusterState> clusterStateSupplier;
     private final ClusterInfoHolder clusterInfoHolder;
     private volatile boolean respectRequestIndicesOptions = false;
 
-    public IndexResolverReplacer(IndexNameExpressionResolver resolver, ClusterService clusterService, ClusterInfoHolder clusterInfoHolder) {
+    public IndexResolverReplacer(
+        IndexNameExpressionResolver resolver,
+        Supplier<ClusterState> clusterStateSupplier,
+        ClusterInfoHolder clusterInfoHolder
+    ) {
         this.resolver = resolver;
-        this.clusterService = clusterService;
+        this.clusterStateSupplier = clusterStateSupplier;
         this.clusterInfoHolder = clusterInfoHolder;
     }
 
@@ -236,10 +242,10 @@ public class IndexResolverReplacer {
 
             final RemoteClusterService remoteClusterService = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService();
 
-            if (remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
+            if (remoteClusterService != null && remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
                 remoteIndices = new HashSet<>();
                 final Map<String, OriginalIndices> remoteClusterIndices = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService()
-                    .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
+                    .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterStateSupplier.get()));
                 final Set<String> remoteClusters = remoteClusterIndices.keySet()
                     .stream()
                     .filter(k -> !RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k))
@@ -292,7 +298,7 @@ public class IndexResolverReplacer {
             }
 
             else {
-                final ClusterState state = clusterService.state();
+                final ClusterState state = clusterStateSupplier.get();
                 final Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns.stream()
                     .map(resolver::resolveDateMathExpression)
                     .collect(Collectors.toSet());
@@ -425,6 +431,10 @@ public class IndexResolverReplacer {
         }, false);
     }
 
+    public boolean replace(final TransportRequest request, boolean retainMode, Collection<String> replacements) {
+        return replace(request, retainMode, replacements.toArray(new String[replacements.size()]));
+    }
+
     public Resolved resolveRequest(final Object request) {
         if (log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
@@ -447,6 +457,11 @@ public class IndexResolverReplacer {
             All_SET,
             ImmutableSet.of(),
             SearchRequest.DEFAULT_INDICES_OPTIONS
+        );
+
+        private static final IndicesOptions EXACT_INDEX_OPTIONS = new IndicesOptions(
+            EnumSet.of(IndicesOptions.Option.FORBID_ALIASES_TO_MULTIPLE_INDICES),
+            EnumSet.noneOf(IndicesOptions.WildcardStates.class)
         );
 
         private final Set<String> aliases;
@@ -485,8 +500,12 @@ public class IndexResolverReplacer {
         }
 
         public Set<String> getAllIndicesResolved(ClusterService clusterService, IndexNameExpressionResolver resolver) {
+            return getAllIndicesResolved(clusterService::state, resolver);
+        }
+
+        public Set<String> getAllIndicesResolved(Supplier<ClusterState> clusterStateSupplier, IndexNameExpressionResolver resolver) {
             if (isLocalAll) {
-                return new HashSet<>(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), indicesOptions, "*")));
+                return new HashSet<>(Arrays.asList(resolver.concreteIndexNames(clusterStateSupplier.get(), indicesOptions, "*")));
             } else {
                 return allIndices;
             }
@@ -549,6 +568,11 @@ public class IndexResolverReplacer {
                 if (other.remoteIndices != null) return false;
             } else if (!remoteIndices.equals(other.remoteIndices)) return false;
             return true;
+        }
+
+        public static Resolved ofIndex(String index) {
+            ImmutableSet<String> indexSet = ImmutableSet.of(index);
+            return new Resolved(ImmutableSet.of(), indexSet, indexSet, ImmutableSet.of(), EXACT_INDEX_OPTIONS);
         }
     }
 
