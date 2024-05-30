@@ -10,11 +10,18 @@
  */
 package org.opensearch.security.privileges;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
+
+import java.util.HashMap;
+import java.util.Map;
 import org.opensearch.tasks.Task;
 
 /**
@@ -35,6 +42,13 @@ public class PrivilegesEvaluationContext {
     private ImmutableSet<String> mappedRoles;
     private final IndexResolverReplacer indexResolverReplacer;
 
+    /**
+     * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
+     * to be executed several times per request (for example first for action privileges, later for DLS). Thus,
+     * it makes sense to cache and later re-use these.
+     */
+    private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
+
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
@@ -53,6 +67,23 @@ public class PrivilegesEvaluationContext {
 
     public User getUser() {
         return user;
+    }
+
+    public WildcardMatcher getRenderedMatcher(String template) throws ExpressionEvaluationException {
+        WildcardMatcher matcher = this.renderedPatternTemplateCache.get(template);
+
+        if (matcher == null) {
+            try {
+                matcher = WildcardMatcher.from(UserAttributes.replaceProperties(template, this.user));
+            } catch (Exception e) {
+                // This especially happens for invalid regular expressions
+                throw new ExpressionEvaluationException("Error while evaluating expression in " + template, e);
+            }
+
+            this.renderedPatternTemplateCache.put(template, matcher);
+        }
+
+        return matcher;
     }
 
     public String getAction() {

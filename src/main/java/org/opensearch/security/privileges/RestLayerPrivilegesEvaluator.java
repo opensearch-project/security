@@ -75,14 +75,18 @@ public class RestLayerPrivilegesEvaluator {
 
         for (final String action : actions) {
             if (!securityRoles.impliesClusterPermissionPermission(action)) {
-                presponse.missingPrivileges.add(action);
+                // TODO This will exhibit a weird behaviour when a REST action specifies two permissions, and
+                // if the user has no permissions for the first one, but has permissions for the second one:
+                // First, the information "No permission match" will be logged, but then the action will be
+                // allowed nevertheless.
+                // presponse.missingPrivileges.add(action);
                 presponse.allowed = false;
                 log.info(
                     "No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                     user,
                     action,
                     securityRoles.getRoleNames(),
-                    presponse.missingPrivileges
+                    action
                 );
             } else {
                 if (isDebugEnabled) {

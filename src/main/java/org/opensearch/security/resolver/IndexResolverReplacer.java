@@ -425,6 +425,10 @@ public class IndexResolverReplacer {
         }, false);
     }
 
+    public boolean replace(final TransportRequest request, boolean retainMode, Collection<String> replacements) {
+        return replace(request, retainMode, replacements.toArray(new String[replacements.size()]));
+    }
+
     public Resolved resolveRequest(final Object request) {
         if (log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
