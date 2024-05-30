@@ -29,6 +29,7 @@ package org.opensearch.security.configuration;
 /**
  * Callback function on change particular configuration
  */
+@FunctionalInterface
 public interface ConfigurationChangeListener {
 
     /**

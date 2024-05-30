@@ -18,17 +18,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.segments.PitSegmentsRequest;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.SecurityRoles;
-import org.opensearch.security.user.User;
 
 /**
  * This class evaluates privileges for point in time (Delete and List all) operations.
@@ -39,11 +37,9 @@ public class PitPrivilegesEvaluator {
 
     public PrivilegesEvaluatorResponse evaluate(
         final ActionRequest request,
-        final ClusterService clusterService,
-        final User user,
-        final SecurityRoles securityRoles,
+        final PrivilegesEvaluationContext context,
+        final ActionPrivileges actionPrivileges,
         final String action,
-        final IndexNameExpressionResolver resolver,
         final PrivilegesEvaluatorResponse presponse,
         final IndexResolverReplacer irr
     ) {
@@ -64,7 +60,7 @@ public class PitPrivilegesEvaluator {
         if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
             return presponse;
         } else {
-            return handlePitsAccess(pitIds, clusterService, user, securityRoles, action, resolver, presponse, irr);
+            return handlePitsAccess(pitIds, context, actionPrivileges, action, presponse, irr);
         }
     }
 
@@ -73,11 +69,9 @@ public class PitPrivilegesEvaluator {
      */
     private PrivilegesEvaluatorResponse handlePitsAccess(
         List<String> pitIds,
-        ClusterService clusterService,
-        User user,
-        SecurityRoles securityRoles,
+        PrivilegesEvaluationContext context,
+        ActionPrivileges actionPrivileges,
         final String action,
-        IndexNameExpressionResolver resolver,
         PrivilegesEvaluatorResponse presponse,
         final IndexResolverReplacer irr
     ) {
@@ -87,30 +81,16 @@ public class PitPrivilegesEvaluator {
         for (String[] indices : pitToIndicesMap.values()) {
             pitIndices.addAll(Arrays.asList(indices));
         }
-        Set<String> allPermittedIndices = getPermittedIndices(pitIndices, clusterService, user, securityRoles, action, resolver, irr);
-        // Only if user has access to all PIT's indices, allow operation, otherwise continue evaluation in PrivilegesEvaluator.
-        if (allPermittedIndices.containsAll(pitIndices)) {
-            presponse.allowed = true;
-            presponse.markComplete();
-        }
-        return presponse;
-    }
-
-    /**
-     * This method returns list of permitted indices for the PIT indices passed
-     */
-    private Set<String> getPermittedIndices(
-        Set<String> pitIndices,
-        ClusterService clusterService,
-        User user,
-        SecurityRoles securityRoles,
-        final String action,
-        IndexNameExpressionResolver resolver,
-        final IndexResolverReplacer irr
-    ) {
         String[] indicesArr = new String[pitIndices.size()];
         CreatePitRequest req = new CreatePitRequest(new TimeValue(1, TimeUnit.DAYS), true, pitIndices.toArray(indicesArr));
         final IndexResolverReplacer.Resolved pitResolved = irr.resolveRequest(req);
-        return securityRoles.reduce(pitResolved, user, new String[] { action }, resolver, clusterService);
+        PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(context, ImmutableSet.of(action), pitResolved);
+        // Only if user has access to all PIT's indices, allow operation, otherwise continue evaluation in PrivilegesEvaluator.
+        if (subResponse.isAllowed()) {
+            presponse.allowed = true;
+            presponse.markComplete();
+        }
+
+        return presponse;
     }
 }
