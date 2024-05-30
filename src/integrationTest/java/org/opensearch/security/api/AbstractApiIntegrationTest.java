@@ -249,9 +249,13 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         }
     }
 
+    protected String apiPathPrefix() {
+        return randomFrom(List.of(LEGACY_OPENDISTRO_PREFIX, PLUGINS_PREFIX));
+    }
+
     protected String securityPath(String... path) {
         final var fullPath = new StringJoiner("/");
-        fullPath.add(randomFrom(List.of(LEGACY_OPENDISTRO_PREFIX, PLUGINS_PREFIX)));
+        fullPath.add(apiPathPrefix());
         if (path != null) {
             for (final var p : path)
                 fullPath.add(p);
