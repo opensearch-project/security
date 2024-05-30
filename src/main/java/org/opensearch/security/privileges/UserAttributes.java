@@ -24,6 +24,34 @@ import org.opensearch.security.user.User;
  * This code was moved over from ConfigModelV7.
  */
 public class UserAttributes {
+    public static String replaceProperties(String orig, PrivilegesEvaluationContext context) {
+        User user = context.getUser();
+
+        orig = orig.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
+        orig = replaceRoles(orig, user);
+        orig = replaceSecurityRoles(orig, context);
+        for (Map.Entry<String, String> entry : user.getCustomAttributesMap().entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            orig = orig.replace("${" + entry.getKey() + "}", entry.getValue());
+            orig = orig.replace("${" + entry.getKey().replace('.', '_') + "}", entry.getValue());
+        }
+        return orig;
+    }
+
+    private static String replaceSecurityRoles(final String orig, PrivilegesEvaluationContext context) {
+        String retVal = orig;
+        if (orig.contains("${user.securityRoles}") || orig.contains("${user_securityRoles}")) {
+            final String commaSeparatedRoles = toQuotedCommaSeparatedString(
+                Sets.union(context.getUser().getSecurityRoles(), context.getMappedRoles())
+            );
+            retVal = orig.replace("${user.securityRoles}", commaSeparatedRoles).replace("${user_securityRoles}", commaSeparatedRoles);
+        }
+        return retVal;
+    }
+
+    @Deprecated
     public static String replaceProperties(String orig, User user) {
 
         if (user == null || orig == null) {

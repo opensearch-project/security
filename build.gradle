@@ -585,6 +585,10 @@ dependencies {
     implementation 'com.nimbusds:nimbus-jose-jwt:9.41.2'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
+
+    // Action privileges: check tables and compact collections
+    implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
+
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"

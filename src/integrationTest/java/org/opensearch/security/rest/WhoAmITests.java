@@ -77,7 +77,7 @@ public class WhoAmITests {
 
     protected final String expectedAuthorizedBody = "{\"dn\":null,\"is_admin\":false,\"is_node_certificate_request\":false}";
     protected final String expectedUnuauthorizedBody =
-        "no permissions for [security:whoamiprotected] and User [name=who_am_i_user_no_perm, backend_roles=[], requestedTenant=null]";
+        "no permissions for [any of [cluster:admin/opendistro_security/whoamiprotected, security:whoamiprotected]] and User [name=who_am_i_user_no_perm, backend_roles=[], requestedTenant=null]";
 
     public static final String WHOAMI_ENDPOINT = "_plugins/_security/whoami";
     public static final String WHOAMI_PROTECTED_ENDPOINT = "_plugins/_security/whoamiprotected";
