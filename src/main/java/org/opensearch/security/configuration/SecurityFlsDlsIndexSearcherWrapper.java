@@ -12,6 +12,8 @@
 package org.opensearch.security.configuration;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +41,9 @@ import org.opensearch.security.support.SecurityUtils;
 public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWrapper {
 
     private final Set<String> metaFields;
+    public static final Set<String> META_FIELDS_BEFORE_7DOT8 = Collections.unmodifiableSet(
+        new HashSet<>(Arrays.asList("_size", "_timestamp", "_ttl", "_type"))
+    );
     private final ClusterService clusterService;
     private final IndexService indexService;
     private final AuditLog auditlog;
@@ -60,6 +65,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         Set<String> metadataFieldsCopy = new HashSet<>(indexService.mapperService().getMetadataFields());
         SeqNoFieldMapper.SequenceIDFields sequenceIDFields = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
         metadataFieldsCopy.add(sequenceIDFields.primaryTerm.name());
+        metadataFieldsCopy.addAll(META_FIELDS_BEFORE_7DOT8);
         metaFields = metadataFieldsCopy;
         ciol.setIs(indexService);
         this.clusterService = clusterService;
