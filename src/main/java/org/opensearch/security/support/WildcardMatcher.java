@@ -283,6 +283,10 @@ public abstract class WildcardMatcher implements Predicate<String> {
         return Optional.ofNullable(test(candidate) ? this : null);
     }
 
+    public Iterable<String> iterateMatching(Iterable<String> candidates) {
+        return iterateMatching(candidates, Function.identity());
+    }
+
     public <E> Iterable<E> iterateMatching(Iterable<E> candidates, Function<E, String> toStringFunction) {
         return new Iterable<E>() {
 

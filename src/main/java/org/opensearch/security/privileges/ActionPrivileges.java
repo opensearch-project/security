@@ -36,7 +36,6 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
 
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking privileges.
@@ -51,7 +50,7 @@ import org.opensearch.security.user.User;
  * - At the moment, it always behaves like dcm.isMultiRolespanEnabled() is true
  * - Cap the size of StatefulIndexPrivileges and have a kind of LRU cache
  * - Extract interface to make this pluggable (requested in https://github.com/opensearch-project/security/issues/3870#issuecomment-1910286322)
- * - Review the logic of the sub privilege evaluators (like PitPrivilegeEvaluator or ProtectedIndexAccessEvaluator) and possibly integrate it here.
+ * - Implement DLS/FLS.
  * - In the end, this class is intended to replace the SecurityRoles class. This class and references to it should be
  * then removed.
  */
@@ -76,12 +75,13 @@ public class ActionPrivileges {
         FlattenedActionGroups actionGroups,
         Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier,
         ImmutableSet<String> wellKnownClusterActions,
-        ImmutableSet<String> wellKnownIndexActions
+        ImmutableSet<String> wellKnownIndexActions,
+        ImmutableSet<String> explicitlyRequiredIndexActions
     ) {
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<RoleV7> roles = (SecurityDynamicConfiguration<RoleV7>) rolesUnsafe;
         this.cluster = new ClusterPrivileges(roles, actionGroups, wellKnownClusterActions);
-        this.index = new IndexPrivileges(roles, actionGroups, wellKnownIndexActions);
+        this.index = new IndexPrivileges(roles, actionGroups, wellKnownIndexActions, explicitlyRequiredIndexActions);
         this.roles = roles;
         this.actionGroups = actionGroups;
         this.wellKnownClusterActions = wellKnownClusterActions;
@@ -94,7 +94,14 @@ public class ActionPrivileges {
         FlattenedActionGroups actionGroups,
         Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier
     ) {
-        this(roles, actionGroups, indexMetadataSupplier, WellKnownActions.CLUSTER_ACTIONS, WellKnownActions.INDEX_ACTIONS);
+        this(
+            roles,
+            actionGroups,
+            indexMetadataSupplier,
+            WellKnownActions.CLUSTER_ACTIONS,
+            WellKnownActions.INDEX_ACTIONS,
+            WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS
+        );
     }
 
     public PrivilegesEvaluatorResponse hasClusterPrivilege(PrivilegesEvaluationContext context, String action) {
@@ -106,9 +113,6 @@ public class ActionPrivileges {
         Set<String> actions,
         IndexResolverReplacer.Resolved resolvedIndices
     ) {
-        User user = context.getUser();
-        ImmutableSet<String> mappedRoles = context.getMappedRoles();
-
         if (resolvedIndices.getAllIndices().isEmpty()) {
             log.debug("No local indices; grant the request");
             return PrivilegesEvaluatorResponse.ok();
@@ -135,6 +139,15 @@ public class ActionPrivileges {
         }
 
         return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable, this.indexMetadataSupplier.get());
+    }
+
+    public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
+        PrivilegesEvaluationContext context,
+        Set<String> actions,
+        IndexResolverReplacer.Resolved resolvedIndices
+    ) {
+        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.getAllIndices(), actions);
+        return this.index.providesExplicitPrivilege(context, actions, resolvedIndices, checkTable, this.indexMetadataSupplier.get());
     }
 
     public void updateStatefulIndexPrivileges(Map<String, IndexAbstraction> indices) {
@@ -328,6 +341,19 @@ public class ActionPrivileges {
         private final ImmutableSet<String> wellKnownIndexActions;
 
         /**
+         * A pre-defined set of action names that is included in the rolesToExplicitActionToIndexPattern data structure
+         */
+        private final ImmutableSet<String> explicitlyRequiredIndexActions;
+
+        /**
+         * Maps role names to concrete action names to IndexPattern objects which define the indices the privileges apply to.
+         * The action names are only explicitly granted privileges which are listed in explicitlyRequiredIndexActions.
+         *
+         * Compare https://github.com/opensearch-project/security/pull/2887
+         */
+        private final ImmutableMap<String, ImmutableMap<String, IndexPattern>> rolesToExplicitActionToIndexPattern;
+
+        /**
          * Creates pre-computed index privileges based on the given parameters.
          * <p>
          * This constructor will not throw an exception if it encounters any invalid configuration (that is,
@@ -338,11 +364,13 @@ public class ActionPrivileges {
         IndexPrivileges(
             SecurityDynamicConfiguration<RoleV7> roles,
             FlattenedActionGroups actionGroups,
-            ImmutableSet<String> wellKnownIndexActions
+            ImmutableSet<String> wellKnownIndexActions,
+            ImmutableSet<String> explicitlyRequiredIndexActions
         ) {
             Map<String, Map<String, IndexPattern.Builder>> rolesToActionToIndexPattern = new HashMap<>();
             Map<String, Map<WildcardMatcher, IndexPattern.Builder>> rolesToActionPatternToIndexPattern = new HashMap<>();
             Map<String, Set<String>> actionToRolesWithWildcardIndexPrivileges = new HashMap<>();
+            Map<String, Map<String, IndexPattern.Builder>> rolesToExplicitActionToIndexPattern = new HashMap<>();
 
             for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
@@ -365,15 +393,20 @@ public class ActionPrivileges {
                                     .computeIfAbsent(permission, k -> new IndexPattern.Builder())
                                     .add(indexPermissions.getIndex_patterns());
 
+                                if (explicitlyRequiredIndexActions.contains(permission)) {
+                                    rolesToExplicitActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
+                                        .computeIfAbsent(permission, k -> new IndexPattern.Builder())
+                                        .add(indexPermissions.getIndex_patterns());
+                                }
+
                                 if (indexPermissions.getIndex_patterns().contains("*")) {
                                     actionToRolesWithWildcardIndexPrivileges.computeIfAbsent(permission, k -> new HashSet<>())
                                         .add(roleName);
                                 }
                             } else {
                                 WildcardMatcher actionMatcher = WildcardMatcher.from(permission);
-                                Collection<String> matchedActions = actionMatcher.getMatchAny(wellKnownIndexActions, Collectors.toList());
 
-                                for (String action : matchedActions) {
+                                for (String action : actionMatcher.iterateMatching(wellKnownIndexActions)) {
                                     rolesToActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                         .computeIfAbsent(action, k -> new IndexPattern.Builder())
                                         .add(indexPermissions.getIndex_patterns());
@@ -387,6 +420,14 @@ public class ActionPrivileges {
                                 rolesToActionPatternToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                     .computeIfAbsent(actionMatcher, k -> new IndexPattern.Builder())
                                     .add(indexPermissions.getIndex_patterns());
+
+                                if (actionMatcher != WildcardMatcher.ANY) {
+                                    for (String action : actionMatcher.iterateMatching(explicitlyRequiredIndexActions)) {
+                                        rolesToExplicitActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
+                                            .computeIfAbsent(action, k -> new IndexPattern.Builder())
+                                            .add(indexPermissions.getIndex_patterns());
+                                    }
+                                }
                             }
                         }
                     }
@@ -422,7 +463,21 @@ public class ActionPrivileges {
             this.actionToRolesWithWildcardIndexPrivileges = actionToRolesWithWildcardIndexPrivileges.entrySet()
                 .stream()
                 .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> ImmutableSet.copyOf(entry.getValue())));
+
+            this.rolesToExplicitActionToIndexPattern = rolesToExplicitActionToIndexPattern.entrySet()
+                .stream()
+                .collect(
+                    ImmutableMap.toImmutableMap(
+                        entry -> entry.getKey(),
+                        entry -> entry.getValue()
+                            .entrySet()
+                            .stream()
+                            .collect(ImmutableMap.toImmutableMap(entry2 -> entry2.getKey(), entry2 -> entry2.getValue().build()))
+                    )
+                );
+
             this.wellKnownIndexActions = wellKnownIndexActions;
+            this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
         }
 
         PrivilegesEvaluatorResponse providesPrivilege(
@@ -503,6 +558,48 @@ public class ActionPrivileges {
 
             if (!availableIndices.isEmpty()) {
                 return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable, context);
+            }
+
+            return PrivilegesEvaluatorResponse.insufficient(checkTable, context)
+                .reason(
+                    resolvedIndices.getAllIndices().size() == 1
+                        ? "Insufficient permissions for the referenced index"
+                        : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
+                );
+        }
+
+        PrivilegesEvaluatorResponse providesExplicitPrivilege(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            IndexResolverReplacer.Resolved resolvedIndices,
+            CheckTable<String, String> checkTable,
+            Map<String, IndexAbstraction> indexMetadata
+        ) {
+            if (!CollectionUtils.containsAny(actions, this.explicitlyRequiredIndexActions)) {
+                return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions), context);
+            }
+
+            for (String role : context.getMappedRoles()) {
+                ImmutableMap<String, IndexPattern> actionToIndexPattern = this.rolesToExplicitActionToIndexPattern.get(role);
+
+                if (actionToIndexPattern != null) {
+                    for (String action : actions) {
+                        IndexPattern indexPattern = actionToIndexPattern.get(action);
+
+                        if (indexPattern != null) {
+                            for (String index : checkTable.iterateUncheckedRows(action)) {
+                                try {
+                                    if (indexPattern.matches(index, context, indexMetadata) && checkTable.check(index, action)) {
+                                        return PrivilegesEvaluatorResponse.ok();
+                                    }
+                                } catch (PrivilegesEvaluationException e) {
+                                    // We can ignore these errors, as this max leads to fewer privileges than available
+                                    log.error("Error while evaluating index pattern of role {}. Ignoring entry", role, e);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             return PrivilegesEvaluatorResponse.insufficient(checkTable, context)

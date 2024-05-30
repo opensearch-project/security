@@ -39,6 +39,7 @@ import org.opensearch.action.termvectors.TermVectorsAction;
 import org.opensearch.action.update.UpdateAction;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.UpdateByQueryAction;
+import org.opensearch.security.support.ConfigConstants;
 
 /**
  * This class lists so-called "well-known actions". These are taken into account when creating the pre-computed
@@ -79,4 +80,9 @@ public class WellKnownActions {
         TransportShardRefreshAction.NAME,
         FieldCapabilitiesAction.NAME
     );
+
+    /**
+     * Compare https://github.com/opensearch-project/security/pull/2887
+     */
+    public static final ImmutableSet<String> EXPLICITLY_REQUIRED_INDEX_ACTIONS = ImmutableSet.of(ConfigConstants.SYSTEM_INDEX_PERMISSION);
 }

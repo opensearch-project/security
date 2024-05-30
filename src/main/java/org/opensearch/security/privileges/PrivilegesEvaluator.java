@@ -385,7 +385,8 @@ public class PrivilegesEvaluator {
             action0,
             requestedResolved,
             presponse,
-            securityRoles,
+            context,
+            actionPrivileges,
             user,
             resolver,
             clusterService
@@ -399,7 +400,8 @@ public class PrivilegesEvaluator {
         }
 
         // check access for point in time requests
-        if (pitPrivilegesEvaluator.evaluate(request, clusterService, user, securityRoles, action0, resolver, presponse, irr).isComplete()) {
+        if (pitPrivilegesEvaluator.evaluate(request, clusterService, context, actionPrivileges, action0, resolver, presponse, irr)
+            .isComplete()) {
             return presponse;
         }
 
