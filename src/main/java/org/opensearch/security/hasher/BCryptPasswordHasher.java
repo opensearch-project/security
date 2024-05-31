@@ -78,7 +78,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
         return BcryptFunction.getInstance(Bcrypt.Y, 4);
     }
 
-    private HashingFunction getBCryptFunctionFromHash(String hash){
+    private HashingFunction getBCryptFunctionFromHash(String hash) {
         return BcryptFunction.getInstanceFromHash(hash);
     }
 }
