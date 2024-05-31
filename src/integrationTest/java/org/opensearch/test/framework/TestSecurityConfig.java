@@ -313,6 +313,8 @@ public class TestSecurityConfig {
 
         private Boolean reserved = null;
 
+        private Boolean _static = null;
+
         public ActionGroup(String name, Type type, String... allowedActions) {
             this(name, null, type, allowedActions);
         }
@@ -333,9 +335,30 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public boolean hidden() {
+            return hidden != null && hidden;
+        }
+
         public ActionGroup reserved(boolean reserved) {
             this.reserved = reserved;
             return this;
+        }
+
+        public boolean reserved() {
+            return reserved != null && reserved;
+        }
+
+        public ActionGroup _static(boolean _static) {
+            this._static = _static;
+            return this;
+        }
+
+        public boolean _static() {
+            return _static != null && _static;
+        }
+
+        public List<String> allowedActions() {
+            return allowedActions;
         }
 
         @Override
@@ -343,6 +366,7 @@ public class TestSecurityConfig {
             builder.startObject();
             if (hidden != null) builder.field("hidden", hidden);
             if (reserved != null) builder.field("reserved", reserved);
+            if (_static != null) builder.field("static", _static);
             builder.field("type", type.type());
             builder.field("allowed_actions", allowedActions);
             if (description != null) builder.field("description", description);
@@ -366,6 +390,7 @@ public class TestSecurityConfig {
         public int hashCode() {
             return Objects.hash(name, description, type, allowedActions, hidden, reserved);
         }
+
     }
 
     public static final class User implements UserCredentialsHolder, ToXContentObject {
@@ -605,6 +630,8 @@ public class TestSecurityConfig {
 
         private Boolean reserved;
 
+        private Boolean _static;
+
         private final String description;
 
         private List<String> backendRoles = new ArrayList<>();
@@ -632,6 +659,11 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public RoleMapping _static(boolean _static) {
+            this._static = _static;
+            return this;
+        }
+
         public RoleMapping users(String... users) {
             this.users.addAll(Arrays.asList(users));
             return this;
@@ -652,6 +684,7 @@ public class TestSecurityConfig {
             builder.startObject();
             if (hidden != null) builder.field("hidden", hidden);
             if (reserved != null) builder.field("reserved", reserved);
+            if (_static != null) builder.field("static", _static);
             if (users != null && !users.isEmpty()) builder.field("users", users);
             if (hosts != null && !hosts.isEmpty()) builder.field("hosts", hosts);
             if (description != null) builder.field("description", description);

@@ -175,6 +175,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
                         final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
+                            allowedKeys.put("hidden", DataType.BOOLEAN);
                             allowedKeys.put("reserved", DataType.BOOLEAN);
                         }
                         allowedKeys.put("allowed_actions", DataType.ARRAY);
