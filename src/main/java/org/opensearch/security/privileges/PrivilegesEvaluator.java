@@ -343,7 +343,14 @@ public class PrivilegesEvaluator {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
         }
 
-        PrivilegesEvaluationContext context = new PrivilegesEvaluationContext(user, mappedRoles, action0, request, resolver);
+        PrivilegesEvaluationContext context = new PrivilegesEvaluationContext(
+            user,
+            mappedRoles,
+            action0,
+            request,
+            clusterService::state,
+            resolver
+        );
 
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action

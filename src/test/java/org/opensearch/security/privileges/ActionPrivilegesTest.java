@@ -272,7 +272,7 @@ public class ActionPrivilegesTest {
                 return new IndexResolverReplacer.Resolved(
                     ImmutableSet.of(),
                     ImmutableSet.copyOf(indices),
-                    ImmutableSet.of(),
+                    ImmutableSet.copyOf(indices),
                     ImmutableSet.of(),
                     IndicesOptions.LENIENT_EXPAND_OPEN
                 );
@@ -444,7 +444,7 @@ public class ActionPrivilegesTest {
                 return new IndexResolverReplacer.Resolved(
                     ImmutableSet.of(),
                     allIndices.build(),
-                    ImmutableSet.of(),
+                    ImmutableSet.copyOf(indices),
                     ImmutableSet.of(),
                     IndicesOptions.LENIENT_EXPAND_OPEN
                 );
@@ -580,6 +580,7 @@ public class ActionPrivilegesTest {
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
+            null,
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY))

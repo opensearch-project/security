@@ -37,6 +37,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
@@ -489,8 +490,12 @@ public class IndexResolverReplacer {
         }
 
         public Set<String> getAllIndicesResolved(ClusterService clusterService, IndexNameExpressionResolver resolver) {
+            return getAllIndicesResolved(clusterService::state, resolver);
+        }
+
+        public Set<String> getAllIndicesResolved(Supplier<ClusterState> clusterStateSupplier, IndexNameExpressionResolver resolver) {
             if (isLocalAll) {
-                return new HashSet<>(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), indicesOptions, "*")));
+                return new HashSet<>(Arrays.asList(resolver.concreteIndexNames(clusterStateSupplier.get(), indicesOptions, "*")));
             } else {
                 return allIndices;
             }

@@ -113,6 +113,14 @@ public class ActionPrivileges {
         Set<String> actions,
         IndexResolverReplacer.Resolved resolvedIndices
     ) {
+        if (resolvedIndices.isLocalAll()) {
+            PrivilegesEvaluatorResponse response = this.index.providesWildcardPrivilege(context, actions);
+
+            if (response != null) {
+                return response;
+            }
+        }
+
         if (resolvedIndices.getAllIndices().isEmpty()) {
             log.debug("No local indices; grant the request");
             return PrivilegesEvaluatorResponse.ok();
@@ -120,7 +128,10 @@ public class ActionPrivileges {
 
         // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
         // what's the action and what's the index in the generic parameters of CheckTable.
-        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.getAllIndices(), actions);
+        CheckTable<String, String> checkTable = CheckTable.create(
+            resolvedIndices.getAllIndicesResolved(context.getClusterStateSupplier(), context.getIndexNameExpressionResolver()),
+            actions
+        );
 
         StatefulIndexPrivileges statefulIndex = this.statefulIndex;
         PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
@@ -566,6 +577,29 @@ public class ActionPrivileges {
                         ? "Insufficient permissions for the referenced index"
                         : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
                 );
+        }
+
+        /**
+         * Returns PrivilegesEvaluatorResponse.ok() if the user identified in the context object has privileges for all
+         * indices (using *) for the given actions. Returns null otherwise. Then, further checks must be done to check
+         * the user's privileges.
+         */
+        PrivilegesEvaluatorResponse providesWildcardPrivilege(PrivilegesEvaluationContext context, Set<String> actions) {
+            ImmutableSet<String> effectiveRoles = context.getMappedRoles();
+            CheckTable<String, String> checkTable = CheckTable.create(ImmutableSet.of("*"), actions);
+
+            for (String action : actions) {
+                ImmutableSet<String> rolesWithWildcardIndexPrivileges = this.actionToRolesWithWildcardIndexPrivileges.get(action);
+
+                if (rolesWithWildcardIndexPrivileges != null
+                    && CollectionUtils.containsAny(rolesWithWildcardIndexPrivileges, effectiveRoles)) {
+                    if (checkTable.check("*", action)) {
+                        return PrivilegesEvaluatorResponse.ok();
+                    }
+                }
+            }
+
+            return null;
         }
 
         PrivilegesEvaluatorResponse providesExplicitPrivilege(

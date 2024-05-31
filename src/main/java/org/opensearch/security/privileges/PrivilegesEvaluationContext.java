@@ -12,11 +12,14 @@ package org.opensearch.security.privileges;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
@@ -49,18 +52,25 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
+    private final Supplier<ClusterState> clusterStateSupplier;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
+
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
         String action,
         ActionRequest request,
         Task task,
-        IndexResolverReplacer indexResolverReplacer
+        Supplier<ClusterState> clusterStateSupplier,
+        IndexResolverReplacer indexResolverReplacer,
+        IndexNameExpressionResolver indexNameExpressionResolver
     ) {
         this.user = user;
         this.mappedRoles = mappedRoles;
         this.action = action;
         this.request = request;
+        this.clusterStateSupplier = clusterStateSupplier;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
         this.indexResolverReplacer = indexResolverReplacer;
     }
@@ -123,6 +133,10 @@ public class PrivilegesEvaluationContext {
      */
     void setMappedRoles(ImmutableSet<String> mappedRoles) {
         this.mappedRoles = mappedRoles;
+    }
+
+    public Supplier<ClusterState> getClusterStateSupplier() {
+        return clusterStateSupplier;
     }
 
 }
