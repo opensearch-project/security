@@ -26,8 +26,7 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.Set;
-
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -46,19 +45,17 @@ import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.SecurityRoles;
-import org.opensearch.security.user.User;
 
 public class TermsAggregationEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    private static final String[] READ_ACTIONS = new String[] {
+    private static final ImmutableSet<String> READ_ACTIONS = ImmutableSet.of(
         MultiSearchAction.NAME,
         MultiGetAction.NAME,
         GetAction.NAME,
         SearchAction.NAME,
-        FieldCapabilitiesAction.NAME };
+        FieldCapabilitiesAction.NAME );
 
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 
@@ -68,8 +65,8 @@ public class TermsAggregationEvaluator {
         final Resolved resolved,
         final ActionRequest request,
         ClusterService clusterService,
-        User user,
-        SecurityRoles securityRoles,
+        PrivilegesEvaluationContext context,
+        ActionPrivileges actionPrivileges,
         IndexNameExpressionResolver resolver,
         PrivilegesEvaluatorResponse presponse
     ) {
@@ -89,17 +86,16 @@ public class TermsAggregationEvaluator {
                             && ab.getPipelineAggregations().isEmpty()
                             && ab.getSubAggregations().isEmpty()) {
 
-                            final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForDashboards(
-                                resolved,
-                                user,
+                            PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
+                                context,
                                 READ_ACTIONS,
-                                resolver,
-                                clusterService
+                                Resolved._LOCAL_ALL
                             );
-                            if (allPermittedIndices == null || allPermittedIndices.isEmpty()) {
+
+                            if (subResponse.isPartiallyOk()) {
+                                sr.source().query(new TermsQueryBuilder("_index", subResponse.getAvailableIndices()));
+                            } else if (!subResponse.isAllowed()) {
                                 sr.source().query(NONE_QUERY);
-                            } else {
-                                sr.source().query(new TermsQueryBuilder("_index", allPermittedIndices));
                             }
 
                             presponse.allowed = true;

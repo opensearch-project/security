@@ -479,7 +479,7 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse)
+        if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, context, actionPrivileges, resolver, presponse)
             .isComplete()) {
             return presponse;
         }
