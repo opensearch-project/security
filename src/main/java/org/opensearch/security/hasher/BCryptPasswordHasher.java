@@ -38,7 +38,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
                 securityManager.checkPermission(new SpecialPermission());
             }
             return AccessController.doPrivileged(
-                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer).with(getBCryptFunction()).getResult()
+                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer).with(getDefaultBCryptFunction()).getResult()
             );
         } finally {
             cleanup(passwordBuffer);
@@ -60,7 +60,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
                 securityManager.checkPermission(new SpecialPermission());
             }
             return AccessController.doPrivileged(
-                (PrivilegedAction<Boolean>) () -> Password.check(passwordBuffer, hash).with(getBCryptFunction())
+                (PrivilegedAction<Boolean>) () -> Password.check(passwordBuffer, hash).with(getBCryptFunctionFromHash(hash))
             );
         } finally {
             cleanup(passwordBuffer);
@@ -74,7 +74,11 @@ public class BCryptPasswordHasher implements PasswordHasher {
         password.put(passwordOverwrite);
     }
 
-    private HashingFunction getBCryptFunction() {
-        return BcryptFunction.getInstance(Bcrypt.Y, 12);
+    private HashingFunction getDefaultBCryptFunction() {
+        return BcryptFunction.getInstance(Bcrypt.Y, 4);
+    }
+
+    private HashingFunction getBCryptFunctionFromHash(String hash){
+        return BcryptFunction.getInstanceFromHash(hash);
     }
 }
