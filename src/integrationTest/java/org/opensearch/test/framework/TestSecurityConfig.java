@@ -80,7 +80,7 @@ public class TestSecurityConfig {
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
     private static final PasswordHasher passwordHasher = new BCryptPasswordHasher();
-    
+
     private Config config = new Config();
     private Map<String, User> internalUsers = new LinkedHashMap<>();
     private Map<String, Role> roles = new LinkedHashMap<>();
