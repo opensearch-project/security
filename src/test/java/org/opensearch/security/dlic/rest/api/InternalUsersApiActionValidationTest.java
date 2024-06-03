@@ -22,6 +22,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
@@ -192,7 +193,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
     }
 
     private InternalUsersApiAction createInternalUsersApiAction() {
-        return new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies);
+        return new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, new BCryptPasswordHasher());
     }
 
 }

@@ -90,12 +90,13 @@ public class InternalUsersApiAction extends AbstractApiAction {
         final ClusterService clusterService,
         final ThreadPool threadPool,
         final UserService userService,
-        final SecurityApiDependencies securityApiDependencies
+        final SecurityApiDependencies securityApiDependencies,
+        final PasswordHasher passwordHasher
     ) {
         super(Endpoint.INTERNALUSERS, clusterService, threadPool, securityApiDependencies);
         this.userService = userService;
         this.requestHandlersBuilder.configureRequestHandlers(this::internalUsersApiRequestHandlers);
-        this.passwordHasher = new BCryptPasswordHasher();
+        this.passwordHasher = passwordHasher;
     }
 
     @Override

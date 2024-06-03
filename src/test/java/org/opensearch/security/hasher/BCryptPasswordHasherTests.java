@@ -17,11 +17,10 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 public class BCryptPasswordHasherTests {
 
@@ -33,13 +32,14 @@ public class BCryptPasswordHasherTests {
     @Test
     public void shouldMatchHashToCorrectPassword() {
         String hashedPassword = passwordHasher.hash(password.toCharArray());
-        assertTrue(passwordHasher.check(password.toCharArray(), hashedPassword));
+        assertThat(passwordHasher.check(password.toCharArray(), hashedPassword), is(true));
     }
 
     @Test
     public void shouldNotMatchHashToWrongPassword() {
         String hashedPassword = passwordHasher.hash(password.toCharArray());
-        assertFalse(passwordHasher.check(wrongPassword.toCharArray(), hashedPassword));
+        assertThat(passwordHasher.check(wrongPassword.toCharArray(), hashedPassword), is(false));
+
     }
 
     /**
@@ -48,15 +48,15 @@ public class BCryptPasswordHasherTests {
     @Test
     public void shouldBeBackwardsCompatible() {
         String legacyHash = "$2y$12$gdh2ecVBQmwpmcAeyReicuNtXyR6GMWSfXHxtcBBqFeFz2VQ8kDZe";
-        assertTrue(passwordHasher.check(password.toCharArray(), legacyHash));
-        assertFalse(passwordHasher.check(wrongPassword.toCharArray(), legacyHash));
+        assertThat(passwordHasher.check(password.toCharArray(), legacyHash), is(true));
+        assertThat(passwordHasher.check(wrongPassword.toCharArray(), legacyHash), is(false));
     }
 
     @Test
     public void shouldGenerateDifferentHashesForTheSamePassword() {
         String hash1 = passwordHasher.hash(password.toCharArray());
         String hash2 = passwordHasher.hash(password.toCharArray());
-        assertNotEquals(hash1, hash2);
+        assertThat(hash1, is(not(hash2)));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class BCryptPasswordHasherTests {
     public void shouldCleanupPasswordCharArray() {
         char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
         passwordHasher.hash(password);
-        assertEquals("\0\0\0\0\0\0\0\0", new String(password));
+        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class BCryptPasswordHasherTests {
         char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         passwordHasher.hash(password);
-        assertEquals("\0\0\0\0\0\0\0\0", new String(password));
-        assertEquals("\0\0\0\0\0\0\0\0", passwordBuffer.toString());
+        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
+        assertThat("\0\0\0\0\0\0\0\0", is(passwordBuffer.toString()));
     }
 }

@@ -38,7 +38,6 @@ import java.util.Map.Entry;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthorizationBackend;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.user.AuthCredentials;
@@ -48,8 +47,12 @@ import org.greenrobot.eventbus.Subscribe;
 
 public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
 
-    private final PasswordHasher passwordHasher = new BCryptPasswordHasher();
+    private final PasswordHasher passwordHasher;
     private InternalUsersModel internalUsersModel;
+
+    public InternalAuthenticationBackend(PasswordHasher passwordHasher) {
+        this.passwordHasher = passwordHasher;
+    }
 
     @Override
     public boolean exists(User user) {

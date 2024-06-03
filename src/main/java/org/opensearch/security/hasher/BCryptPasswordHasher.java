@@ -24,7 +24,11 @@ import com.password4j.HashingFunction;
 import com.password4j.Password;
 import com.password4j.types.Bcrypt;
 
+import static org.opensearch.core.common.Strings.isNullOrEmpty;
+
 public class BCryptPasswordHasher implements PasswordHasher {
+
+    private static final HashingFunction DEFAULT_BCRYPT_FUNCTION = BcryptFunction.getInstance(Bcrypt.Y, 12);
 
     @Override
     public String hash(char[] password) {
@@ -38,7 +42,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
                 securityManager.checkPermission(new SpecialPermission());
             }
             return AccessController.doPrivileged(
-                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer).with(getDefaultBCryptFunction()).getResult()
+                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer).with(DEFAULT_BCRYPT_FUNCTION).getResult()
             );
         } finally {
             cleanup(passwordBuffer);
@@ -50,7 +54,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
         if (password == null || password.length == 0) {
             throw new OpenSearchSecurityException("Password cannot be empty or null");
         }
-        if (hash == null || hash.isEmpty()) {
+        if (isNullOrEmpty(hash)) {
             throw new OpenSearchSecurityException("Hash cannot be empty or null");
         }
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
@@ -72,10 +76,6 @@ public class BCryptPasswordHasher implements PasswordHasher {
         char[] passwordOverwrite = new char[password.capacity()];
         Arrays.fill(passwordOverwrite, '\0');
         password.put(passwordOverwrite);
-    }
-
-    private HashingFunction getDefaultBCryptFunction() {
-        return BcryptFunction.getInstance(Bcrypt.Y, 12);
     }
 
     private HashingFunction getBCryptFunctionFromHash(String hash) {

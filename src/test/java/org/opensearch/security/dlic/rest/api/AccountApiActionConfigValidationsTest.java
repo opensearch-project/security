@@ -17,30 +17,29 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class AccountApiActionConfigValidationsTest extends AbstractApiActionValidationTest {
 
     @Test
     public void verifyValidCurrentPassword() {
-        final var accountApiAction = new AccountApiAction(clusterService, threadPool, securityApiDependencies);
+        final var accountApiAction = new AccountApiAction(clusterService, threadPool, securityApiDependencies, passwordHasher);
 
         final var u = createExistingUser();
 
         var result = accountApiAction.validCurrentPassword(SecurityConfiguration.of(requestContent(), "u", configuration));
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.isValid(), is(false));
+        assertThat(RestStatus.BAD_REQUEST, is(result.status()));
 
         u.setHash(passwordHasher.hash("aaaa".toCharArray()));
         result = accountApiAction.validCurrentPassword(SecurityConfiguration.of(requestContent(), "u", configuration));
-        assertTrue(result.isValid());
+        assertThat(result.isValid(), is(true));
     }
 
     @Test
     public void updatePassword() {
-        final var accountApiAction = new AccountApiAction(clusterService, threadPool, securityApiDependencies);
+        final var accountApiAction = new AccountApiAction(clusterService, threadPool, securityApiDependencies, passwordHasher);
 
         final var requestContent = requestContent();
         requestContent.remove("password");
@@ -48,19 +47,19 @@ public class AccountApiActionConfigValidationsTest extends AbstractApiActionVali
         u.setHash(null);
 
         var result = accountApiAction.updatePassword(SecurityConfiguration.of(requestContent, "u", configuration));
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.isValid(), is(false));
+        assertThat(RestStatus.BAD_REQUEST, is(result.status()));
 
         requestContent.put("password", "cccccc");
         result = accountApiAction.updatePassword(SecurityConfiguration.of(requestContent, "u", configuration));
-        assertTrue(result.isValid());
-        assertTrue(passwordHasher.check("cccccc".toCharArray(), u.getHash()));
+        assertThat(result.isValid(), is(true));
+        assertThat(passwordHasher.check("cccccc".toCharArray(), u.getHash()), is(true));
 
         requestContent.remove("password");
         requestContent.put("hash", passwordHasher.hash("dddddd".toCharArray()));
         result = accountApiAction.updatePassword(SecurityConfiguration.of(requestContent, "u", configuration));
-        assertTrue(result.isValid());
-        assertTrue(passwordHasher.check("dddddd".toCharArray(), u.getHash()));
+        assertThat(result.isValid(), is(true));
+        assertThat(passwordHasher.check("dddddd".toCharArray(), u.getHash()), is(true));
     }
 
     private ObjectNode requestContent() {

@@ -31,7 +31,6 @@ import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
@@ -61,11 +60,12 @@ public class AccountApiAction extends AbstractApiAction {
     public AccountApiAction(
         final ClusterService clusterService,
         final ThreadPool threadPool,
-        final SecurityApiDependencies securityApiDependencies
+        final SecurityApiDependencies securityApiDependencies,
+        final PasswordHasher passwordHasher
     ) {
         super(Endpoint.ACCOUNT, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(this::accountApiRequestHandlers);
-        this.passwordHasher = new BCryptPasswordHasher();
+        this.passwordHasher = passwordHasher;
     }
 
     @Override

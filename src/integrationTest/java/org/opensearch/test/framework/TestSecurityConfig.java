@@ -77,7 +77,7 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 public class TestSecurityConfig {
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
-    public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
+    private static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
     private static final PasswordHasher passwordHasher = new BCryptPasswordHasher();
 
     private Config config = new Config();
@@ -967,7 +967,7 @@ public class TestSecurityConfig {
     }
 
     static String hash(final char[] clearTextPassword) {
-        return passwordHasher.hash((Objects.requireNonNull(clearTextPassword)));
+        return passwordHasher.hash(clearTextPassword);
     }
 
     private void writeEmptyConfigToIndex(Client client, CType configType) {
