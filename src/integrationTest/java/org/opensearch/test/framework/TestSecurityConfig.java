@@ -76,10 +76,11 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 */
 public class TestSecurityConfig {
 
-    private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
-    private static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
-    private static final PasswordHasher passwordHasher = new BCryptPasswordHasher();
+    public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
 
+    private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
+    private static final PasswordHasher passwordHasher = new BCryptPasswordHasher();
+    
     private Config config = new Config();
     private Map<String, User> internalUsers = new LinkedHashMap<>();
     private Map<String, Role> roles = new LinkedHashMap<>();
