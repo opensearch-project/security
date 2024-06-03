@@ -68,7 +68,10 @@ public class UserInjectorTest {
     public void testValidInjectUserIpV6() {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2|2001:db8:3333:4444:5555:6666:7777:8888:9200");
+        threadContext.putTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+            "user|role1,role2|2001:db8:3333:4444:5555:6666:7777:8888:9200"
+        );
         User injectedUser = userInjector.getInjectedUser();
         assertEquals(injectedUser.getName(), "user");
         assertEquals(injectedUser.getRoles(), roles);
@@ -78,7 +81,10 @@ public class UserInjectorTest {
     public void testInvalidInjectUserIpV6() {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2|2001:db8:3333:5555:6666:7777:8888:9200");
+        threadContext.putTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+            "user|role1,role2|2001:db8:3333:5555:6666:7777:8888:9200"
+        );
         User injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }
@@ -87,7 +93,10 @@ public class UserInjectorTest {
     public void testValidInjectUserBracketsIpV6() {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2|[2001:db8:3333:4444:5555:6666:7777:8888]:9200");
+        threadContext.putTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+            "user|role1,role2|[2001:db8:3333:4444:5555:6666:7777:8888]:9200"
+        );
         User injectedUser = userInjector.getInjectedUser();
         assertEquals(injectedUser.getName(), "user");
         assertEquals(injectedUser.getRoles(), roles);
