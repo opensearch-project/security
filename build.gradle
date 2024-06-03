@@ -502,7 +502,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
             force 'org.checkerframework:checker-qual:3.40.0'
-            force "com.google.errorprone:error_prone_annotations:2.27.1"
+            force "com.google.errorprone:error_prone_annotations:2.28.0"
             force "org.checkerframework:checker-qual:3.42.0"
             force "ch.qos.logback:logback-classic:1.5.6"
         }
@@ -598,7 +598,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.17.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.27.1'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.28.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.6'
