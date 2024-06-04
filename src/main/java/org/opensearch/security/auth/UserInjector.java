@@ -67,7 +67,7 @@ public class UserInjector {
     }
 
     public static class InjectedUser extends User {
-        private transient TransportAddress transportAddress;
+        transient TransportAddress transportAddress;
 
         public InjectedUser(String name) {
             super(name);

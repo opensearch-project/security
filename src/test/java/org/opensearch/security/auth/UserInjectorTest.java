@@ -72,9 +72,10 @@ public class UserInjectorTest {
             ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
             "user|role1,role2|2001:db8:3333:4444:5555:6666:7777:8888:9200"
         );
-        User injectedUser = userInjector.getInjectedUser();
-        assertEquals(injectedUser.getName(), "user");
-        assertEquals(injectedUser.getRoles(), roles);
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        assertEquals("user", injectedUser.getName());
+        assertEquals(9200, injectedUser.getTransportAddress().getPort());
+        assertEquals("2001:db8:3333:4444:5555:6666:7777:8888", injectedUser.getTransportAddress().getAddress());
     }
 
     @Test
@@ -97,9 +98,11 @@ public class UserInjectorTest {
             ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
             "user|role1,role2|[2001:db8:3333:4444:5555:6666:7777:8888]:9200"
         );
-        User injectedUser = userInjector.getInjectedUser();
-        assertEquals(injectedUser.getName(), "user");
-        assertEquals(injectedUser.getRoles(), roles);
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        assertEquals("user", injectedUser.getName());
+        assertEquals(roles, injectedUser.getRoles());
+        assertEquals(9200, injectedUser.getTransportAddress().getPort());
+        assertEquals("2001:db8:3333:4444:5555:6666:7777:8888", injectedUser.getTransportAddress().getAddress());
     }
 
     @Test
