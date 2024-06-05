@@ -79,6 +79,17 @@ public class UserInjectorTest {
     }
 
     @Test
+    public void testValidInjectUserIpV6ShortFormat() {
+        HashSet<String> roles = new HashSet<>();
+        roles.addAll(Arrays.asList("role1", "role2"));
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2|2001:db8::1:9200");
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        assertEquals("user", injectedUser.getName());
+        assertEquals(9200, injectedUser.getTransportAddress().getPort());
+        assertEquals("2001:db8::1", injectedUser.getTransportAddress().getAddress());
+    }
+
+    @Test
     public void testInvalidInjectUserIpV6() {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
