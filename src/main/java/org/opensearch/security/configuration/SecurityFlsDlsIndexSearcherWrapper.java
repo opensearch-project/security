@@ -42,7 +42,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
 
     private final Set<String> metaFields;
     public static final Set<String> META_FIELDS_BEFORE_7DOT8 = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList("_size", "_timestamp", "_ttl", "_type"))
+        new HashSet<>(Arrays.asList("_timestamp", "_ttl", "_type"))
     );
     private final ClusterService clusterService;
     private final IndexService indexService;
