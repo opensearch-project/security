@@ -93,14 +93,16 @@ public class UserInjector {
         }
 
         public void setTransportAddress(String addr) throws UnknownHostException, IllegalArgumentException {
-            // format is ip:port
-            String[] ipAndPort = addr.split(":");
-            if (ipAndPort.length != 2) {
+            int lastColonIndex = addr.lastIndexOf(':');
+            if (lastColonIndex == -1) {
                 throw new IllegalArgumentException("Remote address must have format ip:port");
             }
 
-            InetAddress iAdress = InetAddress.getByName(ipAndPort[0]);
-            int port = Integer.parseInt(ipAndPort[1]);
+            String ip = addr.substring(0, lastColonIndex);
+            String portString = addr.substring(lastColonIndex + 1);
+
+            InetAddress iAdress = InetAddress.getByName(ip);
+            int port = Integer.parseInt(portString);
 
             this.transportAddress = new TransportAddress(iAdress, port);
         }
