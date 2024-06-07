@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.opensearch.action.get.GetRequest;
@@ -43,10 +44,15 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.index.mapper.SourceFieldMapper;
+import org.opensearch.index.mapper.size.SizeFieldMapper;
+import org.opensearch.index.query.MatchAllQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.plugin.mapper.MapperSizePlugin;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.ParsedAvg;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -55,6 +61,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
@@ -94,6 +101,7 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.conta
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitDoesContainField;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitDoesNotContainField;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
 
@@ -212,6 +220,7 @@ public class FlsAndFieldMaskingTests {
         .nodeSettings(
             Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
         )
+        .plugin(MapperSizePlugin.class)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(
             ADMIN_USER,
@@ -426,6 +435,10 @@ public class FlsAndFieldMaskingTests {
 
     private static List<String> createIndexWithDocs(String indexName, Song... songs) {
         try (Client client = cluster.getInternalNodeClient()) {
+            client.admin()
+                .indices()
+                .create(new CreateIndexRequest(indexName).mapping(Map.of("_size", Map.of("enabled", true))))
+                .actionGet();
             return Stream.of(songs).map(song -> {
                 IndexResponse response = client.index(new IndexRequest(indexName).setRefreshPolicy(IMMEDIATE).source(song.asMap()))
                     .actionGet();
@@ -467,6 +480,14 @@ public class FlsAndFieldMaskingTests {
         IntStream.range(0, response.getHits().getHits().length)
             .boxed()
             .forEach(index -> assertThat(response, searchHitDoesNotContainField(index, excludedField)));
+    }
+
+    private static void assertSearchHitsDoContainField(SearchResponse response, String includedField) {
+        assertThat(response, isSuccessfulSearchResponse());
+        assertThat(response.getHits().getHits().length, greaterThan(0));
+        IntStream.range(0, response.getHits().getHits().length)
+            .boxed()
+            .forEach(index -> assertThat(response, searchHitDoesContainField(index, includedField)));
     }
 
     @Test
@@ -808,6 +829,30 @@ public class FlsAndFieldMaskingTests {
             assertThat(response, containsFieldWithNameAndType(FIELD_ARTIST, "text"));
             assertThat(response, containsFieldWithNameAndType(FIELD_TITLE, "text"));
             assertThat(response, containsFieldWithNameAndType(FIELD_LYRICS, "text"));
+        }
+    }
+
+    @Test
+    public void flsWithIncludesRulesIncludesFieldMappersFromPlugins() throws IOException {
+        String indexName = "fls_includes_index";
+        TestSecurityConfig.Role userRole = new TestSecurityConfig.Role("fls_include_stars_reader").clusterPermissions(
+            "cluster_composite_ops_ro"
+        ).indexPermissions("read").fls(FIELD_STARS).on("*");
+        TestSecurityConfig.User user = createUserWithRole("fls_includes_user", userRole);
+        List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            MatchAllQueryBuilder matchAllQueryBuilder = QueryBuilders.matchAllQuery();
+            searchSourceBuilder.storedFields(List.of(SizeFieldMapper.NAME, SourceFieldMapper.NAME));
+            searchSourceBuilder.query(matchAllQueryBuilder);
+            searchRequest.source(searchSourceBuilder);
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+            assertSearchHitsDoContainField(searchResponse, FIELD_STARS);
+            assertThat(searchResponse.toString(), containsString(SizeFieldMapper.NAME));
+            assertSearchHitsDoNotContainField(searchResponse, FIELD_ARTIST);
         }
     }
 
