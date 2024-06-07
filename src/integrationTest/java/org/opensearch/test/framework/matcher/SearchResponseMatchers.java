@@ -44,6 +44,10 @@ public class SearchResponseMatchers {
         return new SearchHitDoesNotContainFieldMatcher(hitIndex, fieldName);
     }
 
+    public static Matcher<SearchResponse> searchHitDoesContainField(int hitIndex, String fieldName) {
+        return new SearchHitDoesContainFieldMatcher(hitIndex, fieldName);
+    }
+
     public static Matcher<SearchResponse> searchHitsContainDocumentWithId(int hitIndex, String indexName, String documentId) {
         return new SearchHitsContainDocumentWithIdMatcher(hitIndex, indexName, documentId);
     }
