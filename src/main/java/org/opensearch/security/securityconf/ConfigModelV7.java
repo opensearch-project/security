@@ -38,10 +38,8 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
@@ -58,6 +56,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.set.Sets;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.privileges.UserAttributes;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
@@ -833,7 +832,7 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         public String getUnresolvedIndexPattern(User user) {
-            return replaceProperties(indexPattern, user);
+            return UserAttributes.replaceProperties(indexPattern, user);
         }
 
         /** Finds the indices accessible to the user and resolves them to concrete names */
@@ -895,7 +894,7 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         public String getDlsQuery(User user) {
-            return replaceProperties(dlsQuery, user);
+            return UserAttributes.replaceProperties(dlsQuery, user);
         }
 
         public boolean hasDlsQuery() {
@@ -1038,49 +1037,6 @@ public class ConfigModelV7 extends ConfigModel {
                 + "                readWrite="
                 + readWrite;
         }
-    }
-
-    private static String replaceProperties(String orig, User user) {
-
-        if (user == null || orig == null) {
-            return orig;
-        }
-
-        orig = orig.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
-        orig = replaceRoles(orig, user);
-        orig = replaceSecurityRoles(orig, user);
-        for (Entry<String, String> entry : user.getCustomAttributesMap().entrySet()) {
-            if (entry == null || entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            orig = orig.replace("${" + entry.getKey() + "}", entry.getValue());
-            orig = orig.replace("${" + entry.getKey().replace('.', '_') + "}", entry.getValue());
-        }
-        return orig;
-    }
-
-    private static String replaceRoles(final String orig, final User user) {
-        String retVal = orig;
-        if (orig.contains("${user.roles}") || orig.contains("${user_roles}")) {
-            final String commaSeparatedRoles = toQuotedCommaSeparatedString(user.getRoles());
-            retVal = orig.replace("${user.roles}", commaSeparatedRoles).replace("${user_roles}", commaSeparatedRoles);
-        }
-        return retVal;
-    }
-
-    private static String replaceSecurityRoles(final String orig, final User user) {
-        String retVal = orig;
-        if (orig.contains("${user.securityRoles}") || orig.contains("${user_securityRoles}")) {
-            final String commaSeparatedRoles = toQuotedCommaSeparatedString(user.getSecurityRoles());
-            retVal = orig.replace("${user.securityRoles}", commaSeparatedRoles).replace("${user_securityRoles}", commaSeparatedRoles);
-        }
-        return retVal;
-    }
-
-    private static String toQuotedCommaSeparatedString(final Set<String> roles) {
-        return Joiner.on(',').join(Iterables.transform(roles, s -> {
-            return new StringBuilder(s.length() + 2).append('"').append(s).append('"').toString();
-        }));
     }
 
     private static final class IndexMatcherAndPermissions {
@@ -1235,7 +1191,7 @@ public class ConfigModelV7 extends ConfigModel {
                     // replaceProperties for tenant name because
                     // at this point e.getValue().v1() can be in this form : "${attr.[internal|jwt|proxy|ldap].*}"
                     // let's substitute it with the eventual value of the user's attribute
-                    final String tenant = replaceProperties(e.getValue().v1(), user);
+                    final String tenant = UserAttributes.replaceProperties(e.getValue().v1(), user);
                     final boolean rw = e.getValue().v2();
 
                     if (rw || !result.containsKey(tenant)) { // RW outperforms RO
