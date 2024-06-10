@@ -1703,6 +1703,7 @@ public class FlsAndFieldMaskingTests {
             assertThat(searchResponse, searchHitDoesNotContainField(hitIndex, FIELD_GENRE));
         });
     }
+
     public void flsWithIncludesRulesIncludesFieldMappersFromPlugins() throws IOException {
         String indexName = "fls_includes_index";
         TestSecurityConfig.Role userRole = new TestSecurityConfig.Role("fls_include_stars_reader").clusterPermissions(

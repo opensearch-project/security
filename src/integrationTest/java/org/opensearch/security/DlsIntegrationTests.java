@@ -10,8 +10,8 @@
 package org.opensearch.security;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -202,6 +202,7 @@ public class DlsIntegrationTests {
     static final TestSecurityConfig.User USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY = new TestSecurityConfig.User(
         "bool_term_user"
     ).roles(ROLE_MATCH_ARTIST_BOOL_QUERY, ROLE_MATCH_STARS_TERM_QUERY);
+
     /**
      * Test role 1 for DLS filtering with two (non)overlapping roles. This role imposes a filter where the user can only access documents where the sensitive field is false. This role is applied at a higher level for all index patterns.
      */
@@ -275,7 +276,7 @@ public class DlsIntegrationTests {
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
             USER_MATCH_ARTIST_BOOL_QUERY,
             USER_MATCH_STARS_TERM_QUERY,
-            USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
+            USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY,
             USER_NON_SENSITIVE_ONLY,
             USER_ALLOW_ALL,
             USER_MATCH_HISTORY_GENRE_ONLY,
@@ -771,7 +772,8 @@ public class DlsIntegrationTests {
         ) {
             assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, searchRequest);
         }
-      
+    }
+
     public void testOverlappingRoleUnionSearchFiltering() throws Exception {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NON_SENSITIVE_ONLY)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
