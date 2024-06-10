@@ -158,6 +158,8 @@ import org.opensearch.security.dlic.rest.api.ssl.TransportCertificatesInfoNodesA
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.hasher.BCryptPasswordHasher;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
@@ -259,6 +261,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
+    private volatile PasswordHasher passwordHasher;
 
     public static boolean isActionTraceEnabled() {
 
@@ -645,7 +648,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         Objects.requireNonNull(auditLog),
                         Objects.requireNonNull(userService),
                         sks,
-                        sslCertReloadEnabled
+                        sslCertReloadEnabled,
+                        passwordHasher
                     )
                 );
                 log.debug("Added {} rest handler(s)", handlers.size());
@@ -1101,7 +1105,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
-        userService = new UserService(cs, cr, settings, localClient);
+        this.passwordHasher = new BCryptPasswordHasher();
+
+        userService = new UserService(cs, cr, passwordHasher, settings, localClient);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
@@ -1148,7 +1154,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             compatConfig
         );
 
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
@@ -1198,6 +1204,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(si);
         components.add(dcf);
         components.add(userService);
+        components.add(passwordHasher);
+
         if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
             components.add(sks);
         }
@@ -1207,7 +1215,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             clusterService.addListener(cr);
         }
         return components;
-
     }
 
     @Override

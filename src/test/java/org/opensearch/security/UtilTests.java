@@ -29,9 +29,10 @@ package org.opensearch.security;
 import java.util.Map;
 
 import org.junit.Test;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.hasher.BCryptPasswordHasher;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
@@ -49,6 +50,8 @@ public class UtilTests {
     static private WildcardMatcher iwc(String pattern) {
         return WildcardMatcher.from(pattern, false);
     }
+
+    static private final PasswordHasher passwordHasher = new BCryptPasswordHasher();
 
     @Test
     public void testWildcardMatcherClasses() {
@@ -113,7 +116,7 @@ public class UtilTests {
         assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings));
         assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings));
         assertEquals("abvtTtxyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings));
-        assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}", settings), "tTt".toCharArray()));
+        assertTrue(passwordHasher.check("tTt".toCharArray(), SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}", settings)));
         assertEquals("abvtTtxyzxxx", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings));
         assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$2y$"));
         assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings));
@@ -138,7 +141,7 @@ public class UtilTests {
                 SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings)
             );
             assertEquals("abv" + val + "xyz", SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings));
-            assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc." + k + "}", settings), val.toCharArray()));
+            assertTrue(passwordHasher.check(val.toCharArray(), SecurityUtils.replaceEnvVars("${envbc." + k + "}", settings)));
             checked = true;
         }
 
