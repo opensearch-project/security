@@ -50,6 +50,7 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationChangeListener;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.StaticResourceException;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
@@ -128,7 +129,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final EventBus eventBus = EVENT_BUS_BUILDER.logger(new JavaLogger(DynamicConfigFactory.class.getCanonicalName())).build();
     private final Settings opensearchSettings;
     private final Path configPath;
-    private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
+    private final InternalAuthenticationBackend iab;
     private final ClusterInfoHolder cih;
 
     SecurityDynamicConfiguration<?> config;
@@ -139,13 +140,15 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final Path configPath,
         Client client,
         ThreadPool threadPool,
-        ClusterInfoHolder cih
+        ClusterInfoHolder cih,
+        PasswordHasher passwordHasher
     ) {
         super();
         this.cr = cr;
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
         this.cih = cih;
+        this.iab = new InternalAuthenticationBackend(passwordHasher);
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
