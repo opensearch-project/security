@@ -1267,40 +1267,28 @@ public class FlsAndFieldMaskingTests {
         );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist())))
-        ;
+            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()))
+        );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre())))
-        ;
+            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()))
+        );
+        assertThat(getResponses, hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars())));
+        assertThat(getResponses, hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre())));
         assertThat(
             getResponses,
             not(hasItem(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getTitle())))
         );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist())))
-        ;
+            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist()))
+        );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre())))
-        ;
+            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics()))
+        );
+        assertThat(getResponses, hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars())));
+        assertThat(getResponses, hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre())));
     }
 
     @Test
@@ -1594,7 +1582,8 @@ public class FlsAndFieldMaskingTests {
 
         assertThat(getResponse, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
 
-        // since the roles are overlapping, the role with less permissions is the only one that is used- which is no title, and since there is no title the masking role has no effect
+        // since the roles are overlapping, the role with less permissions is the only one that is used- which is no title, and since there
+        // is no title the masking role has no effect
         assertThat(getResponse, not(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle())));
         assertThat(getResponse, documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()));
         assertThat(getResponse, documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()));
@@ -1632,47 +1621,36 @@ public class FlsAndFieldMaskingTests {
         assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
         assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2)));
 
-        // since the roles are overlapping, the role with less permissions is the only one that is used- which is no title, and since there is no title the masking role has no effect
+        // since the roles are overlapping, the role with less permissions is the only one that is used- which is no title, and since there
+        // is no title the masking role has no effect
         assertThat(
             getResponses,
             not(hasItem(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getTitle())))
         );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist())))
-        ;
+            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getArtist()))
+        );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre())))
-        ;
+            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getLyrics()))
+        );
+        assertThat(getResponses, hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getStars())));
+        assertThat(getResponses, hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre())));
         assertThat(
             getResponses,
             not(hasItem(documentContainField(FIELD_TITLE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getTitle())))
         );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist())))
-        ;
+            hasItem(documentContainField(FIELD_ARTIST, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getArtist()))
+        );
         assertThat(
             getResponses,
-            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars())))
-        ;
-        assertThat(
-            getResponses,
-            hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre())))
-        ;
+            hasItem(documentContainField(FIELD_LYRICS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getLyrics()))
+        );
+        assertThat(getResponses, hasItem(documentContainField(FIELD_STARS, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getStars())));
+        assertThat(getResponses, hasItem(documentContainField(FIELD_GENRE, FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre())));
     }
 
     @Test
@@ -1700,7 +1678,8 @@ public class FlsAndFieldMaskingTests {
         assertThat(searchResponse, isSuccessfulSearchResponse());
         assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
 
-        // since the roles are overlapping, the role with less permissions is the only one that is used- which is no title, and since there is no title the masking role has no effect
+        // since the roles are overlapping, the role with less permissions is the only one that is used- which is no title, and since there
+        // is no title the masking role has no effect
         IntStream.range(0, 4).forEach(hitIndex -> {
             assertThat(searchResponse, searchHitDoesNotContainField(hitIndex, FIELD_TITLE));
             assertThat(searchResponse, searchHitDoesContainField(hitIndex, FIELD_ARTIST));
