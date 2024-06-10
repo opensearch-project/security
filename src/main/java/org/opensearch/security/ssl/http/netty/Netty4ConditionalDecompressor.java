@@ -13,15 +13,12 @@ import org.opensearch.security.filter.NettyAttribute;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.HttpContentDecompressor;
 
-import static org.opensearch.security.http.SecurityHttpServerTransport.EARLY_RESPONSE;
-import static org.opensearch.security.http.SecurityHttpServerTransport.SHOULD_DECOMPRESS;
-
 public class Netty4ConditionalDecompressor extends HttpContentDecompressor {
 
     @Override
     protected EmbeddedChannel newContentDecoder(String contentEncoding) throws Exception {
-        final boolean hasAnEarlyReponse = NettyAttribute.peekFrom(ctx, EARLY_RESPONSE).isPresent();
-        final boolean shouldDecompress = NettyAttribute.popFrom(ctx, SHOULD_DECOMPRESS).orElse(false);
+        final boolean hasAnEarlyReponse = NettyAttribute.peekFrom(ctx, Netty4HttpRequestHeaderVerifier.EARLY_RESPONSE).isPresent();
+        final boolean shouldDecompress = NettyAttribute.popFrom(ctx, Netty4HttpRequestHeaderVerifier.SHOULD_DECOMPRESS).orElse(false);
         if (hasAnEarlyReponse || !shouldDecompress) {
             // If there was an error prompting an early response,... don't decompress
             // If there is no explicit decompress flag,... don't decompress

@@ -20,9 +20,11 @@ import java.util.List;
 import java.util.Objects;
 
 import com.google.common.base.Splitter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.util.BytesRef;
-import org.bouncycastle.crypto.digests.Blake2bDigest;
 import org.bouncycastle.util.encoders.Hex;
+
+import com.rfksystems.blake2b.Blake2b;
 
 public class MaskedField {
 
@@ -30,9 +32,11 @@ public class MaskedField {
     private String algo = null;
     private List<RegexReplacement> regexReplacements;
     private final byte[] defaultSalt;
+    private final String defaultAlgorithm;
 
-    public MaskedField(final String value, final Salt salt) {
+    public MaskedField(final String value, final Salt salt, final String defaultAlgorithm) {
         this.defaultSalt = salt.getSalt16();
+        this.defaultAlgorithm = defaultAlgorithm;
         final List<String> tokens = Splitter.on("::").splitToList(Objects.requireNonNull(value));
         final int tokenCount = tokens.size();
         if (tokenCount == 1) {
@@ -56,31 +60,31 @@ public class MaskedField {
     }
 
     public byte[] mask(byte[] value) {
-        if (isDefault()) {
-            return blake2bHash(value);
+        if (algo != null) {
+            return customHash(value, algo);
+        } else if (regexReplacements != null) {
+            String cur = new String(value, StandardCharsets.UTF_8);
+            for (RegexReplacement rr : regexReplacements) {
+                cur = cur.replaceAll(rr.getRegex(), rr.getReplacement());
+            }
+            return cur.getBytes(StandardCharsets.UTF_8);
+        } else if (StringUtils.isNotEmpty(defaultAlgorithm)) {
+            return customHash(value, defaultAlgorithm);
         } else {
-            return customHash(value);
+            return blake2bHash(value);
         }
     }
 
     public String mask(String value) {
-        if (isDefault()) {
-            return blake2bHash(value);
-        } else {
-            return customHash(value);
-        }
+        return new String(mask(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
     public BytesRef mask(BytesRef value) {
         if (value == null) {
             return null;
         }
-
-        if (isDefault()) {
-            return blake2bHash(value);
-        } else {
-            return customHash(value);
-        }
+        final BytesRef copy = BytesRef.deepCopyOf(value);
+        return new BytesRef(mask(copy.bytes));
     }
 
     public String getName() {
@@ -125,6 +129,8 @@ public class MaskedField {
             + regexReplacements
             + ", defaultSalt="
             + Arrays.toString(defaultSalt)
+            + ", defaultAlgorithm="
+            + defaultAlgorithm
             + ", isDefault()="
             + isDefault()
             + "]";
@@ -134,50 +140,23 @@ public class MaskedField {
         return regexReplacements == null && algo == null;
     }
 
-    private byte[] customHash(byte[] in) {
-        if (algo != null) {
-            try {
-                MessageDigest digest = MessageDigest.getInstance(algo);
-                return Hex.encode(digest.digest(in));
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalArgumentException(e);
-            }
-        } else if (regexReplacements != null) {
-            String cur = new String(in, StandardCharsets.UTF_8);
-            for (RegexReplacement rr : regexReplacements) {
-                cur = cur.replaceAll(rr.getRegex(), rr.getReplacement());
-            }
-            return cur.getBytes(StandardCharsets.UTF_8);
-
-        } else {
-            throw new IllegalArgumentException();
+    private static byte[] customHash(byte[] in, final String algorithm) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
+            return Hex.encode(digest.digest(in));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 
-    private BytesRef customHash(BytesRef in) {
-        final BytesRef copy = BytesRef.deepCopyOf(in);
-        return new BytesRef(customHash(copy.bytes));
-    }
-
-    private String customHash(String in) {
-        return new String(customHash(in.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
-    }
-
     private byte[] blake2bHash(byte[] in) {
-        final Blake2bDigest hash = new Blake2bDigest(null, 32, null, defaultSalt);
+        // Salt is passed incorrectly but order of parameters is retained at present to ensure full backwards compatibility
+        // Tracking with https://github.com/opensearch-project/security/issues/4274
+        final Blake2b hash = new Blake2b(null, 32, null, defaultSalt);
         hash.update(in, 0, in.length);
         final byte[] out = new byte[hash.getDigestSize()];
-        hash.doFinal(out, 0);
+        hash.digest(out, 0);
         return Hex.encode(out);
-    }
-
-    private BytesRef blake2bHash(BytesRef in) {
-        final BytesRef copy = BytesRef.deepCopyOf(in);
-        return new BytesRef(blake2bHash(copy.bytes));
-    }
-
-    private String blake2bHash(String in) {
-        return new String(blake2bHash(in.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
     private static class RegexReplacement {

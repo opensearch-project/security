@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -564,16 +565,18 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
             .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
             .put("roles.g1.search", "(uniqueMember={0})")
+            .putList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES, List.of("nested2"))
             .build();
 
         final User user = new User("spock");
 
-        new LDAPAuthorizationBackend(settings, null).fillRoles(user, null);
+        new LDAPAuthorizationBackend2(settings, null).fillRoles(user, null);
 
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
-        Assert.assertEquals(4, user.getRoles().size());
-        Assert.assertEquals("nested1", new ArrayList<>(new TreeSet<>(user.getRoles())).get(1));
+        Assert.assertEquals(3, user.getRoles().size());
+        Assert.assertTrue(user.getRoles().contains("nested1"));
+        Assert.assertFalse(user.getRoles().contains("nested2"));
     }
 
     @Test
@@ -759,7 +762,7 @@ public class LdapBackendTestNewStyleConfig2 {
     }
 
     @Test
-    public void testLdapAuthorizationNestedAttrFilterAll() throws Exception {
+    public void testLdapAuthorizationNestedAttrFilterAll() {
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
             .put("users.u1.search", "(uid={0})")
@@ -780,7 +783,6 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertNotNull(user);
         Assert.assertEquals("spock", user.getName());
         Assert.assertEquals(4, user.getRoles().size());
-
     }
 
     @Test

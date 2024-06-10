@@ -12,7 +12,9 @@
 package org.opensearch.security.dlic.rest.validation;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.opensearch.common.CheckedBiConsumer;
 import org.opensearch.common.CheckedConsumer;
@@ -50,6 +52,22 @@ public class ValidationResult<C> {
         return new ValidationResult<>(status, errorMessage);
     }
 
+    /**
+     * Transforms a list of validation results into a single validation result of that lists contents.
+     * If any of the validation results are not valid, the first is returned as the error.
+     */
+    public static <L> ValidationResult<List<L>> merge(final List<ValidationResult<L>> results) {
+        if (results.stream().allMatch(ValidationResult::isValid)) {
+            return success(results.stream().map(result -> result.content).collect(Collectors.toList()));
+        }
+
+        return results.stream()
+            .filter(result -> !result.isValid())
+            .map(failedResult -> new ValidationResult<List<L>>(failedResult.status, failedResult.errorMessage))
+            .findFirst()
+            .get();
+    }
+
     public <L> ValidationResult<L> map(final CheckedFunction<C, ValidationResult<L>, IOException> mapper) throws IOException {
         if (content != null) {
             return Objects.requireNonNull(mapper).apply(content);
@@ -82,5 +100,4 @@ public class ValidationResult<C> {
     public ToXContent errorMessage() {
         return errorMessage;
     }
-
 }

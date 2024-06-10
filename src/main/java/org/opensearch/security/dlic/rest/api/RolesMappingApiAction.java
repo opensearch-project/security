@@ -38,11 +38,11 @@ public class RolesMappingApiAction extends AbstractApiAction {
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
-            new Route(Method.GET, "/rolesmapping/"),
+            new Route(Method.GET, "/rolesmapping"),
             new Route(Method.GET, "/rolesmapping/{name}"),
             new Route(Method.DELETE, "/rolesmapping/{name}"),
             new Route(Method.PUT, "/rolesmapping/{name}"),
-            new Route(Method.PATCH, "/rolesmapping/"),
+            new Route(Method.PATCH, "/rolesmapping"),
             new Route(Method.PATCH, "/rolesmapping/{name}")
         )
     );
@@ -106,14 +106,11 @@ public class RolesMappingApiAction extends AbstractApiAction {
             public ValidationResult<SecurityConfiguration> isAllowedToChangeRoleMappingWithRestAdminPermissions(
                 SecurityConfiguration securityConfiguration
             ) throws IOException {
-                return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
-                    if (isCurrentUserAdmin()) {
-                        return ValidationResult.success(securityConfiguration);
-                    }
-                    return isAllowedToChangeEntityWithRestAdminPermissions(
+                return loadConfiguration(CType.ROLES, false, false).map(
+                    rolesConfiguration -> isAllowedToChangeEntityWithRestAdminPermissions(
                         SecurityConfiguration.of(securityConfiguration.entityName(), rolesConfiguration)
-                    );
-                }).map(ignore -> ValidationResult.success(securityConfiguration));
+                    )
+                ).map(ignore -> ValidationResult.success(securityConfiguration));
             }
 
             @Override

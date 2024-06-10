@@ -55,8 +55,18 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class Utils {
+
+    public final static String PLUGIN_ROUTE_PREFIX = "/" + PLUGINS_PREFIX;
+
+    public final static String LEGACY_PLUGIN_ROUTE_PREFIX = "/" + LEGACY_OPENDISTRO_PREFIX;
+
+    public final static String PLUGIN_API_ROUTE_PREFIX = PLUGIN_ROUTE_PREFIX + "/api";
+
+    public final static String LEGACY_PLUGIN_API_ROUTE_PREFIX = LEGACY_PLUGIN_ROUTE_PREFIX + "/api";
 
     private static final ObjectMapper internalMapper = new ObjectMapper();
 
@@ -217,7 +227,7 @@ public class Utils {
      *Total number of routes is expanded as twice as the number of routes passed in
      */
     public static List<Route> addRoutesPrefix(List<Route> routes) {
-        return addRoutesPrefix(routes, "/_opendistro/_security/api", "/_plugins/_security/api");
+        return addRoutesPrefix(routes, LEGACY_PLUGIN_API_ROUTE_PREFIX, PLUGIN_API_ROUTE_PREFIX);
     }
 
     /**
@@ -248,7 +258,7 @@ public class Utils {
      *Total number of routes is expanded as twice as the number of routes passed in
      */
     public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes) {
-        return addDeprecatedRoutesPrefix(deprecatedRoutes, "/_opendistro/_security/api", "/_plugins/_security/api");
+        return addDeprecatedRoutesPrefix(deprecatedRoutes, LEGACY_PLUGIN_API_ROUTE_PREFIX, PLUGIN_API_ROUTE_PREFIX);
     }
 
     /**

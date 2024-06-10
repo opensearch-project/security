@@ -25,8 +25,6 @@ public class AuthzDomain implements ToXContentObject {
 
     private boolean httpEnabled;
 
-    private boolean transportEnabled;
-
     private AuthorizationBackend authorizationBackend;
 
     public AuthzDomain(String id) {
@@ -52,17 +50,11 @@ public class AuthzDomain implements ToXContentObject {
         return this;
     }
 
-    public AuthzDomain transportEnabled(boolean transportEnabled) {
-        this.transportEnabled = transportEnabled;
-        return this;
-    }
-
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.startObject();
         xContentBuilder.field("description", description);
         xContentBuilder.field("http_enabled", httpEnabled);
-        xContentBuilder.field("transport_enabled", transportEnabled);
         xContentBuilder.field("authorization_backend", authorizationBackend);
         xContentBuilder.endObject();
         return xContentBuilder;

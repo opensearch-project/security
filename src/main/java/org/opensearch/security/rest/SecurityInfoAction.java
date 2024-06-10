@@ -57,13 +57,15 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.dlic.rest.support.Utils.LEGACY_PLUGIN_ROUTE_PREFIX;
+import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityInfoAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/authinfo"), new Route(POST, "/authinfo")),
-        "/_opendistro/_security",
-        "/_plugins/_security"
+        LEGACY_PLUGIN_ROUTE_PREFIX,
+        PLUGIN_ROUTE_PREFIX
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
@@ -88,6 +90,10 @@ public class SecurityInfoAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        final boolean verbose = request.paramAsBoolean("verbose", false);
+        // need to consume `auth_type` param, without which a 500 is thrown on front-end
+        final String authType = request.param("auth_type", "");
+
         return new RestChannelConsumer() {
 
             @Override
@@ -96,8 +102,6 @@ public class SecurityInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-
-                    final boolean verbose = request.paramAsBoolean("verbose", false);
 
                     final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES);
                     final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);

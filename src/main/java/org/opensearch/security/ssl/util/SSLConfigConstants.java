@@ -101,7 +101,7 @@ public final class SSLConfigConstants {
 
     private static final String[] _SECURE_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
 
-    public static final String[] getSecureSSLProtocols(Settings settings, boolean http) {
+    public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
         List<String> configuredProtocols = null;
 
         if (settings != null) {
@@ -233,7 +233,7 @@ public final class SSLConfigConstants {
     };
     // @formatter:on
 
-    public static final List<String> getSecureSSLCiphers(Settings settings, boolean http) {
+    public static List<String> getSecureSSLCiphers(Settings settings, boolean http) {
 
         List<String> configuredCiphers = null;
 

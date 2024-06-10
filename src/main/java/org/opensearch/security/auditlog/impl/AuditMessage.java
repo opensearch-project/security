@@ -27,6 +27,8 @@ import java.util.regex.Pattern;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hc.core5.net.URIBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
@@ -58,6 +60,8 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public final class AuditMessage {
+
+    private static final Logger log = LogManager.getLogger(AuditMessage.class);
 
     // clustername and cluster uuid
     private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
@@ -350,17 +354,28 @@ public final class AuditMessage {
         }
     }
 
-    public void addRestParams(Map<String, String> params) {
+    public void addRestParams(Map<String, String> params, AuditConfig.Filter filter) {
         if (params != null && !params.isEmpty()) {
-            auditInfo.put(REST_REQUEST_PARAMS, new HashMap<>(params));
+            Map<String, String> redactedParams = new HashMap<>();
+            for (Entry<String, String> param : params.entrySet()) {
+                if (filter != null && filter.shouldExcludeUrlParam(param.getKey())) {
+                    redactedParams.put(param.getKey(), "REDACTED");
+                } else {
+                    redactedParams.put(param.getKey(), param.getValue());
+                }
+            }
+            auditInfo.put(REST_REQUEST_PARAMS, redactedParams);
         }
     }
 
-    public void addRestHeaders(Map<String, List<String>> headers, boolean excludeSensitiveHeaders) {
+    public void addRestHeaders(Map<String, List<String>> headers, boolean excludeSensitiveHeaders, AuditConfig.Filter filter) {
         if (headers != null && !headers.isEmpty()) {
             final Map<String, List<String>> headersClone = new HashMap<>(headers);
             if (excludeSensitiveHeaders) {
                 headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
+            }
+            if (filter != null) {
+                headersClone.entrySet().removeIf(entry -> filter.shouldExcludeHeader(entry.getKey()));
             }
             auditInfo.put(REST_REQUEST_HEADERS, headersClone);
         }
@@ -376,14 +391,14 @@ public final class AuditMessage {
         if (request != null) {
             final String path = request.path().toString();
             addPath(path);
-            addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders());
-            addRestParams(request.params());
+            addRestHeaders(request.getHeaders(), filter.shouldExcludeSensitiveHeaders(), filter);
+            addRestParams(request.params(), filter);
             addRestMethod(request.method());
 
             if (filter.shouldLogRequestBody()) {
 
                 if (!(request instanceof OpenSearchRequest)) {
-                    // The request body is only avaliable on some request sources
+                    // The request body is only available on some request sources
                     return;
                 }
 
@@ -406,8 +421,9 @@ public final class AuditMessage {
                     } else {
                         auditInfo.put(REQUEST_BODY, requestBody);
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     auditInfo.put(REQUEST_BODY, "ERROR: Unable to generate request body");
+                    log.error("Error while generating request body for audit log", e);
                 }
             }
         }

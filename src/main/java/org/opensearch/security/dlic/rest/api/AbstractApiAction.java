@@ -35,13 +35,16 @@ import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.CheckedSupplier;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentHelper;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -71,7 +74,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.conflict;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.withIOException;
 
@@ -226,7 +229,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         );
     }
 
-    protected final ValidationResult<SecurityConfiguration> patchEntities(
+    protected ValidationResult<SecurityConfiguration> patchEntities(
         final RestRequest request,
         final JsonNode patchContent,
         final SecurityConfiguration securityConfiguration
@@ -238,7 +241,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             for (final var entityName : patchEntityNames(patchContent)) {
                 final var beforePatchEntity = configurationAsJson.get(entityName);
                 final var patchedEntity = patchedConfigurationAsJson.get(entityName);
-                // verify we can process exising or updated entities
+                // verify we can process existing or updated entities
                 if (beforePatchEntity != null && !Objects.equals(beforePatchEntity, patchedEntity)) {
                     final var checkEntityCanBeProcess = endpointValidator.isAllowedToChangeImmutableEntity(
                         SecurityConfiguration.of(entityName, configuration)
@@ -336,7 +339,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final SecurityDynamicConfiguration<?> configuration,
         final OnSucessActionListener<IndexResponse> onSucessActionListener
     ) {
-        saveAndUpdateConfigs(securityApiDependencies.securityIndexName(), client, getConfigType(), configuration, onSucessActionListener);
+        saveAndUpdateConfigsAsync(securityApiDependencies, client, getConfigType(), configuration, onSucessActionListener);
     }
 
     protected final String nameParam(final RestRequest request) {
@@ -367,12 +370,17 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         );
     }
 
-    protected final ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
+    protected ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
         final CType cType,
         boolean omitSensitiveData,
         final boolean logComplianceEvent
     ) {
-        final var configuration = load(cType, logComplianceEvent);
+        SecurityDynamicConfiguration<?> configuration;
+        if (omitSensitiveData) {
+            configuration = loadAndRedact(cType, logComplianceEvent);
+        } else {
+            configuration = load(cType, logComplianceEvent);
+        }
         if (configuration.getSeqNo() < 0) {
 
             return ValidationResult.error(
@@ -448,6 +456,14 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return DynamicConfigFactory.addStatics(loaded);
     }
 
+    protected final SecurityDynamicConfiguration<?> loadAndRedact(final CType config, boolean logComplianceEvent) {
+        SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
+            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
+            .get(config)
+            .deepCloneWithRedaction();
+        return DynamicConfigFactory.addStatics(loaded);
+    }
+
     protected boolean ensureIndexExists() {
         return clusterService.state().metadata().hasConcreteIndex(securityApiDependencies.securityIndexName());
     }
@@ -466,36 +482,51 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                 conflict(channel, e.getMessage());
             } else {
-                internalSeverError(channel, "Error " + e.getMessage());
+                internalServerError(channel, "Error " + e.getMessage());
             }
         }
 
     }
 
-    public static void saveAndUpdateConfigs(
-        final String indexName,
+    public static ActionFuture<IndexResponse> saveAndUpdateConfigs(
+        final SecurityApiDependencies dependencies,
+        final Client client,
+        final CType cType,
+        final SecurityDynamicConfiguration<?> configuration
+    ) {
+        final var request = createIndexRequestForConfig(dependencies, cType, configuration);
+        return client.index(request);
+    }
+
+    public static void saveAndUpdateConfigsAsync(
+        final SecurityApiDependencies dependencies,
         final Client client,
         final CType cType,
         final SecurityDynamicConfiguration<?> configuration,
         final ActionListener<IndexResponse> actionListener
     ) {
-        final IndexRequest ir = new IndexRequest(indexName);
-        final String id = cType.toLCString();
+        final var ir = createIndexRequestForConfig(dependencies, cType, configuration);
+        client.index(ir, new ConfigUpdatingActionListener<>(new String[] { cType.toLCString() }, client, actionListener));
+    }
 
+    private static IndexRequest createIndexRequestForConfig(
+        final SecurityApiDependencies dependencies,
+        final CType cType,
+        final SecurityDynamicConfiguration<?> configuration
+    ) {
         configuration.removeStatic();
-
+        final BytesReference content;
         try {
-            client.index(
-                ir.id(id)
-                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .setIfSeqNo(configuration.getSeqNo())
-                    .setIfPrimaryTerm(configuration.getPrimaryTerm())
-                    .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)),
-                new ConfigUpdatingActionListener<>(new String[] { id }, client, actionListener)
-            );
-        } catch (IOException e) {
+            content = XContentHelper.toXContent(configuration, XContentType.JSON, ToXContent.EMPTY_PARAMS, false);
+        } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
+
+        return new IndexRequest(dependencies.securityIndexName()).id(cType.toLCString())
+            .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+            .setIfSeqNo(configuration.getSeqNo())
+            .setIfPrimaryTerm(configuration.getPrimaryTerm())
+            .source(cType.toLCString(), content);
     }
 
     protected static class ConfigUpdatingActionListener<Response> implements ActionListener<Response> {
@@ -548,7 +579,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
-            return channel -> internalSeverError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
+            return channel -> internalServerError(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
         }
 
         // check if request is authorized

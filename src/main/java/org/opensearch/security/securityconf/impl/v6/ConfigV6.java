@@ -27,8 +27,10 @@
 
 package org.opensearch.security.securityconf.impl.v6;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -38,9 +40,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
+import org.opensearch.security.setting.DeprecatedSettings;
 
 public class ConfigV6 {
 
@@ -97,6 +103,8 @@ public class ConfigV6 {
         public String opendistro_role = null;
         public String index = ".kibana";
         public boolean do_not_fail_on_forbidden;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public List<DashboardSignInOption> sign_in_options = Arrays.asList(DashboardSignInOption.BASIC);
 
         @Override
         public String toString() {
@@ -110,6 +118,8 @@ public class ConfigV6 {
                 + index
                 + ", do_not_fail_on_forbidden="
                 + do_not_fail_on_forbidden
+                + ", sign_in_options="
+                + sign_in_options
                 + "]";
         }
 
@@ -224,8 +234,6 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean transport_enabled = true;
-        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public int order = 0;
         public HttpAuthenticator http_authenticator = new HttpAuthenticator();
@@ -235,8 +243,6 @@ public class ConfigV6 {
         public String toString() {
             return "AuthcDomain [http_enabled="
                 + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
                 + ", enabled="
                 + enabled
                 + ", order="
@@ -246,6 +252,31 @@ public class ConfigV6 {
                 + ", authentication_backend="
                 + authentication_backend
                 + "]";
+        }
+
+        @JsonAnySetter
+        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+            switch (name) {
+                case "transport_enabled":
+                    DeprecatedSettings.logCustomDeprecationMessage(
+                        String.format(
+                            "In AuthcDomain, using http_authenticator=%s, authentication_backend=%s",
+                            http_authenticator,
+                            authentication_backend
+                        ),
+                        name
+                    );
+                    break;
+                default:
+                    throw new UnrecognizedPropertyException(
+                        null,
+                        "Unrecognized field " + name + " present in the input data for AuthcDomain config",
+                        null,
+                        AuthcDomain.class,
+                        name,
+                        null
+                    );
+            }
         }
 
     }
@@ -337,8 +368,6 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean transport_enabled = true;
-        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
 
@@ -346,13 +375,32 @@ public class ConfigV6 {
         public String toString() {
             return "AuthzDomain [http_enabled="
                 + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
                 + ", enabled="
                 + enabled
                 + ", authorization_backend="
                 + authorization_backend
                 + "]";
+        }
+
+        @JsonAnySetter
+        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+            switch (name) {
+                case "transport_enabled":
+                    DeprecatedSettings.logCustomDeprecationMessage(
+                        String.format("In AuthzDomain, using authorization_backend=%s", authorization_backend),
+                        name
+                    );
+                    break;
+                default:
+                    throw new UnrecognizedPropertyException(
+                        null,
+                        "Unrecognized field " + name + " present in the input data for AuthzDomain config",
+                        null,
+                        AuthzDomain.class,
+                        name,
+                        null
+                    );
+            }
         }
 
     }

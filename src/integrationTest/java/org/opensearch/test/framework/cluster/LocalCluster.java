@@ -56,7 +56,6 @@ import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.OnBehalfOfConfig;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
@@ -133,7 +132,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     }
 
     @Override
-    public void before() throws Throwable {
+    public void before() {
         if (localOpenSearchCluster == null) {
             for (LocalCluster dependency : clusterDependencies) {
                 if (!dependency.isStarted()) {
@@ -142,7 +141,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             }
 
             for (Map.Entry<String, LocalCluster> entry : remotes.entrySet()) {
-                @SuppressWarnings("resource")
                 InetSocketAddress transportAddress = entry.getValue().localOpenSearchCluster.clusterManagerNode().getTransportAddress();
                 String key = "cluster.remote." + entry.getKey() + ".seeds";
                 String value = transportAddress.getHostString() + ":" + transportAddress.getPort();
@@ -155,12 +153,12 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     @Override
     protected void after() {
-        System.clearProperty(INIT_CONFIGURATION_DIR);
         close();
     }
 
     @Override
     public void close() {
+        System.clearProperty(INIT_CONFIGURATION_DIR);
         if (localOpenSearchCluster != null && localOpenSearchCluster.isStarted()) {
             try {
                 localOpenSearchCluster.destroy();
@@ -293,6 +291,16 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))
         ).actionGet();
         if (configUpdateResponse.hasFailures()) {
+            throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
+        }
+    }
+
+    public void triggerConfigurationReloadForCTypes(Client client, List<CType> cTypes, boolean ignoreFailures) {
+        ConfigUpdateResponse configUpdateResponse = client.execute(
+            ConfigUpdateAction.INSTANCE,
+            new ConfigUpdateRequest(cTypes.stream().map(CType::toLCString).toArray(String[]::new))
+        ).actionGet();
+        if (!ignoreFailures && configUpdateResponse.hasFailures()) {
             throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
         }
     }
@@ -432,7 +440,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder rolesMapping(RolesMapping... mappings) {
+        public Builder rolesMapping(TestSecurityConfig.RoleMapping... mappings) {
             testSecurityConfig.rolesMapping(mappings);
             return this;
         }
@@ -500,7 +508,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         public LocalCluster build() {
             try {
                 if (testCertificates == null) {
-                    testCertificates = new TestCertificates();
+                    testCertificates = new TestCertificates(clusterManager.getNodes());
                 }
                 clusterName += "_" + num.incrementAndGet();
                 Settings settings = nodeOverrideSettingsBuilder.build();

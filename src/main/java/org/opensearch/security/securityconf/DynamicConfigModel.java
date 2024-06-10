@@ -52,6 +52,7 @@ import org.opensearch.security.http.HTTPBasicAuthenticator;
 import org.opensearch.security.http.HTTPClientCertAuthenticator;
 import org.opensearch.security.http.HTTPProxyAuthenticator;
 import org.opensearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 
 public abstract class DynamicConfigModel {
 
@@ -104,6 +105,8 @@ public abstract class DynamicConfigModel {
     public abstract List<ClientBlockRegistry<InetAddress>> getIpClientBlockRegistries();
 
     public abstract Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries();
+
+    public abstract List<DashboardSignInOption> getSignInOptions();
 
     public abstract Settings getDynamicOnBehalfOfSettings();
 

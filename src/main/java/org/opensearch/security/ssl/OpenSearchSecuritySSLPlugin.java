@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -60,8 +61,12 @@ import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.NetworkPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
+import org.opensearch.plugins.SecureSettingsFactory;
+import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -70,20 +75,20 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.transport.SecuritySSLTransportInterceptor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportInterceptor;
+import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import io.netty.handler.ssl.OpenSsl;
@@ -91,6 +96,21 @@ import io.netty.util.internal.PlatformDependent;
 
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
+    private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = Setting.boolSetting(
+        SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION,
+        true,
+        Property.NodeScope,
+        Property.Filtered,
+        Property.Deprecated
+    );
+
+    private static final Setting<Boolean> SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME = Setting.boolSetting(
+        SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME,
+        true,
+        Property.NodeScope,
+        Property.Filtered,
+        Property.Deprecated
+    );
 
     private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(
         System.getProperty("opensearch.unsafe.use_netty_default_allocator"),
@@ -112,10 +132,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
     };
     protected final SSLConfig SSLConfig;
-
-    // public OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath) {
-    // this(settings, configPath, false);
-    // }
+    protected volatile ThreadPool threadPool;
 
     @SuppressWarnings("removal")
     protected OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
@@ -237,7 +254,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(
+    public Map<String, Supplier<HttpServerTransport>> getSecureHttpTransports(
         Settings settings,
         ThreadPool threadPool,
         BigArrays bigArrays,
@@ -247,6 +264,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         NetworkService networkService,
         Dispatcher dispatcher,
         ClusterSettings clusterSettings,
+        SecureHttpTransportSettingsProvider secureHttpTransportSettingsProvider,
         Tracer tracer
     ) {
 
@@ -259,19 +277,17 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 configPath,
                 NOOP_SSL_EXCEPTION_HANDLER
             );
-            final SecuritySSLNettyHttpServerTransport sgsnht = new SecuritySSLNettyHttpServerTransport(
-                settings,
+            final SecureNetty4HttpServerTransport sgsnht = new SecureNetty4HttpServerTransport(
+                migrateSettings(settings),
                 networkService,
                 bigArrays,
                 threadPool,
-                sks,
                 xContentRegistry,
                 validatingDispatcher,
-                NOOP_SSL_EXCEPTION_HANDLER,
                 clusterSettings,
                 sharedGroupFactory,
-                tracer,
-                securityRestHandler
+                secureHttpTransportSettingsProvider,
+                tracer
             );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
@@ -313,13 +329,14 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     }
 
     @Override
-    public Map<String, Supplier<Transport>> getTransports(
+    public Map<String, Supplier<Transport>> getSecureTransports(
         Settings settings,
         ThreadPool threadPool,
         PageCacheRecycler pageCacheRecycler,
         CircuitBreakerService circuitBreakerService,
         NamedWriteableRegistry namedWriteableRegistry,
         NetworkService networkService,
+        SecureTransportSettingsProvider secureTransportSettingsProvider,
         Tracer tracer
     ) {
 
@@ -327,18 +344,16 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (transportSSLEnabled) {
             transports.put(
                 "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
-                () -> new SecuritySSLNettyTransport(
-                    settings,
+                () -> new SecureNetty4Transport(
+                    migrateSettings(settings),
                     Version.CURRENT,
                     threadPool,
                     networkService,
                     pageCacheRecycler,
                     namedWriteableRegistry,
                     circuitBreakerService,
-                    sks,
-                    NOOP_SSL_EXCEPTION_HANDLER,
                     sharedGroupFactory,
-                    SSLConfig,
+                    secureTransportSettingsProvider,
                     tracer
                 )
             );
@@ -363,6 +378,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
 
+        this.threadPool = threadPool;
         final List<Object> components = new ArrayList<>(1);
 
         if (client) {
@@ -436,22 +452,13 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 Property.Filtered
             )
         );
-        settings.add(
-            Setting.boolSetting(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION,
-                true,
-                Property.NodeScope,
-                Property.Filtered
-            )
-        );
-        settings.add(
-            Setting.boolSetting(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME,
-                true,
-                Property.NodeScope,
-                Property.Filtered
-            )
-        );
+        if (!settings.stream().anyMatch(s -> s.getKey().equalsIgnoreCase(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY))) {
+            settings.add(SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION);
+        }
+        if (!settings.stream()
+            .anyMatch(s -> s.getKey().equalsIgnoreCase(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY))) {
+            settings.add(SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME);
+        }
         settings.add(
             Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered)
         );
@@ -663,5 +670,64 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         settingsFilter.add("opendistro_security.*");
         settingsFilter.add("plugins.security.*");
         return settingsFilter;
+    }
+
+    @Override
+    public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
+        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, NOOP_SSL_EXCEPTION_HANDLER, securityRestHandler));
+    }
+
+    protected Settings migrateSettings(Settings settings) {
+        final Settings.Builder builder = Settings.builder().put(settings);
+
+        if (!NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED.exists(settings)) {
+            builder.put(NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY, SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings));
+        } else {
+            if (SecuritySettings.SSL_DUAL_MODE_SETTING.exists(settings)) {
+                throw new OpenSearchException(
+                    "Only one of the settings ["
+                        + NetworkModule.TRANSPORT_SSL_DUAL_MODE_ENABLED_KEY
+                        + ", "
+                        + SecuritySettings.SSL_DUAL_MODE_SETTING.getKey()
+                        + " (deprecated)] could be specified but not both"
+                );
+            }
+        }
+
+        if (!NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.exists(settings)) {
+            builder.put(
+                NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY,
+                SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.get(settings)
+            );
+        } else {
+            if (SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.exists(settings)) {
+                throw new OpenSearchException(
+                    "Only one of the settings ["
+                        + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME_KEY
+                        + ", "
+                        + SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.getKey()
+                        + " (deprecated)] could be specified but not both"
+                );
+            }
+        }
+
+        if (!NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION.exists(settings)) {
+            builder.put(
+                NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY,
+                SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.get(settings)
+            );
+        } else {
+            if (SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.exists(settings)) {
+                throw new OpenSearchException(
+                    "Only one of the settings ["
+                        + NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY
+                        + ", "
+                        + SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION.getKey()
+                        + " (deprecated)] could be specified but not both"
+                );
+            }
+        }
+
+        return builder.build();
     }
 }

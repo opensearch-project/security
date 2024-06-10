@@ -30,7 +30,7 @@ import org.opensearch.test.framework.AuthorizationBackend;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.LdapAuthorizationConfigBuilder;
-import org.opensearch.test.framework.RolesMapping;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AuthenticationBackend;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.HttpAuthenticator;
@@ -151,12 +151,11 @@ public class LdapTlsAuthenticationTest {
         .users(ADMIN_USER)
         .roles(ROLE_INDEX_ADMINISTRATOR, ROLE_PERSONAL_INDEX_ACCESS)
         .rolesMapping(
-            new RolesMapping(ROLE_INDEX_ADMINISTRATOR).backendRoles(CN_GROUP_ADMIN),
-            new RolesMapping(ROLE_PERSONAL_INDEX_ACCESS).backendRoles(CN_GROUP_CREW)
+            new TestSecurityConfig.RoleMapping(ROLE_INDEX_ADMINISTRATOR.getName()).backendRoles(CN_GROUP_ADMIN),
+            new TestSecurityConfig.RoleMapping(ROLE_PERSONAL_INDEX_ACCESS.getName()).backendRoles(CN_GROUP_CREW)
         )
         .authz(
             new AuthzDomain("ldap_roles").httpEnabled(true)
-                .transportEnabled(true)
                 .authorizationBackend(
                     new AuthorizationBackend("ldap").config(
                         () -> new LdapAuthorizationConfigBuilder().hosts(List.of("localhost:" + embeddedLDAPServer.getLdapTlsPort()))

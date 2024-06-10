@@ -30,6 +30,7 @@ package org.opensearch.security.securityconf.impl;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -56,6 +57,8 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     private final Map<String, T> centries = new HashMap<>();
+    @JsonIgnore
+    private final Object modificationLock = new Object();
     private long seqNo = -1;
     private long primaryTerm = -1;
     private CType ctype;
@@ -63,6 +66,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     public static <T> SecurityDynamicConfiguration<T> empty() {
         return new SecurityDynamicConfiguration<T>();
+    }
+
+    @JsonIgnore
+    public boolean notEmpty() {
+        return !centries.isEmpty();
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm)
@@ -158,23 +166,33 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonAnyGetter
     public Map<String, T> getCEntries() {
-        return centries;
+        synchronized (modificationLock) {
+            return new HashMap<>(centries);
+        }
     }
 
     @JsonIgnore
     public void removeHidden() {
-        for (Entry<String, T> entry : new HashMap<String, T>(centries).entrySet()) {
-            if (entry.getValue() instanceof Hideable && ((Hideable) entry.getValue()).isHidden()) {
-                centries.remove(entry.getKey());
+        synchronized (modificationLock) {
+            final Iterator<Entry<String, T>> iterator = centries.entrySet().iterator();
+            while (iterator.hasNext()) {
+                final var entry = iterator.next();
+                if (entry.getValue() instanceof Hideable && ((Hideable) entry.getValue()).isHidden()) {
+                    iterator.remove();
+                }
             }
         }
     }
 
     @JsonIgnore
     public void removeStatic() {
-        for (Entry<String, T> entry : new HashMap<String, T>(centries).entrySet()) {
-            if (entry.getValue() instanceof StaticDefinable && ((StaticDefinable) entry.getValue()).isStatic()) {
-                centries.remove(entry.getKey());
+        synchronized (modificationLock) {
+            final Iterator<Entry<String, T>> iterator = centries.entrySet().iterator();
+            while (iterator.hasNext()) {
+                final var entry = iterator.next();
+                if (entry.getValue() instanceof StaticDefinable && ((StaticDefinable) entry.getValue()).isStatic()) {
+                    iterator.remove();
+                }
             }
         }
     }
@@ -189,20 +207,26 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     public void removeOthers(String key) {
-        T tmp = this.centries.get(key);
-        this.centries.clear();
-        this.centries.put(key, tmp);
+        synchronized (modificationLock) {
+            T tmp = this.centries.get(key);
+            this.centries.clear();
+            this.centries.put(key, tmp);
+        }
     }
 
     @JsonIgnore
     public T putCEntry(String key, T value) {
-        return centries.put(key, value);
+        synchronized (modificationLock) {
+            return centries.put(key, value);
+        }
     }
 
     @JsonIgnore
     @SuppressWarnings("unchecked")
     public void putCObject(String key, Object value) {
-        centries.put(key, (T) value);
+        synchronized (modificationLock) {
+            centries.put(key, (T) value);
+        }
     }
 
     @JsonIgnore
@@ -285,37 +309,52 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     @JsonIgnore
+    public SecurityDynamicConfiguration<T> deepCloneWithRedaction() {
+        try {
+            return fromJson(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctype, version, seqNo, primaryTerm);
+        } catch (Exception e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+    }
+
+    @JsonIgnore
     public void remove(String key) {
-        centries.remove(key);
+        synchronized (modificationLock) {
+            centries.remove(key);
+        }
     }
 
     @JsonIgnore
     public void remove(List<String> keySet) {
-        keySet.stream().forEach(this::remove);
+        synchronized (modificationLock) {
+            keySet.stream().forEach(centries::remove);
+        }
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public boolean add(SecurityDynamicConfiguration other) {
-        if (other.ctype == null || !other.ctype.equals(this.ctype)) {
-            return false;
-        }
+        synchronized (modificationLock) {
+            if (other.ctype == null || !other.ctype.equals(this.ctype)) {
+                return false;
+            }
 
-        if (other.getImplementingClass() == null || !other.getImplementingClass().equals(this.getImplementingClass())) {
-            return false;
-        }
+            if (other.getImplementingClass() == null || !other.getImplementingClass().equals(this.getImplementingClass())) {
+                return false;
+            }
 
-        if (other.version != this.version) {
-            return false;
-        }
+            if (other.version != this.version) {
+                return false;
+            }
 
-        this.centries.putAll(other.centries);
-        return true;
+            this.centries.putAll(other.centries);
+            return true;
+        }
     }
 
     @JsonIgnore
     @SuppressWarnings({ "rawtypes" })
     public boolean containsAny(SecurityDynamicConfiguration other) {
-        return !Collections.disjoint(this.centries.keySet(), other.centries.keySet());
+        return !Collections.disjoint(this.getCEntries().keySet(), other.getCEntries().keySet());
     }
 
     public boolean isHidden(String resourceName) {

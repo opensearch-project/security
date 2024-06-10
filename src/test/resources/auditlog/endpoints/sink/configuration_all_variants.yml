@@ -45,3 +45,5 @@ plugins.security:
         config:
           log4j.logger_name: loggername
           log4j.level: invalid
+      endpoint13:
+        type: log4j

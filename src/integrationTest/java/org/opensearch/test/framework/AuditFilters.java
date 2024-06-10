@@ -34,6 +34,9 @@ public class AuditFilters implements ToXContentObject {
 
     private List<String> ignoreRequests;
 
+    private List<String> ignoreHeaders;
+    private List<String> ignoreUrlParams;
+
     private List<String> disabledRestCategories;
 
     private List<String> disabledTransportCategories;
@@ -49,6 +52,8 @@ public class AuditFilters implements ToXContentObject {
 
         this.ignoreUsers = Collections.emptyList();
         this.ignoreRequests = Collections.emptyList();
+        this.ignoreHeaders = Collections.emptyList();
+        this.ignoreUrlParams = Collections.emptyList();
         this.disabledRestCategories = Collections.emptyList();
         this.disabledTransportCategories = Collections.emptyList();
     }
@@ -93,6 +98,16 @@ public class AuditFilters implements ToXContentObject {
         return this;
     }
 
+    public AuditFilters ignoreHeaders(List<String> ignoreHeaders) {
+        this.ignoreHeaders = ignoreHeaders;
+        return this;
+    }
+
+    public AuditFilters ignoreUrlParams(List<String> ignoreUrlParams) {
+        this.ignoreUrlParams = ignoreUrlParams;
+        return this;
+    }
+
     public AuditFilters disabledRestCategories(List<String> disabledRestCategories) {
         this.disabledRestCategories = disabledRestCategories;
         return this;
@@ -114,6 +129,8 @@ public class AuditFilters implements ToXContentObject {
         xContentBuilder.field("exclude_sensitive_headers", excludeSensitiveHeaders);
         xContentBuilder.field("ignore_users", ignoreUsers);
         xContentBuilder.field("ignore_requests", ignoreRequests);
+        xContentBuilder.field("ignore_headers", ignoreHeaders);
+        xContentBuilder.field("ignore_url_params", ignoreUrlParams);
         xContentBuilder.field("disabled_rest_categories", disabledRestCategories);
         xContentBuilder.field("disabled_transport_categories", disabledTransportCategories);
         xContentBuilder.endObject();

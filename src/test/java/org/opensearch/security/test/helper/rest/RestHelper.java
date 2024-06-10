@@ -397,7 +397,7 @@ public class RestHelper {
         public HttpResponse(SimpleHttpResponse inner) throws IllegalStateException, IOException {
             super();
             this.inner = inner;
-            if (inner.getBody() == null) { // head request does not have a entity
+            if (inner.getBody() == null) { // head request does not have an entity
                 this.body = "";
             } else {
                 this.body = inner.getBodyText();

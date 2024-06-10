@@ -101,6 +101,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     protected static final Logger log = LogManager.getLogger(LDAPAuthorizationBackend.class);
     private final Settings settings;
     private final WildcardMatcher skipUsersMatcher;
+    private final WildcardMatcher excludeRolesMatcher;
     private final WildcardMatcher nestedRoleMatcher;
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
@@ -112,6 +113,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     public LDAPAuthorizationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
         this.skipUsersMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS));
+        this.excludeRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_EXCLUDE_ROLES));
         this.nestedRoleMatcher = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false)
             ? WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER))
             : null;
@@ -962,10 +964,12 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : nestedReturn) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (!Strings.isNullOrEmpty(role)) {
-                        user.addRole(role);
+                    if (excludeRolesMatcher.test(role)) {
+                        if (isDebugEnabled) {
+                            log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
+                        }
                     } else {
-                        log.warn("No or empty attribute '{}' for entry {}", roleName, roleLdapName);
+                        user.addRole(role);
                     }
                 }
 
@@ -974,10 +978,12 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (!Strings.isNullOrEmpty(role)) {
-                        user.addRole(role);
+                    if (excludeRolesMatcher.test(role)) {
+                        if (isDebugEnabled) {
+                            log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
+                        }
                     } else {
-                        log.warn("No or empty attribute '{}' for entry {}", roleName, roleLdapName);
+                        user.addRole(role);
                     }
                 }
 

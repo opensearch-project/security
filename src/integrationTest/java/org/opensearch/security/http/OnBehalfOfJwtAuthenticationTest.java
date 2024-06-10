@@ -33,7 +33,6 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.test.framework.OnBehalfOfConfig;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -48,7 +47,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -128,8 +127,8 @@ public class OnBehalfOfJwtAuthenticationTest {
         .users(ADMIN_USER, OBO_USER, OBO_USER_NO_PERM, HOST_MAPPING_OBO_USER)
         .nodeSettings(
             Map.of(
-                SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX,
-                true,
+                SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST,
+                false,
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 ADMIN_USER.getRoleNames(),
                 SECURITY_RESTAPI_ADMIN_ENABLED,
@@ -139,7 +138,7 @@ public class OnBehalfOfJwtAuthenticationTest {
             )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .rolesMapping(new RolesMapping(HOST_MAPPING_ROLE).hostIPs(HOST_MAPPING_IP))
+        .rolesMapping(new TestSecurityConfig.RoleMapping(HOST_MAPPING_ROLE.getName()).hosts(HOST_MAPPING_IP))
         .onBehalfOf(defaultOnBehalfOfConfig())
         .build();
 

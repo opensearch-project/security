@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Assemble target plugin
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
           arguments: assemble
@@ -39,31 +39,16 @@ jobs:
         run: mv ./build/distributions/${{ env.PLUGIN_NAME }}-*.zip ${{ env.PLUGIN_NAME }}.zip
         shell: bash
 
-      - name: Create Setup Script
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          cat > setup.sh <<'EOF'
-          chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
-          /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh -t"
-          EOF
-
-      - name: Create Setup Script
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          New-Item .\setup.bat -type file
-          Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -i -c -y -t"
-          Get-Content .\setup.bat
-
       - name: Run Opensearch with A Single Plugin
-        uses: ./.github/actions/start-opensearch-with-one-plugin
+        uses: derek-ho/start-opensearch@v4
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
-          plugin-name: ${{ env.PLUGIN_NAME }}
-          setup-script-name: setup
+          plugins: "file:$(pwd)/${{ env.PLUGIN_NAME }}.zip"
+          security-enabled: true
           admin-password: ${{ steps.random-password.outputs.generated_name }}
 
       - name: Run sanity tests
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
           arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=${{ steps.random-password.outputs.generated_name }} -i

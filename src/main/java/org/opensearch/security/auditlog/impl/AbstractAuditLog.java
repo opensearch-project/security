@@ -19,10 +19,14 @@ import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -62,9 +66,11 @@ import org.opensearch.index.get.GetResult;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -73,6 +79,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
 import com.flipkart.zjsonpatch.JsonDiff;
+import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -88,6 +95,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private volatile ComplianceConfig complianceConfig;
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
+    private final Set<String> ignoredUrlParams = new HashSet<>();
 
     protected abstract void enableRoutes();
 
@@ -120,6 +128,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     protected void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
+        auditConfigFilter.setIgnoredUrlParams(ignoredUrlParams);
         this.auditConfigFilter = auditConfigFilter;
         this.auditConfigFilter.log(log);
     }
@@ -927,12 +936,16 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
             return false;
         }
-
-        // check rest audit enabled
-        // check category enabled
-        // check action
-        // check ignoreAuditUsers
     }
 
     protected abstract void save(final AuditMessage msg);
+
+    @Subscribe
+    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+        SortedSet<AuthDomain> authDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
+        ignoredUrlParams.clear();
+        for (AuthDomain authDomain : authDomains) {
+            ignoredUrlParams.addAll(authDomain.getHttpAuthenticator().getSensitiveUrlParams());
+        }
+    }
 }

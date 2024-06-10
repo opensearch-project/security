@@ -18,8 +18,10 @@
 package org.opensearch.security.util.ratetracking;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -33,16 +35,22 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
     private final Logger log = LogManager.getLogger(this.getClass());
 
     private final Cache<ClientIdType, ClientRecord> cache;
+    private final LongSupplier timeProvider;
     private final long timeWindowMs;
     private final int maxTimeOffsets;
 
     public HeapBasedRateTracker(long timeWindowMs, int allowedTries, int maxEntries) {
+        this(timeWindowMs, allowedTries, maxEntries, null);
+    }
+
+    public HeapBasedRateTracker(long timeWindowMs, int allowedTries, int maxEntries, LongSupplier timeProvider) {
         if (allowedTries < 2) {
             throw new IllegalArgumentException("allowedTries must be >= 2");
         }
 
         this.timeWindowMs = timeWindowMs;
         this.maxTimeOffsets = allowedTries > 2 ? allowedTries - 2 : 0;
+        this.timeProvider = Optional.ofNullable(timeProvider).orElse(System::currentTimeMillis);
         this.cache = CacheBuilder.newBuilder()
             .expireAfterAccess(this.timeWindowMs, TimeUnit.MILLISECONDS)
             .maximumSize(maxEntries)
@@ -89,7 +97,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
         private short timeOffsetEnd = -1;
 
         synchronized boolean track() {
-            long timestamp = System.currentTimeMillis();
+            long timestamp = timeProvider.getAsLong();
 
             if (this.startTime == -1 || timestamp - getMostRecent() >= timeWindowMs) {
                 this.startTime = timestamp;

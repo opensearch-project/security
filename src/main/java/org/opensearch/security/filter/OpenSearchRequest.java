@@ -12,12 +12,13 @@
 package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.net.ssl.SSLEngine;
 
-import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 
@@ -41,21 +42,11 @@ public class OpenSearchRequest implements SecurityRequest {
 
     @Override
     public SSLEngine getSSLEngine() {
-        if (underlyingRequest == null
-            || underlyingRequest.getHttpChannel() == null
-            || !(underlyingRequest.getHttpChannel() instanceof Netty4HttpChannel)) {
+        if (underlyingRequest == null || underlyingRequest.getHttpChannel() == null) {
             return null;
         }
 
-        // We look for Ssl_handler called `ssl_http` in the outbound pipeline of Netty channel first, and if its not
-        // present we look for it in inbound channel. If its present in neither we return null, else we return the sslHandler.
-        final Netty4HttpChannel httpChannel = (Netty4HttpChannel) underlyingRequest.getHttpChannel();
-        SslHandler sslhandler = (SslHandler) httpChannel.getNettyChannel().pipeline().get("ssl_http");
-        if (sslhandler == null && httpChannel.inboundPipeline() != null) {
-            sslhandler = (SslHandler) httpChannel.inboundPipeline().get("ssl_http");
-        }
-
-        return sslhandler != null ? sslhandler.engine() : null;
+        return underlyingRequest.getHttpChannel().get("ssl_http", SslHandler.class).map(SslHandler::engine).orElse(null);
     }
 
     @Override
@@ -80,7 +71,18 @@ public class OpenSearchRequest implements SecurityRequest {
 
     @Override
     public Map<String, String> params() {
-        return underlyingRequest.params();
+        return new HashMap<>(underlyingRequest.params()) {
+            @Override
+            public String get(Object key) {
+                return underlyingRequest.param((String) key);
+            }
+        };
+    }
+
+    @Override
+    public Set<String> getUnconsumedParams() {
+        // params() Map consumes explict parameter access
+        return Set.of();
     }
 
     /** Gets access to the underlying request object */

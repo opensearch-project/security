@@ -54,7 +54,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -81,11 +81,11 @@ jobs:
         working-directory: downloaded-artifacts
 
       - name: Upload Coverage with retry
-        uses: Wandalen/wretry.action@v1.3.0
+        uses: Wandalen/wretry.action@v3.5.0
         with:
           attempt_limit: 5
           attempt_delay: 2000
-          action: codecov/codecov-action@v3
+          action: codecov/codecov-action@v4
           with: |
             token: ${{ secrets.CODECOV_TOKEN }}
             fail_ci_if_error: true
@@ -112,7 +112,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -147,7 +147,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build and Test
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/gradle-build-action@v3
       with:
         cache-disabled: true
         arguments: |
@@ -165,7 +165,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build BWC tests
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
           arguments: |
@@ -245,6 +245,8 @@ jobs:
     - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.zip
 
     - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
+
+    - run: ./gradlew clean publishPluginZipPublicationToZipStagingRepository && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.zip && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.pom
 
     - name: List files in the build directory if there was an error
       run: ls -al ./build/distributions/

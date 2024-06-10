@@ -34,15 +34,12 @@ import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SerializationFormat;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.TaskTransportChannel;
-import org.opensearch.transport.TcpChannel;
-import org.opensearch.transport.TcpTransportChannel;
 import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
-import org.opensearch.transport.netty4.Netty4TcpChannel;
 
 import io.netty.handler.ssl.SslHandler;
 
@@ -96,7 +93,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
 
         threadContext.putTransient(
             ConfigConstants.USE_JDK_SERIALIZATION,
-            channel.getVersion().before(ConfigConstants.FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION)
+            SerializationFormat.determineFormat(channel.getVersion()) == SerializationFormat.JDK
         );
 
         if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
@@ -111,21 +108,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
         }
 
         try {
-
-            Netty4TcpChannel nettyChannel = null;
-
-            if (channel instanceof TaskTransportChannel) {
-                final TransportChannel inner = ((TaskTransportChannel) channel).getChannel();
-                nettyChannel = (Netty4TcpChannel) ((TcpTransportChannel) inner).getChannel();
-            } else if (channel instanceof TcpTransportChannel) {
-                final TcpChannel inner = ((TcpTransportChannel) channel).getChannel();
-                nettyChannel = (Netty4TcpChannel) inner;
-            } else {
-                throw new Exception("Invalid channel of type " + channel.getClass() + " (" + channel.getChannelType() + ")");
-            }
-
-            final SslHandler sslhandler = (SslHandler) nettyChannel.getNettyChannel().pipeline().get("ssl_server");
-
+            final SslHandler sslhandler = channel.get("ssl_server", SslHandler.class).orElse(null);
             if (sslhandler == null) {
                 if (SSLConfig.isDualModeEnabled()) {
                     log.info("Communication in dual mode. Skipping SSL handler check");

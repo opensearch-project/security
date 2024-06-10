@@ -21,22 +21,32 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.tools.Hasher;
 import org.opensearch.security.tools.democonfig.util.NoExitSecurityManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_ADMIN_PASSWORD;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SYSTEM_INDICES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
@@ -55,18 +65,22 @@ public class SecuritySettingsConfigurerTests {
 
     private final String adminPasswordKey = ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD;
 
+    private static final String PASSWORD_VALIDATION_FAILURE_MESSAGE =
+        "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn";
+
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
 
     private static Installer installer;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         System.setOut(new PrintStream(outContent));
         System.setErr(new PrintStream(outContent));
         installer = Installer.getInstance();
         installer.buildOptions();
         securitySettingsConfigurer = new SecuritySettingsConfigurer(installer);
         setUpConf();
+        setUpInternalUsersYML();
     }
 
     @After
@@ -81,7 +95,7 @@ public class SecuritySettingsConfigurerTests {
     }
 
     @Test
-    public void testUpdateAdminPasswordWithCustomPassword() throws NoSuchFieldException, IllegalAccessException {
+    public void testUpdateAdminPasswordWithCustomPassword() throws NoSuchFieldException, IllegalAccessException, IOException {
         String customPassword = "myStrongPassword123";
         setEnv(adminPasswordKey, customPassword);
 
@@ -98,13 +112,18 @@ public class SecuritySettingsConfigurerTests {
         try {
             System.setSecurityManager(new NoExitSecurityManager());
             securitySettingsConfigurer.updateAdminPassword();
-        } catch (SecurityException e) {
+        } catch (SecurityException | IOException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
 
-        verifyStdOutContainsString("No custom admin password found. Please provide a password.");
+        verifyStdOutContainsString(
+            String.format(
+                "No custom admin password found. Please provide a password via the environment variable %s.",
+                ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD
+            )
+        );
     }
 
     @Test
@@ -114,17 +133,43 @@ public class SecuritySettingsConfigurerTests {
         try {
             System.setSecurityManager(new NoExitSecurityManager());
             securitySettingsConfigurer.updateAdminPassword();
-        } catch (SecurityException e) {
+        } catch (SecurityException | IOException e) {
             assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
         } finally {
             System.setSecurityManager(null);
         }
 
-        verifyStdOutContainsString("Password weakpassword is weak. Please re-try with a stronger password.");
+        verifyStdOutContainsString(
+            String.format(
+                PASSWORD_VALIDATION_FAILURE_MESSAGE,
+                "weakpassword",
+                INVALID_PASSWORD_INVALID_REGEX.message(),
+                DEFAULT_PASSWORD_MIN_LENGTH
+            )
+        );
     }
 
     @Test
-    public void testUpdateAdminPasswordWithWeakPassword_skipPasswordValidation() throws NoSuchFieldException, IllegalAccessException {
+    public void testUpdateAdminPasswordWithShortPassword() throws NoSuchFieldException, IllegalAccessException {
+
+        setEnv(adminPasswordKey, "short");
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+            securitySettingsConfigurer.updateAdminPassword();
+        } catch (SecurityException | IOException e) {
+            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
+        } finally {
+            System.setSecurityManager(null);
+        }
+
+        verifyStdOutContainsString(
+            String.format(PASSWORD_VALIDATION_FAILURE_MESSAGE, "short", INVALID_PASSWORD_TOO_SHORT.message(), DEFAULT_PASSWORD_MIN_LENGTH)
+        );
+    }
+
+    @Test
+    public void testUpdateAdminPasswordWithWeakPassword_skipPasswordValidation() throws NoSuchFieldException, IllegalAccessException,
+        IOException {
         setEnv(adminPasswordKey, "weakpassword");
         installer.environment = ExecutionEnvironment.TEST;
         securitySettingsConfigurer.updateAdminPassword();
@@ -132,6 +177,49 @@ public class SecuritySettingsConfigurerTests {
         assertThat("weakpassword", is(equalTo(SecuritySettingsConfigurer.ADMIN_PASSWORD)));
 
         verifyStdOutContainsString("Admin password set successfully.");
+    }
+
+    @Test
+    public void testUpdateAdminPasswordWithCustomInternalUsersYML() throws IOException {
+        String internalUsersFile = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
+        Path internalUsersFilePath = Paths.get(internalUsersFile);
+
+        List<String> newContent = Arrays.asList(
+            "_meta:",
+            "  type: \"internalusers\"",
+            "  config_version: 2",
+            "admin:",
+            "  hash: " + Hasher.hash(RandomStringUtils.randomAlphanumeric(16).toCharArray()),
+            "  backend_roles:",
+            "  - \"admin\""
+        );
+        // overwriting existing content
+        Files.write(internalUsersFilePath, newContent, StandardCharsets.UTF_8);
+
+        securitySettingsConfigurer.updateAdminPassword();
+
+        verifyStdOutContainsString("Admin password seems to be custom configured. Skipping update to admin password.");
+    }
+
+    @Test
+    public void testUpdateAdminPasswordWithDefaultInternalUsersYml() {
+
+        SecuritySettingsConfigurer.ADMIN_PASSWORD = ""; // to ensure 0 flaky-ness
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+            securitySettingsConfigurer.updateAdminPassword();
+        } catch (SecurityException | IOException e) {
+            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
+        } finally {
+            System.setSecurityManager(null);
+        }
+
+        verifyStdOutContainsString(
+            String.format(
+                "No custom admin password found. Please provide a password via the environment variable %s.",
+                ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD
+            )
+        );
     }
 
     @Test
@@ -237,6 +325,18 @@ public class SecuritySettingsConfigurerTests {
     }
 
     @Test
+    public void testAssumeYesDoesNotInitializeClusterMode() throws IOException {
+        String nodeName = "node.name"; // cluster_mode
+        String securityIndex = "plugins.security.allow_default_init_securityindex"; // init_security
+
+        installer.assumeyes = true;
+        securitySettingsConfigurer.writeSecurityConfigToOpenSearchYML();
+
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, nodeName), is(false));
+        assertThat(isKeyPresentInYMLFile(installer.OPENSEARCH_CONF_FILE, securityIndex), is(false));
+    }
+
+    @Test
     public void testCreateSecurityAdminDemoScriptAndGetSecurityAdminCommands() throws IOException {
         String demoPath = installer.OPENSEARCH_CONF_DIR + "securityadmin_demo" + installer.FILE_EXTENSION;
         securitySettingsConfigurer.createSecurityAdminDemoScript("scriptPath", demoPath);
@@ -304,5 +404,22 @@ public class SecuritySettingsConfigurerTests {
 
     private void verifyStdOutContainsString(String s) {
         assertThat(outContent.toString(), containsString(s));
+    }
+
+    private void setUpInternalUsersYML() throws IOException {
+        String internalUsersFile = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
+        Path internalUsersFilePath = Paths.get(internalUsersFile);
+        List<String> defaultContent = Arrays.asList(
+            "_meta:",
+            "  type: \"internalusers\"",
+            "  config_version: 2",
+            "admin:",
+            "  hash: " + Hasher.hash(DEFAULT_ADMIN_PASSWORD.toCharArray()),
+            "  reserved: " + true,
+            "  backend_roles:",
+            "  - \"admin\"",
+            "  description: Demo admin user"
+        );
+        Files.write(internalUsersFilePath, defaultContent, StandardCharsets.UTF_8);
     }
 }

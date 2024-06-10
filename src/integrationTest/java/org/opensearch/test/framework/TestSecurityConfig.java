@@ -53,6 +53,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -77,11 +78,15 @@ public class TestSecurityConfig {
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
+    public final static String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
+
     private Config config = new Config();
     private Map<String, User> internalUsers = new LinkedHashMap<>();
     private Map<String, Role> roles = new LinkedHashMap<>();
     private AuditConfiguration auditConfiguration;
-    private Map<String, RolesMapping> rolesMapping = new LinkedHashMap<>();
+    private Map<String, RoleMapping> rolesMapping = new LinkedHashMap<>();
+
+    private Map<String, ActionGroup> actionGroups = new LinkedHashMap<>();
 
     private String indexName = ".opendistro_security";
 
@@ -139,6 +144,17 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
+        if (internalUsers.containsKey(name)) throw new RuntimeException("REST Admin " + name + " already exists");
+        user(new User(name, "REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
+        final var roleName = name + "__rest_admin_role";
+        roles(new Role(roleName).clusterPermissions(permissions));
+
+        rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
+        rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
+        return this;
+    }
+
     public List<User> getUsers() {
         return new ArrayList<>(internalUsers.values());
     }
@@ -154,20 +170,39 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public List<Role> roles() {
+        return List.copyOf(roles.values());
+    }
+
     public TestSecurityConfig audit(AuditConfiguration auditConfiguration) {
         this.auditConfiguration = auditConfiguration;
         return this;
     }
 
-    public TestSecurityConfig rolesMapping(RolesMapping... mappings) {
-        for (RolesMapping mapping : mappings) {
-            String roleName = mapping.getRoleName();
+    public TestSecurityConfig rolesMapping(RoleMapping... mappings) {
+        for (RoleMapping mapping : mappings) {
+            String roleName = mapping.name();
             if (rolesMapping.containsKey(roleName)) {
                 throw new IllegalArgumentException("Role mapping " + roleName + " already exists");
             }
             this.rolesMapping.put(roleName, mapping);
         }
         return this;
+    }
+
+    public List<RoleMapping> rolesMapping() {
+        return List.copyOf(rolesMapping.values());
+    }
+
+    public TestSecurityConfig actionGroups(ActionGroup... groups) {
+        for (final var group : groups) {
+            this.actionGroups.put(group.name, group);
+        }
+        return this;
+    }
+
+    public List<ActionGroup> actionGroups() {
+        return List.copyOf(actionGroups.values());
     }
 
     public static class Config implements ToXContentObject {
@@ -252,7 +287,113 @@ public class TestSecurityConfig {
         }
     }
 
-    public static class User implements UserCredentialsHolder, ToXContentObject {
+    public static final class ActionGroup implements ToXContentObject {
+
+        public enum Type {
+
+            INDEX,
+
+            CLUSTER;
+
+            public String type() {
+                return name().toLowerCase();
+            }
+
+        }
+
+        private final String name;
+
+        private final String description;
+
+        private final Type type;
+
+        private final List<String> allowedActions;
+
+        private Boolean hidden = null;
+
+        private Boolean reserved = null;
+
+        private Boolean _static = null;
+
+        public ActionGroup(String name, Type type, String... allowedActions) {
+            this(name, null, type, allowedActions);
+        }
+
+        public ActionGroup(String name, String description, Type type, String... allowedActions) {
+            this.name = name;
+            this.description = description;
+            this.type = type;
+            this.allowedActions = Arrays.asList(allowedActions);
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public ActionGroup hidden(boolean hidden) {
+            this.hidden = hidden;
+            return this;
+        }
+
+        public boolean hidden() {
+            return hidden != null && hidden;
+        }
+
+        public ActionGroup reserved(boolean reserved) {
+            this.reserved = reserved;
+            return this;
+        }
+
+        public boolean reserved() {
+            return reserved != null && reserved;
+        }
+
+        public ActionGroup _static(boolean _static) {
+            this._static = _static;
+            return this;
+        }
+
+        public boolean _static() {
+            return _static != null && _static;
+        }
+
+        public List<String> allowedActions() {
+            return allowedActions;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.startObject();
+            if (hidden != null) builder.field("hidden", hidden);
+            if (reserved != null) builder.field("reserved", reserved);
+            if (_static != null) builder.field("static", _static);
+            builder.field("type", type.type());
+            builder.field("allowed_actions", allowedActions);
+            if (description != null) builder.field("description", description);
+            return builder.endObject();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ActionGroup that = (ActionGroup) o;
+            return Objects.equals(name, that.name)
+                && Objects.equals(description, that.description)
+                && type == that.type
+                && Objects.equals(allowedActions, that.allowedActions)
+                && Objects.equals(hidden, that.hidden)
+                && Objects.equals(reserved, that.reserved);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, description, type, allowedActions, hidden, reserved);
+        }
+
+    }
+
+    public static final class User implements UserCredentialsHolder, ToXContentObject {
 
         public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin").roles(
             new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*")
@@ -265,9 +406,20 @@ public class TestSecurityConfig {
         String requestedTenant;
         private Map<String, String> attributes = new HashMap<>();
 
+        private Boolean hidden = null;
+
+        private Boolean reserved = null;
+
+        private String description;
+
         public User(String name) {
+            this(name, null);
+        }
+
+        public User(String name, String description) {
             this.name = name;
             this.password = "secret";
+            this.description = description;
         }
 
         public User password(String password) {
@@ -286,6 +438,16 @@ public class TestSecurityConfig {
 
         public User backendRoles(String... backendRoles) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
+            return this;
+        }
+
+        public User reserved(boolean reserved) {
+            this.reserved = reserved;
+            return this;
+        }
+
+        public User hidden(boolean hidden) {
+            this.hidden = hidden;
             return this;
         }
 
@@ -330,8 +492,32 @@ public class TestSecurityConfig {
                 xContentBuilder.field("attributes", attributes);
             }
 
+            if (hidden != null) xContentBuilder.field("hidden", hidden);
+            if (reserved != null) xContentBuilder.field("reserved", reserved);
+            if (!Strings.isNullOrEmpty(description)) xContentBuilder.field("description", description);
             xContentBuilder.endObject();
             return xContentBuilder;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            User user = (User) o;
+            return Objects.equals(name, user.name)
+                && Objects.equals(password, user.password)
+                && Objects.equals(roles, user.roles)
+                && Objects.equals(backendRoles, user.backendRoles)
+                && Objects.equals(requestedTenant, user.requestedTenant)
+                && Objects.equals(attributes, user.attributes)
+                && Objects.equals(hidden, user.hidden)
+                && Objects.equals(reserved, user.reserved)
+                && Objects.equals(description, user.description);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, password, roles, backendRoles, requestedTenant, attributes, hidden, reserved, description);
         }
     }
 
@@ -343,8 +529,19 @@ public class TestSecurityConfig {
 
         private List<IndexPermission> indexPermissions = new ArrayList<>();
 
+        private Boolean hidden;
+
+        private Boolean reserved;
+
+        private String description;
+
         public Role(String name) {
+            this(name, null);
+        }
+
+        public Role(String name, String description) {
             this.name = name;
+            this.description = description;
         }
 
         public Role clusterPermissions(String... clusterPermissions) {
@@ -365,6 +562,16 @@ public class TestSecurityConfig {
             return name;
         }
 
+        public Role hidden(boolean hidden) {
+            this.hidden = hidden;
+            return this;
+        }
+
+        public Role reserved(boolean reserved) {
+            this.reserved = reserved;
+            return this;
+        }
+
         public Role clone() {
             Role role = new Role(this.name);
             role.clusterPermissions.addAll(this.clusterPermissions);
@@ -383,9 +590,125 @@ public class TestSecurityConfig {
             if (!indexPermissions.isEmpty()) {
                 xContentBuilder.field("index_permissions", indexPermissions);
             }
+            if (hidden != null) {
+                xContentBuilder.field("hidden", hidden);
+            }
+            if (reserved != null) {
+                xContentBuilder.field("reserved", reserved);
+            }
+            if (!Strings.isNullOrEmpty(description)) xContentBuilder.field("description", description);
+            return xContentBuilder.endObject();
+        }
 
-            xContentBuilder.endObject();
-            return xContentBuilder;
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Role role = (Role) o;
+            return Objects.equals(name, role.name)
+                && Objects.equals(clusterPermissions, role.clusterPermissions)
+                && Objects.equals(indexPermissions, role.indexPermissions)
+                && Objects.equals(hidden, role.hidden)
+                && Objects.equals(reserved, role.reserved)
+                && Objects.equals(description, role.description);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, clusterPermissions, indexPermissions, hidden, reserved, description);
+        }
+    }
+
+    public static class RoleMapping implements ToXContentObject {
+
+        private List<String> users = new ArrayList<>();
+        private List<String> hosts = new ArrayList<>();
+
+        private final String name;
+
+        private Boolean hidden;
+
+        private Boolean reserved;
+
+        private Boolean _static;
+
+        private final String description;
+
+        private List<String> backendRoles = new ArrayList<>();
+
+        public RoleMapping(final String name) {
+            this(name, null);
+        }
+
+        public RoleMapping(final String name, final String description) {
+            this.name = name;
+            this.description = description;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public RoleMapping hidden(boolean hidden) {
+            this.hidden = hidden;
+            return this;
+        }
+
+        public RoleMapping reserved(boolean reserved) {
+            this.reserved = reserved;
+            return this;
+        }
+
+        public RoleMapping _static(boolean _static) {
+            this._static = _static;
+            return this;
+        }
+
+        public RoleMapping users(String... users) {
+            this.users.addAll(Arrays.asList(users));
+            return this;
+        }
+
+        public RoleMapping hosts(String... hosts) {
+            this.users.addAll(Arrays.asList(hosts));
+            return this;
+        }
+
+        public RoleMapping backendRoles(String... backendRoles) {
+            this.backendRoles.addAll(Arrays.asList(backendRoles));
+            return this;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.startObject();
+            if (hidden != null) builder.field("hidden", hidden);
+            if (reserved != null) builder.field("reserved", reserved);
+            if (_static != null) builder.field("static", _static);
+            if (users != null && !users.isEmpty()) builder.field("users", users);
+            if (hosts != null && !hosts.isEmpty()) builder.field("hosts", hosts);
+            if (description != null) builder.field("description", description);
+            builder.field("backend_roles", backendRoles);
+            return builder.endObject();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RoleMapping that = (RoleMapping) o;
+            return Objects.equals(users, that.users)
+                && Objects.equals(hosts, that.hosts)
+                && Objects.equals(name, that.name)
+                && Objects.equals(hidden, that.hidden)
+                && Objects.equals(reserved, that.reserved)
+                && Objects.equals(description, that.description)
+                && Objects.equals(backendRoles, that.backendRoles);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(users, hosts, name, hidden, reserved, description, backendRoles);
         }
     }
 

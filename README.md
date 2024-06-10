@@ -129,8 +129,7 @@ plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task
 
 The demo configuration can be modified in the following files to add a new system index to the demo configuration:
 
-- https://github.com/opensearch-project/security/blob/main/tools/install_demo_configuration.sh
-- https://github.com/opensearch-project/security/blob/main/tools/install_demo_configuration.bat
+- https://github.com/opensearch-project/security/blob/main/src/main/java/org/opensearch/security/tools/democonfig/SecuritySettingsConfigurer.java
 
 
 ## Contributing
@@ -149,7 +148,7 @@ This project has adopted the [Amazon Open Source Code of Conduct](CODE_OF_CONDUC
 
 ## Security
 
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public GitHub issue.
+If you discover a potential security issue in this project we ask that you notify OpenSearch Security directly via email to security@opensearch.org. Please do **not** create a public GitHub issue.
 
 ## License
 

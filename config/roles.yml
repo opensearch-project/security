@@ -33,6 +33,7 @@ alerting_read_access:
     - 'cluster:admin/opendistro/alerting/monitor/get'
     - 'cluster:admin/opendistro/alerting/monitor/search'
     - 'cluster:admin/opensearch/alerting/findings/get'
+    - 'cluster:admin/opensearch/alerting/remote/indexes/get'
     - 'cluster:admin/opensearch/alerting/workflow/get'
     - 'cluster:admin/opensearch/alerting/workflow_alerts/get'
 
@@ -270,17 +271,40 @@ cross_cluster_search_remote_full_access:
         - 'indices:admin/shards/search_shards'
         - 'indices:data/read/search'
 
+# Allow users to operate query assistant
+query_assistant_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/ml/config/get'
+    - 'cluster:admin/opensearch/ml/execute'
+    - 'cluster:admin/opensearch/ml/predict'
+    - 'cluster:admin/opensearch/ppl'
+
 # Allow users to read ML stats/models/tasks
 ml_read_access:
   reserved: true
   cluster_permissions:
+    - 'cluster:admin/opensearch/ml/config/get'
     - 'cluster:admin/opensearch/ml/connectors/get'
     - 'cluster:admin/opensearch/ml/connectors/search'
+    - 'cluster:admin/opensearch/ml/controllers/get'
+    - 'cluster:admin/opensearch/ml/memory/conversation/get'
+    - 'cluster:admin/opensearch/ml/memory/conversation/interaction/search'
+    - 'cluster:admin/opensearch/ml/memory/conversation/list'
+    - 'cluster:admin/opensearch/ml/memory/conversation/search'
+    - 'cluster:admin/opensearch/ml/memory/interaction/get'
+    - 'cluster:admin/opensearch/ml/memory/interaction/list'
+    - 'cluster:admin/opensearch/ml/memory/trace/get'
+    - 'cluster:admin/opensearch/ml/model_groups/get'
     - 'cluster:admin/opensearch/ml/model_groups/search'
     - 'cluster:admin/opensearch/ml/models/get'
     - 'cluster:admin/opensearch/ml/models/search'
+    - 'cluster:admin/opensearch/ml/profile/nodes'
+    - 'cluster:admin/opensearch/ml/stats/nodes'
     - 'cluster:admin/opensearch/ml/tasks/get'
     - 'cluster:admin/opensearch/ml/tasks/search'
+    - 'cluster:admin/opensearch/ml/tools/get'
+    - 'cluster:admin/opensearch/ml/tools/list'
 
 # Allows users to use all ML functionality
 ml_full_access:
@@ -346,6 +370,7 @@ security_analytics_read_access:
     - 'cluster:admin/opensearch/securityanalytics/detector/get'
     - 'cluster:admin/opensearch/securityanalytics/detector/search'
     - 'cluster:admin/opensearch/securityanalytics/findings/get'
+    - 'cluster:admin/opensearch/securityanalytics/logtype/search'
     - 'cluster:admin/opensearch/securityanalytics/mapping/get'
     - 'cluster:admin/opensearch/securityanalytics/mapping/view/get'
     - 'cluster:admin/opensearch/securityanalytics/rule/get'
@@ -359,6 +384,7 @@ security_analytics_full_access:
     - 'cluster:admin/opensearch/securityanalytics/correlations/*'
     - 'cluster:admin/opensearch/securityanalytics/detector/*'
     - 'cluster:admin/opensearch/securityanalytics/findings/*'
+    - 'cluster:admin/opensearch/securityanalytics/logtype/*'
     - 'cluster:admin/opensearch/securityanalytics/mapping/*'
     - 'cluster:admin/opensearch/securityanalytics/rule/*'
   index_permissions:
@@ -396,3 +422,15 @@ flow_framework_read_access:
     - 'cluster:admin/opensearch/flow_framework/workflow/search'
     - 'cluster:admin/opensearch/flow_framework/workflow_state/get'
     - 'cluster:admin/opensearch/flow_framework/workflow_state/search'
+    - 'cluster:admin/opensearch/flow_framework/workflow_step/get'
+
+# Allows users to use all query insights APIs
+query_insights_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/insights/top_queries/*'
+  index_permissions:
+    - index_patterns:
+        - 'top_queries_by_*'
+      allowed_actions:
+        - "indices_all"

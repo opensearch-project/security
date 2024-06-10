@@ -23,9 +23,12 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 
 import com.google.common.io.CharStreams;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -153,9 +156,8 @@ final class LdapServer {
         config.setEnforceAttributeSyntaxCompliance(false);
         config.setEnforceSingleStructuralObjectClass(false);
 
-        // config.setLDAPDebugLogHandler(DEBUG_HANDLER);
-        // config.setAccessLogHandler(DEBUG_HANDLER);
-        // config.addAdditionalBindCredentials(configuration.getBindDn(), configuration.getPassword());
+        config.setLDAPDebugLogHandler(new ServerLogger());
+        config.setAccessLogHandler(new ServerLogger());
 
         server = new InMemoryDirectoryServer(config);
 
@@ -214,25 +216,33 @@ final class LdapServer {
         return ldifLoadCount;
     }
 
-    /* private static class DebugHandler extends Handler {
-        private final static Logger LOG = LogManager.getLogger(DebugHandler.class);
+    private static class ServerLogger extends Handler {
+        final Logger logger = LogManager.getLogger(ServerLogger.class);
 
         @Override
-        public void publish(LogRecord logRecord) {
-           //LOG.debug(ToStringBuilder.reflectionToString(logRecord, ToStringStyle.MULTI_LINE_STYLE));
+        public void publish(final LogRecord logRecord) {
+            logger.log(toLog4jLevel(logRecord.getLevel()), logRecord.getMessage(), logRecord.getThrown());
         }
 
         @Override
-        public void flush() {
-
-        }
+        public void flush() {}
 
         @Override
-        public void close() throws SecurityException {
+        public void close() throws SecurityException {}
 
+        private Level toLog4jLevel(java.util.logging.Level javaLevel) {
+            switch (javaLevel.getName()) {
+                case "SEVERE":
+                    return Level.ERROR;
+                case "WARNING":
+                    return Level.WARN;
+                case "INFO":
+                    return Level.INFO;
+                case "CONFIG":
+                    return Level.DEBUG;
+                default:
+                    return Level.TRACE;
+            }
         }
     }
-
-    private static final DebugHandler DEBUG_HANDLER = new DebugHandler();
-    */
 }

@@ -27,7 +27,6 @@ import org.opensearch.test.framework.AuthorizationBackend;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.LdapAuthorizationConfigBuilder;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AuthenticationBackend;
@@ -41,6 +40,7 @@ import org.opensearch.test.framework.log.LogsRule;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.http.CertificateAuthenticationTest.POINTER_BACKEND_ROLES;
 import static org.opensearch.security.http.DirectoryInformationTrees.CN_GROUP_ADMIN;
 import static org.opensearch.security.http.DirectoryInformationTrees.DN_CAPTAIN_SPOCK_PEOPLE_TEST_ORG;
@@ -55,6 +55,8 @@ import static org.opensearch.security.http.DirectoryInformationTrees.USERNAME_AT
 import static org.opensearch.security.http.DirectoryInformationTrees.USER_KIRK;
 import static org.opensearch.security.http.DirectoryInformationTrees.USER_SEARCH;
 import static org.opensearch.security.http.DirectoryInformationTrees.USER_SPOCK;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC_AUTH_DOMAIN_ORDER;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -83,7 +85,16 @@ public class LdapAuthenticationTest {
     public static LocalCluster cluster = new LocalCluster.Builder().testCertificates(TEST_CERTIFICATES)
         .clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
-        .nodeSettings(Map.of(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + "." + ADMIN_USER.getName(), List.of(USER_KIRK)))
+        .nodeSettings(
+            Map.of(
+                ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + "." + ADMIN_USER.getName(),
+                List.of(USER_KIRK),
+                SECURITY_RESTAPI_ROLES_ENABLED,
+                List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
+                SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST,
+                false
+            )
+        )
         .authc(
             new AuthcDomain("ldap", BASIC_AUTH_DOMAIN_ORDER + 1, true).httpAuthenticator(new HttpAuthenticator("basic").challenge(false))
                 .backend(
@@ -106,10 +117,9 @@ public class LdapAuthenticationTest {
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
-        .rolesMapping(new RolesMapping(ALL_ACCESS).backendRoles(CN_GROUP_ADMIN))
+        .rolesMapping(new TestSecurityConfig.RoleMapping(ALL_ACCESS.getName()).backendRoles(CN_GROUP_ADMIN))
         .authz(
             new AuthzDomain("ldap_roles").httpEnabled(true)
-                .transportEnabled(true)
                 .authorizationBackend(
                     new AuthorizationBackend("ldap").config(
                         () -> new LdapAuthorizationConfigBuilder().hosts(List.of("localhost:" + embeddedLDAPServer.getLdapNonTlsPort()))
@@ -189,6 +199,17 @@ public class LdapAuthenticationTest {
             );
 
             scrollResponse.assertStatusCode(200);
+        }
+    }
+
+    @Test
+    public void testShouldRedactPasswordWhenGettingSecurityConfig() {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.get("_plugins/_security/api/securityconfig");
+
+            response.assertStatusCode(200);
+            String redactedPassword = response.getTextFromJsonBody("/config/dynamic/authc/ldap/authentication_backend/config/password");
+            assertThat("******", equalTo(redactedPassword));
         }
     }
 }

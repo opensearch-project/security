@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -113,6 +114,16 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
 
+    public HttpResponse securityHealth(Header... headers) {
+        return executeRequest(new HttpGet(getHttpServerUri() + "/_plugins/_security/health"), headers);
+    }
+
+    public HttpResponse getAuthInfo(Map<String, String> urlParams, Header... headers) {
+        String urlParamsString = "?"
+            + urlParams.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
+        return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo" + urlParamsString), headers);
+    }
+
     public void confirmCorrectCredentials(String expectedUserName) {
         HttpResponse response = getAuthInfo();
         assertThat(response, notNullValue());
@@ -174,6 +185,10 @@ public class TestRestClient implements AutoCloseable {
     public HttpResponse post(String path) {
         HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + path);
         return executeRequest(uriRequest);
+    }
+
+    public HttpResponse patch(String path, ToXContentObject body) {
+        return patch(path, Strings.toString(XContentType.JSON, body));
     }
 
     public HttpResponse patch(String path, String body) {
@@ -405,6 +420,14 @@ public class TestRestClient implements AutoCloseable {
         public <T> T getBodyAs(Class<T> authInfoClass) {
             try {
                 return DefaultObjectMapper.readValue(getBody(), authInfoClass);
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot parse response body", e);
+            }
+        }
+
+        public JsonNode bodyAsJsonNode() {
+            try {
+                return DefaultObjectMapper.readTree(getBody());
             } catch (IOException e) {
                 throw new RuntimeException("Cannot parse response body", e);
             }

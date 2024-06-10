@@ -35,7 +35,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 
@@ -165,6 +164,7 @@ public class ConfigConstants {
     );
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
+    public static final String SECURITY_AUDIT_IGNORE_HEADERS = "plugins.security.audit.ignore_headers";
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS = "opendistro_security.audit.resolve_bulk_requests";
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
@@ -219,9 +219,14 @@ public class ConfigConstants {
     public static final String SECURITY_NODES_DN = "plugins.security.nodes_dn";
     public static final String SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED = "plugins.security.nodes_dn_dynamic_config_enabled";
     public static final String SECURITY_DISABLED = "plugins.security.disabled";
+
     public static final String SECURITY_CACHE_TTL_MINUTES = "plugins.security.cache.ttl_minutes";
     public static final String SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES = "plugins.security.allow_unsafe_democertificates";
     public static final String SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX = "plugins.security.allow_default_init_securityindex";
+
+    public static final String SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE =
+        "plugins.security.allow_default_init_securityindex.use_cluster_state";
+
     public static final String SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST =
         "plugins.security.background_init_if_securityindex_not_exist";
 
@@ -280,6 +285,8 @@ public class ConfigConstants {
     // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY =
         "plugins.security.unsupported.disable_rest_auth_initially";
+    public static final String SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS =
+        "plugins.security.unsupported.delay_initialization_seconds";
     public static final String SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY =
         "plugins.security.unsupported.disable_intertransport_auth_initially";
     public static final String SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY =
@@ -320,13 +327,13 @@ public class ConfigConstants {
     public static final Boolean SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
+    public static final String SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT = "plugins.security.masked_fields.algorithm.default";
 
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
     public static final String USE_JDK_SERIALIZATION = "plugins.security.use_jdk_serialization";
-    public static final Version FIRST_CUSTOM_SERIALIZATION_SUPPORTED_OS_VERSION = Version.V_2_11_0;
 
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
