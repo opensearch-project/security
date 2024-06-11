@@ -128,6 +128,7 @@ public class PrivilegesEvaluator {
     private ThreadContext threadContext;
 
     private PrivilegesInterceptor privilegesInterceptor;
+    private Map<String, Set<String>> systemIndices;
 
     private final boolean checkSnapshotRestoreWritePrivileges;
 
@@ -191,6 +192,10 @@ public class PrivilegesEvaluator {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         this.dcm = dcm;
+    }
+
+    public void setSystemIndices(Map<String, Set<String>> systemIndices) {
+        this.systemIndices = systemIndices;
     }
 
     public SecurityRoles getSecurityRoles(Set<String> roles) {

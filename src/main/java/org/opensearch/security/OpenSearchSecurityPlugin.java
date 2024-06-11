@@ -50,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -2042,6 +2043,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
         return Collections.singletonList(systemIndexDescriptor);
+    }
+
+    @Override
+    public Consumer<Map<String, Set<String>>> onSystemIndices() {
+        return (systemIndices) -> { evaluator.setSystemIndices(systemIndices); };
     }
 
     private static String handleKeyword(final String field) {
