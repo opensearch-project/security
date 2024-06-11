@@ -74,4 +74,9 @@ public class DelegatingRestHandler implements RestHandler {
     public String toString() {
         return delegate.toString();
     }
+
+    @Override
+    public boolean supportsStreaming() {
+        return delegate.supportsStreaming();
+    }
 }
