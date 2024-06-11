@@ -910,20 +910,18 @@ public class FlsAndFieldMaskingTests {
         GetRequest getRequest = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
-            assertProperGetResponsesForCorrespondingFLSRestrictions(restHighLevelClient, getRequest, true);
+            assertGetForFLSRestrictions(restHighLevelClient, getRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
-            assertProperGetResponsesForCorrespondingFLSRestrictions(restHighLevelClient, getRequest, false);
+            assertGetForFLSRestrictions(restHighLevelClient, getRequest, false);
         }
     }
 
-    private void assertProperGetResponsesForCorrespondingFLSRestrictions(
-        RestHighLevelClient restHighLevelClient,
-        GetRequest getRequest,
-        boolean getOne
-    ) throws IOException, Exception {
-        // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
+    private void assertGetForFLSRestrictions(RestHighLevelClient restHighLevelClient, GetRequest getRequest, boolean shouldShowFieldTitle)
+        throws IOException, Exception {
+        // if shouldShowFieldTitle == true, we check that only the title field is fetched; if shouldShowFieldTitle == false, we check that
+        // only the title field is
         // ignored
         GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
 
@@ -950,11 +948,11 @@ public class FlsAndFieldMaskingTests {
             FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_1).getGenre()
         );
 
-        assertThat(getResponse, getOne ? containsTitleField : not(containsTitleField));
-        assertThat(getResponse, getOne ? not(containsArtistField) : containsArtistField);
-        assertThat(getResponse, getOne ? not(containsLyricsField) : containsLyricsField);
-        assertThat(getResponse, getOne ? not(containsStarsField) : containsStarsField);
-        assertThat(getResponse, getOne ? not(containsGenreField) : containsGenreField);
+        assertThat(getResponse, shouldShowFieldTitle ? containsTitleField : not(containsTitleField));
+        assertThat(getResponse, shouldShowFieldTitle ? not(containsArtistField) : containsArtistField);
+        assertThat(getResponse, shouldShowFieldTitle ? not(containsLyricsField) : containsLyricsField);
+        assertThat(getResponse, shouldShowFieldTitle ? not(containsStarsField) : containsStarsField);
+        assertThat(getResponse, shouldShowFieldTitle ? not(containsGenreField) : containsGenreField);
     }
 
     @Test
@@ -964,20 +962,21 @@ public class FlsAndFieldMaskingTests {
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
-            assertProperMultiGetResponseForCorrespondingFLSRestrictions(restHighLevelClient, multiGetRequest, true);
+            assertMGetForFLSRestrictions(restHighLevelClient, multiGetRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
-            assertProperMultiGetResponseForCorrespondingFLSRestrictions(restHighLevelClient, multiGetRequest, false);
+            assertMGetForFLSRestrictions(restHighLevelClient, multiGetRequest, false);
         }
     }
 
-    private void assertProperMultiGetResponseForCorrespondingFLSRestrictions(
+    private void assertMGetForFLSRestrictions(
         RestHighLevelClient restHighLevelClient,
         MultiGetRequest multiGetRequest,
-        boolean getOne
+        boolean shouldShowFieldTitle
     ) throws IOException, Exception {
-        // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
+        // if shouldShowFieldTitle == true, we check that only the title field is fetched; if shouldShowFieldTitle == false, we check that
+        // only the title field is
         // ignored
         MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
         List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
@@ -1028,16 +1027,46 @@ public class FlsAndFieldMaskingTests {
             FIRST_INDEX_SONGS_BY_ID.get(FIRST_INDEX_ID_SONG_2).getGenre()
         );
 
-        assertThat(getResponses, getOne ? hasItem(documentOneContainsTitleField) : not(hasItem(documentOneContainsTitleField)));
-        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsArtistField)) : hasItem(documentOneContainsArtistField));
-        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsLyricsField)) : hasItem(documentOneContainsLyricsField));
-        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsStarsField)) : hasItem(documentOneContainsStarsField));
-        assertThat(getResponses, getOne ? not(hasItem(documentOneContainsGenreField)) : hasItem(documentOneContainsGenreField));
-        assertThat(getResponses, getOne ? hasItem(documentTwoContainsTitleField) : not(hasItem(documentTwoContainsTitleField)));
-        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsArtistField)) : hasItem(documentTwoContainsArtistField));
-        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsLyricsField)) : hasItem(documentTwoContainsLyricsField));
-        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsStarsField)) : hasItem(documentTwoContainsStarsField));
-        assertThat(getResponses, getOne ? not(hasItem(documentTwoContainsGenreField)) : hasItem(documentTwoContainsGenreField));
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? hasItem(documentOneContainsTitleField) : not(hasItem(documentOneContainsTitleField))
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentOneContainsArtistField)) : hasItem(documentOneContainsArtistField)
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentOneContainsLyricsField)) : hasItem(documentOneContainsLyricsField)
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentOneContainsStarsField)) : hasItem(documentOneContainsStarsField)
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentOneContainsGenreField)) : hasItem(documentOneContainsGenreField)
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? hasItem(documentTwoContainsTitleField) : not(hasItem(documentTwoContainsTitleField))
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentTwoContainsArtistField)) : hasItem(documentTwoContainsArtistField)
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentTwoContainsLyricsField)) : hasItem(documentTwoContainsLyricsField)
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentTwoContainsStarsField)) : hasItem(documentTwoContainsStarsField)
+        );
+        assertThat(
+            getResponses,
+            shouldShowFieldTitle ? not(hasItem(documentTwoContainsGenreField)) : hasItem(documentTwoContainsGenreField)
+        );
     }
 
     @Test
@@ -1045,20 +1074,21 @@ public class FlsAndFieldMaskingTests {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ONLY_FIELD_TITLE_FLS)) {
-            assertProperSearchResponseForCorrespondingFLSRestrictions(restHighLevelClient, searchRequest, true);
+            assertSearchForFLSRestrictions(restHighLevelClient, searchRequest, true);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NO_FIELD_TITLE_FLS)) {
-            assertProperSearchResponseForCorrespondingFLSRestrictions(restHighLevelClient, searchRequest, false);
+            assertSearchForFLSRestrictions(restHighLevelClient, searchRequest, false);
         }
     }
 
-    private void assertProperSearchResponseForCorrespondingFLSRestrictions(
+    private void assertSearchForFLSRestrictions(
         RestHighLevelClient restHighLevelClient,
         SearchRequest searchRequest,
-        boolean getOne
+        boolean shouldShowFieldTitle
     ) throws IOException, Exception {
-        // if getOne == true, we check that only the title field is fetched; if getOne == false, we check that only the title field is
+        // if shouldShowFieldTitle == true, we check that only the title field is fetched; if shouldShowFieldTitle == false, we check that
+        // only the title field is
         // ignored
         SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
@@ -1068,31 +1098,31 @@ public class FlsAndFieldMaskingTests {
         IntStream.range(0, 4).forEach(hitIndex -> {
             assertThat(
                 searchResponse,
-                getOne
+                shouldShowFieldTitle
                     ? searchHitContainsFieldWithValue(hitIndex, FIELD_TITLE, SONGS[hitIndex].getTitle())
                     : searchHitDoesNotContainField(hitIndex, FIELD_TITLE)
             );
             assertThat(
                 searchResponse,
-                getOne
+                shouldShowFieldTitle
                     ? searchHitDoesNotContainField(hitIndex, FIELD_ARTIST)
                     : searchHitContainsFieldWithValue(hitIndex, FIELD_ARTIST, SONGS[hitIndex].getArtist())
             );
             assertThat(
                 searchResponse,
-                getOne
+                shouldShowFieldTitle
                     ? searchHitDoesNotContainField(hitIndex, FIELD_LYRICS)
                     : searchHitContainsFieldWithValue(hitIndex, FIELD_LYRICS, SONGS[hitIndex].getLyrics())
             );
             assertThat(
                 searchResponse,
-                getOne
+                shouldShowFieldTitle
                     ? searchHitDoesNotContainField(hitIndex, FIELD_STARS)
                     : searchHitContainsFieldWithValue(hitIndex, FIELD_STARS, SONGS[hitIndex].getStars())
             );
             assertThat(
                 searchResponse,
-                getOne
+                shouldShowFieldTitle
                     ? searchHitDoesNotContainField(hitIndex, FIELD_GENRE)
                     : searchHitContainsFieldWithValue(hitIndex, FIELD_GENRE, SONGS[hitIndex].getGenre())
             );

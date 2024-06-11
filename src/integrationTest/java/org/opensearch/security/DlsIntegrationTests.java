@@ -652,14 +652,14 @@ public class DlsIntegrationTests {
         GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
-            assertProperGetResponsesForAccessibleAndNonAccessibleDocuments(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
         }
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
-            assertProperGetResponsesForAccessibleAndNonAccessibleDocuments(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
         }
     }
 
-    private void assertProperGetResponsesForAccessibleAndNonAccessibleDocuments(
+    private void assertGetForDLSRestrictions(
         RestHighLevelClient restHighLevelClient,
         GetRequest findExistingDoc,
         GetRequest findNonExistingDoc
@@ -677,18 +677,16 @@ public class DlsIntegrationTests {
         multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
-            assertProperMultiGetResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, multiGetRequest);
+            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
-            assertProperMultiGetResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, multiGetRequest);
+            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
         }
     }
 
-    private void assertProperMultiGetResponseForAccessibleAndNonAccessibleDocuments(
-        RestHighLevelClient restHighLevelClient,
-        MultiGetRequest multiGetRequest
-    ) throws IOException, Exception {
+    private void assertMGetForDLSRestrictions(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest) throws IOException,
+        Exception {
         MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
         List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
             .map(MultiGetItemResponse::getResponse)
@@ -702,34 +700,21 @@ public class DlsIntegrationTests {
         SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
-            assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, searchRequest);
+            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
         }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
-            assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, searchRequest);
+            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(
-        RestHighLevelClient restHighLevelClient,
-        SearchRequest searchRequest
-    ) throws IOException, Exception {
+    private void assertSearchForDLSRestrictions(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest) throws IOException,
+        Exception {
         SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
         assertThat(searchResponse, isSuccessfulSearchResponse());
+        assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
         assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
-        assertThat(
-            searchResponse,
-            not(
-                searchHitsContainDocumentsInAnyOrder(
-                    FIRST_INDEX_SONGS_BY_ID.keySet()
-                        .stream()
-                        .filter(id -> !id.equals(FIRST_INDEX_ID_SONG_1))
-                        .map(id -> Pair.of(FIRST_INDEX_NAME, id))
-                        .collect(Collectors.toList())
-                )
-            )
-        );
     }
 
     @Test
@@ -742,7 +727,7 @@ public class DlsIntegrationTests {
                 USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
             )
         ) {
-            assertProperGetResponsesForAccessibleAndNonAccessibleDocuments(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
         }
     }
 
@@ -757,7 +742,7 @@ public class DlsIntegrationTests {
                 USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
             )
         ) {
-            assertProperMultiGetResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, multiGetRequest);
+            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
         }
     }
 
@@ -770,7 +755,7 @@ public class DlsIntegrationTests {
                 USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
             )
         ) {
-            assertProperSearchResponseForAccessibleAndNonAccessibleDocuments(restHighLevelClient, searchRequest);
+            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
         }
     }
 
