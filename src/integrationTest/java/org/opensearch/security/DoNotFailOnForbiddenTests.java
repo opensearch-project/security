@@ -48,15 +48,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.aMapWithSize;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
@@ -446,6 +438,7 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldPerformCatAliases_positive() throws IOException {
+        // DNFOF works for limited access user
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
             Request getAliasesRequest = new Request("GET", "/_cat/aliases");
             Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
@@ -457,6 +450,22 @@ public class DoNotFailOnForbiddenTests {
             assertThat(aliases.size(), equalTo(1));
             assertThat(aliases.get(0), containsString("marvelous_songs"));
             assertThat(aliases.get(0), not(containsString("horrible_songs")));
+
+        }
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
+            Request getAliasesRequest = new Request("GET", "/_cat/aliases");
+            Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
+            List<String> aliases = new BufferedReader(new InputStreamReader(getAliasesResponse.getEntity().getContent())).lines()
+                .collect(Collectors.toList());
+
+            // Admin has access to all
+            assertThat(getAliasesResponse.getStatusLine().getStatusCode(), equalTo(200));
+            // Aliases have one entry for each index
+            // This response is [(both-indices: marvelous_songs), (both-indices: horrible_songs), (forbidden-index: horrible_songs)]
+            assertThat(aliases.size(), equalTo(3));
+            assertThat(aliases, hasItem(containsString("marvelous_songs")));
+            assertThat(aliases, hasItem(containsString("horrible_songs")));
 
         }
     }
