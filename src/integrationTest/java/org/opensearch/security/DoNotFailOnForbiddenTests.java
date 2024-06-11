@@ -448,7 +448,6 @@ public class DoNotFailOnForbiddenTests {
     public void shouldPerformCatAliases_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
             Request getAliasesRequest = new Request("GET", "/_cat/aliases");
-            // High level client doesn't support _cat/_indices API
             Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
             List<String> aliases = new BufferedReader(new InputStreamReader(getAliasesResponse.getEntity().getContent())).lines()
                 .collect(Collectors.toList());
