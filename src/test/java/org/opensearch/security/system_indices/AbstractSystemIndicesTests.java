@@ -54,10 +54,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS,
         ACCESSIBLE_ONLY_BY_SUPER_ADMIN
     );
-    static final List<String> NO_SYSTEM_INDICES = List.of(
-        ".no_system_index_1",
-        ".no_system_index_2"
-    );
+    static final List<String> NO_SYSTEM_INDICES = List.of(".no_system_index_1", ".no_system_index_2");
 
     static final List<String> INDICES_FOR_CREATE_REQUEST = List.of(".system_index_2");
     static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
