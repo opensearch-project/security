@@ -181,7 +181,8 @@ def splitTestConfig = [
                 "org.opensearch.security.*Integ*"
             ],
             excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
+                "org.opensearch.security.sanity.tests.*",
+                "org.opensearch.security.api.*"
             ]
         ]
     ],
@@ -201,6 +202,14 @@ def splitTestConfig = [
             ]
         ]
     ],
+    restManagementApiTests: [
+        description: "Runs New REST Management API tests.",
+        filters: [
+                includeTestsMatching: [
+                        "org.opensearch.security.api.*"
+                ]
+        ]
+    ],
     dlicRestApiTest: [
         description: "Runs REST Management API tests.",
         filters: [
@@ -216,7 +225,8 @@ def splitTestConfig = [
                 "org.opensearch.security.*indices*"
             ],
             excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
+                "org.opensearch.security.sanity.tests.*",
+                "org.opensearch.security.api.*"
             ]
         ]
     ],
