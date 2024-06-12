@@ -831,28 +831,4 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, resc.getStatusCode());
 
     }
-
-    @Test
-    public void testNormalIndexCanBeSearchedEvenWithoutSystemIndexPermissions() throws Exception {
-
-        setup(
-            Settings.EMPTY,
-            new DynamicSecurityConfig().setConfig("composite_config.yml").setSecurityRoles("roles_composite.yml"),
-            Settings.builder().put("plugins.security.system_indices.enabled", true)
-                .put("plugins.security.system_indices.permission.enabled", true).build(),
-            true
-        );
-        final RestHelper rh = nonSslRestHelper();
-
-        try (Client tc = getClient()) {
-            tc.index(new IndexRequest("klingonempire").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON))
-                .actionGet();
-        }
-
-        HttpResponse resc = rh.executeGetRequest("klingonempire/_search", encodeBasicHeader("worf", "worf"));
-        Assert.assertEquals(200, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"_index\":\"klingonempire\""));
-        Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));
-        Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"content\":1"));
-    }
 }

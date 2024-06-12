@@ -106,6 +106,17 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
         validateForbiddenResponse(response, "indices:data/read/search", normalUserWithoutSystemIndex);
     }
 
+    @Test
+    public void testNormalIndexShouldAlwaysBeSearchable() throws Exception {
+        RestHelper restHelper = sslRestHelper();
+
+        // search system indices
+        for (String index : NO_SYSTEM_INDICES) {
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", "", normalUserWithoutSystemIndexHeader);
+            validateSearchResponse(response, 1);
+        }
+    }
+
     /**
      *  DELETE document + index
      */
