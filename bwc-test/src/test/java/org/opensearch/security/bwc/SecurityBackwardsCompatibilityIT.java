@@ -229,7 +229,8 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         ObjectMapper objectMapper = new ObjectMapper();
         int numberOfRequests = Randomness.get().nextInt(10);
         while (numberOfRequests-- > 0) {
-            for (int i = 0; i < Randomness.get().nextInt(100); i++) {
+            int numberOfDocuments = Randomness.get().nextInt(100) + 1;
+            for (int i = 0; i < numberOfDocuments; i++) {
                 Map<String, Map<String, String>> indexRequest = new HashMap<>();
                 indexRequest.put("index", new HashMap<>() {
                     {
