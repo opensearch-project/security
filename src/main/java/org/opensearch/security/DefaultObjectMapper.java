@@ -139,6 +139,7 @@ public class DefaultObjectMapper {
         return value != null ? value : defaultValue;
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();

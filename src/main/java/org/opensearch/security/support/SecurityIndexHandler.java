@@ -87,6 +87,7 @@ public class SecurityIndexHandler {
         }
     }
 
+    @SuppressWarnings("removal")
     public void uploadDefaultConfiguration(final Path configDir, final ActionListener<Set<SecurityConfig>> listener) {
         try (final ThreadContext.StoredContext threadContext = client.threadPool().getThreadContext().stashContext()) {
             AccessController.doPrivileged((PrivilegedAction<Void>) () -> {

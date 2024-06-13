@@ -22,7 +22,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 17
+        java-version: 21
 
     - name: Checkout security
       uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
       matrix:
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
         platform: [windows-latest, ubuntu-latest]
-        jdk: [11, 17, 21]
+        jdk: [21]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -97,7 +97,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [11, 17, 21]
+        jdk: [21]
         platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -132,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [17]
+        jdk: [21]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -159,7 +159,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin # Temurin is a distribution of adoptium
-          java-version: 17
+          java-version: 21
 
       - name: Checkout Security Repo
         uses: actions/checkout@v4
@@ -204,7 +204,7 @@ jobs:
     - uses: actions/setup-java@v4
       with:
         distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 11
+        java-version: 21
     - uses: github/codeql-action/init@v3
       with:
         languages: java
@@ -219,7 +219,7 @@ jobs:
     - uses: actions/setup-java@v4
       with:
         distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 11
+        java-version: 21
 
     - run: |
         security_plugin_version=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}')

@@ -63,6 +63,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final List<String> requiredAudience;
     private final String requireIssuer;
 
+    @SuppressWarnings("removal")
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
 
