@@ -67,6 +67,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("removal")
 public class OnBehalfOfAuthenticatorTest {
     final static String clusterName = "cluster_0";
     final static String enableOBO = "true";

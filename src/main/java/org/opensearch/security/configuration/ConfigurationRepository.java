@@ -655,6 +655,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
     }
 
+    @SuppressWarnings("removal")
     private class AccessControllerWrappedThread extends Thread {
         private final Thread innerThread;
 

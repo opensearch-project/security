@@ -30,6 +30,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
 
     private static final HashingFunction DEFAULT_BCRYPT_FUNCTION = BcryptFunction.getInstance(Bcrypt.Y, 12);
 
+    @SuppressWarnings("removal")
     @Override
     public String hash(char[] password) {
         if (password == null || password.length == 0) {
@@ -49,6 +50,7 @@ public class BCryptPasswordHasher implements PasswordHasher {
         }
     }
 
+    @SuppressWarnings("removal")
     @Override
     public boolean check(char[] password, String hash) {
         if (password == null || password.length == 0) {
