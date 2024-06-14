@@ -112,8 +112,11 @@ public class SystemIndexPermissionEnabledTests extends AbstractSystemIndicesTest
 
         // search system indices
         for (String index : NO_SYSTEM_INDICES) {
-            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", "", normalUserWithoutSystemIndexHeader);
-            validateSearchResponse(response, 1);
+            RestHelper.HttpResponse responseWithoutSystemIndexPermission = restHelper.executeGetRequest(index + "/_search", "", normalUserWithoutSystemIndexHeader);
+            validateSearchResponse(responseWithoutSystemIndexPermission, 1);
+
+			RestHelper.HttpResponse responseWithSystemIndexPermission = restHelper.executeGetRequest(index + "/_search", "", normalUserHeader);
+			validateSearchResponse(responseWithSystemIndexPermission, 1);
         }
     }
 
