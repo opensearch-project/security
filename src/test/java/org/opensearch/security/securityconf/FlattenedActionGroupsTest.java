@@ -10,8 +10,10 @@
  */
 package org.opensearch.security.securityconf;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,10 +28,12 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 public class FlattenedActionGroupsTest {
     @Test
     public void basicTest() throws Exception {
-        TestActionGroup testActionGroups = new TestActionGroup().with("Z", "C", "A")
-            .with("A", "A1", "A2", "A3")
-            .with("B", "B1", "B2", "B3")
-            .with("C", "A", "B", "C1");
+        TestActionGroups testActionGroups = new TestActionGroups(
+            new TestActionGroup("Z").members("C", "A"), // C and A are defined below
+            new TestActionGroup("A").members("A1", "A2", "A3"), // A1-A3 are leafs
+            new TestActionGroup("B").members("B1", "B2", "B3"), // B1-B3 are leafs
+            new TestActionGroup("C").members("A", "B", "C1") // A and B are defined above, C1 is leaf
+        );
         SecurityDynamicConfiguration<ActionGroupsV7> config = SecurityDynamicConfiguration.fromMap(
             testActionGroups.map,
             CType.ACTIONGROUPS,
@@ -51,10 +55,13 @@ public class FlattenedActionGroupsTest {
      */
     @Test
     public void cycleTest() throws Exception {
-        TestActionGroup testActionGroups = new TestActionGroup().with("A", "A1", "B")
-            .with("B", "B1", "C")
-            .with("C", "C1", "A", "D")
-            .with("D", "D1");
+        TestActionGroups testActionGroups = new TestActionGroups(
+            new TestActionGroup("A").members("A1", "B"), // A1 is leaf, B is defined below
+            new TestActionGroup("B").members("B1", "C"), // B1 is leaf, C is defined below
+            new TestActionGroup("C").members("C1", "A", "D"), // C1 is leaf, A is defined above (closes cycle)
+            new TestActionGroup("D").members("D1") // D1 is leaf
+        );
+
         SecurityDynamicConfiguration<ActionGroupsV7> config = SecurityDynamicConfiguration.fromMap(
             testActionGroups.map,
             CType.ACTIONGROUPS,
@@ -68,11 +75,32 @@ public class FlattenedActionGroupsTest {
         Assert.assertEquals(ImmutableSet.of("D", "D1"), actionGroups.resolve(ImmutableSet.of("D")));
     }
 
-    private static class TestActionGroup {
+    private static class TestActionGroups {
         private Map<String, Object> map = new HashMap<>();
 
-        TestActionGroup with(String key, String... actions) {
-            map.put(key, ImmutableMap.of("allowed_actions", Arrays.asList(actions)));
+        TestActionGroups(TestActionGroup... groups) {
+            for (TestActionGroup testActionGroup : groups) {
+                this.with(testActionGroup);
+            }
+        }
+
+        TestActionGroups with(TestActionGroup testActionGroup) {
+            map.put(testActionGroup.name, ImmutableMap.of("allowed_actions", testActionGroup.members));
+            return this;
+        }
+    }
+
+    private static class TestActionGroup {
+
+        final String name;
+        final List<String> members = new ArrayList<>();
+
+        TestActionGroup(String name) {
+            this.name = name;
+        }
+
+        TestActionGroup members(String... members) {
+            this.members.addAll(Arrays.asList(members));
             return this;
         }
     }
