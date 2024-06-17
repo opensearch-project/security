@@ -29,6 +29,7 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -56,7 +57,7 @@ import org.opensearch.tasks.Task;
  * - The term `protected system indices` used here translates to system indices
  *   which have an added layer of security and cannot be accessed by anyone except Super Admin
  */
-public class SecurityIndexAccessEvaluator {
+public class SystemIndexAccessEvaluator {
 
     Logger log = LogManager.getLogger(this.getClass());
 
@@ -69,20 +70,28 @@ public class SecurityIndexAccessEvaluator {
     private final WildcardMatcher superAdminAccessOnlyIndexMatcher;
     private final WildcardMatcher deniedActionsMatcher;
 
+    private final Map<String, Set<String>> systemIndices;
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
 
-    public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
+    public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr, Map<String, Set<String>> systemIndices) {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
         this.irr = irr;
+        this.systemIndices = systemIndices;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
-        this.systemIndexMatcher = WildcardMatcher.from(
-            settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
+        List<String> allSystemIndices = settings.getAsList(
+                ConfigConstants.SECURITY_SYSTEM_INDICES_KEY,
+                ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT
         );
+
+        if (systemIndices != null) {
+            allSystemIndices = systemIndices.values().stream().flatMap(Set::stream).collect(Collectors.toList());
+        }
+        this.systemIndexMatcher = WildcardMatcher.from(allSystemIndices);
         this.superAdminAccessOnlyIndexMatcher = WildcardMatcher.from(this.securityIndex);
         this.isSystemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,

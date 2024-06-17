@@ -73,7 +73,7 @@ public class SecurityIndexAccessEvaluatorTest {
     @Mock
     ClusterService cs;
 
-    private SecurityIndexAccessEvaluator evaluator;
+    private SystemIndexAccessEvaluator evaluator;
     private static final String UNPROTECTED_ACTION = "indices:data/read";
     private static final String PROTECTED_ACTION = "indices:data/write";
 
@@ -137,7 +137,7 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // when trying to resolve Index Names
 
-        evaluator = new SecurityIndexAccessEvaluator(
+        evaluator = new SystemIndexAccessEvaluator(
             Settings.builder()
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, TEST_SYSTEM_INDEX)
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, isSystemIndexEnabled)
