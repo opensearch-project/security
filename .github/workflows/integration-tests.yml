@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [11, 17, 21]
+        jdk: [21]
         test-run: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     steps:

@@ -13,6 +13,7 @@ package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,7 +24,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
@@ -73,7 +73,7 @@ public class ProtectedIndexAccessEvaluator {
         final String action,
         final IndexResolverReplacer.Resolved requestedResolved,
         final PrivilegesEvaluatorResponse presponse,
-        final SecurityRoles securityRoles
+        final Set<String> mappedRoles
     ) {
         if (!protectedIndexEnabled) {
             return presponse;
@@ -81,23 +81,21 @@ public class ProtectedIndexAccessEvaluator {
         if (!requestedResolved.isLocalAll()
             && indexMatcher.matchAny(requestedResolved.getAllIndices())
             && deniedActionMatcher.test(action)
-            && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
+            && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn("{} for '{}' index/indices is not allowed for a regular user", action, indexMatcher);
             presponse.allowed = false;
             return presponse.markComplete();
         }
 
-        if (requestedResolved.isLocalAll()
-            && deniedActionMatcher.test(action)
-            && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
+        if (requestedResolved.isLocalAll() && deniedActionMatcher.test(action) && !allowedRolesMatcher.matchAny(mappedRoles)) {
             auditLog.logMissingPrivileges(action, request, task);
             log.warn("{} for '_all' indices is not allowed for a regular user", action);
             presponse.allowed = false;
             return presponse.markComplete();
         }
         if ((requestedResolved.isLocalAll() || indexMatcher.matchAny(requestedResolved.getAllIndices()))
-            && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
+            && !allowedRolesMatcher.matchAny(mappedRoles)) {
 
             final boolean isDebugEnabled = log.isDebugEnabled();
             if (request instanceof SearchRequest) {

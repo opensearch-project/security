@@ -9,8 +9,6 @@
  */
 package org.opensearch.security;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,10 +16,8 @@ import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
-import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -42,7 +38,6 @@ import static org.junit.Assert.assertTrue;
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public abstract class AbstractDefaultConfigurationTests {
-    public final static Path configurationFolder = ConfigurationFiles.createConfigurationDirectory();
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin");
     private static final TestSecurityConfig.User NEW_USER = new TestSecurityConfig.User("new-user");
     private static final TestSecurityConfig.User LIMITED_USER = new TestSecurityConfig.User("limited-user");
@@ -51,11 +46,6 @@ public abstract class AbstractDefaultConfigurationTests {
 
     protected AbstractDefaultConfigurationTests(LocalCluster cluster) {
         this.cluster = cluster;
-    }
-
-    @AfterClass
-    public static void cleanConfigurationDirectory() throws IOException {
-        FileUtils.deleteDirectory(configurationFolder.toFile());
     }
 
     @Test

@@ -972,6 +972,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         enabledTransportProtocolsJDKProvider.retainAll(allowedSecureTransportSSLProtocols);
     }
 
+    @SuppressWarnings("removal")
     private SslContext buildSSLServerContext(
         final PrivateKey _key,
         final X509Certificate[] _cert,
@@ -1003,6 +1004,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         }
     }
 
+    @SuppressWarnings("removal")
     private SslContext buildSSLServerContext(
         final File _key,
         final File _cert,

@@ -9,15 +9,21 @@
  */
 package org.opensearch.security;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
 import org.junit.ClassRule;
 
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 public class DefaultConfigurationMultiNodeClusterUseClusterStateTests extends AbstractDefaultConfigurationTests {
+
+    static Path configurationFolder = ConfigurationFiles.createConfigurationDirectory();
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
@@ -34,6 +40,11 @@ public class DefaultConfigurationMultiNodeClusterUseClusterStateTests extends Ab
         .defaultConfigurationInitDirectory(configurationFolder.toString())
         .loadConfigurationIntoIndex(false)
         .build();
+
+    @AfterClass
+    public static void cleanConfigurationDirectory() throws IOException {
+        FileUtils.deleteDirectory(configurationFolder.toFile());
+    }
 
     public DefaultConfigurationMultiNodeClusterUseClusterStateTests() {
         super(cluster);

@@ -190,6 +190,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         return creds;
     }
 
+    @SuppressWarnings("removal")
     private AuthCredentials extractCredentials0(final SecurityRequest request) {
 
         if (acceptorPrincipal == null || acceptorKeyTabPath == null) {

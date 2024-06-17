@@ -152,6 +152,11 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     }
 
     protected final boolean isBlockedSystemIndexRequest() {
+        boolean isSystemIndex = systemIndexMatcher.test(index.getName());
+        if (!isSystemIndex) {
+            return false;
+        }
+
         if (systemIndexPermissionEnabled) {
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (user == null) {
@@ -163,7 +168,7 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
             final SecurityRoles securityRoles = evaluator.getSecurityRoles(mappedRoles);
             return !securityRoles.isPermittedOnSystemIndex(index.getName());
         }
-        return systemIndexMatcher.test(index.getName());
+        return true;
     }
 
     protected final boolean isAdminDnOrPluginRequest() {

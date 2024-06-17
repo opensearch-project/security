@@ -41,13 +41,13 @@ public class PrivilegesEvaluatorUnitTest {
         "indices:data/read/search/template",
         "indices:data/read/tv",
         "indices:monitor/settings/get",
-        "indices:monitor/stats"
+        "indices:monitor/stats",
+        "indices:admin/aliases/get"
     );
 
     private static final List<String> disallowedDnfof = ImmutableList.of(
         "indices:admin/aliases",
         "indices:admin/aliases/exists",
-        "indices:admin/aliases/get",
         "indices:admin/analyze",
         "indices:admin/cache/clear",
         "indices:admin/close",

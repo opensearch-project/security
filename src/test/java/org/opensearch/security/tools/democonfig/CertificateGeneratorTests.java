@@ -42,6 +42,7 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.fail;
 
+@SuppressWarnings("removal")
 public class CertificateGeneratorTests {
 
     private static Installer installer;

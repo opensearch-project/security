@@ -265,6 +265,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return ConfigHelper.fromYamlFile(filepath, cType, ConfigurationRepository.DEFAULT_CONFIG_VERSION, 0, 0);
     }
 
+    @SuppressWarnings("removal")
     JsonNode loadConfigFileAsJson(final CType cType) throws IOException {
         final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
         final var filepath = cType.configFile(Path.of(cd)).toString();

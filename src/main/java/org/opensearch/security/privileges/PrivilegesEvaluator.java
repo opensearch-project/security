@@ -111,7 +111,8 @@ public class PrivilegesEvaluator {
             "indices:admin/shards/search_shards",
             "indices:admin/resolve/index",
             "indices:monitor/settings/get",
-            "indices:monitor/stats"
+            "indices:monitor/stats",
+            "indices:admin/aliases/get"
         )
     );
 
@@ -296,7 +297,7 @@ public class PrivilegesEvaluator {
                     "No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                     user,
                     action0,
-                    securityRoles.getRoleNames(),
+                    mappedRoles,
                     presponse.missingPrivileges
                 );
             } else {
@@ -333,7 +334,7 @@ public class PrivilegesEvaluator {
         }
 
         // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
             return presponse;
         }
 
@@ -374,7 +375,7 @@ public class PrivilegesEvaluator {
                     user,
                     requestedResolved,
                     action0,
-                    securityRoles.getRoleNames(),
+                    mappedRoles,
                     presponse.missingPrivileges
                 );
                 return presponse;
@@ -471,7 +472,7 @@ public class PrivilegesEvaluator {
 
         if (isDebugEnabled) {
             log.debug("Requested resolved index types: {}", requestedResolved);
-            log.debug("Security roles: {}", securityRoles.getRoleNames());
+            log.debug("Security roles: {}", mappedRoles);
         }
 
         // TODO exclude Security index
@@ -561,7 +562,7 @@ public class PrivilegesEvaluator {
                 user,
                 requestedResolved,
                 action0,
-                securityRoles.getRoleNames()
+                mappedRoles
             );
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
