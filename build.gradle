@@ -722,7 +722,6 @@ dependencies {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-    integrationTestImplementation "org.opensearch.plugin:mapper-size:${opensearch_version}"
     integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
