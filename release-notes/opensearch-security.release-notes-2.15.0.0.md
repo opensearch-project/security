@@ -9,7 +9,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 2.15.0
 * Refactor ActionGroup REST API test and partial fix #4166 ([#4371](https://github.com/opensearch-project/security/pull/4371))
 * Support multiple audience for jwt authentication ([#4363](https://github.com/opensearch-project/security/pull/4363))
 * Configure masking algorithm default ([#4345](https://github.com/opensearch-project/security/pull/4345))
-* Remove static metaFields list and get version-specific values from core ([#4412](https://github.com/opensearch-project/security/pull/4412))
 
 ### Bug Fixes
 * Add cat/alias support for DNFOF ([#4440](https://github.com/opensearch-project/security/pull/4440))
