@@ -75,7 +75,7 @@ public class ConfigModelV7 extends ConfigModel {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
-    private ActionGroupResolver agr = null;
+    private FlattenedActionGroups actionGroups;
     private SecurityRoles securityRoles = null;
     private TenantHolder tenantHolder;
     private RoleMappingHolder roleMappingHolder;
@@ -106,7 +106,7 @@ public class ConfigModelV7 extends ConfigModel {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.MAPPING_ONLY;
         }
 
-        agr = reloadActionGroups(actiongroups);
+        actionGroups = actiongroups != null ? new FlattenedActionGroups(actiongroups) : FlattenedActionGroups.EMPTY;
         securityRoles = reload(roles);
         tenantHolder = new TenantHolder(roles, tenants);
         roleMappingHolder = new RoleMappingHolder(rolemappings, dcm.getHostsResolverMode());
@@ -118,82 +118,6 @@ public class ConfigModelV7 extends ConfigModel {
 
     public SecurityRoles getSecurityRoles() {
         return securityRoles;
-    }
-
-    private static interface ActionGroupResolver {
-        Set<String> resolvedActions(final List<String> actions);
-    }
-
-    private ActionGroupResolver reloadActionGroups(SecurityDynamicConfiguration<ActionGroupsV7> actionGroups) {
-        return new ActionGroupResolver() {
-
-            private Set<String> getGroupMembers(final String groupname) {
-
-                if (actionGroups == null) {
-                    return Collections.emptySet();
-                }
-
-                return Collections.unmodifiableSet(resolve(actionGroups, groupname));
-            }
-
-            @SuppressWarnings("unchecked")
-            private Set<String> resolve(final SecurityDynamicConfiguration<?> actionGroups, final String entry) {
-
-                // SG5 format, plain array
-                // List<String> en = actionGroups.getAsList(DotPath.of(entry));
-                // if (en.isEmpty()) {
-                // try SG6 format including readonly and permissions key
-                // en = actionGroups.getAsList(DotPath.of(entry + "." + ConfigConstants.CONFIGKEY_ACTION_GROUPS_PERMISSIONS));
-                // }
-
-                if (!actionGroups.getCEntries().containsKey(entry)) {
-                    return Collections.emptySet();
-                }
-
-                final Set<String> ret = new HashSet<String>();
-
-                final Object actionGroupAsObject = actionGroups.getCEntries().get(entry);
-
-                if (actionGroupAsObject instanceof List) {
-
-                    for (final String perm : ((List<String>) actionGroupAsObject)) {
-                        if (actionGroups.getCEntries().keySet().contains(perm)) {
-                            ret.addAll(resolve(actionGroups, perm));
-                        } else {
-                            ret.add(perm);
-                        }
-                    }
-
-                } else if (actionGroupAsObject instanceof ActionGroupsV7) {
-                    for (final String perm : ((ActionGroupsV7) actionGroupAsObject).getAllowed_actions()) {
-                        if (actionGroups.getCEntries().keySet().contains(perm)) {
-                            ret.addAll(resolve(actionGroups, perm));
-                        } else {
-                            ret.add(perm);
-                        }
-                    }
-                } else {
-                    throw new RuntimeException("Unable to handle " + actionGroupAsObject);
-                }
-
-                return Collections.unmodifiableSet(ret);
-            }
-
-            @Override
-            public Set<String> resolvedActions(final List<String> actions) {
-                final Set<String> resolvedActions = new HashSet<String>();
-                for (String string : actions) {
-                    final Set<String> groups = getGroupMembers(string);
-                    if (groups.isEmpty()) {
-                        resolvedActions.add(string);
-                    } else {
-                        resolvedActions.addAll(groups);
-                    }
-                }
-
-                return Collections.unmodifiableSet(resolvedActions);
-            }
-        };
     }
 
     private SecurityRoles reload(SecurityDynamicConfiguration<RoleV7> settings) {
@@ -213,7 +137,7 @@ public class ConfigModelV7 extends ConfigModel {
                         return null;
                     }
 
-                    final Set<String> permittedClusterActions = agr.resolvedActions(securityRole.getValue().getCluster_permissions());
+                    final Set<String> permittedClusterActions = actionGroups.resolve(securityRole.getValue().getCluster_permissions());
                     _securityRole.addClusterPerms(permittedClusterActions);
 
                     /*for(RoleV7.Tenant tenant: securityRole.getValue().getTenant_permissions()) {
@@ -240,7 +164,7 @@ public class ConfigModelV7 extends ConfigModel {
                             _indexPattern.setDlsQuery(dls);
                             _indexPattern.addFlsFields(fls);
                             _indexPattern.addMaskedFields(maskedFields);
-                            _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
+                            _indexPattern.addPerm(actionGroups.resolve(permittedAliasesIndex.getAllowed_actions()));
 
                             /*for(Entry<String, List<String>> type: permittedAliasesIndex.getValue().getTypes(-).entrySet()) {
                                 TypePerm typePerm = new TypePerm(type.getKey());
@@ -1112,7 +1036,7 @@ public class ConfigModelV7 extends ConfigModel {
                                         tuples.add(
                                             new Tuple<String, Boolean>(
                                                 matchingTenant,
-                                                agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")
+                                                actionGroups.resolve(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")
                                             )
                                         );
                                     }
@@ -1126,7 +1050,7 @@ public class ConfigModelV7 extends ConfigModel {
                                         tuples.add(
                                             new Tuple<String, Boolean>(
                                                 matchingParameterTenant,
-                                                agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")
+                                                actionGroups.resolve(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")
                                             )
                                         );
                                     }
