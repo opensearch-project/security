@@ -492,7 +492,8 @@ configurations {
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.30.0"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.31.100"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.19.100"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient-cache:4.5.14"
