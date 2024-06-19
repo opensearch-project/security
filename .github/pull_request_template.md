@@ -9,7 +9,7 @@
 
 Is this a backport? If so, please add backport PR # and/or commits #
 
-Do these changes include new roles or permissions? If so, please open a draft PR in the security dashboards plugin and link the draft PR here
+Do these changes introduce new permission(s) to be displayed in the static dropdown on the front-end? If so, please open a draft PR in the security dashboards plugin and link the draft PR here
 
 ### Testing
 [Please provide details of testing done: unit testing, integration testing and manual testing]
