@@ -17,7 +17,6 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,9 +37,9 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
@@ -125,17 +124,13 @@ public class Utils {
 
     public static JsonNode convertJsonToJackson(ToXContent jsonContent, boolean omitDefaults) {
         try {
-            Map<String, String> pm = new HashMap<>(1);
-            pm.put("omit_defaults", String.valueOf(omitDefaults));
-            ToXContent.MapParams params = new ToXContent.MapParams(pm);
-
-            final BytesReference bytes = org.opensearch.core.xcontent.XContentHelper.toXContent(
-                jsonContent,
-                MediaTypeRegistry.JSON,
-                params,
-                false
+            return DefaultObjectMapper.readTree(
+                Strings.toString(
+                    XContentType.JSON,
+                    jsonContent,
+                    new ToXContent.MapParams(Map.of("omit_defaults", String.valueOf(omitDefaults)))
+                )
             );
-            return DefaultObjectMapper.readTree(bytes.utf8ToString());
         } catch (IOException e1) {
             throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
