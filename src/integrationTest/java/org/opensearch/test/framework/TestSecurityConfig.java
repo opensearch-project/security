@@ -146,13 +146,14 @@ public class TestSecurityConfig {
     }
 
     public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
-        if (internalUsers.containsKey(name)) throw new RuntimeException("REST Admin " + name + " already exists");
-        user(new User(name, "REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
-        final var roleName = name + "__rest_admin_role";
-        roles(new Role(roleName).clusterPermissions(permissions));
+        if (!internalUsers.containsKey(name)) {
+            user(new User(name, "REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
+            final var roleName = name + "__rest_admin_role";
+            roles(new Role(roleName).clusterPermissions(permissions));
 
-        rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
-        rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
+            rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
+            rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
+        }
         return this;
     }
 

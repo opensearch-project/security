@@ -167,7 +167,10 @@ public class RolesApiAction extends AbstractApiAction {
                     @Override
                     public Map<String, DataType> allowedKeys() {
                         final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
-                        if (isCurrentUserAdmin()) allowedKeys.put("reserved", DataType.BOOLEAN);
+                        if (isCurrentUserAdmin()) {
+                            allowedKeys.put("hidden", DataType.BOOLEAN);
+                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                        }
                         return allowedKeys.put("cluster_permissions", DataType.ARRAY)
                             .put("tenant_permissions", DataType.ARRAY)
                             .put("index_permissions", DataType.ARRAY)

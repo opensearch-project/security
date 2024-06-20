@@ -11,6 +11,7 @@
 
 package org.opensearch.security.api;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 
@@ -77,6 +78,33 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     public AbstractConfigEntityApiIntegrationTest(final String path, final TestDescriptor testDescriptor) {
         this.path = path;
         this.testDescriptor = testDescriptor;
+    }
+
+    static ToXContentObject configJsonArray(final String... values) {
+        return (builder, params) -> {
+            builder.startArray();
+            if (values != null) {
+                for (final var v : values) {
+                    if (v == null) {
+                        builder.nullValue();
+                    } else {
+                        builder.value(v);
+                    }
+                }
+            }
+            return builder.endArray();
+        };
+    }
+
+    static String[] generateArrayValues(boolean useNulls) {
+        final var length = randomIntBetween(1, 5);
+        final var values = new String[length];
+        final var nullIndex = randomIntBetween(0, length - 1);
+        for (var i = 0; i < values.length; i++) {
+            if (useNulls && i == nullIndex) values[i] = null;
+            else values[i] = randomAsciiAlphanumOfLength(10);
+        }
+        return values;
     }
 
     @Override
@@ -189,6 +217,12 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         assertThat(response.getBody(), response.getTextFromJsonBody("/status"), is("error"));
         assertThat(response.getBody(), response.getTextFromJsonBody("/reason"), equalTo("Invalid configuration"));
         assertThat(response.getBody(), response.getTextFromJsonBody("/invalid_keys/keys"), expectedInvalidKeysMatcher);
+    }
+
+    void assertWrongDataType(final TestRestClient.HttpResponse response, final Map<String, String> expectedMessages) {
+        assertThat(response.getBody(), response.getTextFromJsonBody("/status"), is("error"));
+        for (final var p : expectedMessages.entrySet())
+            assertThat(response.getBody(), response.getTextFromJsonBody("/" + p.getKey()), is(p.getValue()));
     }
 
     void assertSpecifyOneOf(final TestRestClient.HttpResponse response, final String expectedSpecifyOneOfKeys) {
