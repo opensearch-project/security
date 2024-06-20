@@ -515,17 +515,16 @@ public class ActionPrivilegesTest {
                 try {
                     return SecurityDynamicConfiguration.fromMap(
                         ImmutableMap.of(
-                            "test_role", //
+                            "test_role",
                             ImmutableMap.of(
-                                //
                                 "index_permissions",
                                 Arrays.asList(
-                                    //
                                     ImmutableMap.of("index_patterns", this.givenIndexPrivs, "allowed_actions", actionSpec.givenPrivs)
-                                )//
+                                )
                             )
                         ),
-                        CType.ROLES
+                        CType.ROLES,
+                        2
                     );
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);

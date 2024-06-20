@@ -172,19 +172,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return result;
     }
 
-    /**
-     * For testing only
-     */
-    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType ctype) throws JsonProcessingException {
-        Class<?> implementationClass = ctype.getImplementationClass().get(2);
-        SecurityDynamicConfiguration<T> result = DefaultObjectMapper.objectMapper.convertValue(
-            map,
-            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
-        );
-        result.ctype = ctype;
-        return result;
-    }
-
     // for Jackson
     private SecurityDynamicConfiguration() {
         super();

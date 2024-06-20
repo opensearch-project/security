@@ -194,13 +194,15 @@ public class PrivilegesEvaluator {
                 SecurityDynamicConfiguration<?> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
 
                 if (rolesConfiguration != null) {
-                    FlattenedActionGroups flattenedActionGroups = actionGroupsConfiguration != null
-                        ? new FlattenedActionGroups(
-                            (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
-                                actionGroupsConfiguration.deepClone()
-                            )
+                    @SuppressWarnings("unchecked")
+                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
+                        ? (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
+                            actionGroupsConfiguration.deepClone()
                         )
-                        : FlattenedActionGroups.EMPTY;
+                        : (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
+                            SecurityDynamicConfiguration.empty()
+                        );
+                    FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
                     ActionPrivileges actionPrivileges = new ActionPrivileges(
                         DynamicConfigFactory.addStatics(rolesConfiguration.deepClone()),
                         flattenedActionGroups,
