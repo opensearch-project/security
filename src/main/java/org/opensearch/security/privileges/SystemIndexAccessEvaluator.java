@@ -27,9 +27,9 @@
 package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,6 +42,8 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.indices.SystemIndices;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -70,26 +72,28 @@ public class SystemIndexAccessEvaluator {
     private final WildcardMatcher superAdminAccessOnlyIndexMatcher;
     private final WildcardMatcher deniedActionsMatcher;
 
-    private final Map<String, Set<String>> systemIndices;
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
 
-    public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr, Map<String, Set<String>> systemIndices) {
+    public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr, SystemIndices systemIndices) {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
         this.irr = irr;
-        this.systemIndices = systemIndices;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
         List<String> allSystemIndices = settings.getAsList(
-                ConfigConstants.SECURITY_SYSTEM_INDICES_KEY,
-                ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT
+            ConfigConstants.SECURITY_SYSTEM_INDICES_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT
         );
 
         if (systemIndices != null) {
-            allSystemIndices = systemIndices.values().stream().flatMap(Set::stream).collect(Collectors.toList());
+            List<SystemIndexDescriptor> systemIndexDescriptorsList = new ArrayList<>();
+            for (Collection<SystemIndexDescriptor> pluginDescriptors : systemIndices.getSystemIndexDescriptors().values()) {
+                systemIndexDescriptorsList.addAll(pluginDescriptors);
+            }
+            allSystemIndices = systemIndexDescriptorsList.stream().map(SystemIndexDescriptor::getIndexPattern).collect(Collectors.toList());
         }
         this.systemIndexMatcher = WildcardMatcher.from(allSystemIndices);
         this.superAdminAccessOnlyIndexMatcher = WildcardMatcher.from(this.securityIndex);

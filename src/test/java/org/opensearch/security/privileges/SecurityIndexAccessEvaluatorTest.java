@@ -14,7 +14,9 @@ package org.opensearch.security.privileges;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -31,6 +33,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.indices.SystemIndices;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -144,7 +147,8 @@ public class SecurityIndexAccessEvaluatorTest {
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, isSystemIndexPermissionsEnabled)
                 .build(),
             auditLog,
-            irr
+            irr,
+            new SystemIndices(Map.of("org.opensearch.plugin.TestPlugin", Collections.EMPTY_SET))
         );
         evaluator.log = log;
 

@@ -156,8 +156,7 @@ public class PrivilegesEvaluator {
         final ClusterInfoHolder clusterInfoHolder,
         final IndexResolverReplacer irr,
         boolean dlsFlsEnabled,
-        NamedXContentRegistry namedXContentRegistry,
-        Map<String, Set<String>> systemIndices
+        NamedXContentRegistry namedXContentRegistry
     ) {
 
         super();
@@ -176,7 +175,7 @@ public class PrivilegesEvaluator {
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog, irr, systemIndices);
+        systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog, irr, resolver.systemIndices());
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();

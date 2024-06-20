@@ -9,23 +9,15 @@
  */
 package org.opensearch.security;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.indices.SystemIndexDescriptor;
-import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.security.http.ExampleSystemIndexPlugin;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -35,9 +27,6 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -50,17 +39,12 @@ public class SystemIndexTests {
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-            .anonymousAuth(false)
-            .authc(AUTHC_DOMAIN)
-            .users(USER_ADMIN)
-            .plugin(ExampleSystemIndexPlugin.class)
-            .nodeSettings(
-                Map.of(
-                    SECURITY_RESTAPI_ROLES_ENABLED,
-                    List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())
-                )
-            )
-            .build();
+        .anonymousAuth(false)
+        .authc(AUTHC_DOMAIN)
+        .users(USER_ADMIN)
+        .plugin(ExampleSystemIndexPlugin.class)
+        .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())))
+        .build();
 
     @Test
     public void shouldAdminShouldNotBeAbleToDeleteSecurityIndex() {

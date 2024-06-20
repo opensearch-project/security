@@ -50,7 +50,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -245,7 +244,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private boolean sslCertReloadEnabled;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
-    private volatile Map<String, Set<String>> systemIndices;
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
@@ -1133,8 +1131,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cih,
             irr,
             dlsFlsEnabled,
-            namedXContentRegistry.get(),
-            systemIndices
+            namedXContentRegistry.get()
         );
 
         sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
@@ -2045,11 +2042,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
         return Collections.singletonList(systemIndexDescriptor);
-    }
-
-    @Override
-    public Consumer<Map<String, Set<String>>> onSystemIndices() {
-        return (systemIndices) -> { this.systemIndices = systemIndices; };
     }
 
     private static String handleKeyword(final String field) {

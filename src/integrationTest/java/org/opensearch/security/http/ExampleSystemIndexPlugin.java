@@ -1,12 +1,12 @@
 package org.opensearch.security.http;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
-
-import java.util.Collection;
-import java.util.Collections;
 
 public class ExampleSystemIndexPlugin extends Plugin implements SystemIndexPlugin {
 
