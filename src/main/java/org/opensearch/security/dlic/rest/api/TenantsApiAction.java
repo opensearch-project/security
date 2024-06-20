@@ -108,6 +108,7 @@ public class TenantsApiAction extends AbstractApiAction {
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
                         final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
+                            allowedKeys.put("hidden", DataType.BOOLEAN);
                             allowedKeys.put("reserved", DataType.BOOLEAN);
                         }
                         return allowedKeys.put("description", DataType.STRING).build();
