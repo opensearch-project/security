@@ -93,6 +93,11 @@ public class SecurityConfigurationTests {
             client.prepareIndex(LIMITED_USER_INDEX).setId(ID_1).setRefreshPolicy(IMMEDIATE).setSource("foo", "bar").get();
             client.prepareIndex(PROHIBITED_INDEX).setId(ID_2).setRefreshPolicy(IMMEDIATE).setSource("three", "four").get();
         }
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            Awaitility.await()
+                .alias("Load default configuration")
+                .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
+        }
     }
 
     @Test
@@ -258,7 +263,11 @@ public class SecurityConfigurationTests {
 
             AtomicInteger numCreatedResponses = new AtomicInteger();
             AsyncActions.getAll(conflictingRequests, 1, TimeUnit.SECONDS).forEach((response) -> {
-                assertThat(response.getStatusCode(), anyOf(equalTo(HttpStatus.SC_CREATED), equalTo(HttpStatus.SC_CONFLICT)));
+                assertThat(
+                    response.getBody(),
+                    response.getStatusCode(),
+                    anyOf(equalTo(HttpStatus.SC_CREATED), equalTo(HttpStatus.SC_CONFLICT))
+                );
                 if (response.getStatusCode() == HttpStatus.SC_CREATED) numCreatedResponses.getAndIncrement();
             });
             assertThat(numCreatedResponses.get(), equalTo(1)); // should only be one 201
