@@ -97,6 +97,7 @@ import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -194,7 +195,11 @@ public class PrivilegesEvaluator {
 
                 if (rolesConfiguration != null) {
                     FlattenedActionGroups flattenedActionGroups = actionGroupsConfiguration != null
-                        ? new FlattenedActionGroups(DynamicConfigFactory.addStatics(actionGroupsConfiguration.deepClone()))
+                        ? new FlattenedActionGroups(
+                            (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
+                                actionGroupsConfiguration.deepClone()
+                            )
+                        )
                         : FlattenedActionGroups.EMPTY;
                     ActionPrivileges actionPrivileges = new ActionPrivileges(
                         DynamicConfigFactory.addStatics(rolesConfiguration.deepClone()),

@@ -34,13 +34,15 @@ import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 
+import com.selectivem.check.CheckTable;
+
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
     Set<String> missingSecurityRoles = new HashSet<>();
     Set<String> resolvedSecurityRoles = new HashSet<>();
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     CreateIndexRequestBuilder createIndexRequestBuilder;
-    private ImmutableSet<String> onlyAllowedForIndices = ImmutableSet.of();
+    private Set<String> onlyAllowedForIndices = ImmutableSet.of();
     private CheckTable<String, String> indexToActionCheckTable;
     private String reason;
 
@@ -55,7 +57,7 @@ public class PrivilegesEvaluatorResponse {
         return !this.onlyAllowedForIndices.isEmpty();
     }
 
-    public ImmutableSet<String> getAvailableIndices() {
+    public Set<String> getAvailableIndices() {
         return this.onlyAllowedForIndices;
     }
 

@@ -37,6 +37,8 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
 
+import com.selectivem.check.CheckTable;
+
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking privileges.
  *
@@ -565,7 +567,7 @@ public class ActionPrivileges {
                 return PrivilegesEvaluatorResponse.ok();
             }
 
-            ImmutableSet<String> availableIndices = checkTable.getCompleteRows();
+            Set<String> availableIndices = checkTable.getCompleteRows();
 
             if (!availableIndices.isEmpty()) {
                 return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable, context);
