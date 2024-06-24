@@ -14,7 +14,6 @@ package org.opensearch.security.privileges;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +32,9 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.indices.SystemIndices;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -48,6 +49,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
 import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -148,7 +150,14 @@ public class SecurityIndexAccessEvaluatorTest {
                 .build(),
             auditLog,
             irr,
-            new SystemIndices(Map.of("org.opensearch.plugin.TestPlugin", Collections.EMPTY_SET))
+            new SystemIndices(
+                Map.of(
+                    "org.opensearch.plugin.TestPlugin",
+                    List.of(new SystemIndexDescriptor(TEST_SYSTEM_INDEX, "Test System Index")),
+                    OpenSearchSecurityPlugin.class.getCanonicalName(),
+                    List.of(new SystemIndexDescriptor(SECURITY_INDEX, "Security Index"))
+                )
+            )
         );
         evaluator.log = log;
 

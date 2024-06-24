@@ -183,11 +183,11 @@ public class SystemIndexAccessEvaluator {
      * @param requestedResolved request which contains indices to be matched against system indices
      * @return the list of protected system indices present in the request
      */
-    private List<String> getAllSystemIndices(final Resolved requestedResolved) {
-        final List<String> systemIndices = requestedResolved.getAllIndices()
+    private Set<String> getAllSystemIndices(final Resolved requestedResolved) {
+        final Set<String> systemIndices = requestedResolved.getAllIndices()
             .stream()
             .filter(securityIndex::equals)
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
         if (isSystemIndexEnabled) {
             systemIndices.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
         }
@@ -223,7 +223,7 @@ public class SystemIndexAccessEvaluator {
     private boolean requestContainsAnyRegularIndices(final Resolved requestedResolved) {
         Set<String> allIndices = requestedResolved.getAllIndices();
 
-        List<String> allSystemIndices = getAllSystemIndices(requestedResolved);
+        Set<String> allSystemIndices = getAllSystemIndices(requestedResolved);
         List<String> allProtectedSystemIndices = getAllProtectedSystemIndices(requestedResolved);
 
         return allIndices.stream().anyMatch(index -> !allSystemIndices.contains(index) && !allProtectedSystemIndices.contains(index));
