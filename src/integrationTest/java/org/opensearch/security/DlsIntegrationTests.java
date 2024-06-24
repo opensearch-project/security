@@ -11,6 +11,7 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -25,6 +26,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
@@ -37,6 +43,8 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -57,6 +65,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithSort;
+import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
@@ -164,6 +173,36 @@ public class DlsIntegrationTests {
                 .on("*")
         );
 
+    static final TestSecurityConfig.Role ROLE_MATCH_ARTIST_BOOL_QUERY = new TestSecurityConfig.Role("test_role_bool").clusterPermissions(
+        "cluster_composite_ops_ro"
+    ).indexPermissions("read").dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_FIRST)).on(FIRST_INDEX_NAME);
+
+    static final TestSecurityConfig.Role ROLE_MATCH_STARS_TERM_QUERY = new TestSecurityConfig.Role("test_role_term").clusterPermissions(
+        "cluster_composite_ops_ro"
+    ).indexPermissions("read").dls(String.format("{\"term\":{\"%s\":%d}}", FIELD_STARS, 1)).on(FIRST_INDEX_NAME);
+
+    /**
+     * User with a role with DLS restrictions containing a bool query in which the artist field needs to match ARTIST_FIRST.
+     */
+    static final TestSecurityConfig.User USER_MATCH_ARTIST_BOOL_QUERY = new TestSecurityConfig.User("bool_user").roles(
+        ROLE_MATCH_ARTIST_BOOL_QUERY
+    );
+
+    /**
+     * User with a role with DLS restrictions containing a term query in which the stars field needs to match 1.
+     */
+    static final TestSecurityConfig.User USER_MATCH_STARS_TERM_QUERY = new TestSecurityConfig.User("term_user").roles(
+        ROLE_MATCH_STARS_TERM_QUERY
+    );
+
+    /**
+     * User with two roles: a role with DLS restrictions containing a bool query in which the artist field needs to match ARTIST_FIRST, and a role with DLS restrictions containing a term query in which the stars field needs to match 1.
+     */
+
+    static final TestSecurityConfig.User USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY = new TestSecurityConfig.User(
+        "bool_term_user"
+    ).roles(ROLE_MATCH_ARTIST_BOOL_QUERY, ROLE_MATCH_STARS_TERM_QUERY);
+
     /**
      * Test role 1 for DLS filtering with two (non)overlapping roles. This role imposes a filter where the user can only access documents where the sensitive field is false. This role is applied at a higher level for all index patterns.
      */
@@ -235,6 +274,9 @@ public class DlsIntegrationTests {
             READ_WHERE_STARS_LESS_THAN_THREE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
             READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
+            USER_MATCH_ARTIST_BOOL_QUERY,
+            USER_MATCH_STARS_TERM_QUERY,
+            USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY,
             USER_NON_SENSITIVE_ONLY,
             USER_ALLOW_ALL,
             USER_MATCH_HISTORY_GENRE_ONLY,
@@ -605,6 +647,118 @@ public class DlsIntegrationTests {
     }
 
     @Test
+    public void testGetDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
+        GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
+        GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        }
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        }
+    }
+
+    private void assertGetForDLSRestrictions(
+        RestHighLevelClient restHighLevelClient,
+        GetRequest findExistingDoc,
+        GetRequest findNonExistingDoc
+    ) throws IOException, Exception {
+        GetResponse response = restHighLevelClient.get(findExistingDoc, DEFAULT);
+        assertThat(response, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+        response = restHighLevelClient.get(findNonExistingDoc, DEFAULT);
+        assertThat(response.isExists(), equalTo(false));
+    }
+
+    @Test
+    public void testMultiGetDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
+        MultiGetRequest multiGetRequest = new MultiGetRequest();
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
+        }
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
+        }
+    }
+
+    private void assertMGetForDLSRestrictions(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest) throws IOException,
+        Exception {
+        MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+        List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+            .map(MultiGetItemResponse::getResponse)
+            .collect(Collectors.toList());
+        assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+        assertThat(getResponses, not(hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2))));
+    }
+
+    @Test
+    public void testSearchDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
+        SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
+        }
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertSearchForDLSRestrictions(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest) throws IOException,
+        Exception {
+        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+        assertThat(searchResponse, isSuccessfulSearchResponse());
+        assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
+        assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
+    }
+
+    @Test
+    public void testGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
+        GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
+        GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
+
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
+            )
+        ) {
+            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        }
+    }
+
+    @Test
+    public void testMultiGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
+        MultiGetRequest multiGetRequest = new MultiGetRequest();
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
+        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
+
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
+            )
+        ) {
+            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
+        }
+    }
+
+    @Test
+    public void testSearchDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
+        SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
+            )
+        ) {
+            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
+        }
+    }
+
     public void testOverlappingRoleUnionSearchFiltering() throws Exception {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NON_SENSITIVE_ONLY)) {
             SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
