@@ -278,7 +278,7 @@ public class DoNotFailOnForbiddenTests {
     @Test
     public void shouldMGetDocument_positive() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            MultiGetRequest request = new MultiGetRequest().add(BOTH_INDEX_PATTERN, ID_1).add(BOTH_INDEX_PATTERN, ID_4);
+            MultiGetRequest request = new MultiGetRequest().add(MARVELOUS_SONGS, ID_1).add(MARVELOUS_SONGS, ID_4);
 
             MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
 
@@ -297,11 +297,34 @@ public class DoNotFailOnForbiddenTests {
     }
 
     @Test
+    public void shouldMGetDocument_partial() throws Exception {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+            MultiGetRequest request = new MultiGetRequest().add(MARVELOUS_SONGS, ID_1).add(HORRIBLE_SONGS, ID_4);
+
+            MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
+
+            MultiGetItemResponse[] responses = response.getResponses();
+            assertThat(responses, arrayWithSize(2));
+            MultiGetItemResponse firstResult = responses[0];
+            MultiGetItemResponse secondResult = responses[1];
+            assertThat(firstResult.getFailure(), nullValue());
+            assertThat(
+                firstResult.getResponse(),
+                allOf(containDocument(MARVELOUS_SONGS, ID_1), documentContainField(FIELD_TITLE, TITLE_MAGNUM_OPUS))
+            );
+            assertThat(secondResult.getFailure().getMessage(), containsString("no permissions for [indices:data/read/mget[shard]]"));
+        }
+    }
+
+    @Test
     public void shouldMGetDocument_negative() throws IOException {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
             MultiGetRequest request = new MultiGetRequest().add(HORRIBLE_SONGS, ID_4);
-
-            assertThatThrownBy(() -> restHighLevelClient.mget(request, DEFAULT), statusException(FORBIDDEN));
+            MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
+            MultiGetItemResponse[] responses = response.getResponses();
+            assertThat(responses, arrayWithSize(1));
+            MultiGetItemResponse firstResult = responses[0];
+            assertThat(firstResult.getFailure().getMessage(), containsString("no permissions for [indices:data/read/mget[shard]]"));
         }
     }
 
@@ -331,8 +354,10 @@ public class DoNotFailOnForbiddenTests {
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
             MultiSearchRequest request = new MultiSearchRequest();
             request.add(queryStringQueryRequest(FORBIDDEN_INDEX_ALIAS, QUERY_TITLE_POISON));
-
-            assertThatThrownBy(() -> restHighLevelClient.msearch(request, DEFAULT), statusException(FORBIDDEN));
+            MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
+            MultiSearchResponse.Item[] responses = response.getResponses();
+            assertThat(responses, Matchers.arrayWithSize(1));
+            assertThat(responses[0].getFailure().getMessage(), containsString("no permissions for [indices:data/read/search]"));
         }
     }
 
