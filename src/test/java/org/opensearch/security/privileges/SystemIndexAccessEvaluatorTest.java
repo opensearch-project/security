@@ -49,7 +49,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
 import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -61,7 +60,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SecurityIndexAccessEvaluatorTest {
+public class SystemIndexAccessEvaluatorTest {
 
     @Mock
     private AuditLog auditLog;
@@ -98,7 +97,15 @@ public class SecurityIndexAccessEvaluatorTest {
     }
 
     protected IndexNameExpressionResolver createIndexNameExpressionResolver(ThreadContext threadContext) {
-        return new IndexNameExpressionResolver(threadContext);
+        SystemIndices systemIndices = new SystemIndices(
+            Map.of(
+                "org.opensearch.plugin.TestPlugin",
+                List.of(new SystemIndexDescriptor(TEST_SYSTEM_INDEX, "Test System Index")),
+                OpenSearchSecurityPlugin.class.getCanonicalName(),
+                List.of(new SystemIndexDescriptor(SECURITY_INDEX, "Security Index"))
+            )
+        );
+        return new IndexNameExpressionResolver(threadContext, systemIndices);
     }
 
     public void setup(
@@ -150,14 +157,7 @@ public class SecurityIndexAccessEvaluatorTest {
                 .build(),
             auditLog,
             irr,
-            new SystemIndices(
-                Map.of(
-                    "org.opensearch.plugin.TestPlugin",
-                    List.of(new SystemIndexDescriptor(TEST_SYSTEM_INDEX, "Test System Index")),
-                    OpenSearchSecurityPlugin.class.getCanonicalName(),
-                    List.of(new SystemIndexDescriptor(SECURITY_INDEX, "Security Index"))
-                )
-            )
+            indexNameExpressionResolver
         );
         evaluator.log = log;
 
