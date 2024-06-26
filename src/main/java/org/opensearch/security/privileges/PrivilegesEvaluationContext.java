@@ -20,8 +20,10 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
+import org.opensearch.tasks.Task;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +55,7 @@ public class PrivilegesEvaluationContext {
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
     private final Supplier<ClusterState> clusterStateSupplier;
+    private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public PrivilegesEvaluationContext(
@@ -69,7 +72,9 @@ public class PrivilegesEvaluationContext {
         this.mappedRoles = mappedRoles;
         this.action = action;
         this.request = request;
+        this.task = task;
         this.clusterStateSupplier = clusterStateSupplier;
+        this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
         this.indexResolverReplacer = indexResolverReplacer;

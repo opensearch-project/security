@@ -323,14 +323,46 @@ public class PrivilegesEvaluator {
         if (injectedRolesValidationString != null) {
             HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
             if (!mappedRoles.containsAll(injectedRolesValidationSet)) {
+                PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
                 presponse.allowed = false;
                 presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
+                presponse.reason("Injected roles validation failed");
                 log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
-                return presponse;
+                throw new PrivilegesEvaluatorResponse.NotAllowedException(presponse);
             }
             mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
             context.setMappedRoles(mappedRoles);
         }
+
+        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, clusterService::state, irr, resolver);
+    }
+
+    public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
+
+        if (!isInitialized()) {
+            throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
+        }
+
+        String action0 = context.getAction();
+        ImmutableSet<String> mappedRoles = context.getMappedRoles();
+        User user = context.getUser();
+        ActionRequest request = context.getRequest();
+        Task task = context.getTask();
+
+        if (action0.startsWith("internal:indices/admin/upgrade")) {
+            action0 = "indices:admin/upgrade";
+        }
+
+        if (AutoCreateAction.NAME.equals(action0)) {
+            action0 = CreateIndexAction.NAME;
+        }
+
+        if (AutoPutMappingAction.NAME.equals(action0)) {
+            action0 = PutMappingAction.NAME;
+        }
+
+        PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
+
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
@@ -349,15 +381,6 @@ public class PrivilegesEvaluator {
         if (actionPrivileges == null) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized: roles configuration is missing");
         }
-
-        PrivilegesEvaluationContext context = new PrivilegesEvaluationContext(
-            user,
-            mappedRoles,
-            action0,
-            request,
-            clusterService::state,
-            resolver
-        );
 
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action

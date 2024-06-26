@@ -46,6 +46,9 @@ public class PrivilegesEvaluatorResponse {
     private CheckTable<String, String> indexToActionCheckTable;
     private String reason;
 
+    /**
+     * Returns true if the request can be fully allowed. See also isAllowedForSpecificIndices().
+     */
     public boolean isAllowed() {
         return allowed;
     }
@@ -110,7 +113,13 @@ public class PrivilegesEvaluatorResponse {
 
     @Override
     public String toString() {
-        return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges + "]";
+        return "PrivEvalResponse [\nallowed="
+            + allowed
+            + ",\nonlyAllowedForIndices="
+            + onlyAllowedForIndices
+            + ",\n"
+            + (indexToActionCheckTable != null ? indexToActionCheckTable.toTableString("ok", "MISSING") : "")
+            + "]";
     }
 
     public static PrivilegesEvaluatorResponse ok() {
@@ -152,4 +161,5 @@ public class PrivilegesEvaluatorResponse {
         PENDING,
         COMPLETE;
     }
+
 }

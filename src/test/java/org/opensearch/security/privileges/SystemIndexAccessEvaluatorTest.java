@@ -156,7 +156,16 @@ public class SystemIndexAccessEvaluatorTest {
     }
 
     PrivilegesEvaluationContext ctx(String action) {
-        return new PrivilegesEvaluationContext(user, ImmutableSet.of("role_a"), action, request, null, indexNameExpressionResolver);
+        return new PrivilegesEvaluationContext(
+            user,
+            ImmutableSet.of("role_a"),
+            action,
+            request,
+            null,
+            null,
+            null,
+            indexNameExpressionResolver
+        );
     }
 
     @After
