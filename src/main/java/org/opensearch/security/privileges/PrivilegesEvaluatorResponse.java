@@ -30,23 +30,19 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
     Set<String> missingPrivileges = new HashSet<String>();
     Set<String> missingSecurityRoles = new HashSet<>();
     Set<String> resolvedSecurityRoles = new HashSet<>();
-    EvaluatedDlsFlsConfig evaluatedDlsFlsConfig;
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
-    Resolved resolved;
     CreateIndexRequestBuilder createIndexRequestBuilder;
+    private String reason;
 
-    public Resolved getResolved() {
-        return resolved;
-    }
-
+    /**
+     * Returns true if the request can be fully allowed. See also isAllowedForSpecificIndices().
+     */
     public boolean isAllowed() {
         return allowed;
     }
@@ -61,10 +57,6 @@ public class PrivilegesEvaluatorResponse {
 
     public Set<String> getResolvedSecurityRoles() {
         return new HashSet<>(resolvedSecurityRoles);
-    }
-
-    public EvaluatedDlsFlsConfig getEvaluatedDlsFlsConfig() {
-        return evaluatedDlsFlsConfig;
     }
 
     public CreateIndexRequestBuilder getCreateIndexRequestBuilder() {
@@ -89,20 +81,50 @@ public class PrivilegesEvaluatorResponse {
         return this.state == PrivilegesEvaluatorResponseState.PENDING;
     }
 
+    public String getReason() {
+        return this.reason;
+    }
+
+    public PrivilegesEvaluatorResponse reason(String reason) {
+        this.reason = reason;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "PrivEvalResponse [allowed="
             + allowed
             + ", missingPrivileges="
             + missingPrivileges
-            + ", evaluatedDlsFlsConfig="
-            + evaluatedDlsFlsConfig
             + "]";
     }
 
     public static enum PrivilegesEvaluatorResponseState {
         PENDING,
         COMPLETE;
+    }
+
+    public static class NotAllowedException extends Exception {
+        private final PrivilegesEvaluatorResponse response;
+
+        public NotAllowedException(PrivilegesEvaluatorResponse response) {
+            super(response.reason);
+            this.response = response;
+        }
+
+        public NotAllowedException(PrivilegesEvaluatorResponse response, String message) {
+            super(message);
+            this.response = response;
+        }
+
+        public NotAllowedException(PrivilegesEvaluatorResponse response, String message, Throwable cause) {
+            super(message, cause);
+            this.response = response;
+        }
+
+        public PrivilegesEvaluatorResponse getResponse() {
+            return response;
+        }
     }
 
 }

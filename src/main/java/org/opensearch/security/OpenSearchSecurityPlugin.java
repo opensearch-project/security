@@ -1118,8 +1118,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
-        // DLS-FLS is enabled if not client and not disabled and not SSL only.
-        final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(
             clusterService,
             threadPool,
@@ -1130,7 +1128,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             privilegesInterceptor,
             cih,
             irr,
-            dlsFlsEnabled,
             namedXContentRegistry.get()
         );
 

@@ -82,6 +82,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
@@ -378,7 +379,15 @@ public class SecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
+            PrivilegesEvaluationContext context = null;
+            PrivilegesEvaluatorResponse pres;
+
+            try {
+                context = eval.createContext(user, action, request, task, injectedRoles);
+                pres = eval.evaluate(context);
+            } catch (PrivilegesEvaluatorResponse.NotAllowedException e) {
+                pres = e.getResponse();
+            }
 
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
@@ -387,7 +396,7 @@ public class SecurityFilter implements ActionFilter {
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
-                if (!dlsFlsValve.invoke(action, request, listener, pres.getEvaluatedDlsFlsConfig(), pres.getResolved())) {
+                if (!dlsFlsValve.invoke(action, request, listener, context)) {
                     return;
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
