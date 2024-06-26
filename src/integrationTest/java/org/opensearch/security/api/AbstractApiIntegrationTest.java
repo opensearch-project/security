@@ -283,6 +283,12 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return fullPath.toString();
     }
 
+    void badRequestWithReason(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback, final String expectedMessage)
+        throws Exception {
+        final var response = badRequest(endpointCallback);
+        assertThat(response.getBody(), response.getTextFromJsonBody("/reason"), is(expectedMessage));
+    }
+
     void badRequestWithMessage(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback, final String expectedMessage)
         throws Exception {
         final var response = badRequest(endpointCallback);
