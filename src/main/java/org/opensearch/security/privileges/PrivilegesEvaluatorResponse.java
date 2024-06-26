@@ -46,6 +46,9 @@ public class PrivilegesEvaluatorResponse {
     private CheckTable<String, String> indexToActionCheckTable;
     private String reason;
 
+    /**
+     * Returns true if the request can be fully allowed. See also isAllowedForSpecificIndices().
+     */
     public boolean isAllowed() {
         return allowed;
     }
