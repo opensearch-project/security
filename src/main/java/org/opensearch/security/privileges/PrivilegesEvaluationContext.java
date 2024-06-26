@@ -10,17 +10,10 @@
  */
 package org.opensearch.security.privileges;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 

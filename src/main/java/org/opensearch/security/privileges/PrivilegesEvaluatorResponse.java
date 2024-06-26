@@ -89,11 +89,7 @@ public class PrivilegesEvaluatorResponse {
 
     @Override
     public String toString() {
-        return "PrivEvalResponse [allowed="
-            + allowed
-            + ", missingPrivileges="
-            + missingPrivileges
-            + "]";
+        return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges + "]";
     }
 
     public static enum PrivilegesEvaluatorResponseState {
