@@ -22,6 +22,8 @@ import org.opensearch.common.CheckedSupplier;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import com.nimbusds.jose.util.Pair;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -133,6 +135,27 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
 
     @Test
     public void availableForAdminUser() throws Exception {
+        final var entitiesNames = predefinedHiddenAndReservedConfigEntities();
+        final var hiddenEntityName = entitiesNames.getLeft();
+        final var reservedEntityName = entitiesNames.getRight();
+        // can't see hidden resources
+        withUser(ADMIN_USER_NAME, client -> {
+            verifyNoHiddenEntities(() -> client.get(apiPath()));
+            creationOfReadOnlyEntityForbidden(
+                randomAsciiAlphanumOfLength(10),
+                client,
+                (builder, params) -> testDescriptor.hiddenEntityPayload().toXContent(builder, params),
+                (builder, params) -> testDescriptor.reservedEntityPayload().toXContent(builder, params),
+                (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
+            );
+            verifyUpdateAndDeleteHiddenConfigEntityForbidden(hiddenEntityName, client);
+            verifyUpdateAndDeleteReservedConfigEntityForbidden(reservedEntityName, client);
+            verifyCrudOperations(null, null, client);
+            verifyBadRequestOperations(client);
+        });
+    }
+
+    Pair<String, String> predefinedHiddenAndReservedConfigEntities() throws Exception {
         final var hiddenEntityName = randomAsciiAlphanumOfLength(10);
         final var reservedEntityName = randomAsciiAlphanumOfLength(10);
         withUser(
@@ -145,21 +168,7 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
             localCluster.getAdminCertificate(),
             client -> created(() -> client.putJson(apiPath(reservedEntityName), testDescriptor.reservedEntityPayload()))
         );
-
-        // can't see hidden resources
-        withUser(ADMIN_USER_NAME, client -> {
-            verifyNoHiddenEntities(() -> client.get(apiPath()));
-            creationOfReadOnlyEntityForbidden(
-                client,
-                (builder, params) -> testDescriptor.hiddenEntityPayload().toXContent(builder, params),
-                (builder, params) -> testDescriptor.reservedEntityPayload().toXContent(builder, params),
-                (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
-            );
-            verifyUpdateAndDeleteHiddenConfigEntityForbidden(hiddenEntityName, client);
-            verifyUpdateAndDeleteReservedConfigEntityForbidden(reservedEntityName, client);
-            verifyCrudOperations(null, null, client);
-            verifyBadRequestOperations(client);
-        });
+        return Pair.of(hiddenEntityName, reservedEntityName);
     }
 
     @Test
@@ -176,7 +185,11 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     }
 
     void availableForSuperAdminUser(final TestRestClient client) throws Exception {
-        creationOfReadOnlyEntityForbidden(client, (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params));
+        creationOfReadOnlyEntityForbidden(
+            randomAsciiAlphanumOfLength(10),
+            client,
+            (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
+        );
         verifyCrudOperations(true, null, client);
         verifyCrudOperations(null, true, client);
         verifyCrudOperations(null, null, client);
@@ -195,10 +208,11 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         }
     }
 
-    void creationOfReadOnlyEntityForbidden(final TestRestClient client, final ToXContentObject... entities) throws Exception {
+    void creationOfReadOnlyEntityForbidden(final String entityName, final TestRestClient client, final ToXContentObject... entities)
+        throws Exception {
         for (final var configEntity : entities) {
             assertInvalidKeys(
-                badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(10)), configEntity)),
+                badRequest(() -> client.putJson(apiPath(entityName), configEntity)),
                 is(oneOf("static", "hidden", "reserved"))
             );
             badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(10), configEntity))));
