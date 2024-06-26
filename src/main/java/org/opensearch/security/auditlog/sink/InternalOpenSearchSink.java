@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import org.opensearch.action.index.IndexRequestBuilder;
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
@@ -85,6 +86,7 @@ public final class InternalOpenSearchSink extends AuditLogSink {
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .setSource(msg.getAsMap());
                 threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+                irb.setOpType(DocWriteRequest.OpType.CREATE);
                 irb.setTimeout(TimeValue.timeValueMinutes(1));
                 irb.execute().actionGet();
                 return true;

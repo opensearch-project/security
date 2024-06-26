@@ -552,6 +552,70 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     }
 
     @Test
+    public void testDataStreamAsBackend() throws Exception {
+
+        // Set config to use a datastream as auditlog.
+        Settings additionalSettings = Settings.builder()
+            .put("plugins.security.audit.type", "internal_opensearch")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+            .put("plugins.security.audit.threadpool.size", 10) // must be greater 0
+            .put("plugins.security.audit.config.index", "auditlog-datatream")
+            .build();
+
+        setup(additionalSettings);
+
+        // Prepare auditlog datastream template
+        var templateBody = "{"
+            + "\"index_patterns\": [ \"auditlog-datatream\" ],"
+            + "\"priority\": 90,"
+            + "\"data_stream\": {"
+              + "\"timestamp_field\": {"
+              + "\"name\": \"@timestamp\""
+            + "}}"
+            + "}";
+
+        HttpResponse res = restHelper().executePostRequest("_index_template/auditlog-datastream", templateBody, encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(res.getStatusCode(), HttpStatus.SC_OK);
+
+        setupStarfleetIndex();
+
+        HttpResponse res2 = rh.executeGetRequest("_data_stream/auditlog-datatream", encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(res2.getStatusCode(), HttpStatus.SC_OK);
+
+        HttpResponse res3 = rh.executeGetRequest("auditlog-datatream/_stats", encodeBasicHeader("admin", "admin"));
+        Assert.assertTrue(Integer.valueOf(res3.getTextFromJsonBody("/_all/primaries/docs/count")) > 0);
+
+    }
+
+    @Test
+    public void testIndexAsBackend() throws Exception {
+
+        // Set config to use an index as auditlog.
+        Settings additionalSettings = Settings.builder()
+            .put("plugins.security.audit.type", "internal_opensearch")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, false)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+            .put("plugins.security.audit.threadpool.size", 10) // must be greater 0
+            .put("plugins.security.audit.config.index", "auditlog")
+            .build();
+
+        setup(additionalSettings);
+        setupStarfleetIndex();
+
+        HttpResponse res2 = rh.executeGetRequest("auditlog", encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(res2.getStatusCode(), HttpStatus.SC_OK);
+
+        HttpResponse res3 = rh.executeGetRequest("auditlog/_stats", encodeBasicHeader("admin", "admin"));
+        Assert.assertTrue(Integer.valueOf(res3.getTextFromJsonBody("/_all/primaries/docs/count")) > 0);
+
+    }
+
+    @Test
     public void testAliases() throws Exception {
 
         Settings additionalSettings = Settings.builder()
