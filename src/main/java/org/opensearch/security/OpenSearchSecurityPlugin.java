@@ -1166,6 +1166,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
         }
+        if (dlsFlsValve instanceof DlsFlsValveImpl) {
+            dcf.registerDCFListener(dlsFlsValve);
+        }
 
         cr.setDynamicConfigFactory(dcf);
 

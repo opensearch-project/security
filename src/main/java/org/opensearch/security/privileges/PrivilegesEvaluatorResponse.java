@@ -40,9 +40,6 @@ public class PrivilegesEvaluatorResponse {
     CreateIndexRequestBuilder createIndexRequestBuilder;
     private String reason;
 
-    /**
-     * Returns true if the request can be fully allowed. See also isAllowedForSpecificIndices().
-     */
     public boolean isAllowed() {
         return allowed;
     }
@@ -104,22 +101,21 @@ public class PrivilegesEvaluatorResponse {
         COMPLETE;
     }
 
+    /**
+     * This exception can be used to indicate that a method denies a user access to an OpenSearch action.
+     *
+     * Note: As exceptions take their performance toll, please use this exception only when there is
+     * no other way. Prefer to use PrivilegesEvaluatorResponse directly as a return value.
+     */
     public static class NotAllowedException extends Exception {
         private final PrivilegesEvaluatorResponse response;
 
         public NotAllowedException(PrivilegesEvaluatorResponse response) {
             super(response.reason);
             this.response = response;
-        }
-
-        public NotAllowedException(PrivilegesEvaluatorResponse response, String message) {
-            super(message);
-            this.response = response;
-        }
-
-        public NotAllowedException(PrivilegesEvaluatorResponse response, String message, Throwable cause) {
-            super(message, cause);
-            this.response = response;
+            if (response.allowed) {
+                throw new IllegalArgumentException("Only possible for PrivilegesEvaluatorResponse with allowed=false");
+            }
         }
 
         public PrivilegesEvaluatorResponse getResponse() {
