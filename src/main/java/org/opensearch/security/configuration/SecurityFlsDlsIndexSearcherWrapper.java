@@ -69,8 +69,6 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         super(indexService, settings, adminDNs, evaluator);
         Set<String> metadataFieldsCopy;
         if (indexService.getMetadata().getState() == IndexMetadata.State.CLOSE) {
-            System.out.println("log debug: " + log.isDebugEnabled());
-            System.out.println("log name: " + log.getName());
             if (log.isDebugEnabled()) {
                 log.debug(
                     "{} was closed. Setting metadataFields to empty. Closed index is not searchable.",
