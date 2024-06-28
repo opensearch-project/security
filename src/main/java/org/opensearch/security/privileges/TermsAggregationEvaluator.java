@@ -27,6 +27,7 @@
 package org.opensearch.security.privileges;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -93,7 +94,13 @@ public class TermsAggregationEvaluator {
                             );
 
                             if (subResponse.isPartiallyOk()) {
-                                sr.source().query(new TermsQueryBuilder("_index", subResponse.getAvailableIndices()));
+                                sr.source()
+                                    .query(
+                                        new TermsQueryBuilder(
+                                            "_index",
+                                            Sets.union(subResponse.getAvailableIndices(), resolved.getRemoteIndices())
+                                        )
+                                    );
                             } else if (!subResponse.isAllowed()) {
                                 sr.source().query(NONE_QUERY);
                             }
