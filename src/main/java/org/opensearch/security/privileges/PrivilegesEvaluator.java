@@ -363,7 +363,6 @@ public class PrivilegesEvaluator {
 
         PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
-        presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
         // Add the security roles for this user so that they can be used for DLS parameter substitution.

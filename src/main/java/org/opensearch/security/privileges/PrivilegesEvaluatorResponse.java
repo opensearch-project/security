@@ -39,7 +39,7 @@ import com.selectivem.check.CheckTable;
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
     Set<String> missingSecurityRoles = new HashSet<>();
-    Set<String> resolvedSecurityRoles = new HashSet<>();
+    private ImmutableSet<String> resolvedSecurityRoles = ImmutableSet.of();
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     CreateIndexRequestBuilder createIndexRequestBuilder;
     private Set<String> onlyAllowedForIndices = ImmutableSet.of();
@@ -86,7 +86,12 @@ public class PrivilegesEvaluatorResponse {
     }
 
     public Set<String> getResolvedSecurityRoles() {
-        return new HashSet<>(resolvedSecurityRoles);
+        return resolvedSecurityRoles;
+    }
+
+    public PrivilegesEvaluatorResponse resolvedSecurityRoles(Set<String> resolvedSecurityRoles) {
+        this.resolvedSecurityRoles = ImmutableSet.copyOf(resolvedSecurityRoles);
+        return this;
     }
 
     public CreateIndexRequestBuilder getCreateIndexRequestBuilder() {
@@ -154,6 +159,12 @@ public class PrivilegesEvaluatorResponse {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.indexToActionCheckTable = indexToActionCheckTable;
         response.resolvedSecurityRoles.addAll(context.getMappedRoles());
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse insufficient(Set<String> missingPrivileges) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.copyOf(missingPrivileges));
         return response;
     }
 
