@@ -556,11 +556,12 @@ public class PrivilegesEvaluator {
             if (!replaceResult.continueEvaluation) {
                 if (replaceResult.accessDenied) {
                     auditLog.logMissingPrivileges(action0, request, task);
+                    return PrivilegesEvaluatorResponse.insufficient(action0, context);
                 } else {
                     presponse.allowed = true;
                     presponse.createIndexRequestBuilder = replaceResult.createIndexRequestBuilder;
+                    return presponse;
                 }
-                return presponse;
             }
         }
 
