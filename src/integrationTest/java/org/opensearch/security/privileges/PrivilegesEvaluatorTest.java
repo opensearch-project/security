@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
+import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -65,11 +66,18 @@ public class PrivilegesEvaluatorTest {
     private String TEST_RENDER_SEARCH_TEMPLATE_QUERY =
         "{\"params\":{\"status\":[\"pending\",\"published\"]},\"source\":\"{\\\"query\\\": {\\\"terms\\\": {\\\"status\\\": [\\\"{{#status}}\\\",\\\"{{.}}\\\",\\\"{{/status}}\\\"]}}}\"}";
 
+    final static TestIndex R = TestIndex.name("r").build();
+    /**
+     * This is necessary so that the testNegativeLookaheadPattern test has an forbidden index to match against
+     */
+    final static TestIndex T = TestIndex.name("t").build();
+
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, RENDER_SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN)
         .plugin(MustacheModulePlugin.class)
+        .indices(R, T)
         .build();
 
     @Test
