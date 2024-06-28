@@ -141,14 +141,14 @@ public class PrivilegesEvaluatorResponse {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.onlyAllowedForIndices = ImmutableSet.copyOf(availableIndices);
         response.indexToActionCheckTable = indexToActionCheckTable;
-        response.resolvedSecurityRoles.addAll(context.getMappedRoles());
+        response.resolvedSecurityRoles(context.getMappedRoles());
         return response;
     }
 
     public static PrivilegesEvaluatorResponse insufficient(String missingPrivilege, PrivilegesEvaluationContext context) {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.of(missingPrivilege));
-        response.resolvedSecurityRoles.addAll(context.getMappedRoles());
+        response.resolvedSecurityRoles(context.getMappedRoles());
         return response;
     }
 
@@ -158,7 +158,7 @@ public class PrivilegesEvaluatorResponse {
     ) {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.indexToActionCheckTable = indexToActionCheckTable;
-        response.resolvedSecurityRoles.addAll(context.getMappedRoles());
+        response.resolvedSecurityRoles(context.getMappedRoles());
         return response;
     }
 
