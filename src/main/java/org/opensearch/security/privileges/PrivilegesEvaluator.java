@@ -606,7 +606,7 @@ public class PrivilegesEvaluator {
                 action0,
                 mappedRoles
             );
-            log.info("Index to privilege matrix:\n{}", presponse.getCheckTable());
+            log.info("Index to privilege matrix:\n{}", presponse.getPrivilegeMatrix());
         }
 
         return presponse;

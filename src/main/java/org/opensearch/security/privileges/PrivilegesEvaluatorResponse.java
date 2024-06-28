@@ -44,6 +44,7 @@ public class PrivilegesEvaluatorResponse {
     CreateIndexRequestBuilder createIndexRequestBuilder;
     private Set<String> onlyAllowedForIndices = ImmutableSet.of();
     private CheckTable<String, String> indexToActionCheckTable;
+    private String privilegeMatrix;
     private String reason;
 
     /**
@@ -77,8 +78,14 @@ public class PrivilegesEvaluatorResponse {
         return this;
     }
 
-    public CheckTable<String, String> getCheckTable() {
-        return indexToActionCheckTable;
+    public String getPrivilegeMatrix() {
+        String result = this.privilegeMatrix;
+
+        if (result == null) {
+            result = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            this.privilegeMatrix = result;
+        }
+        return result;
     }
 
     public Set<String> getMissingSecurityRoles() {
