@@ -61,13 +61,9 @@ public class ActionPrivilegesTest {
     public static class ClusterPrivileges {
         @Test
         public void clusterAction_wellKnown() throws Exception {
-            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml(
-                //
-                "test_role:\n" + //
-                    "  cluster_permissions:\n" + //
-                    "  - cluster:monitor/nodes/stats*",
-                CType.ROLES
-            );
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
+                "  cluster_permissions:\n" + //
+                "  - cluster:monitor/nodes/stats*", CType.ROLES);
 
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null);
 
@@ -84,13 +80,9 @@ public class ActionPrivilegesTest {
 
         @Test
         public void clusterAction_notWellKnown() throws Exception {
-            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml(
-                //
-                "test_role:\n" + //
-                    "  cluster_permissions:\n" + //
-                    "  - cluster:monitor/nodes/stats*",
-                CType.ROLES
-            );
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
+                "  cluster_permissions:\n" + //
+                "  - cluster:monitor/nodes/stats*", CType.ROLES);
 
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null);
 
@@ -198,7 +190,6 @@ public class ActionPrivilegesTest {
                 List<Object[]> result = new ArrayList<>();
 
                 for (IndexSpec indexSpec : Arrays.asList(
-                    //
                     new IndexSpec().givenIndexPrivs("*"), //
                     new IndexSpec().givenIndexPrivs("index_*"), //
                     new IndexSpec().givenIndexPrivs("index_a11"), //
@@ -207,7 +198,6 @@ public class ActionPrivilegesTest {
                     new IndexSpec().givenIndexPrivs("alias_a1*") //
                 )) {
                     for (ActionSpec actionSpec : Arrays.asList(
-                        //
                         new ActionSpec("constant, well known")//
                             .givenPrivs("indices:data/read/search")
                             .requiredPrivs("indices:data/read/search"), //
@@ -364,7 +354,6 @@ public class ActionPrivilegesTest {
                 List<Object[]> result = new ArrayList<>();
 
                 for (IndexSpec indexSpec : Arrays.asList(
-                    //
                     new IndexSpec().givenIndexPrivs("*"), //
                     new IndexSpec().givenIndexPrivs("data_stream_*"), //
                     new IndexSpec().givenIndexPrivs("data_stream_a11"), //
@@ -373,7 +362,6 @@ public class ActionPrivilegesTest {
                     new IndexSpec().givenIndexPrivs(".ds-data_stream_a11*") //
                 )) {
                     for (ActionSpec actionSpec : Arrays.asList(
-                        //
                         new ActionSpec("constant, well known")//
                             .givenPrivs("indices:data/read/search")
                             .requiredPrivs("indices:data/read/search"), //

@@ -28,6 +28,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.cluster.metadata.DataStream;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -138,8 +139,10 @@ public class ActionPrivileges {
         StatefulIndexPrivileges statefulIndex = this.statefulIndex;
         PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
 
+        Map<String, IndexAbstraction> indexMetadata = this.indexMetadataSupplier.get();
+
         if (statefulIndex != null) {
-            resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, resolvedIndices, context, checkTable);
+            resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, resolvedIndices, context, checkTable, indexMetadata);
 
             if (resultFromStatefulIndex != null) {
                 // If we get a result from statefulIndex, we are done.
@@ -151,7 +154,7 @@ public class ActionPrivileges {
             // We can carry on using this as an intermediate result and further complete checkTable below.
         }
 
-        return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable, this.indexMetadataSupplier.get());
+        return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable, indexMetadata);
     }
 
     public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
@@ -165,6 +168,8 @@ public class ActionPrivileges {
 
     public void updateStatefulIndexPrivileges(Map<String, IndexAbstraction> indices) {
         StatefulIndexPrivileges statefulIndex = this.statefulIndex;
+
+        indices = StatefulIndexPrivileges.relevantOnly(indices);
 
         if (statefulIndex == null || !statefulIndex.indices.equals(indices)) {
             this.statefulIndex = new StatefulIndexPrivileges(roles, actionGroups, wellKnownIndexActions, indices);
@@ -737,19 +742,12 @@ public class ActionPrivileges {
                                     indexToRoles.computeIfAbsent(indicesEntry.getKey(), k -> new HashSet<>()).add(roleName);
                                     leafs++;
 
-                                    if (indicesEntry.getValue() instanceof IndexAbstraction.Alias
-                                        || indicesEntry.getValue() instanceof IndexAbstraction.DataStream) {
-                                        // For aliases or data streams, we additionally add the sub- or backing-
-                                        // indices to the privilege map
+                                    if (indicesEntry.getValue() instanceof IndexAbstraction.Alias) {
+                                        // For aliases we additionally add the sub-indices to the privilege map
                                         for (IndexMetadata subIndex : indicesEntry.getValue().getIndices()) {
                                             indexToRoles.computeIfAbsent(subIndex.getIndex().getName(), k -> new HashSet<>()).add(roleName);
                                             leafs++;
                                         }
-                                        // TODO: Possible optimization: The number of data stream backing indices can
-                                        // get quite large. However, it is relatively easy to deduce from an index that
-                                        // it is a backing index. It would be possible to skip these indices here.
-                                        // Instead, during privilege evaluation the containing data stream needs to be
-                                        // retrieved and checked in addition to the backing index.
                                     }
                                 }
                             }
@@ -802,7 +800,8 @@ public class ActionPrivileges {
             Set<String> actions,
             IndexResolverReplacer.Resolved resolvedIndices,
             PrivilegesEvaluationContext context,
-            CheckTable<String, String> checkTable
+            CheckTable<String, String> checkTable,
+            Map<String, IndexAbstraction> indexMetadata
         ) {
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
 
@@ -811,6 +810,13 @@ public class ActionPrivileges {
 
                 if (indexToRoles != null) {
                     for (String index : resolvedIndices.getAllIndices()) {
+                        if (index.startsWith(DataStream.BACKING_INDEX_PREFIX)) {
+                            // If we have a backing index of a data stream, we will not try to test
+                            // the backing index here, as we filter backing indices during initialization.
+                            // Instead, we look up the containing data stream and check whether this has privileges.
+                            index = backingIndexToDataStream(index, indexMetadata);
+                        }
+
                         Set<String> rolesWithPrivileges = indexToRoles.get(index);
 
                         if (rolesWithPrivileges != null && CollectionUtils.containsAny(rolesWithPrivileges, effectiveRoles)) {
@@ -827,6 +833,57 @@ public class ActionPrivileges {
             // Return null to indicate that there is no answer.
             // The checkTable object might contain already a partial result.
             return null;
+        }
+
+        /**
+         * If the given index is the backing index of a data stream, the name of the data stream is returned.
+         * Otherwise, the name of the index itself is being returned.
+         */
+        private String backingIndexToDataStream(String index, Map<String, IndexAbstraction> indexMetadata) {
+            IndexAbstraction indexAbstraction = indexMetadata.get(index);
+
+            if (indexAbstraction instanceof IndexAbstraction.Index && indexAbstraction.getParentDataStream() != null) {
+                return indexAbstraction.getParentDataStream().getName();
+            } else {
+                return index;
+            }
+        }
+
+        /**
+         * Filters the given index abstraction map to only contain entries that are relevant the for stateful class.
+         * This removes data stream backing indices and closes indices.
+         */
+        static Map<String, IndexAbstraction> relevantOnly(Map<String, IndexAbstraction> indices) {
+            boolean doFilter = false;
+
+            for (IndexAbstraction indexAbstraction : indices.values()) {
+                if (indexAbstraction instanceof IndexAbstraction.Index) {
+                    if (indexAbstraction.getParentDataStream() != null
+                        || indexAbstraction.getWriteIndex().getState() == IndexMetadata.State.CLOSE) {
+                        doFilter = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!doFilter) {
+                return indices;
+            }
+
+            ImmutableMap.Builder<String, IndexAbstraction> builder = ImmutableMap.builder();
+
+            for (IndexAbstraction indexAbstraction : indices.values()) {
+                if (indexAbstraction instanceof IndexAbstraction.Index) {
+                    if (indexAbstraction.getParentDataStream() == null
+                        && indexAbstraction.getWriteIndex().getState() != IndexMetadata.State.CLOSE) {
+                        builder.put(indexAbstraction.getName(), indexAbstraction);
+                    }
+                } else {
+                    builder.put(indexAbstraction.getName(), indexAbstraction);
+                }
+            }
+
+            return builder.build();
         }
     }
 
