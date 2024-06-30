@@ -503,6 +503,8 @@ configurations {
 
     integrationTestImplementation.extendsFrom implementation
     integrationTestRuntimeOnly.extendsFrom runtimeOnly
+    performanceTestImplementation.extendsFrom integrationTestImplementation
+    performanceTestRuntimeOnly.extendsFrom integrationTestRuntimeOnly
 }
 
 //create source set 'integrationTest'
@@ -518,6 +520,21 @@ sourceSets {
             srcDir file('src/integrationTest/resources')
         }
         processIntegrationTestResources {
+            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+        }
+    }
+    performanceTest {
+        java {
+            srcDir file ('src/performanceTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+            compileClasspath += sourceSets.integrationTest.output
+            runtimeClasspath += sourceSets.integrationTest.output
+        }
+        resources {
+            srcDir file('src/performanceTest/resources')
+        }
+        processPerformanceTestResources {
             duplicatesStrategy(DuplicatesStrategy.INCLUDE)
         }
     }
@@ -567,6 +584,14 @@ tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generate
 
 //run the integrationTest task before the check task
 check.dependsOn integrationTest
+
+task performanceTest(type: Test) {
+    description = 'Run performance tests.'
+    group = 'verification'
+    systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+}
 
 dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
@@ -736,6 +761,10 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
+
+    performanceTestImplementation('com.github.noconnor:junitperf:1.36.0') {
+        exclude(group: 'com.google.guava', module: 'guava')
+    }
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.22.0') {

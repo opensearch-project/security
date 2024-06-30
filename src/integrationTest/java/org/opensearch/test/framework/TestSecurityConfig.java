@@ -486,6 +486,10 @@ public class TestSecurityConfig {
             return attributes.get(attributeName);
         }
 
+        public Map<String, String> getAttributes() {
+            return this.attributes;
+        }
+
         @Override
         public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
             xContentBuilder.startObject();
