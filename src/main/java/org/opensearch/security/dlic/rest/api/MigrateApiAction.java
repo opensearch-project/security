@@ -89,7 +89,7 @@ public class MigrateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return null;
     }
 

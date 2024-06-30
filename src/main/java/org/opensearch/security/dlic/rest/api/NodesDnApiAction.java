@@ -90,7 +90,7 @@ public class NodesDnApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return CType.NODESDN;
     }
 

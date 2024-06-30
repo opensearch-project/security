@@ -126,7 +126,10 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.securityconf.impl.v6.ConfigV6;
+import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
 import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
+import org.opensearch.security.securityconf.impl.v6.RoleV6;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
@@ -1547,92 +1550,32 @@ public class SecurityAdmin {
                 )
             );
             SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "config.yml")),
-                    CType.CONFIG,
-                    1,
-                    0,
-                    0
-                )
+                Migration.readYaml(new File(backupDir, "config.yml"), ConfigV6.class)
             );
             SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "internal_users.yml")),
-                    CType.INTERNALUSERS,
-                    1,
-                    0,
-                    0
-                )
+                Migration.readYaml(new File(backupDir, "internal_users.yml"), InternalUserV6.class)
             );
-            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(
-                DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "roles_mapping.yml")),
-                CType.ROLESMAPPING,
-                1,
-                0,
-                0
+            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = Migration.readYaml(
+                new File(backupDir, "roles_mapping.yml"),
+                RoleMappingsV6.class
             );
+
             Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "roles.yml")),
-                    CType.ROLES,
-                    1,
-                    0,
-                    0
-                ),
+                Migration.readYaml(new File(backupDir, "roles.yml"), RoleV6.class),
                 rolesmappingV6
             );
             SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
             SecurityDynamicConfiguration<NodesDn> nodesDn = Migration.migrateNodesDn(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(
-                        ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir, "nodes_dn.yml").getAbsolutePath(), true)
-                    ),
-                    CType.NODESDN,
-                    1,
-                    0,
-                    0
-                )
+                Migration.readYaml(new File(backupDir, "nodes_dn.yml"), NodesDn.class)
             );
             SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettings = Migration.migrateWhitelistingSetting(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(
-                        ConfigHelper.createFileOrStringReader(
-                            CType.WHITELIST,
-                            1,
-                            new File(backupDir, "whitelist.yml").getAbsolutePath(),
-                            true
-                        )
-                    ),
-                    CType.WHITELIST,
-                    1,
-                    0,
-                    0
-                )
+                Migration.readYaml(new File(backupDir, "whitelist.yml"), WhitelistingSettings.class)
             );
             SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettings = Migration.migrateAllowlistingSetting(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(
-                        ConfigHelper.createFileOrStringReader(
-                            CType.ALLOWLIST,
-                            1,
-                            new File(backupDir, "allowlist.yml").getAbsolutePath(),
-                            true
-                        )
-                    ),
-                    CType.ALLOWLIST,
-                    1,
-                    0,
-                    0
-                )
+                Migration.readYaml(new File(backupDir, "allowlist.yml"), AllowlistingSettings.class)
             );
             SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "audit.yml")),
-                    CType.AUDIT,
-                    1,
-                    0,
-                    0
-                )
+                Migration.readYaml(new File(backupDir, "audit.yml"), AuditConfig.class)
             );
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
@@ -1719,7 +1662,7 @@ public class SecurityAdmin {
         return -1;
     }
 
-    private static boolean validateConfigFile(String file, CType cType, int version) {
+    private static boolean validateConfigFile(String file, CType<?> cType, int version) {
         try {
             ConfigHelper.fromYamlFile(file, cType, version == 7 ? 2 : 1, 0, 0);
             System.out.println(file + " OK");

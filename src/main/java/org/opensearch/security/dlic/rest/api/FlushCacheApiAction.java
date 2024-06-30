@@ -95,7 +95,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return null;
     }
 

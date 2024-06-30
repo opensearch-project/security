@@ -29,8 +29,6 @@ package org.opensearch.security.configuration;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -57,8 +55,11 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v6.RoleV6;
+import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityUtils;
@@ -95,10 +96,10 @@ public class ConfigurationLoaderSecurity7 {
         return isAuditConfigDocPresentInIndex.get();
     }
 
-    Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid)
-        throws InterruptedException, TimeoutException {
+    ConfigurationMap load(final CType<?>[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException,
+        TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
-        final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
+        ConfigurationMap.Builder result = new ConfigurationMap.Builder();
         final boolean isDebugEnabled = log.isDebugEnabled();
         loadAsync(events, new ConfigCallback() {
 
@@ -119,7 +120,19 @@ public class ConfigurationLoaderSecurity7 {
                     isAuditConfigDocPresentInIndex.set(true);
                 }
 
-                rs.put(dConf.getCType(), dConf);
+                result.with(dConf);
+
+                if (dConf.getCType() == CType.ROLES && dConf.getAutoConvertedFrom() != null) {
+                    // Special case for configuration that was auto-converted from v6:
+                    // We need to generate tenant config from role config.
+                    // Having such a special case here is not optimal, but IMHO acceptable, as this
+                    // should be only a temporary measure until V6 configuration is completely discontinued.
+                    @SuppressWarnings("unchecked")
+                    SecurityDynamicConfiguration<RoleV6> roleV6config = (SecurityDynamicConfiguration<RoleV6>) dConf.getAutoConvertedFrom();
+                    SecurityDynamicConfiguration<TenantV7> tenants = Migration.createTenants(roleV6config);
+                    result.with(tenants);
+                }
+
                 latch.countDown();
                 if (isDebugEnabled) {
                     log.debug(
@@ -143,7 +156,7 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void noData(String id) {
-                CType cType = CType.fromString(id);
+                CType<?> cType = CType.fromString(id);
 
                 // when index was created with ES 6 there are no separate tenants. So we load just empty ones.
                 // when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
@@ -172,7 +185,7 @@ public class ConfigurationLoaderSecurity7 {
                             cType,
                             ConfigurationRepository.getDefaultConfigVersion()
                         );
-                        rs.put(cType, empty);
+                        result.with(empty);
                         latch.countDown();
                         return;
                     } catch (Exception e) {
@@ -190,7 +203,7 @@ public class ConfigurationLoaderSecurity7 {
                             ConfigurationRepository.getDefaultConfigVersion()
                         );
                         empty.putCObject("config", AuditConfig.from(settings));
-                        rs.put(cType, empty);
+                        result.with(empty);
                         latch.countDown();
                         return;
                     } catch (Exception e) {
@@ -222,10 +235,10 @@ public class ConfigurationLoaderSecurity7 {
             );
         }
 
-        return rs;
+        return result.build();
     }
 
-    void loadAsync(final CType[] events, final ConfigCallback callback, boolean acceptInvalid) {
+    void loadAsync(final CType<?>[] events, final ConfigCallback callback, boolean acceptInvalid) {
         if (events == null || events.length == 0) {
             log.warn("No config events requested to load");
             return;
