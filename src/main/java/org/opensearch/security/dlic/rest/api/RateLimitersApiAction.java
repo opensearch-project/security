@@ -91,7 +91,7 @@ public class RateLimitersApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<ConfigV7> getConfigType() {
         return CType.CONFIG;
     }
 

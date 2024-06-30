@@ -27,13 +27,18 @@
 
 package org.opensearch.security.securityconf;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.JavaType;
+
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.core.common.Strings;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
@@ -60,19 +65,10 @@ public class Migration {
         SecurityDynamicConfiguration<RoleMappingsV6> rms6
     ) throws MigrationException {
 
-        final SecurityDynamicConfiguration<RoleV7> r7 = SecurityDynamicConfiguration.empty();
-        r7.setCType(r6cs.getCType());
+        final SecurityDynamicConfiguration<RoleV7> r7 = SecurityDynamicConfiguration.empty(CType.ROLES);
         r7.set_meta(new Meta());
         r7.get_meta().setConfig_version(2);
         r7.get_meta().setType("roles");
-
-        final SecurityDynamicConfiguration<TenantV7> t7 = SecurityDynamicConfiguration.empty();
-        t7.setCType(CType.TENANTS);
-        t7.set_meta(new Meta());
-        t7.get_meta().setConfig_version(2);
-        t7.get_meta().setType("tenants");
-
-        Set<String> dedupTenants = new HashSet<>();
 
         for (final Entry<String, RoleV6> r6e : r6cs.getCEntries().entrySet()) {
             final String roleName = r6e.getKey();
@@ -86,10 +82,6 @@ public class Migration {
             }
 
             r7.putCEntry(roleName, new RoleV7(r6));
-
-            for (Entry<String, String> tenant : r6.getTenants().entrySet()) {
-                dedupTenants.add(tenant.getKey());
-            }
         }
 
         if (rms6 != null) {
@@ -107,20 +99,40 @@ public class Migration {
             }
         }
 
+        return new Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>>(r7, createTenants(r6cs));
+    }
+
+    /**
+     * This creates a tenant configuration from the tenant names in a `SecurityDynamicConfiguration<RoleV6>` configuration.
+     * The v6 configuration did not yet have an explicit file to specify all tenants. Thus, these need to be collected
+     * this way.
+     */
+    public static SecurityDynamicConfiguration<TenantV7> createTenants(SecurityDynamicConfiguration<RoleV6> r6cs) {
+        Set<String> dedupTenants = new HashSet<>();
+
+        for (final Entry<String, RoleV6> entry : r6cs.getCEntries().entrySet()) {
+            for (Entry<String, String> tenant : entry.getValue().getTenants().entrySet()) {
+                dedupTenants.add(tenant.getKey());
+            }
+        }
+
+        SecurityDynamicConfiguration<TenantV7> tenantConfig = SecurityDynamicConfiguration.empty(CType.TENANTS);
+        tenantConfig.set_meta(new Meta());
+        tenantConfig.get_meta().setConfig_version(2);
+        tenantConfig.get_meta().setType("tenants");
+
         for (String tenantName : dedupTenants) {
             TenantV7 entry = new TenantV7();
             entry.setDescription("Migrated from v6");
-            t7.putCEntry(tenantName, entry);
+            tenantConfig.putCEntry(tenantName, entry);
         }
 
-        return new Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>>(r7, t7);
-
+        return tenantConfig;
     }
 
     public static SecurityDynamicConfiguration<ConfigV7> migrateConfig(SecurityDynamicConfiguration<ConfigV6> r6cs)
         throws MigrationException {
-        final SecurityDynamicConfiguration<ConfigV7> c7 = SecurityDynamicConfiguration.empty();
-        c7.setCType(r6cs.getCType());
+        final SecurityDynamicConfiguration<ConfigV7> c7 = SecurityDynamicConfiguration.empty(CType.CONFIG);
         c7.set_meta(new Meta());
         c7.get_meta().setConfig_version(2);
         c7.get_meta().setType("config");
@@ -142,8 +154,7 @@ public class Migration {
     }
 
     public static SecurityDynamicConfiguration<NodesDn> migrateNodesDn(SecurityDynamicConfiguration<NodesDn> nodesDn) {
-        final SecurityDynamicConfiguration<NodesDn> migrated = SecurityDynamicConfiguration.empty();
-        migrated.setCType(nodesDn.getCType());
+        final SecurityDynamicConfiguration<NodesDn> migrated = SecurityDynamicConfiguration.empty(CType.NODESDN);
         migrated.set_meta(new Meta());
         migrated.get_meta().setConfig_version(2);
         migrated.get_meta().setType("nodesdn");
@@ -157,8 +168,7 @@ public class Migration {
     public static SecurityDynamicConfiguration<WhitelistingSettings> migrateWhitelistingSetting(
         SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSetting
     ) {
-        final SecurityDynamicConfiguration<WhitelistingSettings> migrated = SecurityDynamicConfiguration.empty();
-        migrated.setCType(whitelistingSetting.getCType());
+        final SecurityDynamicConfiguration<WhitelistingSettings> migrated = SecurityDynamicConfiguration.empty(CType.WHITELIST);
         migrated.set_meta(new Meta());
         migrated.get_meta().setConfig_version(2);
         migrated.get_meta().setType("whitelist");
@@ -172,8 +182,7 @@ public class Migration {
     public static SecurityDynamicConfiguration<AllowlistingSettings> migrateAllowlistingSetting(
         SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSetting
     ) {
-        final SecurityDynamicConfiguration<AllowlistingSettings> migrated = SecurityDynamicConfiguration.empty();
-        migrated.setCType(allowlistingSetting.getCType());
+        final SecurityDynamicConfiguration<AllowlistingSettings> migrated = SecurityDynamicConfiguration.empty(CType.ALLOWLIST);
         migrated.set_meta(new Meta());
         migrated.get_meta().setConfig_version(2);
         migrated.get_meta().setType("whitelist");
@@ -186,8 +195,7 @@ public class Migration {
 
     public static SecurityDynamicConfiguration<InternalUserV7> migrateInternalUsers(SecurityDynamicConfiguration<InternalUserV6> r6is)
         throws MigrationException {
-        final SecurityDynamicConfiguration<InternalUserV7> i7 = SecurityDynamicConfiguration.empty();
-        i7.setCType(r6is.getCType());
+        final SecurityDynamicConfiguration<InternalUserV7> i7 = SecurityDynamicConfiguration.empty(CType.INTERNALUSERS);
         i7.set_meta(new Meta());
         i7.get_meta().setConfig_version(2);
         i7.get_meta().setType("internalusers");
@@ -204,18 +212,15 @@ public class Migration {
     public static SecurityDynamicConfiguration<ActionGroupsV7> migrateActionGroups(SecurityDynamicConfiguration<?> r6as)
         throws MigrationException {
 
-        final SecurityDynamicConfiguration<ActionGroupsV7> a7 = SecurityDynamicConfiguration.empty();
-        a7.setCType(r6as.getCType());
+        final SecurityDynamicConfiguration<ActionGroupsV7> a7 = SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS);
         a7.set_meta(new Meta());
         a7.get_meta().setConfig_version(2);
         a7.get_meta().setType("actiongroups");
 
-        if (r6as.getImplementingClass().isAssignableFrom(List.class)) {
-            for (final Entry<String, ?> r6a : r6as.getCEntries().entrySet()) {
+        for (final Entry<String, ?> r6a : r6as.getCEntries().entrySet()) {
+            if (r6a.getValue() instanceof List) {
                 a7.putCEntry(r6a.getKey(), new ActionGroupsV7(r6a.getKey(), (List<String>) r6a.getValue()));
-            }
-        } else {
-            for (final Entry<String, ?> r6a : r6as.getCEntries().entrySet()) {
+            } else {
                 a7.putCEntry(r6a.getKey(), new ActionGroupsV7(r6a.getKey(), (ActionGroupsV6) r6a.getValue()));
             }
         }
@@ -225,8 +230,7 @@ public class Migration {
 
     public static SecurityDynamicConfiguration<RoleMappingsV7> migrateRoleMappings(SecurityDynamicConfiguration<RoleMappingsV6> r6rms)
         throws MigrationException {
-        final SecurityDynamicConfiguration<RoleMappingsV7> rms7 = SecurityDynamicConfiguration.empty();
-        rms7.setCType(r6rms.getCType());
+        final SecurityDynamicConfiguration<RoleMappingsV7> rms7 = SecurityDynamicConfiguration.empty(CType.ROLESMAPPING);
         rms7.set_meta(new Meta());
         rms7.get_meta().setConfig_version(2);
         rms7.get_meta().setType("rolesmapping");
@@ -239,8 +243,7 @@ public class Migration {
     }
 
     public static SecurityDynamicConfiguration<AuditConfig> migrateAudit(SecurityDynamicConfiguration<AuditConfig> audit) {
-        final SecurityDynamicConfiguration<AuditConfig> migrated = SecurityDynamicConfiguration.empty();
-        migrated.setCType(audit.getCType());
+        final SecurityDynamicConfiguration<AuditConfig> migrated = SecurityDynamicConfiguration.empty(CType.AUDIT);
         migrated.set_meta(new Meta());
         migrated.get_meta().setConfig_version(2);
         migrated.get_meta().setType("audit");
@@ -249,6 +252,15 @@ public class Migration {
             migrated.putCEntry(entry.getKey(), entry.getValue());
         }
         return migrated;
+    }
+
+    public static <T> SecurityDynamicConfiguration<T> readYaml(File file, Class<T> type) throws IOException {
+        if (!file.exists()) {
+            return SecurityDynamicConfiguration.empty(null);
+        }
+
+        JavaType javaType = DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, type);
+        return DefaultObjectMapper.YAML_MAPPER.readValue(file, javaType);
     }
 
 }

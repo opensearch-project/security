@@ -54,7 +54,7 @@ public class ConfigTests {
 
     @Test
     public void testEmptyConfig() throws Exception {
-        Assert.assertNotSame(SecurityDynamicConfiguration.empty().deepClone(), SecurityDynamicConfiguration.empty());
+        Assert.assertNotSame(SecurityDynamicConfiguration.empty(CType.ROLES).deepClone(), SecurityDynamicConfiguration.empty(CType.ROLES));
     }
 
     @Test
@@ -102,7 +102,7 @@ public class ConfigTests {
 
     }
 
-    private void check(String file, CType cType) throws Exception {
+    private void check(String file, CType<?> cType) throws Exception {
         final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
@@ -116,11 +116,17 @@ public class ConfigTests {
         // Assert.assertTrue(dc.getCEntries().size() > 0);
         String jsonSerialize = DefaultObjectMapper.objectMapper.writeValueAsString(dc);
         SecurityDynamicConfiguration<?> conf = SecurityDynamicConfiguration.fromJson(jsonSerialize, cType, configVersion, 0, 0);
-        SecurityDynamicConfiguration.fromJson(Strings.toString(XContentType.JSON, conf), cType, configVersion, 0, 0);
+        SecurityDynamicConfiguration.fromJson(
+            Strings.toString(XContentType.JSON, conf),
+            cType,
+            SecurityDynamicConfiguration.CURRENT_VERSION,
+            0,
+            0
+        );
 
     }
 
-    private SecurityDynamicConfiguration<?> load(String file, CType cType) throws Exception {
+    private SecurityDynamicConfiguration<?> load(String file, CType<?> cType) throws Exception {
         final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
@@ -129,6 +135,6 @@ public class ConfigTests {
             assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
-        return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);
+        return SecurityDynamicConfiguration.fromNodeWithoutAutoConversion(jsonNode, cType, configVersion, 0, 0);
     }
 }

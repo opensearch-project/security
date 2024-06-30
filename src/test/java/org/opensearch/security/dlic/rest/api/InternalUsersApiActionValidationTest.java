@@ -22,6 +22,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -58,8 +59,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
 
         final var allClusterPermissions = new RoleV7();
         allClusterPermissions.setCluster_permissions(List.of("*"));
-        @SuppressWarnings("unchecked")
-        final var c = (SecurityDynamicConfiguration<RoleV7>) rolesConfiguration;
+        final var c = rolesConfiguration;
         c.putCEntry("some_role_with_reserved_mapping", allClusterPermissions);
         c.putCEntry("some_role_with_hidden_mapping", allClusterPermissions);
 
@@ -82,7 +82,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             1
         );
         when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLESMAPPING), false)).thenReturn(
-            Map.of(CType.ROLESMAPPING, rolesMappingConfiguration)
+            ConfigurationMap.of(rolesMappingConfiguration)
         );
     }
 
