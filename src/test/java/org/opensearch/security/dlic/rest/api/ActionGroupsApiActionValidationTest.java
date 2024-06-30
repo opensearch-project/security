@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 public class ActionGroupsApiActionValidationTest extends AbstractApiActionValidationTest {
@@ -68,7 +69,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void onConfigChangeActionGroupHasSameNameAsRole() throws Exception {
-        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         final var ag = objectMapper.createObjectNode()
@@ -85,7 +86,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void onConfigChangeActionGroupHasSelfReference() throws Exception {
-        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         final var ag = objectMapper.createObjectNode()
@@ -103,7 +104,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void validateInvalidType() throws Exception {
-        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         final var ag = objectMapper.createObjectNode()
@@ -121,7 +122,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void passActionGroupWithoutType() throws Exception {
-        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         final var ag = objectMapper.createObjectNode()

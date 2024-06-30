@@ -40,7 +40,7 @@ public final class YamlConfigReader {
 
     private static final Logger LOGGER = LogManager.getLogger(YamlConfigReader.class);
 
-    public static BytesReference yamlContentFor(final CType cType, final Path configDir) throws IOException {
+    public static BytesReference yamlContentFor(final CType<?> cType, final Path configDir) throws IOException {
         final var yamlXContent = XContentType.YAML.xContent();
         try (
             final var r = newReader(cType, configDir);
@@ -56,7 +56,7 @@ public final class YamlConfigReader {
         }
     }
 
-    public static Reader newReader(final CType cType, final Path configDir) throws IOException {
+    public static Reader newReader(final CType<?> cType, final Path configDir) throws IOException {
         final var cTypeFile = cType.configFile(configDir);
         final var fileExists = Files.exists(cTypeFile);
         if (!fileExists && !cType.emptyIfMissing()) {
@@ -71,24 +71,23 @@ public final class YamlConfigReader {
         }
     }
 
-    private static SecurityDynamicConfiguration<?> emptyConfigFor(final CType cType) {
-        final var emptyConfiguration = SecurityDynamicConfiguration.empty();
-        emptyConfiguration.setCType(cType);
+    private static SecurityDynamicConfiguration<?> emptyConfigFor(final CType<?> cType) {
+        final var emptyConfiguration = SecurityDynamicConfiguration.empty(cType);
         emptyConfiguration.set_meta(new Meta());
         emptyConfiguration.get_meta().setConfig_version(DEFAULT_CONFIG_VERSION);
         emptyConfiguration.get_meta().setType(cType.toLCString());
         return emptyConfiguration;
     }
 
-    public static String emptyJsonConfigFor(final CType cType) throws IOException {
+    public static String emptyJsonConfigFor(final CType<?> cType) throws IOException {
         return DefaultObjectMapper.writeValueAsString(emptyConfigFor(cType), false);
     }
 
-    public static String emptyYamlConfigFor(final CType cType) throws IOException {
+    public static String emptyYamlConfigFor(final CType<?> cType) throws IOException {
         return DefaultObjectMapper.YAML_MAPPER.writeValueAsString(emptyConfigFor(cType));
     }
 
-    private static void validateYamlContent(final CType cType, final InputStream in) throws IOException {
+    private static void validateYamlContent(final CType<?> cType, final InputStream in) throws IOException {
         SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(in), cType, DEFAULT_CONFIG_VERSION, -1, -1);
     }
 

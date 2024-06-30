@@ -39,5 +39,5 @@ public interface ConfigurationChangeListener {
     /**
      * @param configuration not null updated configuration on that was subscribe current listener
      */
-    void onChange(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig);
+    void onChange(ConfigurationMap typeToConfig);
 }

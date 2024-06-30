@@ -27,11 +27,13 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -62,7 +64,7 @@ public abstract class AbstractApiActionValidationTest {
     @Mock
     SecurityDynamicConfiguration<?> configuration;
 
-    SecurityDynamicConfiguration<?> rolesConfiguration;
+    SecurityDynamicConfiguration<RoleV7> rolesConfiguration;
 
     ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
 
@@ -101,7 +103,7 @@ public abstract class AbstractApiActionValidationTest {
 
         rolesConfiguration = SecurityDynamicConfiguration.fromJson(objectMapper.writeValueAsString(config), CType.ROLES, 2, 1, 1);
         when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false)).thenReturn(
-            Map.of(CType.ROLES, rolesConfiguration)
+            ConfigurationMap.of(rolesConfiguration)
         );
     }
 
@@ -110,7 +112,7 @@ public abstract class AbstractApiActionValidationTest {
 
         final var defaultPessimisticValidator = new AbstractApiAction(null, clusterService, threadPool, securityApiDependencies) {
             @Override
-            protected CType getConfigType() {
+            protected CType<?> getConfigType() {
                 return CType.CONFIG;
             }
         }.createEndpointValidator();

@@ -54,7 +54,7 @@ public class ConfigTests {
 
     @Test
     public void testEmptyConfig() throws Exception {
-        Assert.assertNotSame(SecurityDynamicConfiguration.empty().deepClone(), SecurityDynamicConfiguration.empty());
+        Assert.assertNotSame(SecurityDynamicConfiguration.empty(CType.CONFIG).deepClone(), SecurityDynamicConfiguration.empty(CType.CONFIG));
     }
 
     @Test
@@ -102,7 +102,7 @@ public class ConfigTests {
 
     }
 
-    private void check(String file, CType cType) throws Exception {
+    private void check(String file, CType<?> cType) throws Exception {
         final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
@@ -120,7 +120,7 @@ public class ConfigTests {
 
     }
 
-    private SecurityDynamicConfiguration<?> load(String file, CType cType) throws Exception {
+    private SecurityDynamicConfiguration<?> load(String file, CType<?> cType) throws Exception {
         final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;

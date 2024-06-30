@@ -50,6 +50,10 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 import org.mockito.Mockito;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.securityconf.impl.v7.TenantV7;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
@@ -243,7 +247,7 @@ public class SecurityRolesPermissionsTest {
         return DefaultObjectMapper.objectMapper.createObjectNode().put("type", type).put("config_version", 2);
     }
 
-    static <T> SecurityDynamicConfiguration<T> createRolesConfig() throws IOException {
+    static SecurityDynamicConfiguration<RoleV7> createRolesConfig() throws IOException {
         final ObjectNode rolesNode = DefaultObjectMapper.objectMapper.createObjectNode();
         rolesNode.set("_meta", meta("roles"));
         NO_REST_ADMIN_PERMISSIONS_ROLES.forEach(rolesNode::set);
@@ -252,19 +256,19 @@ public class SecurityRolesPermissionsTest {
         return SecurityDynamicConfiguration.fromNode(rolesNode, CType.ROLES, 2, 0, 0);
     }
 
-    static <T> SecurityDynamicConfiguration<T> createRoleMappingsConfig() throws IOException {
+    static SecurityDynamicConfiguration<RoleMappingsV7> createRoleMappingsConfig() throws IOException {
         final ObjectNode metaNode = DefaultObjectMapper.objectMapper.createObjectNode();
         metaNode.set("_meta", meta("rolesmapping"));
         return SecurityDynamicConfiguration.fromNode(metaNode, CType.ROLESMAPPING, 2, 0, 0);
     }
 
-    static <T> SecurityDynamicConfiguration<T> createActionGroupsConfig() throws IOException {
+    static SecurityDynamicConfiguration<ActionGroupsV7> createActionGroupsConfig() throws IOException {
         final ObjectNode metaNode = DefaultObjectMapper.objectMapper.createObjectNode();
         metaNode.set("_meta", meta("actiongroups"));
         return SecurityDynamicConfiguration.fromNode(metaNode, CType.ACTIONGROUPS, 2, 0, 0);
     }
 
-    static <T> SecurityDynamicConfiguration<T> createTenantsConfig() throws IOException {
+    static SecurityDynamicConfiguration<TenantV7> createTenantsConfig() throws IOException {
         final ObjectNode metaNode = DefaultObjectMapper.objectMapper.createObjectNode();
         metaNode.set("_meta", meta("tenants"));
         return SecurityDynamicConfiguration.fromNode(metaNode, CType.TENANTS, 2, 0, 0);

@@ -34,7 +34,7 @@ public class Meta {
     private String type;
     private int config_version;
 
-    private CType cType;
+    private CType<?> cType;
 
     public String getType() {
         return type;
@@ -54,7 +54,7 @@ public class Meta {
     }
 
     @JsonIgnore
-    public CType getCType() {
+    public CType<?> getCType() {
         return cType;
     }
 

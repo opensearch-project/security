@@ -63,7 +63,7 @@ public class CertificatesApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return null;
     }
 

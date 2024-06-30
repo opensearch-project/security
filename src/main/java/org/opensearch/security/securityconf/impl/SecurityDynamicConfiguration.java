@@ -62,11 +62,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private final Object modificationLock = new Object();
     private long seqNo = -1;
     private long primaryTerm = -1;
-    private CType ctype;
+    private CType<T> ctype;
     private int version = -1;
 
-    public static <T> SecurityDynamicConfiguration<T> empty() {
-        return new SecurityDynamicConfiguration<T>();
+    public static <T> SecurityDynamicConfiguration<T> empty(CType<T> ctype) {
+        return new SecurityDynamicConfiguration<T>(ctype);
     }
 
     @JsonIgnore
@@ -74,14 +74,14 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return !centries.isEmpty();
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm)
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType<T> ctype, int version, long seqNo, long primaryTerm)
         throws IOException {
         return fromJson(json, ctype, version, seqNo, primaryTerm, false);
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromJson(
         String json,
-        CType ctype,
+        CType<T> ctype,
         int version,
         long seqNo,
         long primaryTerm,
@@ -89,22 +89,17 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     ) throws IOException {
         SecurityDynamicConfiguration<T> sdc = null;
         if (ctype != null) {
-            final Class<?> implementationClass = ctype.getImplementationClass().get(version);
-            if (implementationClass == null) {
-                throw new IllegalArgumentException("No implementation class found for " + ctype + " and config version " + version);
-            }
-            if (acceptInvalid && version < 2) {
-                sdc = NonValidatingObjectMapper.readValue(
-                    json,
-                    NonValidatingObjectMapper.getTypeFactory()
-                        .constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
-                );
+            CType.OldConfigVersion<?, T> oldConfigVersion = ctype.findOldConfigVersion(version);
+
+            if (oldConfigVersion != null) {
+                sdc = oldConfigVersion.parseJson(ctype, json, acceptInvalid);
             } else {
                 sdc = DefaultObjectMapper.readValue(
-                    json,
-                    DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
+                        json,
+                        DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
                 );
             }
+
             validate(sdc, version, ctype);
 
         } else {
@@ -122,18 +117,17 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     /**
      * For testing only
      */
-    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType ctype, int version)
+    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType<T> ctype)
         throws JsonProcessingException {
-        Class<?> implementationClass = ctype.getImplementationClass().get(version);
         SecurityDynamicConfiguration<T> result = DefaultObjectMapper.objectMapper.convertValue(
             map,
-            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
+            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
         );
         result.ctype = ctype;
         return result;
     }
 
-    public static void validate(SecurityDynamicConfiguration<?> sdc, int version, CType ctype) throws IOException {
+    public static void validate(SecurityDynamicConfiguration<?> sdc, int version, CType<?> ctype) throws IOException {
         if (version < 2 && sdc.get_meta() != null) {
             throw new IOException("A version of " + version + " can not have a _meta key for " + ctype);
         }
@@ -154,14 +148,19 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long seqNo, long primaryTerm)
+    public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType<T> ctype, int version, long seqNo, long primaryTerm)
         throws IOException {
-        return fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
+        return SecurityDynamicConfiguration.<T>fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
     }
 
     // for Jackson
     private SecurityDynamicConfiguration() {
         super();
+    }
+
+    private SecurityDynamicConfiguration(CType<T> ctype) {
+        super();
+        this.ctype = ctype;
     }
 
     private Meta _meta;
@@ -295,13 +294,8 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     @JsonIgnore
-    public CType getCType() {
+    public CType<T> getCType() {
         return ctype;
-    }
-
-    @JsonIgnore
-    public void setCType(CType ctype) {
-        this.ctype = ctype;
     }
 
     @JsonIgnore
@@ -311,9 +305,10 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public Class<?> getImplementingClass() {
-        return getCType() == null ? null : getCType().getImplementationClass().get(getVersion());
+        return getCType() == null ? null : getCType().getConfigClass();
     }
 
+    @SuppressWarnings("unchecked")
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepClone() {
         try {
@@ -323,6 +318,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepCloneWithRedaction() {
         try {

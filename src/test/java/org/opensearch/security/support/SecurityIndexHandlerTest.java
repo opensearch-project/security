@@ -47,6 +47,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.state.SecurityConfig;
@@ -104,7 +105,7 @@ public class SecurityIndexHandlerTest {
         + "all_access: \n"
         + " reserved: false\n";
 
-    static final Map<CType, CheckedSupplier<String, IOException>> YAML = Map.of(
+    static final Map<CType<?>, CheckedSupplier<String, IOException>> YAML = Map.of(
         CType.ACTIONGROUPS,
         () -> emptyYamlConfigFor(CType.ACTIONGROUPS),
         CType.ALLOWLIST,
@@ -226,7 +227,7 @@ public class SecurityIndexHandlerTest {
             actionListener.onResponse(failedBulkResponse);
             return null;
         }).when(client).bulk(any(BulkRequest.class), any());
-        for (final var c : CType.REQUIRED_CONFIG_FILES) {
+        for (final var c : CType.requiredConfigTypes()) {
             try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
                 io.write(YAML.get(c).get());
                 io.flush();
@@ -246,7 +247,7 @@ public class SecurityIndexHandlerTest {
             }
         }, e -> fail("Unexpected behave")));
 
-        for (final var c : CType.REQUIRED_CONFIG_FILES) {
+        for (final var c : CType.requiredConfigTypes()) {
             try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
                 final var source = YAML.get(c).get();
                 io.write(source);
@@ -283,7 +284,7 @@ public class SecurityIndexHandlerTest {
             )
         );
 
-        for (final var c : CType.REQUIRED_CONFIG_FILES) {
+        for (final var c : CType.requiredConfigTypes()) {
             if (c == CType.AUDIT) continue;
             try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
                 final var source = YAML.get(c).get();
@@ -312,7 +313,7 @@ public class SecurityIndexHandlerTest {
             )
         );
 
-        for (final var c : CType.REQUIRED_CONFIG_FILES) {
+        for (final var c : CType.requiredConfigTypes()) {
             if (c == CType.WHITELIST) continue;
             try (final var io = Files.newBufferedWriter(c.configFile(configFolder))) {
                 final var source = YAML.get(c).get();
@@ -335,7 +336,7 @@ public class SecurityIndexHandlerTest {
     @Test
     public void testLoadConfiguration_shouldFailIfResponseHasFailures() {
         final var listener = spy(
-            ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
+            ActionListener.<ConfigurationMap>wrap(
                 r -> fail("Unexpected behave"),
                 e -> assertThat(e.getClass(), is(SecurityException.class))
             )
@@ -359,7 +360,7 @@ public class SecurityIndexHandlerTest {
     @Test
     public void testLoadConfiguration_shouldFailIfNoRequiredConfigInResponse() {
         final var listener = spy(
-            ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
+            ActionListener.<ConfigurationMap>wrap(
                 r -> fail("Unexpected behave"),
                 e -> assertThat(e.getMessage(), is("Missing required configuration for type: CONFIG"))
             )
@@ -382,7 +383,7 @@ public class SecurityIndexHandlerTest {
     @Test
     public void testLoadConfiguration_shouldFailForUnsupportedVersion() {
         final var listener = spy(
-            ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
+            ActionListener.<ConfigurationMap>wrap(
                 r -> fail("Unexpected behave"),
                 e -> assertThat(e.getMessage(), is("Version 1 is not supported for CONFIG"))
             )
@@ -415,7 +416,7 @@ public class SecurityIndexHandlerTest {
     @Test
     public void testLoadConfiguration_shouldFailForUnparseableConfig() {
         final var listener = spy(
-            ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
+            ActionListener.<ConfigurationMap>wrap(
                 r -> fail("Unexpected behave"),
                 e -> assertThat(e.getMessage(), is("Couldn't parse content for CONFIG"))
             )
@@ -451,7 +452,7 @@ public class SecurityIndexHandlerTest {
     @Test
     public void testLoadConfiguration_shouldBuildSecurityConfig() {
         final var listener = spy(ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(config -> {
-            assertThat(config.keySet().size(), is(CType.values().length));
+            assertThat(config.keySet().size(), is(CType.values().size()));
             for (final var c : CType.values()) {
                 assertTrue(c.toLCString(), config.containsKey(c));
             }
@@ -460,7 +461,7 @@ public class SecurityIndexHandlerTest {
             final var objectMapper = DefaultObjectMapper.objectMapper;
             ActionListener<MultiGetResponse> actionListener = invocation.getArgument(1);
 
-            final var responses = new MultiGetItemResponse[CType.values().length];
+            final var responses = new MultiGetItemResponse[CType.values().size()];
             var counter = 0;
             for (final var c : CType.values()) {
                 final var getResult = mock(GetResult.class);
@@ -497,7 +498,7 @@ public class SecurityIndexHandlerTest {
         verify(listener).onResponse(any());
     }
 
-    private ObjectNode minimumRequiredConfig(final CType cType) {
+    private ObjectNode minimumRequiredConfig(final CType<?> cType) {
         final var objectMapper = DefaultObjectMapper.objectMapper;
         return objectMapper.createObjectNode()
             .set("_meta", objectMapper.createObjectNode().put("type", cType.toLCString()).put("config_version", DEFAULT_CONFIG_VERSION));

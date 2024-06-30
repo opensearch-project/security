@@ -27,17 +27,27 @@
 
 package org.opensearch.security.securityconf.impl;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JavaType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
@@ -51,61 +61,96 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 
-public enum CType {
+public class CType<T> implements Comparable<CType<?>> {
 
-    ACTIONGROUPS(toMap(0, List.class, 1, ActionGroupsV6.class, 2, ActionGroupsV7.class), "action_groups.yml", false),
-    ALLOWLIST(toMap(1, AllowlistingSettings.class, 2, AllowlistingSettings.class), "allowlist.yml", true),
-    AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class), "audit.yml", true),
-    CONFIG(toMap(1, ConfigV6.class, 2, ConfigV7.class), "config.yml", false),
-    INTERNALUSERS(toMap(1, InternalUserV6.class, 2, InternalUserV7.class), "internal_users.yml", false),
-    NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class), "nodes_dn.yml", true),
-    ROLES(toMap(1, RoleV6.class, 2, RoleV7.class), "roles.yml", false),
-    ROLESMAPPING(toMap(1, RoleMappingsV6.class, 2, RoleMappingsV7.class), "roles_mapping.yml", false),
-    TENANTS(toMap(2, TenantV7.class), "tenants.yml", false),
-    WHITELIST(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class), "whitelist.yml", true);
+    public static final CType<ActionGroupsV7> ACTIONGROUPS = new CType<>("action_groups", ActionGroupsV7.class, 0, false, new OldConfigVersion<>(1, ActionGroupsV6.class, ActionGroupsV7::new));
+    public static final CType<AllowlistingSettings> ALLOWLIST = new CType<>("allowlist", AllowlistingSettings.class, 1, true);
+    public static final CType<AuditConfig> AUDIT = new CType<>("audit", AuditConfig.class, 2, true);
+    public static final CType<ConfigV7> CONFIG = new CType<>("config", ConfigV7.class, 3, false, new OldConfigVersion<>(1, ConfigV6.class, ConfigV7::new));
+    public static final CType<InternalUserV7> INTERNALUSERS = new CType<>("internal_users", InternalUserV7.class, 4, false, new OldConfigVersion<>(1, InternalUserV6.class, InternalUserV7::new));
+    public static final CType<NodesDn> NODESDN = new CType<>("nodes_dn", NodesDn.class, 5, true);
+    public static final CType<RoleV7> ROLES = new CType<>("roles", RoleV7.class, 6, false, new OldConfigVersion<>(1, RoleV6.class, RoleV7::new));
+    public static final CType<RoleMappingsV7> ROLESMAPPING = new CType<>("roles_mapping", RoleMappingsV7.class, 7, false, new OldConfigVersion<>(1, RoleMappingsV6.class, RoleMappingsV7::new));
+    public static final CType<TenantV7> TENANTS = new CType<>("tenants", TenantV7.class, 8, false);
+    public static final CType<WhitelistingSettings> WHITELIST = new CType<>("whitelist", WhitelistingSettings.class, 9, true);
 
-    public static final List<CType> REQUIRED_CONFIG_FILES = Arrays.stream(CType.values())
-        .filter(Predicate.not(CType::emptyIfMissing))
-        .collect(Collectors.toList());
-
-    public static final List<CType> NOT_REQUIRED_CONFIG_FILES = Arrays.stream(CType.values())
-        .filter(CType::emptyIfMissing)
-        .collect(Collectors.toList());
-
-    private final Map<Integer, Class<?>> implementations;
-
+    private final String name;
+    private final Class<T> configClass;
     private final String configFileName;
-
     private final boolean emptyIfMissing;
+    private final OldConfigVersion<?, T> [] oldConfigVersions;
+    private final int ord;
 
-    private CType(Map<Integer, Class<?>> implementations, final String configFileName, final boolean emptyIfMissing) {
-        this.implementations = implementations;
-        this.configFileName = configFileName;
+    private final static Set<CType<?>> allSet = new HashSet<>();
+
+    private static Map<String, CType<?>> nameToInstanceMap = new HashMap<>();
+    private static Map<Integer, CType<?>> ordToInstanceMap = new HashMap<>();
+
+    @SafeVarargs
+    @SuppressWarnings("varargs")
+    private CType(String name, Class<T> configClass, int ord, boolean emptyIfMissing, OldConfigVersion<?, T> ... oldConfigVersions) {
+        this.name = name;
+        this.configClass = configClass;
+        this.ord = ord;
+        this.configFileName = name + ".yml";
         this.emptyIfMissing = emptyIfMissing;
+        this.oldConfigVersions = oldConfigVersions;
+
+        allSet.add(this);
+        nameToInstanceMap.put(name, this);
+        ordToInstanceMap.put(ord, this);
+    }
+
+    public Class<T> getConfigClass() {
+        return this.configClass;
     }
 
     public boolean emptyIfMissing() {
         return emptyIfMissing;
     }
 
-    public Map<Integer, Class<?>> getImplementationClass() {
-        return Collections.unmodifiableMap(implementations);
-    }
-
-    public static CType fromString(String value) {
-        return CType.valueOf(value.toUpperCase());
-    }
-
     public String toLCString() {
-        return this.toString().toLowerCase();
+        return this.name;
+    }
+
+    public String name() {
+        return this.name;
+    }
+
+    public int getOrd() {
+        return ord;
+    }
+
+    public static CType<?> fromString(String value) {
+        return nameToInstanceMap.get(value.toLowerCase());
+    }
+
+    public static Set<CType<?>> values() {
+        return Collections.unmodifiableSet(allSet);
     }
 
     public static Set<String> lcStringValues() {
-        return Arrays.stream(CType.values()).map(CType::toLCString).collect(Collectors.toSet());
+        return CType.values().stream().map(CType::toLCString).collect(Collectors.toSet());
     }
 
-    public static Set<CType> fromStringValues(String[] strings) {
+    public static Set<CType<?>> fromStringValues(String[] strings) {
         return Arrays.stream(strings).map(CType::fromString).collect(Collectors.toSet());
+    }
+
+    public static CType<?> fromOrd(int ord) {
+        return ordToInstanceMap.get(ord);
+    }
+
+    public static Set<CType<?>> requiredConfigTypes() {
+        return values().stream()
+                .filter(Predicate.not(CType::emptyIfMissing))
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    public static Set<CType<?>> notRequiredConfigTypes() {
+        return values().stream()
+                .filter(CType::emptyIfMissing)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     public Path configFile(final Path configDir) {
@@ -116,11 +161,63 @@ public enum CType {
         return configFileName;
     }
 
-    private static Map<Integer, Class<?>> toMap(Object... objects) {
-        final ImmutableMap.Builder<Integer, Class<?>> map = ImmutableMap.builder();
-        for (int i = 0; i < objects.length; i = i + 2) {
-            map.put((Integer) objects[i], (Class<?>) objects[i + 1]);
+    public OldConfigVersion<?, T> findOldConfigVersion(int versionNumber) {
+        for (OldConfigVersion<?, T> oldConfigVersion : this.oldConfigVersions) {
+            if (versionNumber == oldConfigVersion.versionNumber) {
+                return oldConfigVersion;
+            }
         }
-        return map.build();
+
+        return null;
+    }
+
+    @Override
+    public int compareTo(CType<?> cType) {
+        return this.ord - cType.ord;
+    }
+
+    public static class OldConfigVersion<OldType, NewType> {
+        private final int versionNumber;
+        private final Class<OldType> oldType;
+        private final Function<OldType, NewType> conversionFunction;
+
+        public OldConfigVersion(int versionNumber, Class<OldType> oldType, Function<OldType, NewType> conversionFunction) {
+            this.versionNumber = versionNumber;
+            this.oldType = oldType;
+            this.conversionFunction = conversionFunction;
+        }
+
+        public int getVersionNumber() {
+            return versionNumber;
+        }
+
+        public Class<OldType> getOldType() {
+            return oldType;
+        }
+
+        public Function<OldType, NewType> getConversionFunction() {
+            return conversionFunction;
+        }
+
+        public SecurityDynamicConfiguration<NewType> parseJson(CType<NewType> ctype, String json, boolean acceptInvalid) throws IOException {
+            JavaType javaType = DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, oldType);
+
+            if (acceptInvalid) {
+                return convert(NonValidatingObjectMapper.readValue(json, javaType), ctype);
+            } else {
+                return convert(DefaultObjectMapper.readValue(json, javaType), ctype);
+            }
+        }
+
+        public SecurityDynamicConfiguration<NewType> convert(SecurityDynamicConfiguration<OldType> oldConfig, CType<NewType> ctype) {
+            SecurityDynamicConfiguration<NewType> newConfig = SecurityDynamicConfiguration.empty(ctype);
+
+            for (Map.Entry<String, OldType> oldEntry : oldConfig.getCEntries().entrySet()) {
+                newConfig.putCEntry(oldEntry.getKey(), conversionFunction.apply(oldEntry.getValue()));
+            }
+
+            return newConfig;
+        }
+
     }
 }

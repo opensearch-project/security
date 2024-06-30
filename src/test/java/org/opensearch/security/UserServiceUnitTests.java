@@ -100,7 +100,7 @@ public class UserServiceUnitTests {
         assertThat(true, is(config.getCEntries().containsKey(internalAccountUsername)));
     }
 
-    private SecurityDynamicConfiguration<?> readConfigFromYml(String file, CType cType) throws Exception {
+    private SecurityDynamicConfiguration<?> readConfigFromYml(String file, CType<?> cType) throws Exception {
         final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
         final String TEST_RESOURCE_RELATIVE_PATH = "../../resources/test/";
 
