@@ -50,8 +50,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
-@Ignore
 public class PrivilegesEvaluatorPerformanceTest {
 
     final static String[] READ_PERMISSIONS = new String[] {
@@ -735,11 +735,11 @@ public class PrivilegesEvaluatorPerformanceTest {
 
     static PrivilegesEvaluator createPrivilegeEvaluator(int numberOfIndices, boolean doNotFailOnForbidden) {
         SortedMap<String, IndexAbstraction> metaData = testIndices(numberOfIndices);
-        ClusterService clusterService = mock(ClusterService.class, RETURNS_DEEP_STUBS);
+        ClusterService clusterService = mock(ClusterService.class, withSettings().defaultAnswer(RETURNS_DEEP_STUBS).stubOnly());
         when(clusterService.state().metadata().getIndicesLookup()).thenReturn(metaData);
 
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        ConfigurationRepository configurationRepository = mock(ConfigurationRepository.class);
+        ConfigurationRepository configurationRepository = mock(ConfigurationRepository.class, withSettings().stubOnly());
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(threadContext);
         AuditLog auditLog = new NullAuditLog();
         Settings settings = Settings.EMPTY;
