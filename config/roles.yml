@@ -375,18 +375,26 @@ security_analytics_read_access:
     - 'cluster:admin/opensearch/securityanalytics/mapping/view/get'
     - 'cluster:admin/opensearch/securityanalytics/rule/get'
     - 'cluster:admin/opensearch/securityanalytics/rule/search'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/alerts/get'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/iocs/findings/get'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/iocs/list'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/monitors/search'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/sources/get'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/sources/search'
 
 # Allows users to use all security analytics functionality
 security_analytics_full_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
+    - 'cluster:admin/opensearch/securityanalytics/connections/*'
     - 'cluster:admin/opensearch/securityanalytics/correlations/*'
     - 'cluster:admin/opensearch/securityanalytics/detector/*'
     - 'cluster:admin/opensearch/securityanalytics/findings/*'
     - 'cluster:admin/opensearch/securityanalytics/logtype/*'
     - 'cluster:admin/opensearch/securityanalytics/mapping/*'
     - 'cluster:admin/opensearch/securityanalytics/rule/*'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/*'
   index_permissions:
     - index_patterns:
         - '*'
@@ -399,6 +407,7 @@ security_analytics_ack_alerts:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
+    - 'cluster:admin/opensearch/securityanalytics/threatintel/alerts/*'
 
 # Allows users to use all Flow Framework functionality
 flow_framework_full_access:
