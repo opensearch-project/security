@@ -31,19 +31,12 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
 
-    boolean invoke(
-        String action,
-        ActionRequest request,
-        ActionListener<?> listener,
-        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
-        Resolved resolved
-    );
+    boolean invoke(String action, ActionRequest request, ActionListener<?> listener, PrivilegesEvaluationContext context);
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
 
@@ -52,13 +45,7 @@ public interface DlsFlsRequestValve {
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
-        public boolean invoke(
-            String action,
-            ActionRequest request,
-            ActionListener<?> listener,
-            EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
-            Resolved resolved
-        ) {
+        public boolean invoke(String action, ActionRequest request, ActionListener<?> listener, PrivilegesEvaluationContext context) {
             return true;
         }
 

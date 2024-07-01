@@ -30,22 +30,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
     Set<String> missingPrivileges = new HashSet<String>();
     Set<String> missingSecurityRoles = new HashSet<>();
     Set<String> resolvedSecurityRoles = new HashSet<>();
-    EvaluatedDlsFlsConfig evaluatedDlsFlsConfig;
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
-    Resolved resolved;
     CreateIndexRequestBuilder createIndexRequestBuilder;
-
-    public Resolved getResolved() {
-        return resolved;
-    }
+    private String reason;
 
     public boolean isAllowed() {
         return allowed;
@@ -61,10 +54,6 @@ public class PrivilegesEvaluatorResponse {
 
     public Set<String> getResolvedSecurityRoles() {
         return new HashSet<>(resolvedSecurityRoles);
-    }
-
-    public EvaluatedDlsFlsConfig getEvaluatedDlsFlsConfig() {
-        return evaluatedDlsFlsConfig;
     }
 
     public CreateIndexRequestBuilder getCreateIndexRequestBuilder() {
@@ -89,20 +78,45 @@ public class PrivilegesEvaluatorResponse {
         return this.state == PrivilegesEvaluatorResponseState.PENDING;
     }
 
+    public String getReason() {
+        return this.reason;
+    }
+
+    public PrivilegesEvaluatorResponse reason(String reason) {
+        this.reason = reason;
+        return this;
+    }
+
     @Override
     public String toString() {
-        return "PrivEvalResponse [allowed="
-            + allowed
-            + ", missingPrivileges="
-            + missingPrivileges
-            + ", evaluatedDlsFlsConfig="
-            + evaluatedDlsFlsConfig
-            + "]";
+        return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges + "]";
     }
 
     public static enum PrivilegesEvaluatorResponseState {
         PENDING,
         COMPLETE;
+    }
+
+    /**
+     * This exception can be used to indicate that a method denies a user access to an OpenSearch action.
+     *
+     * Note: As exceptions take their performance toll, please use this exception only when there is
+     * no other way. Prefer to use PrivilegesEvaluatorResponse directly as a return value.
+     */
+    public static class NotAllowedException extends Exception {
+        private final PrivilegesEvaluatorResponse response;
+
+        public NotAllowedException(PrivilegesEvaluatorResponse response) {
+            super(response.reason);
+            this.response = response;
+            if (response.allowed) {
+                throw new IllegalArgumentException("Only possible for PrivilegesEvaluatorResponse with allowed=false");
+            }
+        }
+
+        public PrivilegesEvaluatorResponse getResponse() {
+            return response;
+        }
     }
 
 }
