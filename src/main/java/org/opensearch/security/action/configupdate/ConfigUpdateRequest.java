@@ -37,9 +37,12 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
 
     private String[] configTypes;
 
+    private String[] entityNames;
+
     public ConfigUpdateRequest(StreamInput in) throws IOException {
         super(in);
         this.configTypes = in.readStringArray();
+        this.entityNames = in.readOptionalStringArray();
     }
 
     public ConfigUpdateRequest() {
@@ -51,10 +54,17 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
         setConfigTypes(configTypes);
     }
 
+    public ConfigUpdateRequest(String configType, String[] entityNames) {
+        this();
+        setConfigTypes(new String[] { configType });
+        setEntityNames(entityNames);
+    }
+
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeStringArray(configTypes);
+        out.writeOptionalStringArray(entityNames);
     }
 
     public String[] getConfigTypes() {
@@ -65,9 +75,19 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
         this.configTypes = configTypes;
     }
 
+    public String[] getEntityNames() {
+        return entityNames;
+    }
+
+    public void setEntityNames(final String[] entityNames) {
+        this.entityNames = entityNames;
+    }
+
     @Override
     public ActionRequestValidationException validate() {
         if (configTypes == null || configTypes.length == 0) {
+            return new ActionRequestValidationException();
+        } else if (configTypes.length > 1 && (entityNames != null && entityNames.length > 1)) {
             return new ActionRequestValidationException();
         }
         return null;
