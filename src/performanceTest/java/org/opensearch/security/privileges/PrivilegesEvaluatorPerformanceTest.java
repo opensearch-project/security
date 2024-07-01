@@ -21,8 +21,10 @@ import org.junit.Test;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -46,7 +48,6 @@ import com.github.noconnor.junitperf.reporting.providers.ConsoleReportGenerator;
 import com.github.noconnor.junitperf.reporting.providers.HtmlReportGenerator;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -733,9 +734,16 @@ public class PrivilegesEvaluatorPerformanceTest {
     }
 
     static PrivilegesEvaluator createPrivilegeEvaluator(int numberOfIndices, boolean doNotFailOnForbidden) {
-        SortedMap<String, IndexAbstraction> metaData = testIndices(numberOfIndices);
-        ClusterService clusterService = mock(ClusterService.class, withSettings().defaultAnswer(RETURNS_DEEP_STUBS).stubOnly());
-        when(clusterService.state().metadata().getIndicesLookup()).thenReturn(metaData);
+        SortedMap<String, IndexAbstraction> indicesLookup = testIndices(numberOfIndices);
+        Metadata metadata = mock(Metadata.class, withSettings().stubOnly());
+        when(metadata.getIndicesLookup()).thenReturn(indicesLookup);
+
+        ClusterState clusterState = mock(ClusterState.class, withSettings().stubOnly());
+        when(clusterState.getMetadata()).thenReturn(metadata);
+        when(clusterState.metadata()).thenReturn(metadata);
+
+        ClusterService clusterService = mock(ClusterService.class, withSettings().stubOnly());
+        when(clusterService.state()).thenReturn(clusterState);
 
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         ConfigurationRepository configurationRepository = mock(ConfigurationRepository.class, withSettings().stubOnly());
