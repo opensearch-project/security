@@ -34,6 +34,12 @@ import org.opensearch.core.index.Index;
  */
 public class MockIndexMetadataBuilder {
 
+    private final static Settings INDEX_SETTINGS = Settings.builder()
+        .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.CURRENT)
+        .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+        .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
+        .build();
+
     private Map<String, IndexAbstraction> nameToIndexAbstractionMap = new HashMap<>();
     private Map<String, IndexMetadata> nameToIndexMetadataMap = new HashMap<>();
     private Map<String, Set<String>> indicesToAliases = new HashMap<>();
@@ -72,10 +78,7 @@ public class MockIndexMetadataBuilder {
             String index = indexEntry.getKey();
             Set<String> aliases = indexEntry.getValue();
 
-            IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
-                .settings(Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.CURRENT))
-                .numberOfShards(1)
-                .numberOfReplicas(1);
+            IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index).settings(INDEX_SETTINGS);
 
             for (String alias : aliases) {
                 indexMetadataBuilder.putAlias(aliasMetadataMap.get(alias));
