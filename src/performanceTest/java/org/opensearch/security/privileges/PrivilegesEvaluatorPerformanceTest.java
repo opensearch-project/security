@@ -12,21 +12,43 @@
 package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.github.noconnor.junitperf.reporting.providers.HtmlReportGenerator;
+import com.google.common.collect.ImmutableMap;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.junit.runners.Parameterized;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.NullAuditLog;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.securityconf.ConfigModelV7;
+import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.securityconf.DynamicConfigModelV7;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.user.User;
-import org.opensearch.test.framework.TestIndex;
+import org.opensearch.security.util.MockIndexMetadataBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -36,12 +58,15 @@ import com.github.noconnor.junitperf.JUnitPerfTest;
 import com.github.noconnor.junitperf.JUnitPerfTestRequirement;
 import com.github.noconnor.junitperf.reporting.providers.ConsoleReportGenerator;
 
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class PrivilegesEvaluatorPerformanceTest {
+
 
     final static TestSecurityConfig.User FULL_PRIVILEGES_TEST_USER = new TestSecurityConfig.User("full_privileges").roles(
         new TestSecurityConfig.Role("full_privileges_role").indexPermissions("*").on("*").clusterPermissions("*")
@@ -86,28 +111,23 @@ public class PrivilegesEvaluatorPerformanceTest {
 
     final static SearchRequest SEARCH_REQUEST = new SearchRequest("index_a*");
 
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(
+    final static TestSecurityConfig TEST_SECURITY_CONFIG = new TestSecurityConfig().users(
             FULL_PRIVILEGES_TEST_USER,
             INDEX_A_READ_TEST_USER,
             INDEX_A_READ_REGEX_TEST_USER,
             INDEX_A_READ_ATTR_TEST_USER,
             INDEX_A_READ_ATTR_REGEX_TEST_USER
-        )
-        .indices(testIndices())
-        .build();
+            );
+
+    final static TestSecurityConfig DNFOF_CONFIG = new TestSecurityConfig().doNotFailOnForbidden(true);
 
     @Rule
-    public JUnitPerfRule perfTestRule = new JUnitPerfRule(new ConsoleReportGenerator());
+    public JUnitPerfRule perfTestRule = new JUnitPerfRule(true, new ConsoleReportGenerator(), new HtmlReportGenerator());
 
-    static PrivilegesEvaluator privilegesEvaluator;
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @BeforeClass
-    public static void setUp() {
-        privilegesEvaluator = cluster.node().injector().getInstance(PrivilegesEvaluator.class);
-    }
+    PrivilegesEvaluator privilegesEvaluator;
 
     @Test
     @JUnitPerfTest(threads = 50, durationMs = 125_000, warmUpMs = 10_000)
@@ -184,6 +204,53 @@ public class PrivilegesEvaluatorPerformanceTest {
         assertTrue(response.isAllowed());
     }
 
+    @Parameterized.Parameters(name = "{0} indices; do_not_fail_on_forbidden: {1}")
+    public static Collection<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+
+        for (int indices : new int [] {10, 100, 1000, 10000}) {
+            for (boolean doNotFailOnForbidden : new boolean[] {false, true}) {
+                result.add(new Object[] {indices, doNotFailOnForbidden});
+            }
+        }
+
+       return result;
+    }
+
+    public PrivilegesEvaluatorPerformanceTest(int numberOfIndices, boolean doNotFailOnForbidden) {
+        SortedMap<String, IndexAbstraction> metaData = testIndices(numberOfIndices);
+        ClusterService clusterService = mock(ClusterService.class, RETURNS_DEEP_STUBS);
+        when(clusterService.state().metadata().getIndicesLookup()).thenReturn(metaData);
+
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        ConfigurationRepository configurationRepository = mock(ConfigurationRepository.class);
+        IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(threadContext);
+        AuditLog auditLog = new NullAuditLog();
+        Settings settings = Settings.EMPTY;
+        PrivilegesInterceptor privilegesInterceptor = new PrivilegesInterceptor(indexNameExpressionResolver, clusterService, null, null) {
+            @Override
+            public ReplaceResult replaceDashboardsIndex( final ActionRequest request,
+                                                         final String action,
+                                                         final User user,
+                                                         final DynamicConfigModel config,
+                                                         final IndexResolverReplacer.Resolved requestedResolved,
+                                                         final Map<String, Boolean> tenants) {
+                return PrivilegesInterceptor.CONTINUE_EVALUATION_REPLACE_RESULT;
+            }
+        };
+
+        IndexResolverReplacer indexResolverReplacer = new IndexResolverReplacer(indexNameExpressionResolver, clusterService, null);
+        NamedXContentRegistry namedXContentRegistry = NamedXContentRegistry.EMPTY;
+
+        DynamicConfigModelV7 dynamicConfigModel = new DynamicConfigModelV7(doNotFailOnForbidden ? DNFOF_CONFIG.getSecurityConfiguration().getCEntry("config") : TEST_SECURITY_CONFIG.getSecurityConfiguration().getCEntry("config"), settings, null, null, null);
+        ConfigModelV7 configModel = new ConfigModelV7(TEST_SECURITY_CONFIG.getRolesConfiguration(), TEST_SECURITY_CONFIG.getRoleMappingsConfiguration(), TEST_SECURITY_CONFIG.geActionGroupsConfiguration(), SecurityDynamicConfiguration.empty(), dynamicConfigModel, settings);
+
+        privilegesEvaluator = new PrivilegesEvaluator(clusterService, threadContext, configurationRepository, indexNameExpressionResolver, auditLog, settings, privilegesInterceptor, null, indexResolverReplacer, namedXContentRegistry);
+        privilegesEvaluator.updateConfiguration(TEST_SECURITY_CONFIG.geActionGroupsConfiguration(), TEST_SECURITY_CONFIG.getRolesConfiguration());
+        privilegesEvaluator.onDynamicConfigModelChanged(dynamicConfigModel);
+        privilegesEvaluator.onConfigModelChanged(configModel);
+    }
+
     static User user(TestSecurityConfig.User testUser) {
         User user = new User(testUser.getName());
         user.addSecurityRoles(testUser.getRoleNames());
@@ -197,16 +264,18 @@ public class PrivilegesEvaluatorPerformanceTest {
         return user;
     }
 
-    static List<TestIndex> testIndices() {
-        ArrayList<TestIndex> result = new ArrayList<>();
+    static SortedMap<String, IndexAbstraction> testIndices(int count) {
+        MockIndexMetadataBuilder builder = new MockIndexMetadataBuilder();
+        char [] letters = new char[] { 'a', 'b', 'c', 'd', 'e' };
+        int indicesPerLetter = count / letters.length;
 
-        for (char c : new char[] { 'a', 'b', 'c', 'd', 'e' }) {
-            for (int i = 0; i < 90; i++) {
-                result.add(new TestIndex("index_" + c + "_" + i, Settings.EMPTY));
+        for (char c : letters) {
+            for (int i = 0; i < indicesPerLetter; i++) {
+                builder.index("index_" + c + "_" + i);
             }
         }
 
-        return result;
+        return new TreeMap<>(builder.build());
     }
 
 }

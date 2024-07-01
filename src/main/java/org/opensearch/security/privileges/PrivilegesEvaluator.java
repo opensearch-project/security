@@ -153,7 +153,7 @@ public class PrivilegesEvaluator {
 
     public PrivilegesEvaluator(
         final ClusterService clusterService,
-        final ThreadPool threadPool,
+        final ThreadContext threadContext,
         final ConfigurationRepository configurationRepository,
         final IndexNameExpressionResolver resolver,
         AuditLog auditLog,
@@ -169,7 +169,7 @@ public class PrivilegesEvaluator {
         this.resolver = resolver;
         this.auditLog = auditLog;
 
-        this.threadContext = threadPool.getThreadContext();
+        this.threadContext = threadContext;
         this.privilegesInterceptor = privilegesInterceptor;
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
@@ -193,30 +193,13 @@ public class PrivilegesEvaluator {
                 SecurityDynamicConfiguration<?> actionGroupsConfiguration = configurationRepository.getConfiguration(CType.ACTIONGROUPS);
                 SecurityDynamicConfiguration<?> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
 
-                if (rolesConfiguration != null) {
-                    @SuppressWarnings("unchecked")
-                    SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
-                        ? (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
-                            actionGroupsConfiguration.deepClone()
-                        )
-                        : (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
-                            SecurityDynamicConfiguration.empty()
-                        );
-                    FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
-                    ActionPrivileges actionPrivileges = new ActionPrivileges(
-                        DynamicConfigFactory.addStatics(rolesConfiguration.deepClone()),
-                        flattenedActionGroups,
-                        () -> clusterService.state().metadata().getIndicesLookup()
-                    );
-                    actionPrivileges.updateStatefulIndexPrivileges(clusterService.state().metadata().getIndicesLookup());
-                    this.actionPrivileges = actionPrivileges;
-                }
+                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration);
             } catch (Exception e) {
                 log.error("Error while updating ActionPrivileges object with {}", configMap, e);
             }
         });
 
-        clusterService.addListener(new ClusterStateListener() {
+        clusterService.addListener(     new ClusterStateListener() {
             @Override
             public void clusterChanged(ClusterChangedEvent event) {
                 try {
@@ -230,6 +213,27 @@ public class PrivilegesEvaluator {
             }
         });
 
+    }
+
+    void updateConfiguration(SecurityDynamicConfiguration<?> actionGroupsConfiguration, SecurityDynamicConfiguration<?> rolesConfiguration) {
+        if (rolesConfiguration != null) {
+            @SuppressWarnings("unchecked")
+            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
+                    ? (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
+                    actionGroupsConfiguration.deepClone()
+            )
+                    : (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
+                    SecurityDynamicConfiguration.empty()
+            );
+            FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
+            ActionPrivileges actionPrivileges = new ActionPrivileges(
+                    DynamicConfigFactory.addStatics(rolesConfiguration.deepClone()),
+                    flattenedActionGroups,
+                    () -> clusterService.state().metadata().getIndicesLookup()
+            );
+            actionPrivileges.updateStatefulIndexPrivileges(clusterService.state().metadata().getIndicesLookup());
+            this.actionPrivileges = actionPrivileges;
+        }
     }
 
     @Subscribe

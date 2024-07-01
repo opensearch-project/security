@@ -237,7 +237,7 @@ public class IndexResolverReplacer {
 
             final RemoteClusterService remoteClusterService = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService();
 
-            if (remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
+            if (remoteClusterService != null && remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
                 remoteIndices = new HashSet<>();
                 final Map<String, OriginalIndices> remoteClusterIndices = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService()
                     .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
