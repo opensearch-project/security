@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -58,6 +59,7 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+import org.opensearch.test.framework.log.LogsRule;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -231,6 +233,9 @@ public class FlsAndFieldMaskingTests {
             TWINS_FIRST_ARTIST_READER
         )
         .build();
+
+    @Rule
+    public LogsRule logsRule = new LogsRule("org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper");
 
     /**
     * Function that returns id assigned to song with title equal to given title or throws {@link RuntimeException}
@@ -840,6 +845,36 @@ public class FlsAndFieldMaskingTests {
         ).indexPermissions("read").fls(FIELD_STARS).on("*");
         TestSecurityConfig.User user = createUserWithRole("fls_includes_user", userRole);
         List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
+
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            MatchAllQueryBuilder matchAllQueryBuilder = QueryBuilders.matchAllQuery();
+            searchSourceBuilder.storedFields(List.of(SizeFieldMapper.NAME, SourceFieldMapper.NAME));
+            searchSourceBuilder.query(matchAllQueryBuilder);
+            searchRequest.source(searchSourceBuilder);
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+            assertSearchHitsDoContainField(searchResponse, FIELD_STARS);
+            assertThat(searchResponse.toString(), containsString(SizeFieldMapper.NAME));
+            assertSearchHitsDoNotContainField(searchResponse, FIELD_ARTIST);
+        }
+    }
+
+    @Test
+    public void testFlsOnAClosedAndReopenedIndex() throws IOException {
+        String indexName = "fls_includes_index";
+        TestSecurityConfig.Role userRole = new TestSecurityConfig.Role("fls_include_stars_reader").clusterPermissions(
+            "cluster_composite_ops_ro"
+        ).indexPermissions("read").fls(FIELD_STARS).on("*");
+        TestSecurityConfig.User user = createUserWithRole("fls_includes_user", userRole);
+        List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
+
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            client.post(indexName + "/_close");
+            client.post(indexName + "/_open");
+            logsRule.assertThatContainExactly(indexName + " was closed. Setting metadataFields to empty. Closed index is not searchable.");
+        }
 
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
             SearchRequest searchRequest = new SearchRequest(indexName);
