@@ -75,6 +75,7 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.identity.labels.DefaultUserInfoLabelingRule;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
@@ -401,6 +402,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         }
 
         components.add(principalExtractor);
+        components.add(new DefaultUserInfoLabelingRule());
 
         return components;
     }
