@@ -56,33 +56,37 @@ import org.opensearch.tasks.Task;
  * - The term `protected system indices` used here translates to system indices
  *   which have an added layer of security and cannot be accessed by anyone except Super Admin
  */
-public class SecurityIndexAccessEvaluator {
+public class SystemIndexAccessEvaluator {
 
     Logger log = LogManager.getLogger(this.getClass());
 
     private final String securityIndex;
     private final AuditLog auditLog;
     private final IndexResolverReplacer irr;
+    private final IndexNameExpressionResolver resolver;
     private final boolean filterSecurityIndex;
     // for system-indices configuration
-    private final WildcardMatcher systemIndexMatcher;
     private final WildcardMatcher superAdminAccessOnlyIndexMatcher;
     private final WildcardMatcher deniedActionsMatcher;
 
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
 
-    public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
+    public SystemIndexAccessEvaluator(
+        final Settings settings,
+        AuditLog auditLog,
+        IndexResolverReplacer irr,
+        IndexNameExpressionResolver resolver
+    ) {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
         this.irr = irr;
+        this.resolver = resolver;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
-        this.systemIndexMatcher = WildcardMatcher.from(
-            settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
-        );
+
         this.superAdminAccessOnlyIndexMatcher = WildcardMatcher.from(this.securityIndex);
         this.isSystemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
@@ -170,13 +174,13 @@ public class SecurityIndexAccessEvaluator {
      * @param requestedResolved request which contains indices to be matched against system indices
      * @return the list of protected system indices present in the request
      */
-    private List<String> getAllSystemIndices(final Resolved requestedResolved) {
-        final List<String> systemIndices = requestedResolved.getAllIndices()
+    private Set<String> getAllSystemIndices(final Resolved requestedResolved) {
+        final Set<String> systemIndices = requestedResolved.getAllIndices()
             .stream()
             .filter(securityIndex::equals)
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
         if (isSystemIndexEnabled) {
-            systemIndices.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
+            systemIndices.addAll(resolver.concreteSystemIndices(requestedResolved.getAllIndices().toArray(new String[0])));
         }
         return systemIndices;
     }
@@ -210,7 +214,7 @@ public class SecurityIndexAccessEvaluator {
     private boolean requestContainsAnyRegularIndices(final Resolved requestedResolved) {
         Set<String> allIndices = requestedResolved.getAllIndices();
 
-        List<String> allSystemIndices = getAllSystemIndices(requestedResolved);
+        Set<String> allSystemIndices = getAllSystemIndices(requestedResolved);
         List<String> allProtectedSystemIndices = getAllProtectedSystemIndices(requestedResolved);
 
         return allIndices.stream().anyMatch(index -> !allSystemIndices.contains(index) && !allProtectedSystemIndices.contains(index));

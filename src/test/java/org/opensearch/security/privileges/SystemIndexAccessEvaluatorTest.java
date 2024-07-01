@@ -15,6 +15,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -31,6 +32,9 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.indices.SystemIndices;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -56,7 +60,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SecurityIndexAccessEvaluatorTest {
+public class SystemIndexAccessEvaluatorTest {
 
     @Mock
     private AuditLog auditLog;
@@ -73,7 +77,7 @@ public class SecurityIndexAccessEvaluatorTest {
     @Mock
     ClusterService cs;
 
-    private SecurityIndexAccessEvaluator evaluator;
+    private SystemIndexAccessEvaluator evaluator;
     private static final String UNPROTECTED_ACTION = "indices:data/read";
     private static final String PROTECTED_ACTION = "indices:data/write";
 
@@ -93,7 +97,15 @@ public class SecurityIndexAccessEvaluatorTest {
     }
 
     protected IndexNameExpressionResolver createIndexNameExpressionResolver(ThreadContext threadContext) {
-        return new IndexNameExpressionResolver(threadContext);
+        SystemIndices systemIndices = new SystemIndices(
+            Map.of(
+                "org.opensearch.plugin.TestPlugin",
+                List.of(new SystemIndexDescriptor(TEST_SYSTEM_INDEX, "Test System Index")),
+                OpenSearchSecurityPlugin.class.getCanonicalName(),
+                List.of(new SystemIndexDescriptor(SECURITY_INDEX, "Security Index"))
+            )
+        );
+        return new IndexNameExpressionResolver(threadContext, systemIndices);
     }
 
     public void setup(
@@ -137,14 +149,15 @@ public class SecurityIndexAccessEvaluatorTest {
 
         // when trying to resolve Index Names
 
-        evaluator = new SecurityIndexAccessEvaluator(
+        evaluator = new SystemIndexAccessEvaluator(
             Settings.builder()
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, TEST_SYSTEM_INDEX)
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, isSystemIndexEnabled)
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, isSystemIndexPermissionsEnabled)
                 .build(),
             auditLog,
-            irr
+            irr,
+            indexNameExpressionResolver
         );
         evaluator.log = log;
 
