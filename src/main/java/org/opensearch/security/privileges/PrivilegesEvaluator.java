@@ -102,7 +102,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
-import org.opensearch.threadpool.ThreadPool;
 
 import org.greenrobot.eventbus.Subscribe;
 
@@ -199,7 +198,7 @@ public class PrivilegesEvaluator {
             }
         });
 
-        clusterService.addListener(     new ClusterStateListener() {
+        clusterService.addListener(new ClusterStateListener() {
             @Override
             public void clusterChanged(ClusterChangedEvent event) {
                 try {
@@ -215,21 +214,20 @@ public class PrivilegesEvaluator {
 
     }
 
-    void updateConfiguration(SecurityDynamicConfiguration<?> actionGroupsConfiguration, SecurityDynamicConfiguration<?> rolesConfiguration) {
+    void updateConfiguration(
+        SecurityDynamicConfiguration<?> actionGroupsConfiguration,
+        SecurityDynamicConfiguration<?> rolesConfiguration
+    ) {
         if (rolesConfiguration != null) {
             @SuppressWarnings("unchecked")
             SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
-                    ? (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
-                    actionGroupsConfiguration.deepClone()
-            )
-                    : (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(
-                    SecurityDynamicConfiguration.empty()
-            );
+                ? (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(actionGroupsConfiguration.deepClone())
+                : (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty());
             FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
             ActionPrivileges actionPrivileges = new ActionPrivileges(
-                    DynamicConfigFactory.addStatics(rolesConfiguration.deepClone()),
-                    flattenedActionGroups,
-                    () -> clusterService.state().metadata().getIndicesLookup()
+                DynamicConfigFactory.addStatics(rolesConfiguration.deepClone()),
+                flattenedActionGroups,
+                () -> clusterService.state().metadata().getIndicesLookup()
             );
             actionPrivileges.updateStatefulIndexPrivileges(clusterService.state().metadata().getIndicesLookup());
             this.actionPrivileges = actionPrivileges;

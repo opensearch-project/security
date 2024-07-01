@@ -52,10 +52,8 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
-import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.hasher.PasswordHasher;
@@ -158,13 +156,12 @@ public class TestSecurityConfig {
         return this;
     }
 
-    public  TestSecurityConfig users(User... users) {
+    public TestSecurityConfig users(User... users) {
         for (User user : users) {
             this.user(user);
         }
         return this;
     }
-
 
     public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
         if (!internalUsers.containsKey(name)) {
@@ -1005,12 +1002,17 @@ public class TestSecurityConfig {
 
     public SecurityDynamicConfiguration<ConfigV7> getSecurityConfiguration() {
         try {
-            return SecurityDynamicConfiguration.fromJson(singleEntryConfigToJson(CType.CONFIG, CType.CONFIG.toLCString(), config), CType.CONFIG, 2, 0, 0);
+            return SecurityDynamicConfiguration.fromJson(
+                singleEntryConfigToJson(CType.CONFIG, CType.CONFIG.toLCString(), config),
+                CType.CONFIG,
+                2,
+                0,
+                0
+            );
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-
 
     public SecurityDynamicConfiguration<InternalUserV7> getInternalUserConfiguration() {
         try {
