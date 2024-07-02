@@ -19,13 +19,13 @@ import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.support.ConfigConstants.*;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -53,15 +53,15 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
             .anonymousAuth(false)
             .nodeSettings(
                 Map.of(
-                    SECURITY_RESTAPI_ROLES_ENABLED,
+                    ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED,
                     List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
-                    SECURITY_PASSWORD_HASHING_ALGORITHM,
-                    PBKDF2,
-                    SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION,
+                    ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
+                    ConfigConstants.PBKDF2,
+                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION,
                     function,
-                    SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS,
+                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS,
                     iterations,
-                    SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH,
+                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH,
                     length
                 )
             )

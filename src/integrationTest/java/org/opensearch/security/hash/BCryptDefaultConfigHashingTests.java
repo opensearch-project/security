@@ -14,17 +14,15 @@ package org.opensearch.security.hash;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import static org.apache.http.HttpStatus.*;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -37,34 +35,36 @@ public class BCryptDefaultConfigHashingTests extends HashingTests {
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .anonymousAuth(false)
-        .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName())))
+        .nodeSettings(
+            Map.of(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
+        )
         .build();
 
     @Test
     public void shouldAuthenticateWithCorrectPassword() {
         String hash = generateBCryptHash(
             PASSWORD,
-            SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
-            SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
         );
         createUserWithHashedPassword(cluster, "user_2", hash);
-        testPasswordAuth(cluster, "user_2", PASSWORD, SC_OK);
+        testPasswordAuth(cluster, "user_2", PASSWORD, HttpStatus.SC_OK);
 
         createUserWithPlainTextPassword(cluster, "user_3", PASSWORD);
-        testPasswordAuth(cluster, "user_3", PASSWORD, SC_OK);
+        testPasswordAuth(cluster, "user_3", PASSWORD, HttpStatus.SC_OK);
     }
 
     @Test
     public void shouldNotAuthenticateWithIncorrectPassword() {
         String hash = generateBCryptHash(
             PASSWORD,
-            SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
-            SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
         );
         createUserWithHashedPassword(cluster, "user_4", hash);
-        testPasswordAuth(cluster, "user_4", "wrong_password", SC_UNAUTHORIZED);
+        testPasswordAuth(cluster, "user_4", "wrong_password", HttpStatus.SC_UNAUTHORIZED);
 
         createUserWithPlainTextPassword(cluster, "user_5", PASSWORD);
-        testPasswordAuth(cluster, "user_5", "wrong_password", SC_UNAUTHORIZED);
+        testPasswordAuth(cluster, "user_5", "wrong_password", HttpStatus.SC_UNAUTHORIZED);
     }
 }
