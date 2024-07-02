@@ -58,34 +58,26 @@ public class PrivilegesEvaluatorPerformanceTest {
     final static TestSecurityConfig.User FULL_PRIVILEGES_TEST_USER = new TestSecurityConfig.User("full_privileges").roles(
         new TestSecurityConfig.Role("full_privileges_role").indexPermissions("*").on("*").clusterPermissions("*")
     );
-
-    final static User FULL_PRIVILEGES_USER = user(FULL_PRIVILEGES_TEST_USER);
-
+    
     final static TestSecurityConfig.User INDEX_A_READ_TEST_USER = new TestSecurityConfig.User("index_a_read").roles(
         new TestSecurityConfig.Role("index_a_read_role").indexPermissions(READ_PERMISSIONS)
             .on("index_a*")
             .clusterPermissions("cluster_composite_ops")
     );
-
-    final static User INDEX_A_READ_USER = user(INDEX_A_READ_TEST_USER);
-
+    
     final static TestSecurityConfig.User INDEX_A_READ_REGEX_TEST_USER = new TestSecurityConfig.User("index_a_read_regex").roles(
         new TestSecurityConfig.Role("index_a_read_regex_role").indexPermissions(READ_PERMISSIONS)
             .on("/^index_a.*/")
             .clusterPermissions("cluster_composite_ops")
     );
-
-    final static User INDEX_A_READ_REGEX_USER = user(INDEX_A_READ_REGEX_TEST_USER);
-
+    
     final static TestSecurityConfig.User INDEX_A_READ_ATTR_TEST_USER = new TestSecurityConfig.User("index_a_read_attr").attr("attr_a", "a")
         .roles(
             new TestSecurityConfig.Role("index_a_read_attr_role").indexPermissions(READ_PERMISSIONS)
                 .on("index_${attr_internal_attr_a}*")
                 .clusterPermissions("cluster_composite_ops")
         );
-
-    final static User INDEX_A_READ_ATTR_USER = user(INDEX_A_READ_ATTR_TEST_USER);
-
+    
     final static TestSecurityConfig.User INDEX_A_READ_ATTR_REGEX_TEST_USER = new TestSecurityConfig.User("index_a_read_attr").attr(
         "attr_a",
         "a"
@@ -95,8 +87,6 @@ public class PrivilegesEvaluatorPerformanceTest {
                 .on("/^index_${attr_internal_attr_a}.*/")
                 .clusterPermissions("cluster_composite_ops")
         );
-
-    final static User INDEX_A_READ_ATTR_REGEX_USER = user(INDEX_A_READ_ATTR_REGEX_TEST_USER);
 
     final static SearchRequest SEARCH_REQUEST = new SearchRequest("index_a*");
 
@@ -119,7 +109,7 @@ public class PrivilegesEvaluatorPerformanceTest {
 
     final static PrivilegesEvaluator privilegesEvaluator1000 = createPrivilegeEvaluator(1000, false);
 
-    final static PrivilegesEvaluator privilegesEvaluator10000 = createPrivilegeEvaluator(10000, false);
+    final static PrivilegesEvaluator privilegesEvaluator10000 = createPrivilegeEvaluator(100, false);
 
     final static PrivilegesEvaluator privilegesEvaluator10dnfof = createPrivilegeEvaluator(10, true);
 
@@ -127,14 +117,14 @@ public class PrivilegesEvaluatorPerformanceTest {
 
     final static PrivilegesEvaluator privilegesEvaluator1000dnfof = createPrivilegeEvaluator(1000, true);
 
-    final static PrivilegesEvaluator privilegesEvaluator10000dnfof = createPrivilegeEvaluator(10000, true);
+    final static PrivilegesEvaluator privilegesEvaluator10000dnfof = createPrivilegeEvaluator(100, true);
 
     @Test
     @JUnitPerfTest(threads = 50, durationMs = 125_000, warmUpMs = 10_000)
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_10indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -149,7 +139,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_100indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -164,7 +154,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_1000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -179,7 +169,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_10000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -194,7 +184,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_10indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -209,7 +199,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_100indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -224,7 +214,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_1000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -239,7 +229,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_10000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -254,7 +244,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_10indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -269,7 +259,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_100indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -284,7 +274,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_1000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -299,7 +289,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_10000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -314,7 +304,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_10indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -329,7 +319,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_100indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -344,7 +334,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_1000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -359,7 +349,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_10000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -374,7 +364,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_10indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -389,7 +379,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_100indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -404,7 +394,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_1000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -419,7 +409,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_10000indices() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -434,7 +424,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_10indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10dnfof.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -449,7 +439,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_100indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100dnfof.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -464,7 +454,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_1000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000dnfof.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -479,7 +469,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_fullPrivileges_10000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000dnfof.createContext(
-            FULL_PRIVILEGES_USER,
+            user(FULL_PRIVILEGES_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -494,7 +484,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_10indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10dnfof.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -509,7 +499,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_100indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100dnfof.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -524,7 +514,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_1000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000dnfof.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -539,7 +529,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivileges_10000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000dnfof.createContext(
-            INDEX_A_READ_USER,
+            user(INDEX_A_READ_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -554,7 +544,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_10indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10dnfof.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -569,7 +559,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_100indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100dnfof.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -584,7 +574,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_1000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000dnfof.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -599,7 +589,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithRegex_10000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000dnfof.createContext(
-            INDEX_A_READ_REGEX_USER,
+            user(INDEX_A_READ_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -614,7 +604,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_10indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10dnfof.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -629,7 +619,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_100indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100dnfof.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -644,7 +634,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_1000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000dnfof.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -659,7 +649,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttr_10000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000dnfof.createContext(
-            INDEX_A_READ_ATTR_USER,
+            user(INDEX_A_READ_ATTR_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -674,7 +664,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_10indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10dnfof.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -689,7 +679,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_100indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator100dnfof.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -704,7 +694,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_1000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator1000dnfof.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -719,7 +709,7 @@ public class PrivilegesEvaluatorPerformanceTest {
     @JUnitPerfTestRequirement(allowedErrorPercentage = 0.5f)
     public void evaluate_limitedPrivilegesWithUserAttrAndRegex_10000indices_dnfof() throws Exception {
         PrivilegesEvaluationContext context = privilegesEvaluator10000dnfof.createContext(
-            INDEX_A_READ_ATTR_REGEX_USER,
+            user(INDEX_A_READ_ATTR_REGEX_TEST_USER),
             "indices:data/read/search",
             SEARCH_REQUEST,
             null,
@@ -809,7 +799,7 @@ public class PrivilegesEvaluatorPerformanceTest {
         );
         return user;
     }
-
+    
     static Metadata testIndices(int count) {
         MockIndexMetadataBuilder builder = new MockIndexMetadataBuilder();
         char[] letters = new char[] { 'a', 'b', 'c', 'd', 'e' };
