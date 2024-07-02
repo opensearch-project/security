@@ -11,7 +11,6 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
-import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +48,7 @@ public class JwtVerifier {
         this.requiredAudience = requiredAudience;
     }
 
-    public boolean validateJwtSignature(SignedJWT jwt) throws BadCredentialsException {
+    public boolean validateJwtSignature(SignedJWT jwt, boolean oidcLoggingModeEnabled) throws BadCredentialsException {
         boolean signatureValid;
         try {
             String escapedKid = jwt.getHeader().getKeyID();
@@ -70,6 +69,9 @@ public class JwtVerifier {
             }
         } catch (JOSEException | BadCredentialsException e) {
             throw new BadCredentialsException(e.getMessage(), e);
+        }
+        if (!signatureValid && !oidcLoggingModeEnabled) {
+            throw new BadCredentialsException("Invalid JWT signature");
         }
         return signatureValid;
     }

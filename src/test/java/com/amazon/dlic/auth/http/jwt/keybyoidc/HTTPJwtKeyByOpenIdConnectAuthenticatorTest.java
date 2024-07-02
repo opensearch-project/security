@@ -177,8 +177,9 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
     @Test
     public void jwksUriMissingTest() {
+        Settings settings = Settings.builder().put("log_oidc_creds", false).build();
         var exception = Assert.assertThrows(Exception.class, () -> {
-            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(Settings.builder().build(), null);
+            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
             jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
                 null

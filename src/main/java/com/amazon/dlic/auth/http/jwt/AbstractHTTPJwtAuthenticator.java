@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
 import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jwt.proc.BadJWTException;
 import org.apache.http.HttpStatus;
@@ -41,7 +42,6 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.JwtVerifier;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -63,6 +63,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String jwtUrlParameter;
     private final String subjectKey;
     private final String rolesKey;
+    private final boolean instantiateInvalidCreds;
     private final List<String> requiredAudience;
     private final String requiredIssuer;
 
@@ -71,6 +72,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
+        instantiateInvalidCreds = settings.getAsBoolean("log_oidc_credentials", false);
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
@@ -137,11 +139,19 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         boolean isSignatureValid;
         try {
-            isSignatureValid = jwtVerifier.validateJwtSignature(parsedJwt);
-        } catch (Exception e) {
+            isSignatureValid = jwtVerifier.validateJwtSignature(parsedJwt, instantiateInvalidCreds);
+        } catch (AuthenticatorUnavailableException e) {
+            log.info(e.toString());
+            throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
+        }
+        catch (BadCredentialsException e) {
             if (log.isTraceEnabled()) {
                 log.trace("Validating JWT signature from string {} failed", jwtString, e);
             }
+            return null;
+        }
+
+        if (!isSignatureValid && !instantiateInvalidCreds) {
             return null;
         }
 
@@ -153,7 +163,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             if (log.isTraceEnabled()) {
                 log.trace("Failed to get JWTClaimsSet for {}", parsedJwt, e);
             }
-            isTokenValid = false;
             return null;
         }
 
@@ -161,11 +170,13 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             jwtVerifier.validateClaims(claimsSet);
         } catch (AuthenticatorUnavailableException e) {
             log.info(e.toString());
-            isTokenValid = false;
             throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
         } catch (BadJWTException e) {
             if (log.isTraceEnabled()) {
                 log.trace("Validating JWT token claims from {} failed", parsedJwt, e);
+            }
+            if (!instantiateInvalidCreds) {
+                return null;
             }
             isTokenValid = false;
         }
@@ -173,6 +184,9 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         final String subject = extractSubject(claimsSet);
         if (subject == null) {
             log.error("No subject found in JWT token");
+            if (!instantiateInvalidCreds) {
+                return null;
+            }
             isTokenValid = false;
         }
 
