@@ -594,7 +594,7 @@ task performanceTest(type: Test) {
     jacoco {
         enabled = false
     }
-    //getExtensions().findByType(JacocoTaskExtension.class).setEnabled(false);
+    jvmArgs += "-Xmx4g"
 }
 
 dependencies {
