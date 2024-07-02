@@ -591,6 +591,10 @@ task performanceTest(type: Test) {
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.performanceTest.output.classesDirs
     classpath = sourceSets.performanceTest.runtimeClasspath
+    jacoco {
+        enabled = false
+    }
+    //getExtensions().findByType(JacocoTaskExtension.class).setEnabled(false);
 }
 
 dependencies {
