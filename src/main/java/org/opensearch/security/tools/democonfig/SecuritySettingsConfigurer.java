@@ -29,16 +29,15 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
+import static org.opensearch.security.support.ConfigConstants.*;
 
 /**
  * This class updates the security related configuration, as needed.
@@ -88,7 +87,9 @@ public class SecuritySettingsConfigurer {
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
-        this.passwordHasher = new BCryptPasswordHasher();
+        this.passwordHasher = PasswordHasherFactory.createPasswordHasher(
+            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, PBKDF2).build()
+        );
     }
 
     /**
@@ -201,7 +202,6 @@ public class SecuritySettingsConfigurer {
      */
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = YAML_MAPPER.readTree(new FileInputStream(internalUsersFile));
-        PasswordHasher passwordHasher = new BCryptPasswordHasher();
         return internalUsers.has("admin")
             && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asText());
     }

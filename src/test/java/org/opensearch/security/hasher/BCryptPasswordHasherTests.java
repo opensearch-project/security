@@ -11,35 +11,23 @@
 
 package org.opensearch.security.hasher;
 
-import java.nio.CharBuffer;
-
+import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.security.support.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThrows;
+import static org.hamcrest.Matchers.startsWith;
 
-public class BCryptPasswordHasherTests {
+public class BCryptPasswordHasherTests extends AbstractPasswordHasherTests {
 
-    private final PasswordHasher passwordHasher = new BCryptPasswordHasher();
-
-    private final String password = "testPassword";
-    private final String wrongPassword = "wrongTestPassword";
-
-    @Test
-    public void shouldMatchHashToCorrectPassword() {
-        String hashedPassword = passwordHasher.hash(password.toCharArray());
-        assertThat(passwordHasher.check(password.toCharArray(), hashedPassword), is(true));
-    }
-
-    @Test
-    public void shouldNotMatchHashToWrongPassword() {
-        String hashedPassword = passwordHasher.hash(password.toCharArray());
-        assertThat(passwordHasher.check(wrongPassword.toCharArray(), hashedPassword), is(false));
-
+    @Before
+    public void setup() {
+        passwordHasher = new BCryptPasswordHasher(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+        );
     }
 
     /**
@@ -53,49 +41,23 @@ public class BCryptPasswordHasherTests {
     }
 
     @Test
-    public void shouldGenerateDifferentHashesForTheSamePassword() {
-        String hash1 = passwordHasher.hash(password.toCharArray());
-        String hash2 = passwordHasher.hash(password.toCharArray());
-        assertThat(hash1, is(not(hash2)));
-    }
+    public void shouldGenerateAValidHashForParameters() {
+        PasswordHasher hasher = new BCryptPasswordHasher("A", 8);
+        String hash = hasher.hash(password.toCharArray());
+        assertThat(hash, startsWith("$2a$08"));
+        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-    @Test
-    public void shouldHandleNullPasswordWhenHashing() {
-        char[] nullPassword = null;
-        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.hash(nullPassword); });
-    }
+        hasher = new BCryptPasswordHasher("B", 10);
+        hash = hasher.hash(password.toCharArray());
+        assertThat(hash, startsWith("$2b$10"));
+        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-    @Test
-    public void shouldHandleNullPasswordWhenChecking() {
-        char[] nullPassword = null;
-        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(nullPassword, "some hash"); });
-    }
-
-    @Test
-    public void shouldHandleEmptyHashWhenChecking() {
-        String emptyHash = "";
-        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(password.toCharArray(), emptyHash); });
-    }
-
-    @Test
-    public void shouldHandleNullHashWhenChecking() {
-        String nullHash = null;
-        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(password.toCharArray(), nullHash); });
-    }
-
-    @Test
-    public void shouldCleanupPasswordCharArray() {
-        char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
-        passwordHasher.hash(password);
-        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
-    }
-
-    @Test
-    public void shouldCleanupPasswordCharBuffer() {
-        char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
-        CharBuffer passwordBuffer = CharBuffer.wrap(password);
-        passwordHasher.hash(password);
-        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
-        assertThat("\0\0\0\0\0\0\0\0", is(passwordBuffer.toString()));
+        hasher = new BCryptPasswordHasher("Y", 13);
+        hash = hasher.hash(password.toCharArray());
+        assertThat(hash, startsWith("$2y$13"));
+        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
     }
 }

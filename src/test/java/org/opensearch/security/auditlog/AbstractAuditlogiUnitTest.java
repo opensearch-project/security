@@ -38,7 +38,7 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         return "auditlog";
     }
 
-    protected final void setup(Settings settings) throws Exception {
+    protected final void setup(Settings settings, DynamicSecurityConfig securityConfig) throws Exception {
         final Settings.Builder auditConfigSettings = Settings.builder();
         final Settings.Builder defaultNodeSettings = Settings.builder();
         // Separate the cluster defaults from audit settings that will be applied after the cluster is up
@@ -56,7 +56,7 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         });
 
         final Settings nodeSettings = defaultNodeSettings(defaultNodeSettings.build());
-        setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeSettings, init);
+        setup(Settings.EMPTY, securityConfig, nodeSettings, init);
         rh = restHelper();
         updateAuditConfig(auditConfigSettings.build());
     }

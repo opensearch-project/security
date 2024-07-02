@@ -30,14 +30,16 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedSupplier;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.ConfigurationFiles;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -85,7 +87,9 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
     public static LocalCluster localCluster;
 
-    public static PasswordHasher passwordHasher = new BCryptPasswordHasher();
+    public static PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
+        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+    );
 
     @BeforeClass
     public static void startCluster() throws IOException {
