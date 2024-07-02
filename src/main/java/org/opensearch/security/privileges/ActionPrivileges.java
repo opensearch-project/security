@@ -116,12 +116,9 @@ public class ActionPrivileges {
         Set<String> actions,
         IndexResolverReplacer.Resolved resolvedIndices
     ) {
-        if (resolvedIndices.isLocalAll()) {
-            PrivilegesEvaluatorResponse response = this.index.providesWildcardPrivilege(context, actions);
-
-            if (response != null) {
-                return response;
-            }
+        PrivilegesEvaluatorResponse response = this.index.providesWildcardPrivilege(context, actions);
+        if (response != null) {
+            return response;
         }
 
         if (resolvedIndices.getAllIndices().isEmpty()) {
@@ -593,20 +590,17 @@ public class ActionPrivileges {
          */
         PrivilegesEvaluatorResponse providesWildcardPrivilege(PrivilegesEvaluationContext context, Set<String> actions) {
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
-            CheckTable<String, String> checkTable = CheckTable.create(ImmutableSet.of("*"), actions);
 
             for (String action : actions) {
                 ImmutableSet<String> rolesWithWildcardIndexPrivileges = this.actionToRolesWithWildcardIndexPrivileges.get(action);
 
-                if (rolesWithWildcardIndexPrivileges != null
-                    && CollectionUtils.containsAny(rolesWithWildcardIndexPrivileges, effectiveRoles)) {
-                    if (checkTable.check("*", action)) {
-                        return PrivilegesEvaluatorResponse.ok();
-                    }
+                if (rolesWithWildcardIndexPrivileges == null
+                    || !CollectionUtils.containsAny(rolesWithWildcardIndexPrivileges, effectiveRoles)) {
+                    return null;
                 }
             }
 
-            return null;
+            return PrivilegesEvaluatorResponse.ok();
         }
 
         PrivilegesEvaluatorResponse providesExplicitPrivilege(
@@ -810,18 +804,19 @@ public class ActionPrivileges {
 
                 if (indexToRoles != null) {
                     for (String index : resolvedIndices.getAllIndices()) {
+                        String lookupIndex = index;
+
                         if (index.startsWith(DataStream.BACKING_INDEX_PREFIX)) {
                             // If we have a backing index of a data stream, we will not try to test
                             // the backing index here, as we filter backing indices during initialization.
                             // Instead, we look up the containing data stream and check whether this has privileges.
-                            index = backingIndexToDataStream(index, indexMetadata);
+                            lookupIndex = backingIndexToDataStream(index, indexMetadata);
                         }
 
-                        Set<String> rolesWithPrivileges = indexToRoles.get(index);
+                        Set<String> rolesWithPrivileges = indexToRoles.get(lookupIndex);
 
                         if (rolesWithPrivileges != null && CollectionUtils.containsAny(rolesWithPrivileges, effectiveRoles)) {
-                            checkTable.check(index, action);
-                            if (checkTable.isComplete()) {
+                            if (checkTable.check(index, action)) {
                                 return PrivilegesEvaluatorResponse.ok();
                             }
                         }
