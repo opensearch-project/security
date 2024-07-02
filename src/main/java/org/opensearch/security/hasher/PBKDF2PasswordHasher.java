@@ -18,7 +18,9 @@ import java.security.PrivilegedAction;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 
-import com.password4j.*;
+import com.password4j.CompressedPBKDF2Function;
+import com.password4j.HashingFunction;
+import com.password4j.Password;
 
 import static org.opensearch.core.common.Strings.isNullOrEmpty;
 

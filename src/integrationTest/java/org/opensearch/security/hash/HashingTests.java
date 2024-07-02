@@ -15,16 +15,18 @@ import java.nio.CharBuffer;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.http.HttpStatus;
 import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
-import com.password4j.*;
+import com.password4j.BcryptFunction;
+import com.password4j.CompressedPBKDF2Function;
+import com.password4j.Password;
 import com.password4j.types.Bcrypt;
 
-import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -43,7 +45,7 @@ public class HashingTests extends RandomizedTest {
                 "_plugins/_security/api/internalusers/" + username,
                 String.format("{\"password\": \"%s\",\"opendistro_security_roles\": []}", password)
             );
-            assertThat(httpResponse.getStatusCode(), equalTo(SC_CREATED));
+            assertThat(httpResponse.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
         }
     }
 
@@ -53,7 +55,7 @@ public class HashingTests extends RandomizedTest {
                 "_plugins/_security/api/internalusers/" + username,
                 String.format("{\"hash\": \"%s\",\"opendistro_security_roles\": []}", hashedPassword)
             );
-            assertThat(httpResponse.getStatusCode(), equalTo(SC_CREATED));
+            assertThat(httpResponse.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
         }
     }
 

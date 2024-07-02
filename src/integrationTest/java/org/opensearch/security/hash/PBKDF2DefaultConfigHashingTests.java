@@ -14,16 +14,15 @@ package org.opensearch.security.hash;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static org.opensearch.security.support.ConfigConstants.*;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -33,9 +32,9 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
         .hash(
             generatePBKDF2Hash(
                 "secret",
-                SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-                SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-                SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
             )
         );
 
@@ -46,10 +45,10 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
         .anonymousAuth(false)
         .nodeSettings(
             Map.of(
-                SECURITY_RESTAPI_ROLES_ENABLED,
+                ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
-                SECURITY_PASSWORD_HASHING_ALGORITHM,
-                PBKDF2
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
+                ConfigConstants.PBKDF2
             )
         )
         .build();
@@ -58,29 +57,29 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
     public void shouldAuthenticateWithCorrectPassword() {
         String hash = generatePBKDF2Hash(
             PASSWORD,
-            SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-            SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-            SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
         );
         createUserWithHashedPassword(cluster, "user_1", hash);
-        testPasswordAuth(cluster, "user_1", PASSWORD, SC_OK);
+        testPasswordAuth(cluster, "user_1", PASSWORD, HttpStatus.SC_OK);
 
         createUserWithPlainTextPassword(cluster, "user_2", PASSWORD);
-        testPasswordAuth(cluster, "user_2", PASSWORD, SC_OK);
+        testPasswordAuth(cluster, "user_2", PASSWORD, HttpStatus.SC_OK);
     }
 
     @Test
     public void shouldNotAuthenticateWithIncorrectPassword() {
         String hash = generatePBKDF2Hash(
             PASSWORD,
-            SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-            SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-            SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
         );
         createUserWithHashedPassword(cluster, "user_3", hash);
-        testPasswordAuth(cluster, "user_3", "wrong_password", SC_UNAUTHORIZED);
+        testPasswordAuth(cluster, "user_3", "wrong_password", HttpStatus.SC_UNAUTHORIZED);
 
         createUserWithPlainTextPassword(cluster, "user_4", PASSWORD);
-        testPasswordAuth(cluster, "user_4", "wrong_password", SC_UNAUTHORIZED);
+        testPasswordAuth(cluster, "user_4", "wrong_password", HttpStatus.SC_UNAUTHORIZED);
     }
 }
