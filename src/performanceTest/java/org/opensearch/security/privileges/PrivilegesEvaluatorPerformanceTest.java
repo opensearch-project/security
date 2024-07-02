@@ -12,8 +12,6 @@
 package org.opensearch.security.privileges;
 
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.junit.Rule;
@@ -23,10 +21,8 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -50,7 +46,6 @@ import com.github.noconnor.junitperf.reporting.providers.HtmlReportGenerator;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 public class PrivilegesEvaluatorPerformanceTest {
@@ -739,15 +734,12 @@ public class PrivilegesEvaluatorPerformanceTest {
 
         ClusterState clusterState = ClusterState.builder(new ClusterName("test_cluster")).metadata(metadata).build();
 
-        ClusterService clusterService = mock(ClusterService.class, withSettings().stubOnly());
-        when(clusterService.state()).thenReturn(clusterState);
-
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         ConfigurationRepository configurationRepository = mock(ConfigurationRepository.class, withSettings().stubOnly());
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(threadContext);
         AuditLog auditLog = new NullAuditLog();
         Settings settings = Settings.EMPTY;
-        PrivilegesInterceptor privilegesInterceptor = new PrivilegesInterceptor(indexNameExpressionResolver, clusterService, null, null) {
+        PrivilegesInterceptor privilegesInterceptor = new PrivilegesInterceptor(indexNameExpressionResolver, null, null, null) {
             @Override
             public ReplaceResult replaceDashboardsIndex(
                 final ActionRequest request,
@@ -761,7 +753,7 @@ public class PrivilegesEvaluatorPerformanceTest {
             }
         };
 
-        IndexResolverReplacer indexResolverReplacer = new IndexResolverReplacer(indexNameExpressionResolver, clusterService, null);
+        IndexResolverReplacer indexResolverReplacer = new IndexResolverReplacer(indexNameExpressionResolver, null, null);
         NamedXContentRegistry namedXContentRegistry = NamedXContentRegistry.EMPTY;
 
         DynamicConfigModelV7 dynamicConfigModel = new DynamicConfigModelV7(
@@ -783,7 +775,8 @@ public class PrivilegesEvaluatorPerformanceTest {
         );
 
         PrivilegesEvaluator privilegesEvaluator = new PrivilegesEvaluator(
-            clusterService,
+            null,
+            () -> clusterState,
             threadContext,
             configurationRepository,
             indexNameExpressionResolver,

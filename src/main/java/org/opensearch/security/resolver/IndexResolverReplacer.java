@@ -105,13 +105,17 @@ public class IndexResolverReplacer {
     private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
     private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
-    private final ClusterService clusterService;
+    private final Supplier<ClusterState> clusterStateSupplier;
     private final ClusterInfoHolder clusterInfoHolder;
     private volatile boolean respectRequestIndicesOptions = false;
 
-    public IndexResolverReplacer(IndexNameExpressionResolver resolver, ClusterService clusterService, ClusterInfoHolder clusterInfoHolder) {
+    public IndexResolverReplacer(
+        IndexNameExpressionResolver resolver,
+        Supplier<ClusterState> clusterStateSupplier,
+        ClusterInfoHolder clusterInfoHolder
+    ) {
         this.resolver = resolver;
-        this.clusterService = clusterService;
+        this.clusterStateSupplier = clusterStateSupplier;
         this.clusterInfoHolder = clusterInfoHolder;
     }
 
@@ -240,7 +244,7 @@ public class IndexResolverReplacer {
             if (remoteClusterService != null && remoteClusterService.isCrossClusterSearchEnabled() && enableCrossClusterResolution) {
                 remoteIndices = new HashSet<>();
                 final Map<String, OriginalIndices> remoteClusterIndices = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService()
-                    .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterService.state()));
+                    .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterStateSupplier.get()));
                 final Set<String> remoteClusters = remoteClusterIndices.keySet()
                     .stream()
                     .filter(k -> !RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k))
@@ -293,7 +297,7 @@ public class IndexResolverReplacer {
             }
 
             else {
-                final ClusterState state = clusterService.state();
+                final ClusterState state = clusterStateSupplier.get();
                 final Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns.stream()
                     .map(resolver::resolveDateMathExpression)
                     .collect(Collectors.toSet());

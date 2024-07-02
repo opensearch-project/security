@@ -38,8 +38,6 @@ import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
@@ -65,10 +63,8 @@ public class TermsAggregationEvaluator {
     public PrivilegesEvaluatorResponse evaluate(
         final Resolved resolved,
         final ActionRequest request,
-        ClusterService clusterService,
         PrivilegesEvaluationContext context,
         ActionPrivileges actionPrivileges,
-        IndexNameExpressionResolver resolver,
         PrivilegesEvaluatorResponse presponse
     ) {
         try {
