@@ -12,13 +12,9 @@ package org.opensearch.security.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableMap;
 
 import org.opensearch.Version;
 import org.opensearch.cluster.metadata.AliasMetadata;
@@ -35,7 +31,11 @@ import org.opensearch.core.index.Index;
  */
 public class MockIndexMetadataBuilder {
 
-    private static final Settings INDEX_SETTINGS = Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.CURRENT).put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1).put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1).build();
+    private static final Settings INDEX_SETTINGS = Settings.builder()
+        .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.CURRENT)
+        .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+        .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
+        .build();
 
     private Metadata.Builder delegate = new Metadata.Builder();
     private Map<String, IndexMetadata.Builder> nameToIndexMetadataBuilderMap = new HashMap<>();
@@ -130,7 +130,6 @@ public class MockIndexMetadataBuilder {
         return result;
     }
 
-
     public class AliasBuilder {
         private String aliasName;
 
@@ -138,10 +137,10 @@ public class MockIndexMetadataBuilder {
             this.aliasName = alias;
         }
 
-        public MockIndexMetadataBuilder of(String ... indices) {
+        public MockIndexMetadataBuilder of(String... indices) {
             AliasMetadata aliasMetadata = new AliasMetadata.Builder(aliasName).build();
 
-            for (String index :indices) {
+            for (String index : indices) {
                 IndexMetadata.Builder indexMetadataBuilder = getIndexMetadataBuilder(index);
                 indexMetadataBuilder.putAlias(aliasMetadata);
             }
