@@ -58,6 +58,12 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.securityconf.impl.v7.ConfigV7;
+import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
+import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -142,6 +148,13 @@ public class TestSecurityConfig {
             this.roles.put(role.name, role);
         }
 
+        return this;
+    }
+
+    public TestSecurityConfig users(User... users) {
+        for (User user : users) {
+            this.user(user);
+        }
         return this;
     }
 
@@ -472,6 +485,10 @@ public class TestSecurityConfig {
 
         public Object getAttribute(String attributeName) {
             return attributes.get(attributeName);
+        }
+
+        public Map<String, String> getAttributes() {
+            return this.attributes;
         }
 
         @Override
@@ -968,6 +985,52 @@ public class TestSecurityConfig {
         updateConfigInIndex(client, CType.INTERNALUSERS, userMap);
     }
 
+    public SecurityDynamicConfiguration<ConfigV7> getSecurityConfiguration() {
+        try {
+            return SecurityDynamicConfiguration.fromJson(
+                singleEntryConfigToJson(CType.CONFIG, CType.CONFIG.toLCString(), config),
+                CType.CONFIG,
+                2,
+                0,
+                0
+            );
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public SecurityDynamicConfiguration<InternalUserV7> getInternalUserConfiguration() {
+        try {
+            return SecurityDynamicConfiguration.fromJson(configToJson(CType.CONFIG, internalUsers), CType.CONFIG, 2, 0, 0);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public SecurityDynamicConfiguration<RoleV7> getRolesConfiguration() {
+        try {
+            return SecurityDynamicConfiguration.fromJson(configToJson(CType.ROLES, roles), CType.ROLES, 2, 0, 0);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public SecurityDynamicConfiguration<RoleMappingsV7> getRoleMappingsConfiguration() {
+        try {
+            return SecurityDynamicConfiguration.fromJson(configToJson(CType.ROLESMAPPING, rolesMapping), CType.ROLESMAPPING, 2, 0, 0);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public SecurityDynamicConfiguration<ActionGroupsV7> geActionGroupsConfiguration() {
+        try {
+            return SecurityDynamicConfiguration.fromJson(configToJson(CType.ACTIONGROUPS, actionGroups), CType.ACTIONGROUPS, 2, 0, 0);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     static String hash(final char[] clearTextPassword) {
         return passwordHasher.hash(clearTextPassword);
     }
@@ -1028,25 +1091,29 @@ public class TestSecurityConfig {
         return builder.toString();
     }
 
+    private static String singleEntryConfigToJson(CType configType, String configurationRoot, ToXContentObject config) throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+
+        builder.startObject();
+        builder.startObject("_meta");
+        builder.field("type", configType.toLCString());
+        builder.field("config_version", 2);
+        builder.endObject();
+
+        builder.field(configType.toLCString(), config);
+
+        builder.endObject();
+
+        return builder.toString();
+    }
+
     private void writeSingleEntryConfigToIndex(Client client, CType configType, ToXContentObject config) {
         writeSingleEntryConfigToIndex(client, configType, configType.toLCString(), config);
     }
 
     private void writeSingleEntryConfigToIndex(Client client, CType configType, String configurationRoot, ToXContentObject config) {
         try {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-
-            builder.startObject();
-            builder.startObject("_meta");
-            builder.field("type", configType.toLCString());
-            builder.field("config_version", 2);
-            builder.endObject();
-
-            builder.field(configurationRoot, config);
-
-            builder.endObject();
-
-            String json = builder.toString();
+            String json = singleEntryConfigToJson(configType, configurationRoot, config);
 
             log.info("Writing security plugin configuration into index " + configType + ":\n" + json);
 

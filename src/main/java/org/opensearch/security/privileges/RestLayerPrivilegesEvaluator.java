@@ -57,13 +57,10 @@ public class RestLayerPrivilegesEvaluator {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
         }
 
-        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
-
         final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
         final Set<String> mappedRoles = mapRoles(user, caller);
 
-        presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -75,27 +72,26 @@ public class RestLayerPrivilegesEvaluator {
 
         for (final String action : actions) {
             if (!securityRoles.impliesClusterPermissionPermission(action)) {
-                presponse.missingPrivileges.add(action);
-                presponse.allowed = false;
+                // TODO This will exhibit a weird behaviour when a REST action specifies two permissions, and
+                // if the user has no permissions for the first one, but has permissions for the second one:
+                // First, the information "No permission match" will be logged, but then the action will be
+                // allowed nevertheless.
                 log.info(
                     "No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                     user,
                     action,
                     securityRoles.getRoleNames(),
-                    presponse.missingPrivileges
+                    action
                 );
             } else {
                 if (isDebugEnabled) {
                     log.debug("Allowed because we have permissions for {}", actions);
                 }
-                presponse.allowed = true;
-
-                // break the loop as we found the matching permission
-                break;
+                return PrivilegesEvaluatorResponse.ok();
             }
         }
 
-        return presponse;
+        return PrivilegesEvaluatorResponse.insufficient(actions).resolvedSecurityRoles(mappedRoles);
     }
 
     Set<String> mapRoles(final User user, final TransportAddress caller) {

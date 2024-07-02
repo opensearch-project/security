@@ -34,6 +34,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 /**
  * Callback function on change particular configuration
  */
+@FunctionalInterface
 public interface ConfigurationChangeListener {
 
     /**

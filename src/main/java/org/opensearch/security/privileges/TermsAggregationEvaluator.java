@@ -26,36 +26,37 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.Set;
-
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.SecurityRoles;
-import org.opensearch.security.user.User;
 
 public class TermsAggregationEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    private static final String[] READ_ACTIONS = new String[] {
+    private static final ImmutableSet<String> READ_ACTIONS = ImmutableSet.of(
         "indices:data/read/msearch",
         "indices:data/read/mget",
         "indices:data/read/get",
         "indices:data/read/search",
-        "indices:data/read/field_caps*"
-        // "indices:admin/mappings/fields/get*"
-    };
+        "indices:data/read/field_caps*"  // TODO this string likely does not what it is expected to do.
+        // SecurityRoles.getAllPermittedIndicesForDashboards() does not support patterns for the actions parameter -
+        // that is, the actions for which the privileges should be checked.
+        // In order to fulfill the requirements for the test to return true, the user needs to have a pattern
+        // permission either for "*", "indices:data/read/*" or "indices:data/read/field_caps*". Just
+        // "indices:data/read/field_caps" is however not sufficient, as this won't match the star (which will
+        // be just treated like a regular character). Thus, I am tending to just remove the star here.
+    );
 
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 
@@ -64,10 +65,8 @@ public class TermsAggregationEvaluator {
     public PrivilegesEvaluatorResponse evaluate(
         final Resolved resolved,
         final ActionRequest request,
-        ClusterService clusterService,
-        User user,
-        SecurityRoles securityRoles,
-        IndexNameExpressionResolver resolver,
+        PrivilegesEvaluationContext context,
+        ActionPrivileges actionPrivileges,
         PrivilegesEvaluatorResponse presponse
     ) {
         try {
@@ -86,17 +85,22 @@ public class TermsAggregationEvaluator {
                             && ab.getPipelineAggregations().isEmpty()
                             && ab.getSubAggregations().isEmpty()) {
 
-                            final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForDashboards(
-                                resolved,
-                                user,
+                            PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
+                                context,
                                 READ_ACTIONS,
-                                resolver,
-                                clusterService
+                                Resolved._LOCAL_ALL
                             );
-                            if (allPermittedIndices == null || allPermittedIndices.isEmpty()) {
+
+                            if (subResponse.isPartiallyOk()) {
+                                sr.source()
+                                    .query(
+                                        new TermsQueryBuilder(
+                                            "_index",
+                                            Sets.union(subResponse.getAvailableIndices(), resolved.getRemoteIndices())
+                                        )
+                                    );
+                            } else if (!subResponse.isAllowed()) {
                                 sr.source().query(NONE_QUERY);
-                            } else {
-                                sr.source().query(new TermsQueryBuilder("_index", allPermittedIndices));
                             }
 
                             presponse.allowed = true;
