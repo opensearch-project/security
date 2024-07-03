@@ -54,7 +54,7 @@ public class PasswordHasherFactory {
             throw new IllegalArgumentException("BCrypt rounds must be between 4 and 31.");
         }
         if (!minor.equals("A") && !minor.equals("B") && !minor.equals("Y")) {
-            throw new IllegalArgumentException("BCrypt minor must be 'a', 'b', or 'y'.");
+            throw new IllegalArgumentException("BCrypt minor must be 'A', 'B', or 'Y'.");
         }
         return new BCryptPasswordHasher(minor, rounds);
     }
@@ -74,7 +74,6 @@ public class PasswordHasherFactory {
             ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
         );
 
-        // todo: validate validation
         if (!pbkdf2Function.matches("SHA(1|224|256|384|512)")) {
             throw new IllegalArgumentException("PBKDF2 function must be one of SHA1, SHA224, SHA256, SHA384, or SHA512.");
         }

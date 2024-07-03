@@ -150,9 +150,9 @@ public class Hasher {
         options.addOption(Option.builder(PASSWORD_OPTION).argName("password").hasArg().desc("Cleartext password to hash").build());
         options.addOption(
             Option.builder(ENV_OPTION)
-                .argName("name environment variable")
+                .argName("Environment variable name")
                 .hasArg()
-                .desc("name environment variable to read password from")
+                .desc("Environment variable name to read password from")
                 .build()
         );
         options.addOption(
@@ -160,7 +160,7 @@ public class Hasher {
                 .longOpt("algorithm")
                 .argName("hashing algorithm")
                 .hasArg()
-                .desc("Hashing algorithm (BCrypt, PBKDF2, SCrypt, Argon2)")
+                .desc("Hashing algorithm (BCrypt, PBKDF2)")
                 .build()
         );
         options.addOption(
@@ -178,7 +178,7 @@ public class Hasher {
         options.addOption(
             Option.builder(LENGTH_OPTION)
                 .longOpt("length")
-                .desc("Desired length of the final derived key (for Argon2, PBKDF2).")
+                .desc("Desired length of the final derived key (for PBKDF2).")
                 .hasArg()
                 .argName("length")
                 .type(Number.class)
@@ -187,7 +187,7 @@ public class Hasher {
         options.addOption(
             Option.builder(ITERATIONS_OPTION)
                 .longOpt("iterations")
-                .desc("Iterations to perform (for Argon2, PBKDF2).")
+                .desc("Iterations to perform (for PBKDF2).")
                 .hasArg()
                 .argName("iterations")
                 .type(Number.class)
