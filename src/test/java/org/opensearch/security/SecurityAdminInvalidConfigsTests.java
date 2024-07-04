@@ -73,7 +73,7 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
@@ -103,11 +103,11 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         RestHelper rh = restHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
@@ -149,7 +149,7 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
@@ -179,11 +179,11 @@ public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         RestHelper rh = restHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()

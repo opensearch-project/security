@@ -340,7 +340,7 @@ public class LocalOpenSearchCluster {
             log.debug("... cluster state ok {} with {} nodes", healthResponse.getStatus().name(), healthResponse.getNumberOfNodes());
         }
 
-        assertEquals(expectedNodeCount, healthResponse.getNumberOfNodes());
+        assertThat(healthResponse.getNumberOfNodes(), is(expectedNodeCount));
 
     }
 

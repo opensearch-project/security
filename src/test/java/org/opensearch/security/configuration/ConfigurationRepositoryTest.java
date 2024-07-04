@@ -283,7 +283,7 @@ public class ConfigurationRepositoryTest {
 
     void assertClusterState(final ArgumentCaptor<ClusterStateUpdateTask> clusterStateUpdateTaskCaptor) throws Exception {
         final var initializedStateUpdate = clusterStateUpdateTaskCaptor.getValue();
-        assertEquals(Priority.IMMEDIATE, initializedStateUpdate.priority());
+        assertThat(initializedStateUpdate.priority(), is(Priority.IMMEDIATE));
         var clusterState = initializedStateUpdate.execute(ClusterState.EMPTY_STATE);
         SecurityMetadata securityMetadata = clusterState.custom(SecurityMetadata.TYPE);
         assertNotNull(securityMetadata.created());

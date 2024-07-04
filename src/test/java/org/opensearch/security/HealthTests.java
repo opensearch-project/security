@@ -54,7 +54,7 @@ public class HealthTests extends SingleClusterTest {
         assertNotContains(res, "*DOWN*");
         assertNotContains(res, "*strict*");
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");

@@ -57,7 +57,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("jacksonm", "secret")).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("jacksonm", "secret")).getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -66,7 +66,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("wrong", "wrong")).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("wrong", "wrong")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
     }
 
     @Test

@@ -209,7 +209,7 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, true));
+                assertThat(serializedUserHeader, is(Base64Helper.serializeObject(user, true)));
                 senderLatch.get().countDown();
             }
         };
@@ -224,7 +224,7 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
+                assertThat(user, is(transientUser));
                 senderLatch.get().countDown();
             }
         };
@@ -239,7 +239,7 @@ public class SecurityInterceptorTests {
     final void verifyOriginalContext(User user) {
 
         User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser, user);
+        assertThat(user, is(transientUser));
         assertNull(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER));
     }
 

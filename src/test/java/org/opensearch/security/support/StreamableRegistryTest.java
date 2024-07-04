@@ -26,7 +26,7 @@ public class StreamableRegistryTest {
 
     @Test
     public void testStreamableTypeIDs() {
-        Assert.assertEquals(1, streamableRegistry.getStreamableID(InetSocketAddress.class));
+        assertThat(streamableRegistry.getStreamableID(InetSocketAddress.class), is(1));
         Assert.assertThrows(OpenSearchException.class, () -> streamableRegistry.getStreamableID(String.class));
     }
 }

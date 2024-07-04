@@ -46,17 +46,17 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse response = rh.executeGetRequest("*/_search", NegativeLookaheadUserHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         response = rh.executeGetRequest("r*/_search", NegativeLookaheadUserHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
     public void testRegexPattern() throws Exception {
         RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse response = rh.executeGetRequest("*/_search", NegatedRegexUserHeader);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         response = rh.executeGetRequest("r*/_search", NegatedRegexUserHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
 }

@@ -96,7 +96,7 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         HttpResponse response;
 
         response = rh.executeGetRequest("/index1-*/_search?pretty", encodeBasicHeader("admin", "password"));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
 
         // the only document in index1-1 is filtered by DLS query, so normally no hit in index-1-1
         Assert.assertTrue(response.getBody().contains("index1-1"));
@@ -138,7 +138,7 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         HttpResponse response;
 
         response = rh.executeGetRequest("/index1-*/_search?pretty", encodeBasicHeader("dfm_restricted_role", "password"));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
 
         // the only document in index1-1 is filtered by DLS query, so no hit in index-1-1
         Assert.assertFalse(response.getBody().contains("index1-1"));
@@ -190,7 +190,7 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
             "/index1-*/_search?pretty",
             encodeBasicHeader("dfm_restricted_and_unrestricted_all_indices_role", "password")
         );
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
 
         // the only document in index1-1 is filtered by DLS query, so normally no hit in index-1-1
         Assert.assertTrue(response.getBody().contains("index1-1"));
@@ -241,7 +241,7 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
             "/index1-*/_search?pretty",
             encodeBasicHeader("dfm_restricted_and_unrestricted_one_index_role", "password")
         );
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
 
         // we have a role that places no restrictions on index-1-1, lifting the DLS from the restricted role
         Assert.assertTrue(response.getBody().contains("index1-1"));

@@ -93,7 +93,7 @@ public class SinkProviderTLSTest {
 
         SinkProvider provider = new SinkProvider(builder.build(), null, null, null);
         WebhookSink defaultSink = (WebhookSink) provider.defaultSink;
-        Assert.assertEquals(true, defaultSink.verifySSL);
+        assertThat(defaultSink.verifySSL, is(true));
 
         AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
         provider.allSinks.get("endpoint1").store(msg);

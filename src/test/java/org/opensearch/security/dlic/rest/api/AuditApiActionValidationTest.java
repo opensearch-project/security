@@ -38,7 +38,7 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
         for (final var m : RequestHandler.RequestHandlersBuilder.SUPPORTED_METHODS) {
             final var result = auditApiAction.withEnabledAuditApi(FakeRestRequest.builder().withMethod(m).build());
             assertFalse(result.isValid());
-            assertEquals(RestStatus.NOT_IMPLEMENTED, result.status());
+            assertThat(result.status(), is(RestStatus.NOT_IMPLEMENTED));
         }
     }
 
@@ -85,6 +85,6 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
             SecurityConfiguration.of(objectMapper.valueToTree(AuditConfig.from(Settings.EMPTY)), "config", dynamicConfiguration)
         );
         assertFalse(result.isValid());
-        assertEquals(RestStatus.CONFLICT, result.status());
+        assertThat(result.status(), is(RestStatus.CONFLICT));
     }
 }

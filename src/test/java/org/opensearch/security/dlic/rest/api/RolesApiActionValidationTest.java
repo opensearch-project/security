@@ -53,7 +53,7 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
         final var result = rolesApiActionEndpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("sss", configuration));
 
         assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
 }

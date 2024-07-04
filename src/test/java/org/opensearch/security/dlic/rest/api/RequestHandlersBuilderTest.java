@@ -74,9 +74,9 @@ public class RequestHandlersBuilderTest {
             final var responseBytes = responseArgumentCaptor.getValue();
             final var json = DefaultObjectMapper.readTree(responseBytes.content().utf8ToString());
             if (method == RestRequest.Method.POST) {
-                assertEquals(RestStatus.NOT_IMPLEMENTED.name(), json.get("status").asText());
+                assertThat(json.get("status").asText(), is(RestStatus.NOT_IMPLEMENTED.name()));
             } else {
-                assertEquals(RestStatus.FORBIDDEN.name(), json.get("status").asText());
+                assertThat(json.get("status").asText(), is(RestStatus.FORBIDDEN.name()));
             }
             reset(channel);
         }
@@ -117,12 +117,12 @@ public class RequestHandlersBuilderTest {
             .withSaveOrUpdateConfigurationHandler((client, configuration, indexResponseOnSucessActionListener) -> {})
             .build();
 
-        assertEquals(
+        assertThat(
             RequestHandler.RequestHandlersBuilder.SUPPORTED_METHODS.stream().sorted().collect(Collectors.toList()),
-            requestHandlers.keySet().stream().sorted().collect(Collectors.toList())
+            is(requestHandlers.keySet().stream().sorted().collect(Collectors.toList()))
         );
         requestHandlers.forEach(
-            ((method, requestOperationHandler) -> assertEquals(RequestHandler.methodNotImplementedHandler, requestOperationHandler))
+            ((method, requestOperationHandler) -> assertThat(requestOperationHandler, is(RequestHandler.methodNotImplementedHandler)))
         );
     }
 

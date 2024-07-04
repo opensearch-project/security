@@ -233,12 +233,12 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         );
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_1337", "password"));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
         // 10 docs, all need to have access code 1337
-        Assert.assertEquals(searchResponse.toString(), 10, searchResponse.getHits().getTotalHits().value);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(10));
         // fields need to have 1337 access code
         assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 1337 });
     }
@@ -254,13 +254,13 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         );
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_42", "password"));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
 
         // 10 docs, all need to have access code 42
-        Assert.assertEquals(searchResponse.toString(), 10, searchResponse.getHits().getTotalHits().value);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(10));
         // fields need to have 42 access code
         assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 42 });
 
@@ -277,13 +277,13 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         );
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_1337_42", "password"));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
 
         // 15 docs, all need to have either access code 1337 or 42
-        Assert.assertEquals(searchResponse.toString(), 15, searchResponse.getHits().getTotalHits().value);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(15));
         // fields need to have 42 or 1337 access code
         assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 42, 1337 });
 
@@ -300,12 +300,12 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         );
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_999", "password"));
-        Assert.assertEquals(200, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(200));
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
 
-        Assert.assertEquals(searchResponse.toString(), 0, searchResponse.getHits().getTotalHits().value);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0));
     }
 
     @Test
@@ -318,7 +318,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
                 .setSecurityRolesMapping("roles_mapping_tlq.yml")
         );
         SearchResponse searchResponse = executeSearch("tlqdocuments", "tlq_empty_access_codes", "password");
-        Assert.assertEquals(searchResponse.toString(), 0, searchResponse.getHits().getTotalHits().value);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0));
     }
 
     @Test
@@ -332,7 +332,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         );
         SearchResponse searchResponse = executeSearch("tlqdocuments", "tlq_no_codes", "password");
 
-        Assert.assertEquals(searchResponse.toString(), 0, searchResponse.getHits().getTotalHits().value);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0));
     }
 
     @Test
@@ -356,7 +356,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdummy"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 5, tlqdummyHits.size());
+        assertThat(searchResponse.toString(), tlqdummyHits.size(), is(5));
 
         // check 10 hits with code 1337 from tlqdocuments index. All other documents
         // must be filtered
@@ -364,7 +364,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdocuments"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 10, tlqdocumentHits.size());
+        assertThat(searchResponse.toString(), tlqdocumentHits.size(), is(10));
         assertAccessCodesMatch(tlqdocumentHits, new Integer[] { 1337 });
 
         // check no access to user_access_codes index
@@ -372,7 +372,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("user_access_codes"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 0, userAccessCodesHits.size());
+        assertThat(searchResponse.toString(), userAccessCodesHits.size(), is(0));
     }
 
     @Test
@@ -397,7 +397,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdummy"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 5, tlqdummyHits.size());
+        assertThat(searchResponse.toString(), tlqdummyHits.size(), is(5));
 
         // check 10 hits with code 1337 from tlqdocuments index. All other documents
         // must be filtered
@@ -405,7 +405,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdocuments"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 10, tlqdocumentHits.size());
+        assertThat(searchResponse.toString(), tlqdocumentHits.size(), is(10));
         assertAccessCodesMatch(tlqdocumentHits, new Integer[] { 1337 });
 
         // check no access to user_access_codes index
@@ -413,7 +413,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("user_access_codes"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 0, userAccessCodesHits.size());
+        assertThat(searchResponse.toString(), userAccessCodesHits.size(), is(0));
     }
 
     @Test
@@ -438,7 +438,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdummy"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 5, tlqdummyHits.size());
+        assertThat(searchResponse.toString(), tlqdummyHits.size(), is(5));
 
         // check 10 hits with code 1337 from tlqdocuments index. All other documents
         // must be filtered
@@ -446,7 +446,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdocuments"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 10, tlqdocumentHits.size());
+        assertThat(searchResponse.toString(), tlqdocumentHits.size(), is(10));
         assertAccessCodesMatch(tlqdocumentHits, new Integer[] { 1337 });
 
         // check no access to user_access_codes index
@@ -454,7 +454,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("user_access_codes"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 0, userAccessCodesHits.size());
+        assertThat(searchResponse.toString(), userAccessCodesHits.size(), is(0));
 
     }
 
@@ -479,7 +479,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdummy"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 5, tlqdummyHits.size());
+        assertThat(searchResponse.toString(), tlqdummyHits.size(), is(5));
 
         // ccheck 10 hits with code 1337 from tlqdocuments index. All other documents
         // must be filtered
@@ -487,7 +487,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .stream()
             .filter((h) -> h.getIndex().equals("tlqdocuments"))
             .collect(Collectors.toSet());
-        Assert.assertEquals(searchResponse.toString(), 10, tlqdocumentHits.size());
+        assertThat(searchResponse.toString(), tlqdocumentHits.size(), is(10));
         assertAccessCodesMatch(tlqdocumentHits, new Integer[] { 1337 });
     }
 
@@ -515,12 +515,12 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 
         // check all 5 tlqdummy entries present
         List<SearchHit> tlqdummyHits = Arrays.asList(responseItems[0].getResponse().getHits().getHits());
-        Assert.assertEquals(searchResponse.toString(), 5, tlqdummyHits.size());
+        assertThat(searchResponse.toString(), tlqdummyHits.size(), is(5));
 
         // check 10 hits with code 1337 from tlqdocuments index. All other documents
         // must be filtered
         List<SearchHit> tlqdocumentHits = Arrays.asList(responseItems[1].getResponse().getHits().getHits());
-        Assert.assertEquals(searchResponse.toString(), 10, tlqdocumentHits.size());
+        assertThat(searchResponse.toString(), tlqdocumentHits.size(), is(10));
         assertAccessCodesMatch(tlqdocumentHits, new Integer[] { 1337 });
 
         // check no access to user_access_codes index, just two indices in the response
@@ -649,7 +649,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         // we expect a security exception here, user has no direct access to
         // user_access_codes index
         HttpResponse response = rh.executeGetRequest("/user_access_codes/_doc/tlq_1337", encodeBasicHeader("tlq_1337", "password"));
-        Assert.assertEquals(403, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(403));
     }
 
     @Test

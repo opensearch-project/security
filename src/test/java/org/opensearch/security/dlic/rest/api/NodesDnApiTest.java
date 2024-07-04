@@ -125,8 +125,8 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", body, headers);
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message()));
     }
 
     @Test

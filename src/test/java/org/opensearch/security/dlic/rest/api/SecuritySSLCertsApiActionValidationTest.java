@@ -38,7 +38,7 @@ public class SecuritySSLCertsApiActionValidationTest extends AbstractApiActionVa
         );
         final var result = securitySSLCertsApiAction.withSecurityKeyStore();
         assertFalse(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test

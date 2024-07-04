@@ -220,7 +220,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         RestHelper.HttpResponse res;
         RestHelper rh = nonSslRestHelper();
         res = rh.executeGetRequest("/_cluster/health");
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_INTERNAL_SERVER_ERROR, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
     }
 
     @Test
@@ -243,7 +243,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         RestHelper.HttpResponse res;
         RestHelper rh = nonSslRestHelper();
         res = rh.executeGetRequest("/_cluster/health");
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_INTERNAL_SERVER_ERROR, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     }
 
@@ -252,15 +252,15 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
         RestHelper.HttpResponse res;
         res = rh.executePutRequest("testindex", getIndexSettingsForAdvSec(), basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
 
         res = rh.executePutRequest("testindex2", getIndexSettingForSSLOnlyNode(), basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
 
         res = rh.executeGetRequest("/_cluster/health", basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest("/_cat/shards", basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
 
         commonTestsForAnIndex(rh, "testindex", basicHeaders);
         commonTestsForAnIndex(rh, "testindex2", basicHeaders);
@@ -271,15 +271,15 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         String slashIndex = "/" + index;
 
         res = rh.executeGetRequest(slashIndex, basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executePutRequest(slashIndex + "/_doc/1", "{}", basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_CREATED, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_CREATED));
         res = rh.executePutRequest(slashIndex + "/_doc/1", "{}", basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeDeleteRequest(slashIndex + "/_doc/1", basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeDeleteRequest(slashIndex, basicHeaders);
-        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     private Settings.Builder getAdvSecSettings() {

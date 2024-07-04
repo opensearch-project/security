@@ -24,19 +24,19 @@ public class UtilsTest {
     @Test
     public void testLDAPName() throws Exception {
         // same ldapname
-        Assert.assertEquals(new LdapName("CN=1,OU=2,O=3,C=4"), new LdapName("CN=1,OU=2,O=3,C=4"));
+        assertThat(new LdapName("CN=1,OU=2,O=3,C=4"), is(new LdapName("CN=1,OU=2,O=3,C=4")));
 
         // case differ
-        Assert.assertEquals(new LdapName("CN=1,OU=2,O=3,C=4".toLowerCase()), new LdapName("CN=1,OU=2,O=3,C=4".toUpperCase()));
+        assertThat(new LdapName("CN=1,OU=2,O=3,C=4".toUpperCase()), is(new LdapName("CN=1,OU=2,O=3,C=4".toLowerCase())));
 
         // case differ
-        Assert.assertEquals(new LdapName("CN=abc,OU=xyz,O=3,C=4".toLowerCase()), new LdapName("CN=abc,OU=xyz,O=3,C=4".toUpperCase()));
+        assertThat(new LdapName("CN=abc,OU=xyz,O=3,C=4".toUpperCase()), is(new LdapName("CN=abc,OU=xyz,O=3,C=4".toLowerCase())));
 
         // same ldapname
-        Assert.assertEquals(new LdapName("CN=a,OU=2,O=3,C=xxx"), new LdapName("CN=A,OU=2,O=3,C=XxX"));
+        assertThat(new LdapName("CN=A,OU=2,O=3,C=XxX"), is(new LdapName("CN=a,OU=2,O=3,C=xxx")));
 
         // case differ and spaces
-        Assert.assertEquals(new LdapName("Cn =1 ,OU=2, O = 3,C=4"), new LdapName("CN= 1,Ou=2,O=3,c=4"));
+        assertThat(new LdapName("CN= 1,Ou=2,O=3,c=4"), is(new LdapName("Cn =1 ,OU=2, O = 3,C=4")));
 
         // same components, different order
         Assert.assertNotEquals(new LdapName("CN=1,OU=2,C=4,O=3"), new LdapName("CN=1,OU=2,O=3,C=4"));

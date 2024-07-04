@@ -44,8 +44,8 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest 
 
         // should fail, as user `ds3` doesn't have correct permissions
         HttpResponse response = rh.executePutRequest("/_index_template/sem1234", indexTemplateBody, encodeBasicHeader("ds4", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        Assert.assertEquals(expectedFailureResponse, response.findValueInJson("error.root_cause[0].reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
+        assertThat(response.findValueInJson("error.root_cause[0].reason"), is(expectedFailureResponse));
     }
 
     @Test
@@ -56,7 +56,7 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest 
             indexTemplateBody,
             encodeBasicHeader("sem-user", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -69,8 +69,8 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest 
             indexTemplateBody,
             encodeBasicHeader("sem-user2", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        Assert.assertEquals(expectedFailureResponse, response.findValueInJson("error.root_cause[0].reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
+        assertThat(response.findValueInJson("error.root_cause[0].reason"), is(expectedFailureResponse));
     }
 
 }

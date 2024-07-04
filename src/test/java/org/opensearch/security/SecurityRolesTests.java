@@ -57,14 +57,14 @@ public class SecurityRolesTests extends SingleClusterTest {
         HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
         Assert.assertTrue(resc.getBody().contains("anonymous"));
         Assert.assertFalse(resc.getBody().contains("xyz_sr"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
         resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
         Assert.assertTrue(resc.getBody().contains("sr_user"));
         Assert.assertTrue(resc.getBody().contains("xyz_sr"));
         Assert.assertFalse(resc.getBody().contains("opendistro_security_kibana_server"));
         Assert.assertTrue(resc.getBody().contains("backend_roles=[abc_ber]"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -94,7 +94,7 @@ public class SecurityRolesTests extends SingleClusterTest {
         Assert.assertFalse(resc.getBody().contains("xyz_sr_hidden"));
 
         Assert.assertTrue(resc.getBody().contains("backend_roles=[abc_ber]"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -118,13 +118,13 @@ public class SecurityRolesTests extends SingleClusterTest {
         Assert.assertFalse(resc.getBody().contains("xyz_sr"));
         Assert.assertTrue(resc.getBody().contains("xyz_impsr"));
         Assert.assertTrue(resc.getBody().contains("backend_roles=[ert_ber]"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
         resc = rh.executeGetRequest(
             "*/_search?pretty",
             encodeBasicHeader("sr_user", "nagilum"),
             new BasicHeader("opendistro_security_impersonate_as", "sr_impuser")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
     }
 }

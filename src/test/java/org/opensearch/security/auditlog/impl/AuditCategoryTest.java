@@ -75,7 +75,7 @@ public class AuditCategoryTest {
         @Test
         public void testAuditCategoryEnumSetGenerationWhenEmpty() {
             Set<AuditCategory> categories = AuditCategory.parse(input);
-            Assert.assertEquals(categories, expected);
+            assertThat(expected, is(categories));
         }
     }
 

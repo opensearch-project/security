@@ -48,7 +48,7 @@ public class FlattenedActionGroupsTest {
             ImmutableSet.of("C", "A", "A1", "A2", "A3", "C1", "B", "B1", "B2", "B3", "Z"),
             actionGroups.resolve(ImmutableSet.of("Z"))
         );
-        Assert.assertEquals(ImmutableSet.of("A", "A1", "A2", "A3"), actionGroups.resolve(ImmutableSet.of("A")));
+        assertThat(actionGroups.resolve(ImmutableSet.of("A")), is(ImmutableSet.of("A", "A1", "A2", "A3")));
     }
 
     /**
@@ -72,9 +72,9 @@ public class FlattenedActionGroupsTest {
 
         FlattenedActionGroups actionGroups = new FlattenedActionGroups(config);
 
-        Assert.assertEquals(ImmutableSet.of("A", "A1", "B", "B1", "C", "C1", "D", "D1"), actionGroups.resolve(ImmutableSet.of("A")));
-        Assert.assertEquals(ImmutableSet.of("A", "A1", "B", "B1", "C", "C1", "D", "D1"), actionGroups.resolve(ImmutableSet.of("C")));
-        Assert.assertEquals(ImmutableSet.of("D", "D1"), actionGroups.resolve(ImmutableSet.of("D")));
+        assertThat(actionGroups.resolve(ImmutableSet.of("A")), is(ImmutableSet.of("A", "A1", "B", "B1", "C", "C1", "D", "D1")));
+        assertThat(actionGroups.resolve(ImmutableSet.of("C")), is(ImmutableSet.of("A", "A1", "B", "B1", "C", "C1", "D", "D1")));
+        assertThat(actionGroups.resolve(ImmutableSet.of("D")), is(ImmutableSet.of("D", "D1")));
     }
 
     private static class TestActionGroups {

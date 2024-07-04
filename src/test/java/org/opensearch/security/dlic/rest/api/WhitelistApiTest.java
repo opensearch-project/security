@@ -34,11 +34,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -107,7 +104,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/whitelist");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(response.getBody().contains("_meta"));
     }
 
@@ -121,7 +118,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             ENDPOINT + "/whitelist",
             "{ \"unknownkey\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}"
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
     }
@@ -135,7 +132,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             ENDPOINT + "/whitelist",
             "{ \"invalid\"::{{ [\"*\"], \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}"
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         assertHealthy();
     }
 
@@ -150,9 +147,9 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(ENDPOINT + "/whitelist", "", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         JsonNode settings = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message(), settings.get("reason").asText());
+        assertThat(settings.get("reason").asText(), is(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message()));
     }
 
     /**
@@ -244,11 +241,11 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/config\", \"value\": {\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"PUT\"] }}}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
-        assertEquals(
+        assertThat(
             response.getBody(),
-            "{\"config\":{\"enabled\":true,\"requests\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}"
+            is("{\"config\":{\"enabled\":true,\"requests\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}")
         );
 
         // PATCH just requests
@@ -257,7 +254,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/config/requests\", \"value\": {\"/_cat/nodes\": [\"GET\"]}}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
         assertTrue(response.getBody().contains("\"requests\":{\"/_cat/nodes\":[\"GET\"]}"));
 
@@ -267,7 +264,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/config/enabled\", \"value\": false}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":false"));
 
@@ -277,7 +274,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": true}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":true"));
 
@@ -287,7 +284,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": false}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
         response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":false"));

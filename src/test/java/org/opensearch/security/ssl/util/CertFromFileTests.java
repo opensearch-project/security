@@ -33,7 +33,7 @@ public class CertFromFileTests {
 
         CertFromFile cert = new CertFromFile(certProps);
 
-        Assert.assertEquals(1, cert.getCerts().length);
+        assertThat(cert.getCerts().length, is(1));
         Assert.assertNotNull(cert.getClientPemCert());
         Assert.assertNotNull(cert.getClientPemKey());
         Assert.assertNotNull(cert.getClientTrustedCas());
@@ -82,7 +82,7 @@ public class CertFromFileTests {
 
         CertFromFile cert = new CertFromFile(clientCertProps, servertCertProps);
 
-        Assert.assertEquals(2, cert.getCerts().length);
+        assertThat(cert.getCerts().length, is(2));
     }
 
 }

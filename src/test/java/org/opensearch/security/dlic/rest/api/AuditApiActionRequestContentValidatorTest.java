@@ -54,7 +54,7 @@ public class AuditApiActionRequestContentValidatorTest extends AbstractApiAction
         final var content = DefaultObjectMapper.writeValueAsString(objectMapper.valueToTree(auditConfig), false);
         var result = auditApiActionRequestContentValidator.validate(FakeRestRequest.builder().withContent(new BytesArray(content)).build());
         assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
     }
 
     @Test
@@ -77,6 +77,6 @@ public class AuditApiActionRequestContentValidatorTest extends AbstractApiAction
         final var content = DefaultObjectMapper.writeValueAsString(objectMapper.valueToTree(auditConfig), false);
         var result = auditApiActionRequestContentValidator.validate(FakeRestRequest.builder().withContent(new BytesArray(content)).build());
         assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
     }
 }

@@ -46,7 +46,6 @@ import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
 import org.passay.PasswordData;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
@@ -103,9 +102,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // initial configuration, 6 users
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
+        assertThat(settings.size(), is(USER_SETTING_SIZE));
         response = rh.executePatchRequest(
             ENDPOINT + "/internalusers",
             "[{ \"op\": \"add\", \"path\": \"/newuser\", "
@@ -113,10 +112,10 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 + "\"opendistro_security_roles\": [\"opendistro_security_all_access\"] } }]",
             new Header[0]
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/newuser", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(response.getBody().contains("\"opendistro_security_roles\":[\"opendistro_security_all_access\"]"));
 
         checkGeneralAccess(HttpStatus.SC_OK, "newuser", "fair password for the user");
@@ -147,7 +146,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 case HttpStatus.SC_OK:
                     break;
                 default:
-                    Assert.assertEquals(HttpStatus.SC_CONFLICT, sc);
+                    assertThat(sc, is(HttpStatus.SC_CONFLICT));
                     break;
             }
         }
@@ -187,12 +186,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
 
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         JsonNode list = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+        assertThat(list.size(), is(INTERNAL_ACCOUNTS_IN_SETTINGS));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=service");
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         list = DefaultObjectMapper.readTree(response.getBody());
         assertThat(list, Matchers.emptyIterable());
 
@@ -202,26 +201,26 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
 
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         list = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+        assertThat(list.size(), is(INTERNAL_ACCOUNTS_IN_SETTINGS));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=service");
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         list = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, list.size());
+        assertThat(list.size(), is(SERVICE_ACCOUNTS_IN_SETTINGS));
         assertThat(response.findValueInJson(serviceAccountName + ".attributes.service"), containsString("true"));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=ssas");
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         list = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS + INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+        assertThat(list.size(), is(SERVICE_ACCOUNTS_IN_SETTINGS + INTERNAL_ACCOUNTS_IN_SETTINGS));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers?wrongparameter=jhondoe");
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         response = rh.executePutRequest(ENDPOINT + "/internalusers", "{sample:value");
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_METHOD_NOT_ALLOWED));
     }
 
     @Test
@@ -234,9 +233,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // initial configuration
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
+        assertThat(settings.size(), is(USER_SETTING_SIZE));
         verifyGet();
         verifyPut();
         verifyPatch(true);
@@ -249,23 +248,23 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // --- GET
         // GET, user admin, exists
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", header);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(7, settings.size());
+        assertThat(settings.size(), is(7));
         // hash must be filtered
-        Assert.assertEquals("", settings.get("admin.hash"));
+        assertThat(settings.get("admin.hash"), is(""));
 
         // GET, user does not exist
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/nothinghthere", header);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // GET, new URL endpoint in security
         response = rh.executeGetRequest(ENDPOINT + "/user/", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // GET, new URL endpoint in security
         response = rh.executeGetRequest(ENDPOINT + "/user", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
     }
 
@@ -273,26 +272,26 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // -- PUT
         // no username given
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/", "{\"hash\": \"123\"}", header);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_METHOD_NOT_ALLOWED));
 
         // Faulty JSON payload
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\" asd  other: \"thing\"}", header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("reason"), RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE.message());
+        assertThat(RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE.message(), is(settings.get("reason")));
 
         // Missing quotes in JSON - parseable in 6.x, but wrong config keys
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\", other: \"thing\"}", header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         // JK: this should be "Could not parse content of request." because JSON is truly invalid
-        // Assert.assertEquals(settings.get("reason"), ValidationError.INVALID_CONFIGURATION.message());
+        // assertThat(ValidationError.INVALID_CONFIGURATION.message(), is(settings.get("reason")));
         // Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
         // Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
 
         // Get hidden role
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/hide", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(response.getBody().contains("\"hidden\":true"));
 
         // Associating with hidden role is allowed (for superadmin)
@@ -301,7 +300,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "{ \"opendistro_security_roles\": " + "[\"opendistro_security_hidden\"]}",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // Associating with reserved role is allowed (for superadmin)
         response = rh.executePutRequest(
@@ -309,7 +308,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"], " + "\"hash\": \"123\"}",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // Associating with non-existent role is not allowed
         response = rh.executePutRequest(
@@ -317,15 +316,15 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "{ \"opendistro_security_roles\": [\"non_existent\"]}",
             header
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "role 'non_existent' not found.");
+        assertThat("role 'non_existent' not found.", is(settings.get("message")));
 
         // Wrong config keys
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}", header);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("reason"), RequestContentValidator.ValidationError.INVALID_CONFIGURATION.message());
+        assertThat(RequestContentValidator.ValidationError.INVALID_CONFIGURATION.message(), is(settings.get("reason")));
         Assert.assertTrue(settings.get(RequestContentValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
         Assert.assertTrue(settings.get(RequestContentValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
 
@@ -340,7 +339,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // PATCH read only resource, must be forbidden,
         // but SuperAdmin can PATCH read-only resource
@@ -350,7 +349,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // PATCH hidden resource, must be not found, can be found for super admin
         rh.sendAdminCertificate = sendAdminCert;
@@ -359,7 +358,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = sendAdminCert;
@@ -368,7 +367,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/hidden\", \"value\": true }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // PATCH password
@@ -378,9 +377,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/password\", \"value\": \"neu password 42\" }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/test", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertFalse(settings.hasValue("test.password"));
         Assert.assertTrue(settings.hasValue("test.hash"));
@@ -393,7 +392,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/imnothere/a\", \"value\": [ \"foo\", \"bar\" ] }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // PATCH read only resource, must be forbidden,
         // but SuperAdmin can PATCH read only resouce
@@ -403,14 +402,14 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         rh.sendAdminCertificate = false;
         response = rh.executePatchRequest(
             ENDPOINT + "/internalusers",
             "[{ \"op\": \"add\", \"path\": \"/sarek/a\", \"value\": [ \"foo\", \"bar\" ] }]"
         );
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
         // PATCH hidden resource, must be bad request
         rh.sendAdminCertificate = sendAdminCert;
@@ -419,7 +418,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/q/a\", \"value\": [ \"foo\", \"bar\" ] }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = sendAdminCert;
@@ -428,7 +427,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/test/hidden\", \"value\": true }]",
             restAdminHeader
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // PATCH
@@ -438,14 +437,14 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {\"password\": \"bla bla bla password 42\", \"backend_roles\": [\"vulcan\"] } }]",
             restAdminHeader
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/bulknew1", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertFalse(settings.hasValue("bulknew1.password"));
         Assert.assertTrue(settings.hasValue("bulknew1.hash"));
         List<String> roles = settings.getAsList("bulknew1.backend_roles");
-        Assert.assertEquals(1, roles.size());
+        assertThat(roles.size(), is(1));
         Assert.assertTrue(roles.contains("vulcan"));
 
         // add user with correct setting. User is in role "opendistro_security_all_access"
@@ -468,25 +467,25 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Add enabled service account then get it
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive", ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // Add disabled service account
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceDead", DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
 
         // Add service account with password -- Should Fail
         response = rh.executePutRequest(ENDPOINT + "/internalusers/passwordService", PASSWORD_SERVICE, restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // Add service with hash -- should fail
         response = rh.executePutRequest(ENDPOINT + "/internalusers/hashService", HASH_SERVICE, restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // Add Service account with password & Hash -- should fail
         response = rh.executePutRequest(ENDPOINT + "/internalusers/passwordHashService", PASSWORD_HASH_SERVICE, restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // access must be allowed now
         checkGeneralAccess(HttpStatus.SC_OK, "nagilum", "nagilum");
@@ -494,19 +493,19 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // try remove user, no username
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executeDeleteRequest(ENDPOINT + "/internalusers", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_METHOD_NOT_ALLOWED));
 
         // try remove user, nonexisting user
         response = rh.executeDeleteRequest(ENDPOINT + "/internalusers/picard", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // try remove readonly user
         response = rh.executeDeleteRequest(ENDPOINT + "/internalusers/sarek", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // try remove hidden user, allowed for super admin
         response = rh.executeDeleteRequest(ENDPOINT + "/internalusers/q", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(response.getBody().contains("'q' deleted."));
         // now really remove user
         deleteUser("nagilum");
@@ -536,7 +535,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithoutPasswordOrHash("nagilum", new String[] { "starfleet" }, HttpStatus.SC_OK);
         // get user, check hash, must be untouched
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/nagilum", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertTrue(settings.get("nagilum.hash").equals(""));
     }
@@ -551,47 +550,47 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             ENABLED_SERVICE_ACCOUNT_BODY,
             restAdminHeader
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         response = rh.executePostRequest(
             ENDPOINT + "/internalusers/happyServiceLive/authtoken",
             ENABLED_SERVICE_ACCOUNT_BODY,
             restAdminHeader
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
         String tokenFromResponse = response.getBody();
         byte[] decodedResponse = Base64.getUrlDecoder().decode(tokenFromResponse);
         String[] decodedResponseString = new String(decodedResponse).split(":", 2);
         String username = decodedResponseString[0];
         String password = decodedResponseString[1];
-        Assert.assertEquals("Username is: " + username, username, "happyServiceLive");
+        assertThat("Username is: " + username, username, is("happyServiceLive"));
 
         // Add disabled service account then try to get its auth token
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceDead", DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
 
         response = rh.executePostRequest(
             ENDPOINT + "/internalusers/happyServiceDead/authtoken",
             ENABLED_SERVICE_ACCOUNT_BODY,
             restAdminHeader
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         // Add enabled non-service account
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1", ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
 
         response = rh.executePostRequest(
             ENDPOINT + "/internalusers/user_is_owner_1/authtoken",
             ENABLED_SERVICE_ACCOUNT_BODY,
             restAdminHeader
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
     }
 
@@ -604,8 +603,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             header
         );
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.WRONG_DATATYPE.message()));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -616,8 +615,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             header
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.WRONG_DATATYPE.message()));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -628,8 +627,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             header
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.WRONG_DATATYPE.message()));
         Assert.assertTrue(settings.get("password").equals("String expected"));
         Assert.assertTrue(settings.get("backend_roles") == null);
         rh.sendAdminCertificate = false;
@@ -641,8 +640,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             header
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.WRONG_DATATYPE.message()));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -670,12 +669,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/picard", header);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals("", settings.get("picard.hash"));
+        assertThat(settings.get("picard.hash"), is(""));
         List<String> roles = settings.getAsList("picard.backend_roles");
         Assert.assertNotNull(roles);
-        Assert.assertEquals(2, roles.size());
+        assertThat(roles.size(), is(2));
         Assert.assertTrue(roles.contains("starfleet"));
         Assert.assertTrue(roles.contains("captains"));
 
@@ -684,7 +683,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // check tabs in json
         response = rh.executePutRequest(ENDPOINT + "/internalusers/userwithtabs", "\t{\"hash\": \t \"123\"\t}  ", header);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
     }
 
     @Test
@@ -694,9 +693,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
         // initial configuration
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
+        assertThat(settings.size(), is(USER_SETTING_SIZE));
         verifyGet(restApiAdminHeader);
         verifyPut(restApiAdminHeader);
         verifyPatch(false, restApiAdminHeader);
@@ -712,9 +711,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         final Header restApiInternalUsersAdminHeader = encodeBasicHeader("rest_api_admin_internalusers", "rest_api_admin_internalusers");
         // initial configuration
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiInternalUsersAdminHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
+        assertThat(settings.size(), is(USER_SETTING_SIZE));
         verifyGet(restApiInternalUsersAdminHeader);
         verifyPut(restApiInternalUsersAdminHeader);
         verifyPatch(false, restApiInternalUsersAdminHeader);
@@ -739,9 +738,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // initial configuration, 6 users
         HttpResponse response = rh.executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
+        assertThat(settings.size(), is(USER_SETTING_SIZE));
 
         verifyCouldNotCreatePasswords(HttpStatus.SC_BAD_REQUEST);
         verifyCanCreatePasswords();
@@ -751,7 +750,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPasswordAndHash("null_password", null, "$%^123", HttpStatus.SC_BAD_REQUEST);
 
         response = rh.executeGetRequest(PLUGINS_PREFIX + "/api/internalusers/nothinghthere?pretty", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
         Assert.assertTrue(response.getBody().contains("NOT_FOUND"));
     }
 
@@ -769,13 +768,13 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]",
             new Header[0]
         );
-        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(expectedStatus));
         response = rh.executePatchRequest(
             PLUGINS_PREFIX + "/api/internalusers",
             "[{ \"op\": \"replace\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]",
             new Header[0]
         );
-        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(expectedStatus));
         addUserWithPassword("ok4", "123", expectedStatus);
 
         // its not allowed to use the username as password (case insensitive)
@@ -784,7 +783,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/$1aAAAAAAAAB\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]",
             new Header[0]
         );
-        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(expectedStatus));
         addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", expectedStatus);
         addUserWithPassword("$1aAAAAAAAac", "$1aAAAAAAAAC", expectedStatus);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%", "UTF-8"), "$1aAAAAAAAAC%", expectedStatus);
@@ -808,7 +807,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             patchPayload,
             new BasicHeader("Content-Type", "application/json")
         );
-        Assert.assertEquals(expectedStatus, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(expectedStatus));
         Assert.assertTrue(response.getBody().contains("error"));
         Assert.assertTrue(response.getBody().contains("xxx"));
 
@@ -817,14 +816,14 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"\"}",
             new Header[0]
         );
-        Assert.assertEquals(expectedStatus, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(expectedStatus));
 
         response = rh.executePutRequest(
             PLUGINS_PREFIX + "/api/internalusers/ok1",
             "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"bla\"}",
             new Header[0]
         );
-        Assert.assertEquals(expectedStatus, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(expectedStatus));
     }
 
     private void verifyCanCreatePasswords() throws Exception {
@@ -838,20 +837,20 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]",
             new Header[0]
         );
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executePutRequest(
             PLUGINS_PREFIX + "/api/internalusers/ok1",
             "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"Admin_123\"}",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         response = rh.executePutRequest(
             PLUGINS_PREFIX + "/api/internalusers/ok1",
             "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{}}",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
     }
 
@@ -871,9 +870,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // initial configuration, 6 users
         HttpResponse response = rh.executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
+        assertThat(settings.size(), is(USER_SETTING_SIZE));
 
         addUserWithPassword(
             "admin",
@@ -910,9 +909,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // initial configuration, 6 users
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
+        assertThat(settings.size(), is(USER_SETTING_SIZE));
 
         addUserWithPassword(".my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m", HttpStatus.SC_CREATED);
 
@@ -941,30 +940,30 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             ENDPOINT + "/internalusers/user1",
             "{\"hash\":\"$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m\",\"password\":\"\",\"backend_roles\":[\"admin\",\"rolea\"]}"
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         response = rh.executePutRequest(
             ENDPOINT + "/internalusers/user1",
             "{\"hash\":\"$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m\",\"password\":\"Admin_123345Yq\",\"backend_roles\":[\"admin\",\"rolea\"]}"
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/user1");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         addUserWithHash("user2", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m", HttpStatus.SC_CREATED);
 
         response = rh.executePutRequest(ENDPOINT + "/internalusers/user2", "{\"password\":\"\",\"backend_roles\":[\"admin\",\"rolex\"]}");
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
         response = rh.executePutRequest(
             ENDPOINT + "/internalusers/user2",
             "{\"password\":\"Admin_123Qerty\",\"backend_roles\":[\"admin\",\"rolex\"]}"
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/user2");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -980,7 +979,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Delete read only user
         response = rh.executeDeleteRequest(ENDPOINT + "/internalusers/sarek", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Patch read only users
         response = rh.executePatchRequest(
@@ -988,7 +987,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Put read only users
         response = rh.executePutRequest(
@@ -996,7 +995,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Patch single read only user
         response = rh.executePatchRequest(
@@ -1004,7 +1003,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Patch multiple read only users
         response = rh.executePatchRequest(
@@ -1012,15 +1011,15 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // Get hidden role
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/hide", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Delete hidden user
         response = rh.executeDeleteRequest(ENDPOINT + "/internalusers/hide", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Patch hidden users
         response = rh.executePatchRequest(
@@ -1028,7 +1027,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/sarek/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Put hidden users
         response = rh.executePutRequest(
@@ -1036,7 +1035,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Put reserved role is forbidden for non-superadmin
         response = rh.executePutRequest(
@@ -1044,9 +1043,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Resource 'opendistro_security_reserved' is reserved.");
+        assertThat("Resource 'opendistro_security_reserved' is reserved.", is(settings.get("message")));
 
         // Patch single hidden user
         response = rh.executePatchRequest(
@@ -1054,7 +1053,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
 
         // Patch multiple hidden users
         response = rh.executePatchRequest(
@@ -1062,7 +1061,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"add\", \"path\": \"/hide/description\", \"value\": \"foo\" }]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
     }
 
     @Test
@@ -1092,8 +1091,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/users_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/picard", body, new Header[0]);
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message()));
     }
 
     @Test

@@ -163,7 +163,7 @@ public class LdapBackendTestClientCert2 {
             new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        Assert.assertEquals("ldap_hr_employee", user.getName());
+        assertThat(user.getName(), is("ldap_hr_employee"));
     }
 
     @Test
@@ -192,7 +192,7 @@ public class LdapBackendTestClientCert2 {
             new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        Assert.assertEquals("ldap_hr_employee", user.getName());
+        assertThat(user.getName(), is("ldap_hr_employee"));
     }
 
     @Test
@@ -224,7 +224,7 @@ public class LdapBackendTestClientCert2 {
             new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        Assert.assertEquals("ldap_hr_employee", user.getName());
+        assertThat(user.getName(), is("ldap_hr_employee"));
     }
 
     @Test
@@ -253,7 +253,7 @@ public class LdapBackendTestClientCert2 {
             new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        Assert.assertEquals("ldap_hr_employee", user.getName());
+        assertThat(user.getName(), is("ldap_hr_employee"));
     }
 
     public void testLdapAuthenticationSSL() throws Exception {
@@ -288,7 +288,7 @@ public class LdapBackendTestClientCert2 {
             new AuthCredentials("ldap_hr_employee", "ldap_hr_employee".getBytes(StandardCharsets.UTF_8))
         );
         Assert.assertNotNull(user);
-        Assert.assertEquals("ldap_hr_employee", user.getName());
+        assertThat(user.getName(), is("ldap_hr_employee"));
     }
 
     public static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {

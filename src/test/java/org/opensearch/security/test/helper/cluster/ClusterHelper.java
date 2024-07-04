@@ -71,6 +71,9 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration.NodeSettings;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.transport.TransportInfo;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 // CS-ENFORCE-SINGLE
 
 public final class ClusterHelper {
@@ -380,7 +383,7 @@ public final class ClusterHelper {
                 log.debug("... cluster state ok {} with {} nodes", healthResponse.getStatus().name(), healthResponse.getNumberOfNodes());
             }
 
-            org.junit.Assert.assertEquals(expectedNodeCount, healthResponse.getNumberOfNodes());
+            assertThat(healthResponse.getNumberOfNodes(), is(expectedNodeCount));
 
             final NodesInfoResponse res = client.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
 

@@ -172,7 +172,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .start()
         ) {
             Thread.sleep(10000);
-            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(1));
         } catch (Exception e) {
             Assert.fail(e.toString());
         }
@@ -217,7 +217,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .start()
         ) {
             Thread.sleep(10000);
-            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(1));
         } catch (Exception e) {
             Assert.fail(e.toString());
         }

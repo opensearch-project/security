@@ -32,7 +32,7 @@ public class NodesDnApiActionValidationTest extends AbstractApiActionValidationT
         );
 
         assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
 }

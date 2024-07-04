@@ -113,13 +113,13 @@ public abstract class AbstractApiActionValidationTest {
         }.createEndpointValidator();
 
         var result = defaultPessimisticValidator.onConfigChange(SecurityConfiguration.of(null, configuration));
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
         result = defaultPessimisticValidator.onConfigDelete(SecurityConfiguration.of(null, configuration));
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
         result = defaultPessimisticValidator.onConfigLoad(SecurityConfiguration.of(null, configuration));
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
     }
 

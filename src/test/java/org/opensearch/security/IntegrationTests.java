@@ -106,14 +106,14 @@ public class IntegrationTests extends SingleClusterTest {
     public void testDnParsingCertAuth() throws Exception {
         Settings settings = Settings.builder().put("username_attribute", "cn").put("roles_attribute", "l").build();
         HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(settings, null);
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("cn=abc,cn=xxx,l=ert,st=zui,c=qwe")).getUsername());
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe")).getUsername());
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("l=ert,cn=abc,st=zui,c=qwe")).getUsername());
+        assertThat(auth.extractCredentials(null, newThreadContext("cn=abc,cn=xxx,l=ert,st=zui,c=qwe")).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe")).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("l=ert,cn=abc,st=zui,c=qwe")).getUsername(), is("abc"));
         Assert.assertNull(auth.extractCredentials(null, newThreadContext("L=ert,CN=abc,c,st=zui,c=qwe")));
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("l=ert,st=zui,c=qwe,cn=abc")).getUsername());
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe,CN=abc")).getUsername());
-        Assert.assertEquals("L=ert,st=zui,c=qwe", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe")).getUsername());
+        assertThat(auth.extractCredentials(null, newThreadContext("l=ert,st=zui,c=qwe,cn=abc")).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe,CN=abc")).getUsername(), is("abc"));
+        assertThat(auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe")).getUsername(), is("L=ert,st=zui,c=qwe"));
         Assert.assertArrayEquals(
             new String[] { "ert" },
             auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getBackendRoles().toArray(new String[0])
@@ -171,8 +171,8 @@ public class IntegrationTests extends SingleClusterTest {
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode());
+        assertThat(rh.executeGetRequest("").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_OK));
 
     }
 
@@ -205,8 +205,8 @@ public class IntegrationTests extends SingleClusterTest {
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode());
+        assertThat(rh.executeGetRequest("").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -246,7 +246,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse resc = rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("picard", "picard"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(resc.getBody().contains("type2"));
 
     }
@@ -271,14 +271,14 @@ public class IntegrationTests extends SingleClusterTest {
             new BasicHeader("opendistro_security_impersonate_as", "knuddel"),
             encodeBasicHeader("worf", "worf")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
+        assertThat(resp.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         resp = rh.executeGetRequest(
             "/_opendistro/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "knuddel"),
             encodeBasicHeader("spock", "spock")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
+        assertThat(resp.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(resp.getBody().contains("name=knuddel"));
         Assert.assertFalse(resp.getBody().contains("spock"));
 
@@ -287,14 +287,14 @@ public class IntegrationTests extends SingleClusterTest {
             new BasicHeader("opendistro_security_impersonate_as", "userwhonotexists"),
             encodeBasicHeader("spock", "spock")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
+        assertThat(resp.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         resp = rh.executeGetRequest(
             "/_opendistro/_security/authinfo",
             new BasicHeader("opendistro_security_impersonate_as", "invalid"),
             encodeBasicHeader("spock", "spock")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
+        assertThat(resp.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
     }
 
     @Test
@@ -313,18 +313,18 @@ public class IntegrationTests extends SingleClusterTest {
                 ConfigUpdateAction.INSTANCE,
                 new ConfigUpdateRequest(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups" })
             ).actionGet();
-            Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
+            assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
         }
 
         RestHelper rh = nonSslRestHelper();
         // opendistro_security_shakespeare -> picard
 
         HttpResponse resc = rh.executeGetRequest("shakespeare/_search", encodeBasicHeader("picard", "picard"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(resc.getBody().contains("\"content\":1"));
 
         resc = rh.executeHeadRequest("shakespeare", encodeBasicHeader("picard", "picard"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
     }
 
@@ -334,13 +334,13 @@ public class IntegrationTests extends SingleClusterTest {
         setup();
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("bug.88", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("a", "b")).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("bug.88", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("a", "b")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executeGetRequest("", encodeBasicHeader("\"'+-,;_?*@<>!$%&/()=#", "nagilum")).getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("§ÄÖÜäöüß", "nagilum")).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader("§ÄÖÜäöüß", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
 
     }
 
@@ -354,7 +354,7 @@ public class IntegrationTests extends SingleClusterTest {
             new BasicHeader("x-forwarded-for", "10.0.0.7"),
             encodeBasicHeader("worf", "worf")
         );
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertTrue(resc.getBody().contains("10.0.0.7"));
     }
 
@@ -415,7 +415,7 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         Assert.assertFalse(res.getBody().contains("\"content\":1"));
         Assert.assertFalse(res.getBody().contains("\"content\":2"));
 
@@ -428,11 +428,11 @@ public class IntegrationTests extends SingleClusterTest {
 
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[] { "config" }))
                 .actionGet();
-            Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
+            assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
         }
 
         res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(res.getBody().contains("\"content\":1"));
         Assert.assertTrue(res.getBody().contains("\"content\":2"));
 
@@ -456,13 +456,13 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         res = rh.executeGetRequest("/mindex_1,mindex_3/_search", encodeBasicHeader("mindex12", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         res = rh.executeGetRequest("/mindex_1,mindex_4/_search", encodeBasicHeader("mindex12", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
     }
 
@@ -480,11 +480,11 @@ public class IntegrationTests extends SingleClusterTest {
 
         res = rh.executeGetRequest("abc_xyz_2018_05_24/_doc/1", encodeBasicHeader("underscore", "nagilum"));
         Assert.assertTrue(res.getBody(), res.getBody().contains("\"content\":1"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest("abc_xyz_2018_05_24/_refresh", encodeBasicHeader("underscore", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest("aaa_bbb_2018_05_24/_refresh", encodeBasicHeader("underscore", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
     }
 
     @Test
@@ -531,7 +531,7 @@ public class IntegrationTests extends SingleClusterTest {
             "{\"doc\" : {\"content\":2}}",
             encodeBasicHeader("user_c", "user_c")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -634,22 +634,22 @@ public class IntegrationTests extends SingleClusterTest {
             + System.lineSeparator();
         // msearch
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_a", "user_a"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("permission"));
-        Assert.assertEquals(3, resc.getBody().split("\"status\" : 200").length);
-        Assert.assertEquals(2, resc.getBody().split("\"status\" : 403").length);
+        assertThat(resc.getBody().split("\"status\" : 200").length, is(3));
+        assertThat(resc.getBody().split("\"status\" : 403").length, is(2));
 
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("permission"));
-        Assert.assertEquals(3, resc.getBody().split("\"status\" : 200").length);
-        Assert.assertEquals(2, resc.getBody().split("\"status\" : 403").length);
+        assertThat(resc.getBody().split("\"status\" : 200").length, is(3));
+        assertThat(resc.getBody().split("\"status\" : 403").length, is(2));
 
         msearchBody = "{\"index\":\"indexc\", \"ignore_unavailable\": true}"
             + System.lineSeparator()
@@ -661,9 +661,9 @@ public class IntegrationTests extends SingleClusterTest {
             + System.lineSeparator();
 
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(resc.getBody(), 200, resc.getStatusCode());
-        Assert.assertEquals(resc.getBody(), "security_exception", resc.findValueInJson("responses[0].error.type"));
-        Assert.assertEquals(resc.getBody(), "security_exception", resc.findValueInJson("responses[1].error.type"));
+        assertThat(resc.getBody(), resc.getStatusCode(), is(200));
+        assertThat(resc.getBody(), resc.findValueInJson("responses[0].error.type"), is("security_exception"));
+        assertThat(resc.getBody(), resc.findValueInJson("responses[1].error.type"), is("security_exception"));
 
         String mgetBody = "{"
             + "\"docs\" : ["
@@ -680,7 +680,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         // mget
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"content\" : \"indexa\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"content\" : \"indexb\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -700,9 +700,9 @@ public class IntegrationTests extends SingleClusterTest {
             + "}";
 
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(resc.getBody(), 200, resc.getStatusCode());
-        Assert.assertEquals(resc.getBody(), "index_not_found_exception", resc.findValueInJson("docs[0].error.type"));
-        Assert.assertEquals(resc.getBody(), "index_not_found_exception", resc.findValueInJson("docs[1].error.type"));
+        assertThat(resc.getBody(), resc.getStatusCode(), is(200));
+        assertThat(resc.getBody(), resc.findValueInJson("docs[0].error.type"), is("index_not_found_exception"));
+        assertThat(resc.getBody(), resc.findValueInJson("docs[1].error.type"), is("index_not_found_exception"));
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
@@ -865,7 +865,7 @@ public class IntegrationTests extends SingleClusterTest {
             + System.lineSeparator();
         // msearch a
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_a", "user_a"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -873,7 +873,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         // msearch b
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
 
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
@@ -892,13 +892,13 @@ public class IntegrationTests extends SingleClusterTest {
         // msearch b2
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
 
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexc"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexd"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("permission"));
         int count = resc.getBody().split("\"status\" : 403").length;
-        Assert.assertEquals(3, count);
+        assertThat(count, is(3));
 
         String mgetBody = "{"
             + "\"docs\" : ["
@@ -914,7 +914,7 @@ public class IntegrationTests extends SingleClusterTest {
             + "}";
 
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"content\" : \"indexa\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -934,10 +934,10 @@ public class IntegrationTests extends SingleClusterTest {
             + "}";
 
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         count = resc.getBody().split("root_cause").length;
-        Assert.assertEquals(3, count);
+        assertThat(count, is(3));
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
@@ -1016,45 +1016,45 @@ public class IntegrationTests extends SingleClusterTest {
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         res = rh.executePutRequest(
             "*dis*rit*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         res = rh.executePutRequest(
             "*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         res = rh.executePutRequest(
             "_all/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         res = rh.executePostRequest(".opendistro_security/_close", "", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         res = rh.executeDeleteRequest(".opendistro_security", encodeBasicHeader("nagilum", "nagilum"));
         res = rh.executeDeleteRequest("_all", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         res = rh.executePutRequest(
             ".opendistro_security/_settings",
             "{\"index\" : {\"number_of_replicas\" : 2}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         res = rh.executePutRequest(
             ".opendistro_secur*/_settings",
             "{\"index\" : {\"number_of_replicas\" : 2}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         res = rh.executePostRequest(".opendistro_security/_freeze", "", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(400, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(400));
 
         String bulkBody = "{ \"index\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"1\" } }\n"
             + "{ \"field1\" : \"value1\" }\n"
@@ -1066,11 +1066,11 @@ public class IntegrationTests extends SingleClusterTest {
         res = rh.executePostRequest("_bulk?refresh=true&pretty", bulkBody, encodeBasicHeader("nagilum", "nagilum"));
         JsonNode jsonNode = readTree(res.getBody());
 
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        Assert.assertEquals(403, jsonNode.get("items").get(0).get("index").get("status").intValue());
-        Assert.assertEquals(403, jsonNode.get("items").get(1).get("index").get("status").intValue());
-        Assert.assertEquals(201, jsonNode.get("items").get(2).get("index").get("status").intValue());
-        Assert.assertEquals(403, jsonNode.get("items").get(3).get("delete").get("status").intValue());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat(jsonNode.get("items").get(0).get("index").get("status").intValue(), is(403));
+        assertThat(jsonNode.get("items").get(1).get("index").get("status").intValue(), is(403));
+        assertThat(jsonNode.get("items").get(2).get("index").get("status").intValue(), is(201));
+        assertThat(jsonNode.get("items").get(3).get("delete").get("status").intValue(), is(403));
     }
 
     @Test
@@ -1079,6 +1079,6 @@ public class IntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
 
         RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_cat/health", encodeBasicHeader("picard", "picard")).getStatusCode());
+        assertThat(rh.executeGetRequest("_cat/health", encodeBasicHeader("picard", "picard")).getStatusCode(), is(HttpStatus.SC_OK));
     }
 }

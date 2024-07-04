@@ -66,12 +66,12 @@ public class KeySetRetrieverTest {
 
         keySetRetriever.get();
 
-        Assert.assertEquals(1, keySetRetriever.getOidcCacheMisses());
-        Assert.assertEquals(0, keySetRetriever.getOidcCacheHits());
+        assertThat(keySetRetriever.getOidcCacheMisses(), is(1));
+        assertThat(keySetRetriever.getOidcCacheHits(), is(0));
 
         keySetRetriever.get();
-        Assert.assertEquals(1, keySetRetriever.getOidcCacheMisses());
-        Assert.assertEquals(1, keySetRetriever.getOidcCacheHits());
+        assertThat(keySetRetriever.getOidcCacheMisses(), is(1));
+        assertThat(keySetRetriever.getOidcCacheHits(), is(1));
     }
 
     @Test
@@ -89,7 +89,7 @@ public class KeySetRetrieverTest {
                 try {
                     String sha256Fingerprint = Hashing.sha256().hashBytes(peerCert.getEncoded()).toString();
 
-                    Assert.assertEquals("04b2b8baea7a0a893f0223d95b72081e9a1e154a0f9b1b4e75998085972b1b68", sha256Fingerprint);
+                    assertThat(sha256Fingerprint, is("04b2b8baea7a0a893f0223d95b72081e9a1e154a0f9b1b4e75998085972b1b68"));
 
                 } catch (CertificateEncodingException e) {
                     throw new RuntimeException(e);
