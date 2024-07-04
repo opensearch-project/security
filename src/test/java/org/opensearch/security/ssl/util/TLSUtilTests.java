@@ -11,6 +11,8 @@
 package org.opensearch.security.ssl.util;
 
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Test;
 

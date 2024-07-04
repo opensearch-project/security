@@ -17,7 +17,8 @@ import org.junit.rules.ExpectedException;
 
 import org.opensearch.common.settings.Settings;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class ThreadPoolConfigTest {
 

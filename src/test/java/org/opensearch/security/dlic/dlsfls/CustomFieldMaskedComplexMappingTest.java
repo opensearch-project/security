@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;

@@ -30,6 +30,8 @@ import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;

@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;

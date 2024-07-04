@@ -33,6 +33,8 @@ import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;

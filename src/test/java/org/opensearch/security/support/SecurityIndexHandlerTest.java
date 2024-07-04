@@ -19,6 +19,8 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,7 +62,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.security.configuration.ConfigurationRepository.DEFAULT_CONFIG_VERSION;
 import static org.opensearch.security.support.YamlConfigReader.emptyYamlConfigFor;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;

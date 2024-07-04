@@ -34,7 +34,8 @@ import org.opensearch.security.support.WildcardMatcher;
 
 import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
