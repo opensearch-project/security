@@ -14,6 +14,8 @@ package org.opensearch.security.auditlog.integration;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;

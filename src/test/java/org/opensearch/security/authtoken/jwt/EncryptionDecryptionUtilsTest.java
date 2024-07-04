@@ -14,6 +14,8 @@ package org.opensearch.security.authtoken.jwt;
 import java.util.Base64;
 
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 public class EncryptionDecryptionUtilsTest {

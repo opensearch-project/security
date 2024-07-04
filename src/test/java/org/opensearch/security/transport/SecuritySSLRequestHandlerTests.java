@@ -12,6 +12,8 @@ package org.opensearch.security.transport;
 import java.io.IOException;
 
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Test;
 

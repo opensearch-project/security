@@ -14,6 +14,8 @@ package org.opensearch.security.securityconf.impl.v7;
 import com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

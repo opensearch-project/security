@@ -13,6 +13,8 @@ package org.opensearch.security.dlic.rest.api;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;

@@ -24,6 +24,8 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;

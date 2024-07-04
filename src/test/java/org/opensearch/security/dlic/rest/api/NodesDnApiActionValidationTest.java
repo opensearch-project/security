@@ -15,7 +15,8 @@ import org.junit.Test;
 
 import org.opensearch.core.rest.RestStatus;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 
 public class NodesDnApiActionValidationTest extends AbstractApiActionValidationTest {

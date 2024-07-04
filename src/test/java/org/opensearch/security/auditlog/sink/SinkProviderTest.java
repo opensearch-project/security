@@ -13,6 +13,8 @@ package org.opensearch.security.auditlog.sink;
 
 import org.apache.logging.log4j.Level;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;

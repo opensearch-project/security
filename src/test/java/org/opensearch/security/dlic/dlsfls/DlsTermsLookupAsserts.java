@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.opensearch.search.SearchHit;
 

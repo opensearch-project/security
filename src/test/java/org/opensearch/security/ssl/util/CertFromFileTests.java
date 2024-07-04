@@ -14,6 +14,8 @@ package org.opensearch.security.ssl.util;
 import java.io.FileNotFoundException;
 
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.security.test.helper.file.FileHelper;

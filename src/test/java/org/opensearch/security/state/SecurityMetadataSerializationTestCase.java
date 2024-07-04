@@ -35,7 +35,8 @@ import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.DiffableTestUtils;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotSame;
 
 @RunWith(RandomizedRunner.class)

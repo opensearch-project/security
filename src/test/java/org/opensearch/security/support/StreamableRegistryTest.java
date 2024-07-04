@@ -14,6 +14,8 @@ package org.opensearch.security.support;
 import java.net.InetSocketAddress;
 
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;

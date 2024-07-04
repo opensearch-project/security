@@ -26,6 +26,8 @@ import javax.crypto.SecretKey;
 import com.google.common.io.BaseEncoding;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;

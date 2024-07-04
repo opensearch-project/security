@@ -31,6 +31,8 @@ import java.io.IOException;
 import com.google.common.collect.Lists;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
