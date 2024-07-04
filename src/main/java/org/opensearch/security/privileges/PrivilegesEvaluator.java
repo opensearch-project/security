@@ -221,29 +221,19 @@ public class PrivilegesEvaluator {
         }
     }
 
-    public PrivilegesEvaluationContext createContext(User user, String action0, ActionRequest request, Task task, Set<String> injectedRoles)
-        throws PrivilegesEvaluatorResponse.NotAllowedException {
+    public PrivilegesEvaluationContext createContext(
+        User user,
+        String action0,
+        ActionRequest request,
+        Task task,
+        Set<String> injectedRoles
+    ) {
         if (!isInitialized()) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
         }
 
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
-        final String injectedRolesValidationString = threadContext.getTransient(
-            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION
-        );
-        if (injectedRolesValidationString != null) {
-            HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
-            if (!mappedRoles.containsAll(injectedRolesValidationSet)) {
-                PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
-                presponse.allowed = false;
-                presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
-                presponse.reason("Injected roles validation failed");
-                log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
-                throw new PrivilegesEvaluatorResponse.NotAllowedException(presponse);
-            }
-            mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
-        }
 
         return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr);
     }
@@ -272,8 +262,22 @@ public class PrivilegesEvaluator {
             action0 = PutMappingAction.NAME;
         }
 
-        PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
+        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
+        final String injectedRolesValidationString = threadContext.getTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION
+        );
+        if (injectedRolesValidationString != null) {
+            HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
+            if (!mappedRoles.containsAll(injectedRolesValidationSet)) {
+                presponse.allowed = false;
+                presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
+                log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
+                return presponse;
+            }
+            mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
+            context.setMappedRoles(mappedRoles);
+        }
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 

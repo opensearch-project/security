@@ -96,27 +96,4 @@ public class PrivilegesEvaluatorResponse {
         PENDING,
         COMPLETE;
     }
-
-    /**
-     * This exception can be used to indicate that a method denies a user access to an OpenSearch action.
-     *
-     * Note: As exceptions take their performance toll, please use this exception only when there is
-     * no other way. Prefer to use PrivilegesEvaluatorResponse directly as a return value.
-     */
-    public static class NotAllowedException extends Exception {
-        private final PrivilegesEvaluatorResponse response;
-
-        public NotAllowedException(PrivilegesEvaluatorResponse response) {
-            super(response.reason);
-            this.response = response;
-            if (response.allowed) {
-                throw new IllegalArgumentException("Only possible for PrivilegesEvaluatorResponse with allowed=false");
-            }
-        }
-
-        public PrivilegesEvaluatorResponse getResponse() {
-            return response;
-        }
-    }
-
 }

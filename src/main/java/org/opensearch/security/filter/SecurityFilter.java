@@ -379,15 +379,8 @@ public class SecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
-            PrivilegesEvaluationContext context = null;
-            PrivilegesEvaluatorResponse pres;
-
-            try {
-                context = eval.createContext(user, action, request, task, injectedRoles);
-                pres = eval.evaluate(context);
-            } catch (PrivilegesEvaluatorResponse.NotAllowedException e) {
-                pres = e.getResponse();
-            }
+            PrivilegesEvaluationContext context = eval.createContext(user, action, request, task, injectedRoles);
+            PrivilegesEvaluatorResponse pres = eval.evaluate(context);
 
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
