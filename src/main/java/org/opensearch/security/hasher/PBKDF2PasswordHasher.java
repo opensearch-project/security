@@ -26,6 +26,7 @@ import static org.opensearch.core.common.Strings.isNullOrEmpty;
 
 class PBKDF2PasswordHasher extends AbstractPasswordHasher {
 
+    @SuppressWarnings("removal")
     PBKDF2PasswordHasher(String function, int iterations, int length) {
         SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null) {
@@ -37,6 +38,7 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
     }
 
     @Override
+    @SuppressWarnings("removal")
     public String hash(char[] password) {
         if (password == null || password.length == 0) {
             throw new OpenSearchSecurityException("Password cannot be empty or null");
@@ -55,6 +57,7 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
         }
     }
 
+    @SuppressWarnings("removal")
     @Override
     public boolean check(char[] password, String hash) {
         if (password == null || password.length == 0) {
