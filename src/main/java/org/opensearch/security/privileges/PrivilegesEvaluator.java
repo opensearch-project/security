@@ -296,7 +296,7 @@ public class PrivilegesEvaluator {
                     "No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
                     user,
                     action0,
-                    securityRoles.getRoleNames(),
+                    mappedRoles,
                     presponse.missingPrivileges
                 );
             } else {
@@ -333,7 +333,7 @@ public class PrivilegesEvaluator {
         }
 
         // Protected index access
-        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
+        if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
             return presponse;
         }
 
@@ -374,7 +374,7 @@ public class PrivilegesEvaluator {
                     user,
                     requestedResolved,
                     action0,
-                    securityRoles.getRoleNames(),
+                    mappedRoles,
                     presponse.missingPrivileges
                 );
                 return presponse;
@@ -411,34 +411,6 @@ public class PrivilegesEvaluator {
                         }
                     }
 
-                    if (dnfofEnabled && (action0.startsWith("indices:data/read/")) && !requestedResolved.getAllIndices().isEmpty()) {
-
-                        if (requestedResolved.getAllIndices().isEmpty()) {
-                            presponse.missingPrivileges.clear();
-                            presponse.allowed = true;
-                            return presponse;
-                        }
-
-                        Set<String> reduced = securityRoles.reduce(
-                            requestedResolved,
-                            user,
-                            new String[] { action0 },
-                            resolver,
-                            clusterService
-                        );
-
-                        if (reduced.isEmpty()) {
-                            presponse.allowed = false;
-                            return presponse;
-                        }
-
-                        if (irr.replace(request, true, reduced.toArray(new String[0]))) {
-                            presponse.missingPrivileges.clear();
-                            presponse.allowed = true;
-                            return presponse;
-                        }
-                    }
-
                     if (isDebugEnabled) {
                         log.debug("Allowed because we have cluster permissions for {}", action0);
                     }
@@ -471,7 +443,7 @@ public class PrivilegesEvaluator {
 
         if (isDebugEnabled) {
             log.debug("Requested resolved index types: {}", requestedResolved);
-            log.debug("Security roles: {}", securityRoles.getRoleNames());
+            log.debug("Security roles: {}", mappedRoles);
         }
 
         // TODO exclude Security index
@@ -561,7 +533,7 @@ public class PrivilegesEvaluator {
                 user,
                 requestedResolved,
                 action0,
-                securityRoles.getRoleNames()
+                mappedRoles
             );
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {

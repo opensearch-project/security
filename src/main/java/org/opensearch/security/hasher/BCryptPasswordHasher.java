@@ -31,6 +31,7 @@ class BCryptPasswordHasher extends AbstractPasswordHasher {
         this.hashingFunction = BcryptFunction.getInstance(Bcrypt.valueOf(minor), logRounds);
     }
 
+    @SuppressWarnings("removal")
     @Override
     public String hash(char[] password) {
         if (password == null || password.length == 0) {
@@ -50,6 +51,7 @@ class BCryptPasswordHasher extends AbstractPasswordHasher {
         }
     }
 
+    @SuppressWarnings("removal")
     @Override
     public boolean check(char[] password, String hash) {
         if (password == null || password.length == 0) {

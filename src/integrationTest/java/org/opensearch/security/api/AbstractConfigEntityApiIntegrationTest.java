@@ -11,6 +11,7 @@
 
 package org.opensearch.security.api;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 
@@ -20,6 +21,8 @@ import org.junit.Test;
 import org.opensearch.common.CheckedSupplier;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.test.framework.cluster.TestRestClient;
+
+import com.nimbusds.jose.util.Pair;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -79,6 +82,33 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         this.testDescriptor = testDescriptor;
     }
 
+    static ToXContentObject configJsonArray(final String... values) {
+        return (builder, params) -> {
+            builder.startArray();
+            if (values != null) {
+                for (final var v : values) {
+                    if (v == null) {
+                        builder.nullValue();
+                    } else {
+                        builder.value(v);
+                    }
+                }
+            }
+            return builder.endArray();
+        };
+    }
+
+    static String[] generateArrayValues(boolean useNulls) {
+        final var length = randomIntBetween(1, 5);
+        final var values = new String[length];
+        final var nullIndex = randomIntBetween(0, length - 1);
+        for (var i = 0; i < values.length; i++) {
+            if (useNulls && i == nullIndex) values[i] = null;
+            else values[i] = randomAsciiAlphanumOfLength(10);
+        }
+        return values;
+    }
+
     @Override
     protected String apiPath(String... paths) {
         final StringJoiner fullPath = new StringJoiner("/").add(super.apiPath(path));
@@ -105,6 +135,27 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
 
     @Test
     public void availableForAdminUser() throws Exception {
+        final var entitiesNames = predefinedHiddenAndReservedConfigEntities();
+        final var hiddenEntityName = entitiesNames.getLeft();
+        final var reservedEntityName = entitiesNames.getRight();
+        // can't see hidden resources
+        withUser(ADMIN_USER_NAME, client -> {
+            verifyNoHiddenEntities(() -> client.get(apiPath()));
+            creationOfReadOnlyEntityForbidden(
+                randomAsciiAlphanumOfLength(10),
+                client,
+                (builder, params) -> testDescriptor.hiddenEntityPayload().toXContent(builder, params),
+                (builder, params) -> testDescriptor.reservedEntityPayload().toXContent(builder, params),
+                (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
+            );
+            verifyUpdateAndDeleteHiddenConfigEntityForbidden(hiddenEntityName, client);
+            verifyUpdateAndDeleteReservedConfigEntityForbidden(reservedEntityName, client);
+            verifyCrudOperations(null, null, client);
+            verifyBadRequestOperations(client);
+        });
+    }
+
+    Pair<String, String> predefinedHiddenAndReservedConfigEntities() throws Exception {
         final var hiddenEntityName = randomAsciiAlphanumOfLength(10);
         final var reservedEntityName = randomAsciiAlphanumOfLength(10);
         withUser(
@@ -117,21 +168,7 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
             localCluster.getAdminCertificate(),
             client -> created(() -> client.putJson(apiPath(reservedEntityName), testDescriptor.reservedEntityPayload()))
         );
-
-        // can't see hidden resources
-        withUser(ADMIN_USER_NAME, client -> {
-            verifyNoHiddenEntities(() -> client.get(apiPath()));
-            creationOfReadOnlyEntityForbidden(
-                client,
-                (builder, params) -> testDescriptor.hiddenEntityPayload().toXContent(builder, params),
-                (builder, params) -> testDescriptor.reservedEntityPayload().toXContent(builder, params),
-                (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
-            );
-            verifyUpdateAndDeleteHiddenConfigEntityForbidden(hiddenEntityName, client);
-            verifyUpdateAndDeleteReservedConfigEntityForbidden(reservedEntityName, client);
-            verifyCrudOperations(null, null, client);
-            verifyBadRequestOperations(client);
-        });
+        return Pair.of(hiddenEntityName, reservedEntityName);
     }
 
     @Test
@@ -148,7 +185,11 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     }
 
     void availableForSuperAdminUser(final TestRestClient client) throws Exception {
-        creationOfReadOnlyEntityForbidden(client, (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params));
+        creationOfReadOnlyEntityForbidden(
+            randomAsciiAlphanumOfLength(10),
+            client,
+            (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
+        );
         verifyCrudOperations(true, null, client);
         verifyCrudOperations(null, true, client);
         verifyCrudOperations(null, null, client);
@@ -167,10 +208,11 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         }
     }
 
-    void creationOfReadOnlyEntityForbidden(final TestRestClient client, final ToXContentObject... entities) throws Exception {
+    void creationOfReadOnlyEntityForbidden(final String entityName, final TestRestClient client, final ToXContentObject... entities)
+        throws Exception {
         for (final var configEntity : entities) {
             assertInvalidKeys(
-                badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(10)), configEntity)),
+                badRequest(() -> client.putJson(apiPath(entityName), configEntity)),
                 is(oneOf("static", "hidden", "reserved"))
             );
             badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(10), configEntity))));
@@ -189,6 +231,12 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         assertThat(response.getBody(), response.getTextFromJsonBody("/status"), is("error"));
         assertThat(response.getBody(), response.getTextFromJsonBody("/reason"), equalTo("Invalid configuration"));
         assertThat(response.getBody(), response.getTextFromJsonBody("/invalid_keys/keys"), expectedInvalidKeysMatcher);
+    }
+
+    void assertWrongDataType(final TestRestClient.HttpResponse response, final Map<String, String> expectedMessages) {
+        assertThat(response.getBody(), response.getTextFromJsonBody("/status"), is("error"));
+        for (final var p : expectedMessages.entrySet())
+            assertThat(response.getBody(), response.getTextFromJsonBody("/" + p.getKey()), is(p.getValue()));
     }
 
     void assertSpecifyOneOf(final TestRestClient.HttpResponse response, final String expectedSpecifyOneOfKeys) {
