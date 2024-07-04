@@ -389,7 +389,7 @@ public class SecurityFilter implements ActionFilter {
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
-                if (!dlsFlsValve.invoke(action, request, listener, context)) {
+                if (!dlsFlsValve.invoke(context, listener)) {
                     return;
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();

@@ -26,7 +26,6 @@
 
 package org.opensearch.security.configuration;
 
-import org.opensearch.action.ActionRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.search.internal.SearchContext;
@@ -36,7 +35,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
 
-    boolean invoke(String action, ActionRequest request, ActionListener<?> listener, PrivilegesEvaluationContext context);
+    boolean invoke(PrivilegesEvaluationContext context, ActionListener<?> listener);
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
 
@@ -45,7 +44,7 @@ public interface DlsFlsRequestValve {
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
         @Override
-        public boolean invoke(String action, ActionRequest request, ActionListener<?> listener, PrivilegesEvaluationContext context) {
+        public boolean invoke(PrivilegesEvaluationContext context, ActionListener<?> listener) {
             return true;
         }
 

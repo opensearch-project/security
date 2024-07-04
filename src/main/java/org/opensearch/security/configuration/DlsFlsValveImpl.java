@@ -125,17 +125,17 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     /**
      *
-     * @param request
      * @param listener
      * @return false on error
      */
     @Override
-    public boolean invoke(String action, ActionRequest request, final ActionListener<?> listener, PrivilegesEvaluationContext context) {
+    public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
 
         EvaluatedDlsFlsConfig evaluatedDlsFlsConfig = configModel.getSecurityRoles()
             .filter(context.getMappedRoles())
             .getDlsFls(context.getUser(), dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
 
+        ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
         if (log.isDebugEnabled()) {
@@ -303,7 +303,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return false;
         }
 
-        if (action.contains("plugins/replication")) {
+        if (context.getAction().contains("plugins/replication")) {
             listener.onFailure(
                 new OpenSearchSecurityException(
                     "Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated",
@@ -339,11 +339,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         if (doFilterLevelDls && filteredDlsFlsConfig.hasDls()) {
             return DlsFilterLevelActionHandler.handle(
-                action,
-                request,
-                listener,
+                context,
                 evaluatedDlsFlsConfig,
-                resolved,
+                listener,
                 nodeClient,
                 clusterService,
                 OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
