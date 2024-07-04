@@ -38,7 +38,6 @@ public class PrivilegesEvaluatorResponse {
     Set<String> resolvedSecurityRoles = new HashSet<>();
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     CreateIndexRequestBuilder createIndexRequestBuilder;
-    private String reason;
 
     public boolean isAllowed() {
         return allowed;
@@ -76,15 +75,6 @@ public class PrivilegesEvaluatorResponse {
 
     public boolean isPending() {
         return this.state == PrivilegesEvaluatorResponseState.PENDING;
-    }
-
-    public String getReason() {
-        return this.reason;
-    }
-
-    public PrivilegesEvaluatorResponse reason(String reason) {
-        this.reason = reason;
-        return this;
     }
 
     @Override
