@@ -56,7 +56,7 @@ public class CertificateValidatorTest {
             crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
         }
 
-        Assert.assertEquals(crls.size(), 1);
+        assertThat(1, is(crls.size()));
 
         // trust chain incl intermediate certificates (root + intermediates)
         Collection<? extends Certificate> rootCas;
@@ -65,7 +65,7 @@ public class CertificateValidatorTest {
             rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(rootCas.size(), 2);
+        assertThat(2, is(rootCas.size()));
 
         // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
@@ -74,7 +74,7 @@ public class CertificateValidatorTest {
             certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(certsToValidate.size(), 2);
+        assertThat(2, is(certsToValidate.size()));
 
         CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), crls);
         validator.setDate(CRL_DATE);
@@ -95,7 +95,7 @@ public class CertificateValidatorTest {
             crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
         }
 
-        Assert.assertEquals(crls.size(), 1);
+        assertThat(1, is(crls.size()));
 
         // trust chain incl intermediate certificates (root + intermediates)
         Collection<? extends Certificate> rootCas;
@@ -104,7 +104,7 @@ public class CertificateValidatorTest {
             rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(rootCas.size(), 2);
+        assertThat(2, is(rootCas.size()));
 
         // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
@@ -113,7 +113,7 @@ public class CertificateValidatorTest {
             certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(certsToValidate.size(), 3);
+        assertThat(3, is(certsToValidate.size()));
 
         CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), crls);
         validator.setDate(CRL_DATE);
@@ -134,7 +134,7 @@ public class CertificateValidatorTest {
             rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(rootCas.size(), 2);
+        assertThat(2, is(rootCas.size()));
 
         // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
@@ -143,7 +143,7 @@ public class CertificateValidatorTest {
             certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(certsToValidate.size(), 2);
+        assertThat(2, is(certsToValidate.size()));
 
         CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), Collections.emptyList());
         validator.setDate(CRL_DATE);
@@ -166,7 +166,7 @@ public class CertificateValidatorTest {
             rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(rootCas.size(), 1);
+        assertThat(1, is(rootCas.size()));
 
         // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
@@ -176,7 +176,7 @@ public class CertificateValidatorTest {
             certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
-        Assert.assertEquals(certsToValidate.size(), 2);
+        assertThat(2, is(certsToValidate.size()));
 
         CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), Collections.emptyList());
         validator.setEnableCRLDP(true);

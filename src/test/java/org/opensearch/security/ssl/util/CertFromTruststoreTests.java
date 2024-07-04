@@ -36,7 +36,7 @@ public class CertFromTruststoreTests {
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca");
 
-        Assert.assertEquals(1, cert.getClientTrustedCerts().length);
+        assertThat(cert.getClientTrustedCerts().length, is(1));
         Assert.assertTrue(cert.getClientTrustedCerts().equals(cert.getServerTrustedCerts()));
     }
 
@@ -50,7 +50,7 @@ public class CertFromTruststoreTests {
 
         CertFromTruststore cert = new CertFromTruststore(props, null);
 
-        Assert.assertEquals(1, cert.getClientTrustedCerts().length);
+        assertThat(cert.getClientTrustedCerts().length, is(1));
     }
 
     public void testLoadDifferentCertsForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
@@ -63,8 +63,8 @@ public class CertFromTruststoreTests {
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca", "root-ca");
 
-        Assert.assertEquals(1, cert.getClientTrustedCerts().length);
-        Assert.assertEquals(1, cert.getServerTrustedCerts().length);
+        assertThat(cert.getClientTrustedCerts().length, is(1));
+        assertThat(cert.getServerTrustedCerts().length, is(1));
         // we are loading same cert twice
         Assert.assertFalse(cert.getClientTrustedCerts().equals(cert.getServerTrustedCerts()));
     }

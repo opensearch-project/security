@@ -55,7 +55,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
                  SecurityConfiguration.of("rest_api_admin_role", configuration));
 
          assertFalse(result.isValid());
-         assertEquals(RestStatus.FORBIDDEN, result.status());
+         assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -70,7 +70,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
         // no role
         var result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("aaa", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_FOUND, result.status());
+        assertThat(result.status(), is(RestStatus.NOT_FOUND));
         //static role is ok
         result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("all_access", configuration));
         assertTrue(result.isValid());
@@ -83,7 +83,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
         //hidden role is not ok
         result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("some_hidden_role", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_FOUND, result.status());
+        assertThat(result.status(), is(RestStatus.NOT_FOUND));
     }
 
 }

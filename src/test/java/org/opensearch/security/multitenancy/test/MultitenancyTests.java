@@ -136,7 +136,7 @@ public class MultitenancyTests extends SingleClusterTest {
             + System.lineSeparator();
         // msearch a
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_a", "user_a"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -144,7 +144,7 @@ public class MultitenancyTests extends SingleClusterTest {
 
         // msearch b
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -161,13 +161,13 @@ public class MultitenancyTests extends SingleClusterTest {
 
         // msearch b2
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexc"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexd"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("permission"));
         int count = resc.getBody().split("\"status\" : 403").length;
-        Assert.assertEquals(3, count);
+        assertThat(count, is(3));
 
         String mgetBody = "{"
             + "\"docs\" : ["
@@ -183,7 +183,7 @@ public class MultitenancyTests extends SingleClusterTest {
             + "}";
 
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"content\" : \"indexa\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
@@ -203,10 +203,10 @@ public class MultitenancyTests extends SingleClusterTest {
             + "}";
 
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(200, resc.getStatusCode());
+        assertThat(resc.getStatusCode(), is(200));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         count = resc.getBody().split("root_cause").length;
-        Assert.assertEquals(3, count);
+        assertThat(count, is(3));
 
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
@@ -299,7 +299,7 @@ public class MultitenancyTests extends SingleClusterTest {
                 encodeBasicHeader("hr_employee", "hr_employee")
             )).getStatusCode()
         );
-        Assert.assertEquals(".kibana_1592542611_humanresources_1", DefaultObjectMapper.readTree(res.getBody()).get("_index").asText());
+        assertThat(DefaultObjectMapper.readTree(res.getBody()).get("_index").asText(), is(".kibana_1592542611_humanresources_1"));
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
@@ -468,7 +468,7 @@ public class MultitenancyTests extends SingleClusterTest {
             HttpStatus.SC_OK,
             (res = rh.executeGetRequest("_cat/indices", encodeBasicHeader("admin", "admin"))).getStatusCode()
         );
-        Assert.assertEquals(2, res.getBody().split(".kibana").length);
+        assertThat(res.getBody().split(".kibana").length, is(2));
         Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
     }
@@ -617,12 +617,12 @@ public class MultitenancyTests extends SingleClusterTest {
 
         /* The anonymous user has access to its tenant */
         res = rh.executeGetRequest(url, new BasicHeader("securitytenant", anonymousTenant));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        Assert.assertEquals(anonymousTenant, res.findValueInJson("_source.tenant"));
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat(res.findValueInJson("_source.tenant"), is(anonymousTenant));
 
         /* No access to other tenants */
         res = rh.executeGetRequest(url, new BasicHeader("securitytenant", "human_resources"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
     }
 
     @Test

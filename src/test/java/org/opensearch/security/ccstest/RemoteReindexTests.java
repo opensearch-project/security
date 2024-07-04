@@ -136,7 +136,7 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
             reindex,
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(ccs.getBody().contains("created\" : 1"));
     }
 }

@@ -84,7 +84,7 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
             + "}"
             + "}";
         res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("user_masked_custom", "password"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(res.getBody().contains("100.100"));
         Assert.assertTrue(res.getBody().contains("***"));
         Assert.assertTrue(res.getBody().contains("XXX"));
@@ -107,7 +107,7 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
             + "}";
 
         res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("user_masked_custom", "password"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(res.getBody().contains("100.100"));
         Assert.assertTrue(res.getBody().contains("***"));
         Assert.assertTrue(res.getBody().contains("XXX"));
@@ -130,7 +130,7 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
             + "}";
 
         res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("user_masked_custom", "password"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(res.getBody().contains("100.100"));
         Assert.assertTrue(res.getBody().contains("***"));
         Assert.assertTrue(res.getBody().contains("XXX"));

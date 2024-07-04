@@ -35,13 +35,13 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
                 .getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode());
+        assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
             rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
                 .getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_plugins/_security/whoami").getStatusCode());
+        assertThat(rh.executeGetRequest("_plugins/_security/whoami").getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
                 .getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode());
+        assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
             rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
@@ -71,13 +71,13 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         );
 
         RestHelper.HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode(), is(HttpStatus.SC_OK));
 
         assertContains(res, "*\"dn\":null*");
 
         rh.sendAdminCertificate = true;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode(), is(HttpStatus.SC_OK));
 
         assertContains(res, "*\"dn\":\"CN=node-0.example.com*");
         assertContains(res, "*\"is_admin\":false*");
@@ -88,7 +88,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
                 .getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode());
+        assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
             rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
@@ -97,7 +97,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
 
         rh.keystore = "spock-keystore.jks";
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode(), is(HttpStatus.SC_OK));
 
         assertContains(res, "*\"dn\":\"CN=spock*");
         assertContains(res, "*\"is_admin\":false*");
@@ -108,7 +108,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
                 .getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode());
+        assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
             rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
@@ -117,7 +117,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
 
         rh.keystore = "kirk-keystore.jks";
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode(), is(HttpStatus.SC_OK));
 
         assertContains(res, "*\"dn\":\"CN=kirk*");
         assertContains(res, "*\"is_admin\":true*");
@@ -128,7 +128,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
                 .getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode());
+        assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         Assert.assertEquals(
             HttpStatus.SC_OK,
             rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "").getStatusCode()

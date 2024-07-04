@@ -55,8 +55,8 @@ public class ConfigReaderTest {
                 assertTrue(emptyYaml.has("_meta"));
 
                 final var meta = emptyYaml.get("_meta");
-                assertEquals(cType.toLCString(), meta.get("type").asText());
-                assertEquals(DEFAULT_CONFIG_VERSION, meta.get("config_version").asInt());
+                assertThat(meta.get("type").asText(), is(cType.toLCString()));
+                assertThat(meta.get("config_version").asInt(), is(DEFAULT_CONFIG_VERSION));
             }
         }
     }

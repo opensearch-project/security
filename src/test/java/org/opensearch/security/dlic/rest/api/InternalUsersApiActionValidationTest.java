@@ -96,7 +96,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             configuration
         );
         final var result = internalUsersApiActionEndpointValidator.onConfigChange(securityConfiguration);
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
         assertFalse(securityConfiguration.requestContent().has("password"));
         assertTrue(securityConfiguration.requestContent().has("hash"));
         assertTrue(passwordHasher.check("aaaaaa".toCharArray(), securityConfiguration.requestContent().get("hash").asText()));
@@ -113,7 +113,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
                 .build()
         );
         assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_IMPLEMENTED, result.status());
+        assertThat(result.status(), is(RestStatus.NOT_IMPLEMENTED));
 
         result = internalUsersApiAction.withAuthTokenPath(
             FakeRestRequest.builder()
@@ -123,7 +123,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
                 .build()
         );
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -141,7 +141,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             SecurityConfiguration.of(objectMapper.createObjectNode(), "aaaa", configuration)
         );
         assertFalse(result.isValid());
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, result.status());
+        assertThat(result.status(), is(RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     @Test

@@ -30,7 +30,7 @@ public class EncryptionDecryptionUtilsTest {
         String encryptedString = util.encrypt(data);
         String decryptedString = util.decrypt(encryptedString);
 
-        Assert.assertEquals(data, decryptedString);
+        assertThat(decryptedString, is(data));
     }
 
     @Test
@@ -45,7 +45,7 @@ public class EncryptionDecryptionUtilsTest {
         EncryptionDecryptionUtil util2 = new EncryptionDecryptionUtil(secret2);
         RuntimeException ex = Assert.assertThrows(RuntimeException.class, () -> util2.decrypt(encryptedString));
 
-        Assert.assertEquals("Error processing data with cipher", ex.getMessage());
+        assertThat(ex.getMessage(), is("Error processing data with cipher"));
     }
 
     @Test
@@ -56,7 +56,7 @@ public class EncryptionDecryptionUtilsTest {
         EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(secret);
         RuntimeException ex = Assert.assertThrows(RuntimeException.class, () -> util.decrypt(corruptedEncryptedString));
 
-        Assert.assertEquals("Last unit does not have enough valid bits", ex.getMessage());
+        assertThat(ex.getMessage(), is("Last unit does not have enough valid bits"));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class EncryptionDecryptionUtilsTest {
         String encryptedString = util.encrypt(data);
         String decryptedString = util.decrypt(encryptedString);
 
-        Assert.assertEquals(data, decryptedString);
+        assertThat(decryptedString, is(data));
     }
 
     @Test(expected = NullPointerException.class)

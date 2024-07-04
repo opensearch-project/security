@@ -114,15 +114,15 @@ public class UtilTests {
     @Test
     public void testEnvReplace() {
         Settings settings = Settings.EMPTY;
-        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings));
-        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings));
-        assertEquals("abvtTtxyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings), is("abvtTtxyz"));
         assertTrue(passwordHasher.check("tTt".toCharArray(), SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}", settings)));
-        assertEquals("abvtTtxyzxxx", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings), is("abvtTtxyzxxx"));
         assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$2y$"));
-        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings));
-        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings));
-        // assertEquals("abvabcdefgxyz", SecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings), is("abv${env.MYENV:tTt}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings), is("abv${env.MYENV-tTt}xyz"));
+        // assertThat(SecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings), is("abvabcdefgxyz"));
 
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
@@ -134,14 +134,14 @@ public class UtilTests {
             if (val == null || val.isEmpty()) {
                 continue;
             }
-            assertEquals("abv" + val + "xyz", SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings));
-            assertEquals("abv${" + k + "}xyz", SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings));
-            assertEquals("abv" + val + "xyz", SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings));
-            assertEquals(
-                "abv" + val + "xyzabv" + val + "xyz",
-                SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings)
+            assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings), is("abv" + val + "xyz"));
+            assertThat(SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings), is("abv${" + k + "}xyz"));
+            assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings), is("abv" + val + "xyz"));
+            assertThat(
+                SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings),
+                is("abv" + val + "xyzabv" + val + "xyz")
             );
-            assertEquals("abv" + val + "xyz", SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings));
+            assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings), is("abv" + val + "xyz"));
             assertTrue(passwordHasher.check(val.toCharArray(), SecurityUtils.replaceEnvVars("${envbc." + k + "}", settings)));
             checked = true;
         }
@@ -152,33 +152,33 @@ public class UtilTests {
     @Test
     public void testNoEnvReplace() {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
-        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings));
-        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings));
-        assertEquals("abv${env.MYENV:-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings));
-        assertEquals(
-            "abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",
-            SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings)
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings), is("abv${env.MYENV:-tTt}xyz"));
+        assertThat(
+            SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings),
+            is("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}")
         );
         assertFalse(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$2y$"));
-        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings));
-        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings), is("abv${env.MYENV:tTt}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings), is("abv${env.MYENV-tTt}xyz"));
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
 
         for (String k : env.keySet()) {
-            assertEquals("abv${env." + k + "}xyz", SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings));
-            assertEquals("abv${" + k + "}xyz", SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings));
-            assertEquals(
-                "abv${env." + k + ":-k182765ggh}xyz",
-                SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings)
+            assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings), is("abv${env." + k + "}xyz"));
+            assertThat(SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings), is("abv${" + k + "}xyz"));
+            assertThat(
+                SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings),
+                is("abv${env." + k + ":-k182765ggh}xyz")
             );
-            assertEquals(
-                "abv${env." + k + "}xyzabv${env." + k + "}xyz",
-                SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings)
+            assertThat(
+                SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings),
+                is("abv${env." + k + "}xyzabv${env." + k + "}xyz")
             );
-            assertEquals(
-                "abv${env." + k + ":-k182765ggh}xyz",
-                SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings)
+            assertThat(
+                SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings),
+                is("abv${env." + k + ":-k182765ggh}xyz")
             );
         }
     }

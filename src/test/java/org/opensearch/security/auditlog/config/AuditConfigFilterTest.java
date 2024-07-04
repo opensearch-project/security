@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AuditConfigFilterTest {
 
@@ -57,10 +58,10 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldResolveBulkRequests());
         assertTrue(auditConfigFilter.shouldExcludeSensitiveHeaders());
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditRequestsMatcher());
-        assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertThat(auditConfigFilter.getIgnoredAuditUsersMatcher(), is(defaultIgnoredUserMatcher));
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredCustomHeadersMatcher());
-        assertEquals(auditConfigFilter.getDisabledRestCategories(), defaultDisabledCategories);
-        assertEquals(auditConfigFilter.getDisabledTransportCategories(), defaultDisabledCategories);
+        assertThat(defaultDisabledCategories, is(auditConfigFilter.getDisabledRestCategories()));
+        assertThat(defaultDisabledCategories, is(auditConfigFilter.getDisabledTransportCategories()));
     }
 
     @Test
@@ -96,11 +97,11 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldResolveIndices());
         assertTrue(auditConfigFilter.shouldResolveBulkRequests());
         assertFalse(auditConfigFilter.shouldExcludeSensitiveHeaders());
-        assertEquals(WildcardMatcher.from(Collections.singleton("test-user")), auditConfigFilter.getIgnoredAuditUsersMatcher());
-        assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), auditConfigFilter.getIgnoredAuditRequestsMatcher());
-        assertEquals(WildcardMatcher.from(Collections.singleton("test-header")), auditConfigFilter.getIgnoredCustomHeadersMatcher());
-        assertEquals(auditConfigFilter.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
-        assertEquals(auditConfigFilter.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
+        assertThat(auditConfigFilter.getIgnoredAuditUsersMatcher(), is(WildcardMatcher.from(Collections.singleton("test-user"))));
+        assertThat(auditConfigFilter.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.from(Collections.singleton("test-request"))));
+        assertThat(auditConfigFilter.getIgnoredCustomHeadersMatcher(), is(WildcardMatcher.from(Collections.singleton("test-header"))));
+        assertThat(EnumSet.of(BAD_HEADERS, SSL_EXCEPTION), is(auditConfigFilter.getDisabledRestCategories()));
+        assertThat(EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES), is(auditConfigFilter.getDisabledTransportCategories()));
     }
 
     @Test

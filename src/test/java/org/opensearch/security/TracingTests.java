@@ -391,7 +391,7 @@ public class TracingTests extends SingleClusterTest {
         // end pause1
 
         // search
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        assertThat(rh.executeGetRequest("_search", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
         // search done
 
         // pause2

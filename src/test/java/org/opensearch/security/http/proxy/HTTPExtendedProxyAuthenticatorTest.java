@@ -74,7 +74,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
     @Test
     public void testGetType() {
-        assertEquals("extended-proxy", authenticator.getType());
+        assertThat(authenticator.getType(), is("extended-proxy"));
     }
 
     @Test(expected = OpenSearchSecurityException.class)
@@ -110,9 +110,9 @@ public class HTTPExtendedProxyAuthenticatorTest {
         authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
         AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context);
         assertNotNull(creds);
-        assertEquals("aValidUser", creds.getUsername());
-        assertEquals("123,456", creds.getAttributes().get("attr.proxy.uid"));
-        assertEquals("someothervalue", creds.getAttributes().get("attr.proxy.other"));
+        assertThat(creds.getUsername(), is("aValidUser"));
+        assertThat(creds.getAttributes().get("attr.proxy.uid"), is("123,456"));
+        assertThat(creds.getAttributes().get("attr.proxy.other"), is("someothervalue"));
         assertTrue(creds.isComplete());
     }
 
@@ -127,8 +127,8 @@ public class HTTPExtendedProxyAuthenticatorTest {
         authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
         AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context);
         assertNotNull(creds);
-        assertEquals("aValidUser", creds.getUsername());
-        assertEquals(ImmutableSet.of("role1", "role2"), creds.getBackendRoles());
+        assertThat(creds.getUsername(), is("aValidUser"));
+        assertThat(creds.getBackendRoles(), is(ImmutableSet.of("role1", "role2")));
         assertTrue(creds.isComplete());
     }
 

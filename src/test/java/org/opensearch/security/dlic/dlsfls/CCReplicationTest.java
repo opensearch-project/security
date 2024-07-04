@@ -245,7 +245,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Assert.assertTrue(
                 ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
             );
-            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
+            assertThat(RestStatus.FORBIDDEN, is(ex.status()));
         }
 
         try (
@@ -263,7 +263,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Assert.assertTrue(
                 ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
             );
-            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
+            assertThat(RestStatus.FORBIDDEN, is(ex.status()));
         }
 
         try (
@@ -281,7 +281,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Assert.assertTrue(
                 ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
             );
-            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
+            assertThat(RestStatus.FORBIDDEN, is(ex.status()));
         }
 
         try (

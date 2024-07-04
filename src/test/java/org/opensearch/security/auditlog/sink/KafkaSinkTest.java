@@ -66,11 +66,11 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
             SinkProvider provider = new SinkProvider(settings, null, null, null);
             AuditLogSink sink = provider.getDefaultSink();
             try {
-                Assert.assertEquals(KafkaSink.class, sink.getClass());
+                assertThat(sink.getClass(), is(KafkaSink.class));
                 boolean success = sink.doStore(MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES));
                 Assert.assertTrue(success);
                 ConsumerRecords<Long, String> records = consumer.poll(Duration.ofSeconds(10));
-                Assert.assertEquals(1, records.count());
+                assertThat(records.count(), is(1));
             } finally {
                 sink.close();
             }

@@ -45,16 +45,16 @@ public class CachingTest extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
-        Assert.assertEquals(3, DummyHTTPAuthenticator.getCount());
-        Assert.assertEquals(1, DummyAuthorizer.getCount());
-        Assert.assertEquals(3, DummyAuthenticationBackend.getAuthCount());
-        Assert.assertEquals(0, DummyAuthenticationBackend.getExistsCount());
+        assertThat(DummyHTTPAuthenticator.getCount(), is(3));
+        assertThat(DummyAuthorizer.getCount(), is(1));
+        assertThat(DummyAuthenticationBackend.getAuthCount(), is(3));
+        assertThat(DummyAuthenticationBackend.getExistsCount(), is(0));
     }
 
     @Test
@@ -63,16 +63,16 @@ public class CachingTest extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
-        Assert.assertEquals(3, DummyHTTPAuthenticator.getCount());
-        Assert.assertEquals(3, DummyAuthorizer.getCount());
-        Assert.assertEquals(3, DummyAuthenticationBackend.getAuthCount());
-        Assert.assertEquals(0, DummyAuthenticationBackend.getExistsCount());
+        assertThat(DummyHTTPAuthenticator.getCount(), is(3));
+        assertThat(DummyAuthorizer.getCount(), is(3));
+        assertThat(DummyAuthenticationBackend.getAuthCount(), is(3));
+        assertThat(DummyAuthenticationBackend.getExistsCount(), is(0));
     }
 
     @Test
@@ -84,26 +84,26 @@ public class CachingTest extends SingleClusterTest {
             "_opendistro/_security/authinfo?pretty",
             new BasicHeader("opendistro_security_impersonate_as", "impuser")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest(
             "_opendistro/_security/authinfo?pretty",
             new BasicHeader("opendistro_security_impersonate_as", "impuser")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest(
             "_opendistro/_security/authinfo?pretty",
             new BasicHeader("opendistro_security_impersonate_as", "impuser")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
         res = rh.executeGetRequest(
             "_opendistro/_security/authinfo?pretty",
             new BasicHeader("opendistro_security_impersonate_as", "impuser2")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
-        Assert.assertEquals(4, DummyHTTPAuthenticator.getCount());
-        Assert.assertEquals(3, DummyAuthorizer.getCount());
-        Assert.assertEquals(4, DummyAuthenticationBackend.getAuthCount());
-        Assert.assertEquals(2, DummyAuthenticationBackend.getExistsCount());
+        assertThat(DummyHTTPAuthenticator.getCount(), is(4));
+        assertThat(DummyAuthorizer.getCount(), is(3));
+        assertThat(DummyAuthenticationBackend.getAuthCount(), is(4));
+        assertThat(DummyAuthenticationBackend.getExistsCount(), is(2));
     }
 }

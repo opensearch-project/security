@@ -54,33 +54,33 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
 
         // GET configuration
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/roles");
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         String errorString = response.getBody();
-        Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+        assertThat(errorString, is("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}"));
 
         // GET roles
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         errorString = response.getBody();
-        Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+        assertThat(errorString, is("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}"));
 
         // GET rolesmapping
         response = rh.executeGetRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         errorString = response.getBody();
-        Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+        assertThat(errorString, is("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}"));
 
         // GET actiongroups
         response = rh.executeGetRequest(ENDPOINT + "/actiongroups/READ");
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         errorString = response.getBody();
-        Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+        assertThat(errorString, is("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}"));
 
         // GET internalusers
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/picard");
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         errorString = response.getBody();
-        Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+        assertThat(errorString, is("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}"));
 
         // PUT request
         response = rh.executePutRequest(
@@ -88,18 +88,18 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
             FileHelper.loadFile("restapi/actiongroup_read.json"),
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
         // DELETE request
         response = rh.executeDeleteRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
         // setup index now
         initialize(this.clusterHelper, this.clusterInfo);
 
         // GET configuration
         response = rh.executeGetRequest(ENDPOINT + "/roles");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         SecurityJsonNode securityJsonNode = new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody()));
         Assert.assertEquals(
             "OPENDISTRO_SECURITY_CLUSTER_ALL",

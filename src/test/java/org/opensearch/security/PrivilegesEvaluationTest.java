@@ -51,9 +51,9 @@ public class PrivilegesEvaluationTest extends SingleClusterTest {
             "/*hidden_test*/_search?expand_wildcards=all&pretty=true",
             encodeBasicHeader("hidden_test", "nagilum")
         );
-        Assert.assertEquals(httpResponse.getBody(), 403, httpResponse.getStatusCode());
+        assertThat(httpResponse.getBody(), httpResponse.getStatusCode(), is(403));
 
         httpResponse = rh.executeGetRequest("/hidden_test_not_hidden?pretty=true", encodeBasicHeader("hidden_test", "nagilum"));
-        Assert.assertEquals(httpResponse.getBody(), 200, httpResponse.getStatusCode());
+        assertThat(httpResponse.getBody(), httpResponse.getStatusCode(), is(200));
     }
 }

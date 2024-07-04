@@ -88,6 +88,6 @@ public class DlsScrollTest extends AbstractDlsFlsTest {
             }
         }
 
-        Assert.assertEquals(21, c);
+        assertThat(c, is(21));
     }
 }

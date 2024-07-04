@@ -103,8 +103,8 @@ public class SecurityMetadataSerializationTestCase extends RandomizedTest {
 
     void assertEqualInstances(ClusterState.Custom expectedInstance, ClusterState.Custom newInstance) {
         assertNotSame(newInstance, expectedInstance);
-        assertEquals(expectedInstance, newInstance);
-        assertEquals(expectedInstance.hashCode(), newInstance.hashCode());
+        assertThat(newInstance, is(expectedInstance));
+        assertThat(newInstance.hashCode(), is(expectedInstance.hashCode()));
     }
 
     @Test

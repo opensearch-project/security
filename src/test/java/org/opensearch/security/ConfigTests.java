@@ -106,7 +106,7 @@ public class ConfigTests {
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
         if (jsonNode.get("_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
 
@@ -125,7 +125,7 @@ public class ConfigTests {
         int configVersion = 1;
 
         if (jsonNode.get("_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
         return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);

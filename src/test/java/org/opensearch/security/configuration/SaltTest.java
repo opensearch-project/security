@@ -37,7 +37,7 @@ public class SaltTest {
         final Salt salt = Salt.from(Settings.EMPTY);
 
         // assert
-        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertThat(salt.getSalt16().length, is(SALT_SIZE));
         assertArrayEquals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
     }
 
@@ -52,7 +52,7 @@ public class SaltTest {
 
         // assert
         assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
-        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertThat(salt.getSalt16().length, is(SALT_SIZE));
     }
 
     @Test
@@ -64,7 +64,7 @@ public class SaltTest {
         final Salt salt = Salt.from(settings);
 
         // assert
-        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertThat(salt.getSalt16().length, is(SALT_SIZE));
         assertArrayEquals(testSalt.substring(0, SALT_SIZE).getBytes(StandardCharsets.UTF_8), salt.getSalt16());
     }
 

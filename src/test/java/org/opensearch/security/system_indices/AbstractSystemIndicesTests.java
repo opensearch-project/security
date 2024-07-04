@@ -166,15 +166,15 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     }
 
     void validateSearchResponse(RestHelper.HttpResponse response, int expectedHits) throws IOException {
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+        assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
 
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
-        assertEquals(RestStatus.OK, searchResponse.status());
-        assertEquals(expectedHits, searchResponse.getHits().getHits().length);
-        assertEquals(0, searchResponse.getFailedShards());
-        assertEquals(5, searchResponse.getSuccessfulShards());
+        assertThat(searchResponse.status(), is(RestStatus.OK));
+        assertThat(searchResponse.getHits().getHits().length, is(expectedHits));
+        assertThat(searchResponse.getFailedShards(), is(0));
+        assertThat(searchResponse.getSuccessfulShards(), is(5));
     }
 
     String permissionExceptionMessage(String action, String username) {
@@ -186,7 +186,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     }
 
     void validateForbiddenResponse(RestHelper.HttpResponse response, String action, String user) {
-        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        assertThat(response.getStatusCode(), is(RestStatus.FORBIDDEN.getStatus()));
         MatcherAssert.assertThat(response.getBody(), Matchers.containsStringIgnoringCase(permissionExceptionMessage(action, user)));
     }
 
@@ -197,7 +197,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         if (isSecurityIndexRequest || isRequestingAccessToNonAuthorizedSystemIndex) {
             validateForbiddenResponse(response, isSecurityIndexRequest ? "" : action, user);
         } else {
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
         }
     }
 
