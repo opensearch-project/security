@@ -58,26 +58,26 @@ public class PrivilegesEvaluatorPerformanceTest {
     final static TestSecurityConfig.User FULL_PRIVILEGES_TEST_USER = new TestSecurityConfig.User("full_privileges").roles(
         new TestSecurityConfig.Role("full_privileges_role").indexPermissions("*").on("*").clusterPermissions("*")
     );
-    
+
     final static TestSecurityConfig.User INDEX_A_READ_TEST_USER = new TestSecurityConfig.User("index_a_read").roles(
         new TestSecurityConfig.Role("index_a_read_role").indexPermissions(READ_PERMISSIONS)
             .on("index_a*")
             .clusterPermissions("cluster_composite_ops")
     );
-    
+
     final static TestSecurityConfig.User INDEX_A_READ_REGEX_TEST_USER = new TestSecurityConfig.User("index_a_read_regex").roles(
         new TestSecurityConfig.Role("index_a_read_regex_role").indexPermissions(READ_PERMISSIONS)
             .on("/^index_a.*/")
             .clusterPermissions("cluster_composite_ops")
     );
-    
+
     final static TestSecurityConfig.User INDEX_A_READ_ATTR_TEST_USER = new TestSecurityConfig.User("index_a_read_attr").attr("attr_a", "a")
         .roles(
             new TestSecurityConfig.Role("index_a_read_attr_role").indexPermissions(READ_PERMISSIONS)
                 .on("index_${attr_internal_attr_a}*")
                 .clusterPermissions("cluster_composite_ops")
         );
-    
+
     final static TestSecurityConfig.User INDEX_A_READ_ATTR_REGEX_TEST_USER = new TestSecurityConfig.User("index_a_read_attr").attr(
         "attr_a",
         "a"
@@ -799,7 +799,7 @@ public class PrivilegesEvaluatorPerformanceTest {
         );
         return user;
     }
-    
+
     static Metadata testIndices(int count) {
         MockIndexMetadataBuilder builder = new MockIndexMetadataBuilder();
         char[] letters = new char[] { 'a', 'b', 'c', 'd', 'e' };
