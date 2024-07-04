@@ -147,7 +147,9 @@ public class Hasher {
 
     private static Options buildOptions() {
         final Options options = new Options();
-        options.addOption(Option.builder(PASSWORD_OPTION).argName("password").hasArg().desc("Cleartext password to hash").build());
+        options.addOption(
+            Option.builder(PASSWORD_OPTION).longOpt("password").argName("password").hasArg().desc("Cleartext password to hash").build()
+        );
         options.addOption(
             Option.builder(ENV_OPTION)
                 .argName("Environment variable name")

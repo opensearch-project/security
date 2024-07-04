@@ -259,7 +259,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        // read internal users and verify no BCrypt hash is present in audit logs
+        // read internal users and verify no PBKDF2 hash is present in audit logs
         final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers");
         });
@@ -272,7 +272,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         );
         Assert.assertTrue(message1.toString().contains("__HASH__"));
 
-        // read internal user worf and verify no BCrypt hash is present in audit logs
+        // read internal user and verify no PBKDF2 hash is present in audit logs
         final AuditMessage message2 = TestAuditlogImpl.doThenWaitForMessage(() -> {
             rh.executeGetRequest("/_opendistro/_security/api/internalusers/user1");
         });
