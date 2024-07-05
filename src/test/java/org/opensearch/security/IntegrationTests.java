@@ -32,8 +32,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -60,6 +58,8 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import io.netty.handler.ssl.OpenSsl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 
 public class IntegrationTests extends SingleClusterTest {
@@ -81,21 +81,26 @@ public class IntegrationTests extends SingleClusterTest {
 
         // search
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+            is(
+                (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum")))
+                    .getStatusCode()
+            )
         );
 
         int start = res.getBody().indexOf("_scroll_id") + 15;
         String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start + 1));
         // search scroll
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
-                "/_search/scroll?pretty=true",
-                "{\"scroll_id\" : \"" + scrollid + "\"}",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            is(
+                (res = rh.executePostRequest(
+                    "/_search/scroll?pretty=true",
+                    "{\"scroll_id\" : \"" + scrollid + "\"}",
+                    encodeBasicHeader("nagilum", "nagilum")
+                )).getStatusCode()
+            )
         );
 
         // search done
@@ -127,9 +132,9 @@ public class IntegrationTests extends SingleClusterTest {
 
         settings = Settings.builder().build();
         auth = new HTTPClientCertAuthenticator(settings, null);
-        Assert.assertEquals(
+        assertThat(
             "cn=abc,l=ert,st=zui,c=qwe",
-            auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername()
+            is(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername())
         );
     }
 
@@ -336,10 +341,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         assertThat(rh.executeGetRequest("", encodeBasicHeader("bug.88", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("a", "b")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("", encodeBasicHeader("\"'+-,;_?*@<>!$%&/()=#", "nagilum")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("", encodeBasicHeader("\"'+-,;_?*@<>!$%&/()=#", "nagilum")).getStatusCode()));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("§ÄÖÜäöüß", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
 
     }
@@ -379,25 +381,19 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("index*/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode()));
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("indexa/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("index*/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("isallowed/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("indexa/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode()
-        );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("isallowed/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode()
-        );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("special/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("special/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("alsonotallowed/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("alsonotallowed/_search", encodeBasicHeader("rexclude", "nagilum")).getStatusCode())
         );
     }
 
@@ -502,13 +498,15 @@ public class IntegrationTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
-                "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
-                "{\"query\" : {\"match_all\" : {}}}",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            is(
+                (res = rh.executePostRequest(
+                    "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
+                    "{\"query\" : {\"match_all\" : {}}}",
+                    encodeBasicHeader("nagilum", "nagilum")
+                )).getStatusCode()
+            )
         );
         Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
 
@@ -602,18 +600,18 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         HttpResponse resc;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (resc = rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode()
+            is((resc = rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode())
         );
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("permission"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (resc = rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_b", "user_b"))).getStatusCode()
+            is((resc = rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_b", "user_b"))).getStatusCode())
         );
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
@@ -704,76 +702,73 @@ public class IntegrationTests extends SingleClusterTest {
         assertThat(resc.getBody(), resc.findValueInJson("docs[0].error.type"), is("index_not_found_exception"));
         assertThat(resc.getBody(), resc.findValueInJson("docs[1].error.type"), is("index_not_found_exception"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (resc = rh.executeGetRequest("_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode()
+            is((resc = rh.executeGetRequest("_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode())
         );
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (resc = rh.executeGetRequest("index*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode()
+            is((resc = rh.executeGetRequest("index*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode())
         );
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("permission"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("indexa/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("indexa/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("indexb/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("indexb/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()));
+
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("_all/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("_all/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
-        );
-
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("notexists/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("notexists/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest("permitnotexistentindex/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("permitnotexistentindex/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("permitnotexistentindex*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("permitnotexistentindex*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest("indexanbh,indexabb*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("indexanbh,indexabb*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
         // _all/_mapping/field/*
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
     }
 
@@ -845,14 +840,14 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         HttpResponse resc;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_b", "user_b")).getStatusCode()
+            is(rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_b", "user_b")).getStatusCode())
         );
 
         String msearchBody = "{\"index\":\"indexa\", \"ignore_unavailable\": true}"
@@ -939,70 +934,67 @@ public class IntegrationTests extends SingleClusterTest {
         count = resc.getBody().split("root_cause").length;
         assertThat(count, is(3));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("index*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("index*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("indexa/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("indexa/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("indexb/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("indexb/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("_all/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("_all/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("notexists/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("notexists/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest("indexanbh,indexabb*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("indexanbh,indexabb*/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("user_a", "user_a")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
         // _all/_mapping/field/*
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_all/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         // _mapping/field/*
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
         // */_mapping/field/*
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("*/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("*/_mapping/field/*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
     }
 

@@ -18,12 +18,11 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PasswordValidatorTest {
 
@@ -153,9 +152,9 @@ public class PasswordValidatorTest {
             Settings.builder().put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 15).build()
         );
         for (final String password : STRONG_PASSWORDS) {
-            assertEquals(
+            assertThat(
                 RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT,
-                passwordValidator.validate(password, "some_user_name")
+                is(passwordValidator.validate(password, "some_user_name"))
             );
         }
 

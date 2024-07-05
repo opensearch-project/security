@@ -12,8 +12,6 @@ package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -22,6 +20,9 @@ import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class EncryptionInTransitMigrationTests extends SingleClusterTest {
 
@@ -65,9 +66,9 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
                 + "\": false } }";
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
             assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-            Assert.assertEquals(
+            assertThat(
                 "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}",
-                res.getBody()
+                is(res.getBody())
             );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
@@ -79,9 +80,9 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
                 + "\": true } }";
             res = rh.executePutRequest("_cluster/settings", enableDualModeClusterSetting);
             assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-            Assert.assertEquals(
+            assertThat(
                 "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"true\"}}},\"transient\":{}}",
-                res.getBody()
+                is(res.getBody())
             );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
@@ -90,9 +91,9 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
 
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
             assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-            Assert.assertEquals(
+            assertThat(
                 "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}",
-                res.getBody()
+                is(res.getBody())
             );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");

@@ -21,9 +21,9 @@ import org.junit.rules.TemporaryFolder;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.impl.CType;
 
-import static org.opensearch.security.configuration.ConfigurationRepository.DEFAULT_CONFIG_VERSION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.configuration.ConfigurationRepository.DEFAULT_CONFIG_VERSION;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 

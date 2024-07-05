@@ -27,9 +27,6 @@
 package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -37,6 +34,9 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class HealthTests extends SingleClusterTest {
 
@@ -46,10 +46,7 @@ public class HealthTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is((res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode()));
         assertContains(res, "*UP*");
         assertNotContains(res, "*DOWN*");
         assertNotContains(res, "*strict*");
@@ -66,17 +63,14 @@ public class HealthTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is((res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode()));
         assertContains(res, "*UP*");
         assertNotContains(res, "*DOWN*");
         assertNotContains(res, "*strict*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_SERVICE_UNAVAILABLE,
-            (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode()
+            is((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode())
         );
         assertContains(res, "*DOWN*");
         assertContains(res, "*strict*");

@@ -24,8 +24,6 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,6 +46,9 @@ import org.opensearch.transport.Netty4ModulePlugin;
 
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class OpenSSLTest extends SSLTest {
     private static final String USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY = "opensearch.unsafe.use_netty_default_allocator";

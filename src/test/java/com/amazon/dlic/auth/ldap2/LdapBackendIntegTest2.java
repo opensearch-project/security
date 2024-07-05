@@ -15,8 +15,6 @@ import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -29,6 +27,9 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class LdapBackendIntegTest2 extends SingleClusterTest {
 
@@ -79,13 +80,15 @@ public class LdapBackendIntegTest2 extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), settings);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest(
-                "_opendistro/_security/authinfo",
-                new BasicHeader("opendistro_security_impersonate_as", "jacksonm"),
-                encodeBasicHeader("spock", "spocksecret")
-            )).getStatusCode()
+            is(
+                (res = rh.executeGetRequest(
+                    "_opendistro/_security/authinfo",
+                    new BasicHeader("opendistro_security_impersonate_as", "jacksonm"),
+                    encodeBasicHeader("spock", "spocksecret")
+                )).getStatusCode()
+            )
         );
         Assert.assertTrue(res.getBody().contains("ldap.dn"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.entryDN"));

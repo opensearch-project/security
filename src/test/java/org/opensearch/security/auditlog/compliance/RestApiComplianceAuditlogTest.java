@@ -16,8 +16,6 @@ import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -32,6 +30,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 

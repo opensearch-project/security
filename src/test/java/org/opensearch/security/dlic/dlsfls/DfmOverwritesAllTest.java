@@ -12,8 +12,6 @@
 package org.opensearch.security.dlic.dlsfls;
 
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.index.IndexRequest;
@@ -24,6 +22,9 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Tests that the dfm_empty_overwrites_all flag works correctly.

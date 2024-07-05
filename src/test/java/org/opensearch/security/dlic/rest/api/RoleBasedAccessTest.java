@@ -13,8 +13,6 @@ package org.opensearch.security.dlic.rest.api;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -27,6 +25,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
@@ -226,11 +225,11 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         // starfleet role present again
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertEquals(
+        assertThat(
             new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted(
                 "opendistro_security_role_starfleet_captains.index_permissions"
             ).get(0).get("allowed_actions").get(0).asString(),
-            "blafasel"
+            is("blafasel")
         );
 
         // Try the same, but now with admin certificate

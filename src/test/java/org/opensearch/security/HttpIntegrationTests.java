@@ -35,8 +35,6 @@ import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -59,6 +57,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 
 public class HttpIntegrationTests extends SingleClusterTest {
@@ -126,162 +126,151 @@ public class HttpIntegrationTests extends SingleClusterTest {
         assertThat(rh.executeGetRequest("_search").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest("xxxxyyyy/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("xxxxyyyy/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         assertThat(rh.executeGetRequest("", encodeBasicHeader("abc", "abc:abc")).getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode()
-        );
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", encodeBasicHeader("userwithblankpassword", "")).getStatusCode()
+            is(rh.executeGetRequest("", encodeBasicHeader("userwithblankpassword", "")).getStatusCode())
         );
         assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "wrongpasswd")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", new BasicHeader("Authorization", "Basic " + "wrongheader")).getStatusCode()
+            is(rh.executeGetRequest("", new BasicHeader("Authorization", "Basic " + "wrongheader")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", new BasicHeader("Authorization", "Basic ")).getStatusCode()
-        );
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", new BasicHeader("Authorization", "Basic")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", new BasicHeader("Authorization", "Basic ")).getStatusCode()));
+        assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", new BasicHeader("Authorization", "Basic")).getStatusCode()));
         assertThat(rh.executeGetRequest("", new BasicHeader("Authorization", "")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("picard", "picard")).getStatusCode(), is(HttpStatus.SC_OK));
 
         for (int i = 0; i < 10; i++) {
-            Assert.assertEquals(
-                HttpStatus.SC_UNAUTHORIZED,
-                rh.executeGetRequest("", encodeBasicHeader("worf", "wrongpasswd")).getStatusCode()
-            );
+            assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", encodeBasicHeader("worf", "wrongpasswd")).getStatusCode()));
         }
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest("/theindex", "{}", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode()
+            is(rh.executePutRequest("/theindex", "{}", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_CREATED,
-            rh.executePutRequest("/theindex/_doc/1?refresh=true", "{\"a\":0}", encodeBasicHeader("theindexadmin", "theindexadmin"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("/theindex/_doc/1?refresh=true", "{\"a\":0}", encodeBasicHeader("theindexadmin", "theindexadmin"))
+                    .getStatusCode()
+            )
         );
-        // Assert.assertEquals(HttpStatus.SC_OK,
+        // assertThat(HttpStatus.SC_OK,
         // rh.executeGetRequest("/theindex/_analyze?text=this+is+a+test",encodeBasicHeader("theindexadmin",
         // "theindexadmin")).getStatusCode());
-        // Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
+        // assertThat(HttpStatus.SC_FORBIDDEN,
         // rh.executeGetRequest("_analyze?text=this+is+a+test",encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode());
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeDeleteRequest("/theindex", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode()
+            is(rh.executeDeleteRequest("/theindex", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeDeleteRequest("/klingonempire", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode()
+            is(rh.executeDeleteRequest("/klingonempire", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode())
         );
         assertThat(rh.executeGetRequest("starfleet/_search", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeDeleteRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeDeleteRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest("/.opendistro_security/_close", null, encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePostRequest("/.opendistro_security/_close", null, encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest("/.opendistro_security/_upgrade", null, encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePostRequest("/.opendistro_security/_upgrade", null, encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("/.opendistro_security/_mapping", "{}", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePutRequest("/.opendistro_security/_mapping", "{}", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeDeleteRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeDeleteRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
         HttpResponse resc = rh.executeGetRequest("_cat/indices/public?v", encodeBasicHeader("bug108", "nagilum"));
         Assert.assertTrue(resc.getBody().contains("green"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(
-                "role01_role02/_search?pretty",
-                encodeBasicHeader("user_role01_role02_role03", "user_role01_role02_role03")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "role01_role02/_search?pretty",
+                    encodeBasicHeader("user_role01_role02_role03", "user_role01_role02_role03")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("role01_role02/_search?pretty", encodeBasicHeader("user_role01", "user_role01")).getStatusCode()
+            is(rh.executeGetRequest("role01_role02/_search?pretty", encodeBasicHeader("user_role01", "user_role01")).getStatusCode())
         );
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("spock", "spock")).getStatusCode()
-        );
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("spock", "spock")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode()
+            is(rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("kirk/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("kirk/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode()));
 
         // all
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(".opendistro_security/_mget", "{\"ids\" : [\"0\"]}", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(
+                rh.executePostRequest(".opendistro_security/_mget", "{\"ids\" : [\"0\"]}", encodeBasicHeader("worf", "worf"))
+                    .getStatusCode()
+            )
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
         try (Client tc = getClient()) {
@@ -295,9 +284,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
             assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
         }
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
         try (Client tc = getClient()) {
@@ -311,9 +300,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
             assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
         }
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
         HttpResponse res = rh.executeGetRequest("_search?pretty", encodeBasicHeader("nagilum", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
@@ -582,61 +571,76 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         assertThat(rh.executeGetRequest("").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(
-                "",
-                new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
-                new BasicHeader("x-proxy-user", "scotty"),
-                encodeBasicHeader("nagilum-wrong", "nagilum-wrong")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "",
+                    new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
+                    new BasicHeader("x-proxy-user", "scotty"),
+                    encodeBasicHeader("nagilum-wrong", "nagilum-wrong")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(
-                "",
-                new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
-                new BasicHeader("x-proxy-user-wrong", "scotty"),
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "",
+                    new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
+                    new BasicHeader("x-proxy-user-wrong", "scotty"),
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_INTERNAL_SERVER_ERROR,
-            rh.executeGetRequest(
-                "",
-                new BasicHeader("x-forwarded-for", "a"),
-                new BasicHeader("x-proxy-user", "scotty"),
-                encodeBasicHeader("nagilum-wrong", "nagilum-wrong")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "",
+                    new BasicHeader("x-forwarded-for", "a"),
+                    new BasicHeader("x-proxy-user", "scotty"),
+                    encodeBasicHeader("nagilum-wrong", "nagilum-wrong")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_INTERNAL_SERVER_ERROR,
-            rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "a,b,c"), new BasicHeader("x-proxy-user", "scotty")).getStatusCode()
+            is(
+                rh.executeGetRequest("", new BasicHeader("x-forwarded-for", "a,b,c"), new BasicHeader("x-proxy-user", "scotty"))
+                    .getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(
-                "",
-                new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
-                new BasicHeader("x-proxy-user", "scotty")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "",
+                    new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
+                    new BasicHeader("x-proxy-user", "scotty")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(
-                "",
-                new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
-                new BasicHeader("X-Proxy-User", "scotty")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "",
+                    new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
+                    new BasicHeader("X-Proxy-User", "scotty")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(
-                "",
-                new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
-                new BasicHeader("x-proxy-user", "scotty"),
-                new BasicHeader("x-proxy-roles", "starfleet,engineer")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "",
+                    new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),
+                    new BasicHeader("x-proxy-user", "scotty"),
+                    new BasicHeader("x-proxy-roles", "starfleet,engineer")
+                ).getStatusCode()
+            )
         );
 
     }
@@ -733,152 +737,138 @@ public class HttpIntegrationTests extends SingleClusterTest {
         assertThat(rh.executeGetRequest("").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeDeleteRequest("nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest("xxxxyyyy/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("xxxxyyyy/_doc/0", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         assertThat(rh.executeGetRequest("", encodeBasicHeader("abc", "abc:abc")).getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", encodeBasicHeader("userwithnopassword", "")).getStatusCode()
-        );
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", encodeBasicHeader("userwithblankpassword", "")).getStatusCode()
+            is(rh.executeGetRequest("", encodeBasicHeader("userwithblankpassword", "")).getStatusCode())
         );
         assertThat(rh.executeGetRequest("", encodeBasicHeader("worf", "wrongpasswd")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", new BasicHeader("Authorization", "Basic " + "wrongheader")).getStatusCode()
+            is(rh.executeGetRequest("", new BasicHeader("Authorization", "Basic " + "wrongheader")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", new BasicHeader("Authorization", "Basic ")).getStatusCode()
-        );
-        Assert.assertEquals(
-            HttpStatus.SC_UNAUTHORIZED,
-            rh.executeGetRequest("", new BasicHeader("Authorization", "Basic")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", new BasicHeader("Authorization", "Basic ")).getStatusCode()));
+        assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", new BasicHeader("Authorization", "Basic")).getStatusCode()));
         assertThat(rh.executeGetRequest("", new BasicHeader("Authorization", "")).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest("", encodeBasicHeader("picard", "picard")).getStatusCode(), is(HttpStatus.SC_OK));
 
         for (int i = 0; i < 10; i++) {
-            Assert.assertEquals(
-                HttpStatus.SC_UNAUTHORIZED,
-                rh.executeGetRequest("", encodeBasicHeader("worf", "wrongpasswd")).getStatusCode()
-            );
+            assertThat(HttpStatus.SC_UNAUTHORIZED, is(rh.executeGetRequest("", encodeBasicHeader("worf", "wrongpasswd")).getStatusCode()));
         }
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest("/theindex", "{}", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode()
+            is(rh.executePutRequest("/theindex", "{}", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_CREATED,
-            rh.executePutRequest("/theindex/_doc/1?refresh=true", "{\"a\":0}", encodeBasicHeader("theindexadmin", "theindexadmin"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("/theindex/_doc/1?refresh=true", "{\"a\":0}", encodeBasicHeader("theindexadmin", "theindexadmin"))
+                    .getStatusCode()
+            )
         );
-        // Assert.assertEquals(HttpStatus.SC_OK,
+        // assertThat(HttpStatus.SC_OK,
         // rh.executeGetRequest("/theindex/_analyze?text=this+is+a+test",encodeBasicHeader("theindexadmin",
         // "theindexadmin")).getStatusCode());
-        // Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
+        // assertThat(HttpStatus.SC_FORBIDDEN,
         // rh.executeGetRequest("_analyze?text=this+is+a+test",encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode());
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeDeleteRequest("/theindex", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode()
+            is(rh.executeDeleteRequest("/theindex", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeDeleteRequest("/klingonempire", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode()
+            is(rh.executeDeleteRequest("/klingonempire", encodeBasicHeader("theindexadmin", "theindexadmin")).getStatusCode())
         );
         assertThat(rh.executeGetRequest("starfleet/_search", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest("starfleet/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeDeleteRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeDeleteRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest("/.opendistro_security/_close", null, encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePostRequest("/.opendistro_security/_close", null, encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest("/.opendistro_security/_upgrade", null, encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePostRequest("/.opendistro_security/_upgrade", null, encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("/.opendistro_security/_mapping", "{}", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePutRequest("/.opendistro_security/_mapping", "{}", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest(".opendistro_security/", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeGetRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeDeleteRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executeDeleteRequest(".opendistro_security/_doc/0", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("worf", "worf")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("worf", "worf")).getStatusCode())
         );
 
         HttpResponse resc = rh.executeGetRequest("_cat/indices/public", encodeBasicHeader("bug108", "nagilum"));
         // Assert.assertTrue(resc.getBody().contains("green"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest(
-                "role01_role02/_search?pretty",
-                encodeBasicHeader("user_role01_role02_role03", "user_role01_role02_role03")
-            ).getStatusCode()
+            is(
+                rh.executeGetRequest(
+                    "role01_role02/_search?pretty",
+                    encodeBasicHeader("user_role01_role02_role03", "user_role01_role02_role03")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("role01_role02/_search?pretty", encodeBasicHeader("user_role01", "user_role01")).getStatusCode()
+            is(rh.executeGetRequest("role01_role02/_search?pretty", encodeBasicHeader("user_role01", "user_role01")).getStatusCode())
         );
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("spock", "spock")).getStatusCode()
-        );
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("spock", "spock")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode()
+            is(rh.executeGetRequest("spock/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("kirk/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("kirk/_search?pretty", encodeBasicHeader("kirk", "kirk")).getStatusCode()));
 
         // all
 
@@ -1166,10 +1156,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
                 .actionGet();
         }
 
-        Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
-            rh.executeGetRequest("_all/_search", encodeBasicHeader("worf", "worf")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_FORBIDDEN, is(rh.executeGetRequest("_all/_search", encodeBasicHeader("worf", "worf")).getStatusCode()));
         assertThat(rh.executeGetRequest("*/_search", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         assertThat(rh.executeGetRequest("_search", encodeBasicHeader("worf", "worf")).getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
     }

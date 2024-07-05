@@ -21,10 +21,10 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
-import static org.opensearch.security.configuration.Salt.SALT_SIZE;
-import static org.junit.Assert.assertArrayEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.configuration.Salt.SALT_SIZE;
+import static org.junit.Assert.assertArrayEquals;
 
 public class SaltTest {
 

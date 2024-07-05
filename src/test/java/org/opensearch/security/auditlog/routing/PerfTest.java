@@ -12,8 +12,6 @@
 package org.opensearch.security.auditlog.routing;
 
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Ignore;
 import org.junit.Test;
 

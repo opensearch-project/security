@@ -18,8 +18,6 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.Lists;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;

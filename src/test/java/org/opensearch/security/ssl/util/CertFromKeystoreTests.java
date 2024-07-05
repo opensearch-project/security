@@ -18,11 +18,12 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.security.test.helper.file.FileHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class CertFromKeystoreTests {
 

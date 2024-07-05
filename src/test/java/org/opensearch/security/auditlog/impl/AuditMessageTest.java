@@ -41,7 +41,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -123,7 +122,10 @@ public class AuditMessageTest {
     @Test
     public void testTransportHeadersAreFiltered() {
         message.addTransportHeaders(TEST_TRANSPORT_HEADERS, true);
-        assertThat(message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS), is(ImmutableMap.of("test-header", ImmutableList.of("test-4"))));
+        assertThat(
+            message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS),
+            is(ImmutableMap.of("test-header", ImmutableList.of("test-4")))
+        );
     }
 
     @Test

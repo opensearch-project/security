@@ -12,15 +12,15 @@
 package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class SecurityAdminIEndpointsTests extends SingleClusterTest {
 
@@ -30,16 +30,20 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         assertThat(rh.executeGetRequest("_plugins/_security/whoami").getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
     }
@@ -58,16 +62,20 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = false;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
 
         RestHelper.HttpResponse res;
@@ -83,16 +91,20 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         assertContains(res, "*\"is_admin\":false*");
         assertContains(res, "*\"is_node_certificate_request\":true*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
 
         rh.keystore = "spock-keystore.jks";
@@ -103,16 +115,20 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         assertContains(res, "*\"is_admin\":false*");
         assertContains(res, "*\"is_node_certificate_request\":false*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
 
         rh.keystore = "kirk-keystore.jks";
@@ -123,24 +139,25 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         assertContains(res, "*\"is_admin\":true*");
         assertContains(res, "*\"is_node_certificate_request\":false*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "").getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "").getStatusCode()));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePutRequest(
-                "_plugins/_security/configupdate?config_types=unknown_xxx",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            is(
+                (res = rh.executePutRequest(
+                    "_plugins/_security/configupdate?config_types=unknown_xxx",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                )).getStatusCode()
+            )
         );
         assertContains(res, "*\"successful\":0*failed_node_exception*");
 

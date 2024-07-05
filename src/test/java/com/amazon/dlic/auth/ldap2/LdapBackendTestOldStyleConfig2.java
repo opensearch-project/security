@@ -21,8 +21,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,7 +47,9 @@ import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
 public class LdapBackendTestOldStyleConfig2 {
@@ -358,11 +358,7 @@ public class LdapBackendTestOldStyleConfig2 {
             );
             Assert.fail("Expected Exception");
         } catch (Exception e) {
-            Assert.assertEquals(
-                e.getCause().getClass().toString(),
-                org.ldaptive.provider.ConnectionException.class,
-                e.getCause().getClass()
-            );
+            assertThat(e.getCause().getClass().toString(), org.ldaptive.provider.ConnectionException.class, is(e.getCause().getClass()));
             Assert.assertTrue(ExceptionUtils.getStackTrace(e), EXCEPTION_MATCHER.test(ExceptionUtils.getStackTrace(e).toLowerCase()));
         }
 

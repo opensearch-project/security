@@ -20,8 +20,6 @@ import java.util.HashMap;
 
 import com.google.common.io.BaseEncoding;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -35,6 +33,7 @@ import org.ldaptive.LdapEntry;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 public class Base64JDKHelperTest {

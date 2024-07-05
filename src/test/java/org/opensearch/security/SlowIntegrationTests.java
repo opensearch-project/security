@@ -31,8 +31,6 @@ import java.io.IOException;
 import com.google.common.collect.Lists;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -53,7 +51,9 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4ModulePlugin;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 public class SlowIntegrationTests extends SingleClusterTest {
@@ -69,18 +69,20 @@ public class SlowIntegrationTests extends SingleClusterTest {
             .put("discovery.initial_state_timeout", "8s")
             .build();
         setup(Settings.EMPTY, null, settings, false, ClusterConfiguration.DEFAULT, 5, 1);
-        Assert.assertEquals(
+        assertThat(
             1,
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .health(new ClusterHealthRequest().waitForGreenStatus())
-                .actionGet()
-                .getNumberOfNodes()
+            is(
+                clusterHelper.nodeClient()
+                    .admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest().waitForGreenStatus())
+                    .actionGet()
+                    .getNumberOfNodes()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
     }
 
@@ -88,18 +90,20 @@ public class SlowIntegrationTests extends SingleClusterTest {
     @Test
     public void testNodeClientAllowedWithServerCertificate() throws Exception {
         setup();
-        Assert.assertEquals(
+        assertThat(
             clusterInfo.numNodes,
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .health(new ClusterHealthRequest().waitForGreenStatus())
-                .actionGet()
-                .getNumberOfNodes()
+            is(
+                clusterHelper.nodeClient()
+                    .admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest().waitForGreenStatus())
+                    .actionGet()
+                    .getNumberOfNodes()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
@@ -127,9 +131,9 @@ public class SlowIntegrationTests extends SingleClusterTest {
                     .actionGet()
                     .isTimedOut()
             );
-            Assert.assertEquals(
+            assertThat(
                 clusterInfo.numNodes + 1,
-                node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size()
+                is(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size())
             );
         }
     }
@@ -138,18 +142,20 @@ public class SlowIntegrationTests extends SingleClusterTest {
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate() throws Exception {
         setup();
-        Assert.assertEquals(
+        assertThat(
             clusterInfo.numNodes,
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .health(new ClusterHealthRequest().waitForGreenStatus())
-                .actionGet()
-                .getNumberOfNodes()
+            is(
+                clusterHelper.nodeClient()
+                    .admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest().waitForGreenStatus())
+                    .actionGet()
+                    .getNumberOfNodes()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
@@ -183,18 +189,20 @@ public class SlowIntegrationTests extends SingleClusterTest {
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate2() throws Exception {
         setup();
-        Assert.assertEquals(
+        assertThat(
             clusterInfo.numNodes,
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .health(new ClusterHealthRequest().waitForGreenStatus())
-                .actionGet()
-                .getNumberOfNodes()
+            is(
+                clusterHelper.nodeClient()
+                    .admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest().waitForGreenStatus())
+                    .actionGet()
+                    .getNumberOfNodes()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)

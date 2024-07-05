@@ -27,8 +27,6 @@ import java.util.Objects;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -42,6 +40,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.tools.SecurityAdmin;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.Assert.assertThrows;
 
@@ -507,10 +506,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         rh.keystore = "kirk-keystore.jks";
 
         rh.executePutRequest(".opendistro_security/_doc/roles", FileHelper.loadFile("roles_invalidxcontent.yml"));
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executePutRequest(".opendistro_security/_doc/roles", "{\"roles\":\"dummy\"}").getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executePutRequest(".opendistro_security/_doc/roles", "{\"roles\":\"dummy\"}").getStatusCode()));
 
         final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 

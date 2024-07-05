@@ -14,11 +14,11 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.Base64Helper.deserializeObject;
 import static org.opensearch.security.support.Base64Helper.serializeObject;
 

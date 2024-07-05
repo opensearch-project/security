@@ -30,8 +30,6 @@ import com.google.common.collect.Lists;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -67,6 +65,7 @@ import org.opensearch.transport.Netty4ModulePlugin;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
@@ -1163,19 +1162,22 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             agg,
             encodeBasicHeader("nagilum", "nagilum")
         );
-        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));// TODO: Change for 25.0 to be forbidden (Indices options, is(HttpStatus.SC_OK))
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));// TODO: Change for 25.0 to be forbidden (Indices options,
+                                                              // is(HttpStatus.SC_OK))
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
             "cross_cluster_two:*,notfou*/_search?pretty",
             agg,
             encodeBasicHeader("nagilum", "nagilum")
         );
-        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));// TODO: Change for 25.0 to be forbidden (Indices options, is(HttpStatus.SC_OK))
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));// TODO: Change for 25.0 to be forbidden (Indices options,
+                                                              // is(HttpStatus.SC_OK))
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
             "cross_cluster_two:not*,notf*/_search?pretty",
             agg,
             encodeBasicHeader("nagilum", "nagilum")
         );
-        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));// TODO: Change for 25.0 to be forbidden (Indices options, is(HttpStatus.SC_OK))
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));// TODO: Change for 25.0 to be forbidden (Indices options,
+                                                              // is(HttpStatus.SC_OK))
     }
 
     @Test
@@ -1413,22 +1415,22 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsWithRoleInjection() throws Exception {
         setupCcs(new DynamicSecurityConfig().setSecurityRoles("roles.yml"));
 
-        Assert.assertEquals(
+        assertThat(
             cl1Info.numNodes,
-            cl1.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes()
+            is(cl1.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes())
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            cl1.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(cl1.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
-        Assert.assertEquals(
+        assertThat(
             cl2Info.numNodes,
-            cl2.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes()
+            is(cl2.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes())
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            cl2.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(cl2.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         try (Client tc = cl2.nodeClient()) {

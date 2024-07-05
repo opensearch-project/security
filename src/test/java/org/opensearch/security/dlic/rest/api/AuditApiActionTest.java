@@ -39,12 +39,12 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-import static org.opensearch.security.DefaultObjectMapper.readTree;
-import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.DefaultObjectMapper.readTree;
+import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.junit.Assert.assertTrue;
 
 public class AuditApiActionTest extends AbstractRestApiUnitTest {

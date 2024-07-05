@@ -18,8 +18,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -30,6 +28,9 @@ import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @Ignore
 public class LdapBackendTestClientCert2 {

@@ -19,8 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -34,7 +32,9 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.junit.Assert.assertTrue;
 
@@ -77,9 +77,9 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
             // Note: the response has no whitespaces, so the .json file does not have whitespaces
-            Assert.assertEquals(
+            assertThat(
                 FileHelper.loadFile("restapi/whitelist_response_success.json"),
-                FileHelper.loadFile("restapi/whitelist_response_success.json")
+                is(FileHelper.loadFile("restapi/whitelist_response_success.json"))
             );
         }
         // FORBIDDEN FOR NON SUPER ADMIN
