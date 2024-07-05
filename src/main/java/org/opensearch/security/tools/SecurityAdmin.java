@@ -755,7 +755,7 @@ public class SecurityAdmin {
                             "  Root cause: " + rootCause + " (" + e.getClass().getName() + "/" + rootCause.getClass().getName() + ")"
                         );
                         System.out.println(
-                            "   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)"
+                            "   * Try running securityadmin.sh with -icl (but no -cn) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)"
                         );
                         System.out.println(
                             "   * Make sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml"
@@ -771,7 +771,7 @@ public class SecurityAdmin {
                             "  Root cause: " + rootCause + " (" + e.getClass().getName() + "/" + rootCause.getClass().getName() + ")"
                         );
                         System.out.println(
-                            "   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)"
+                            "   * Try running securityadmin.sh with -icl (but no -cn) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)"
                         );
                         System.out.println(
                             "   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml"
@@ -794,7 +794,7 @@ public class SecurityAdmin {
             if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
                 System.out.println(
-                    "   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)"
+                    "   * Try running securityadmin.sh with -icl (but no -cn) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)"
                 );
                 System.out.println(
                     "   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml"
