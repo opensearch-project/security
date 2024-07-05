@@ -122,10 +122,7 @@ public class AuditMessageTest {
     @Test
     public void testTransportHeadersAreFiltered() {
         message.addTransportHeaders(TEST_TRANSPORT_HEADERS, true);
-        assertThat(
-            message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS),
-            is(ImmutableMap.of("test-header", ImmutableList.of("test-4")))
-        );
+        assertThat(message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS), is(ImmutableMap.of("test-header", "test-4")));
     }
 
     @Test

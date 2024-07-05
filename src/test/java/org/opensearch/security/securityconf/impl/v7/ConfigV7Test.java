@@ -86,24 +86,24 @@ public class ConfigV7Test {
 
         kibana = new ConfigV7.Kibana();
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
-        assertThat(DefaultObjectMapper.readTree(json), is(kibana));
-        assertThat(DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class), is(kibana));
+        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
 
         kibana.multitenancy_enabled = false;
         kibana.server_username = null;
         kibana.opendistro_role = null;
         kibana.index = null;
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
-        assertThat(DefaultObjectMapper.readTree(json), is(kibana));
-        assertThat(DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class), is(kibana));
+        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
 
         kibana.multitenancy_enabled = true;
         kibana.server_username = "user";
         kibana.opendistro_role = "role";
         kibana.index = "index";
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
-        assertThat(DefaultObjectMapper.readTree(json), is(kibana));
-        assertThat(DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class), is(kibana));
+        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
     }
 
     @Test

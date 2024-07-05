@@ -238,7 +238,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
         // 10 docs, all need to have access code 1337
-        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(10));
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(10L));
         // fields need to have 1337 access code
         assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 1337 });
     }
@@ -260,7 +260,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
 
         // 10 docs, all need to have access code 42
-        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(10));
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(10L));
         // fields need to have 42 access code
         assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 42 });
 
@@ -283,7 +283,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
 
         // 15 docs, all need to have either access code 1337 or 42
-        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(15));
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(15L));
         // fields need to have 42 or 1337 access code
         assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 42, 1337 });
 
@@ -305,7 +305,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
 
-        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0));
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0L));
     }
 
     @Test
@@ -318,7 +318,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
                 .setSecurityRolesMapping("roles_mapping_tlq.yml")
         );
         SearchResponse searchResponse = executeSearch("tlqdocuments", "tlq_empty_access_codes", "password");
-        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0));
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0L));
     }
 
     @Test
@@ -332,7 +332,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         );
         SearchResponse searchResponse = executeSearch("tlqdocuments", "tlq_no_codes", "password");
 
-        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0));
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value, is(0L));
     }
 
     @Test

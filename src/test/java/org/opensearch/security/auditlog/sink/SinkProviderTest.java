@@ -19,6 +19,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class SinkProviderTest {
 
@@ -48,7 +49,7 @@ public class SinkProviderTest {
 
         // no valid type
         sink = provider.getSink("endpoint4");
-        assertThat(sink, is(null));
+        assertThat(sink, is(nullValue()));
 
         sink = provider.getSink("endpoint2");
         assertThat(sink.getClass(), is(ExternalOpenSearchSink.class));
@@ -56,11 +57,11 @@ public class SinkProviderTest {
 
         // no valid type
         sink = provider.getSink("endpoint6");
-        assertThat(sink, is(null));
+        assertThat(sink, is(nullValue()));
 
         // no valid type
         sink = provider.getSink("endpoint7");
-        assertThat(sink, is(null));
+        assertThat(sink, is(nullValue()));
 
         sink = provider.getSink("endpoint8");
         assertThat(sink.getClass(), is(DebugSink.class));

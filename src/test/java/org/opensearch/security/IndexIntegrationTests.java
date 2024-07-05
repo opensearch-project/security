@@ -471,7 +471,10 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         assertThat(
             HttpStatus.SC_FORBIDDEN,
-            is(rh.executeGetRequest("/%3Cnonex-%7Bnow%2Fd%7D%3E/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum")))
+            is(
+                rh.executeGetRequest("/%3Cnonex-%7Bnow%2Fd%7D%3E/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))
+                    .getStatusCode()
+            )
         );
 
         assertThat(

@@ -32,6 +32,7 @@ import org.opensearch.transport.TransportRequest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
 import static org.mockito.Mockito.mock;
 
@@ -53,9 +54,9 @@ public class RolesInjectorTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         RolesInjector rolesInjector = new RolesInjector(auditLog);
         Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
-        assertThat(roles, is(null));
+        assertThat(roles, is(nullValue()));
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertThat(user, is(null));
+        assertThat(user, is(nullValue()));
     }
 
     @Test
@@ -85,9 +86,9 @@ public class RolesInjectorTest {
             RolesInjector rolesInjector = new RolesInjector(auditLog);
             Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
 
-            assertThat(roles, is(null));
+            assertThat(roles, is(nullValue()));
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            assertThat(user, is(null));
+            assertThat(user, is(nullValue()));
         });
     }
 }

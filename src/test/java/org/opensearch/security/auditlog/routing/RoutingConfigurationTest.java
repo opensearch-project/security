@@ -30,6 +30,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest {
 
@@ -72,8 +73,8 @@ public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest {
         AuditMessageRouter router = new AuditMessageRouter(settings, null, null, null);
         // no default sink, audit log not enabled
         assertThat(router.isEnabled(), is(false));
-        assertThat(router.defaultSink, is(null));
-        assertThat(router.categorySinks, is(null));
+        assertThat(router.defaultSink, is(nullValue()));
+        assertThat(router.categorySinks, is(nullValue()));
         // make sure no exception is thrown
         router.route(MockAuditMessageFactory.validAuditMessage());
     }
