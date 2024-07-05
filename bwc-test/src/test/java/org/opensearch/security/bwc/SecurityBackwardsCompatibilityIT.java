@@ -200,7 +200,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     public void testNodeStats() throws IOException {
         List<Response> responses = RestHelper.requestAgainstAllNodes(client(), "GET", "_nodes/stats", null);
-        responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode()), is(200));
+        responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
     }
 
     @SuppressWarnings("unchecked")
@@ -247,7 +247,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 "_bulk?refresh=wait_for",
                 RestHelper.toHttpEntity(bulkRequestBody.toString())
             );
-            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode()), is(200));
+            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
         }
     }
 
@@ -265,7 +265,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 index + "/_search",
                 RestHelper.toHttpEntity(matchAllQuery)
             );
-            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode()), is(200));
+            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
         }
     }
 
