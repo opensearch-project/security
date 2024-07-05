@@ -17,14 +17,14 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Test;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class SSLConnectionTestUtilTests {
     private Socket socket;

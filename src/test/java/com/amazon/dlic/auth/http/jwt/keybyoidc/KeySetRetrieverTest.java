@@ -32,9 +32,6 @@ import org.apache.hc.core5.ssl.PrivateKeyStrategy;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.junit.AfterClass;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -42,6 +39,9 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class KeySetRetrieverTest {
     protected static MockIpdServer mockIdpServer;

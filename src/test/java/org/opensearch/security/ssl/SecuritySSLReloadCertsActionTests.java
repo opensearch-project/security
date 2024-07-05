@@ -18,9 +18,6 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.After;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +32,9 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
@@ -146,10 +146,10 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         assertThat(reloadCertsResponse.getStatusCode(), is(500));
-        Assert.assertEquals(
+        assertThat(
             "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
                 + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];",
-            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText()
+            is(DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText())
         );
     }
 

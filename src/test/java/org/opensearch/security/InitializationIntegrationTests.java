@@ -36,8 +36,6 @@ import org.apache.hc.core5.http.HttpVersion;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -63,6 +61,9 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
@@ -80,19 +81,19 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_SERVICE_UNAVAILABLE,
-            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_SERVICE_UNAVAILABLE,
-            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode())
         );
 
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_CREATED,
-            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode())
         );
 
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_size_in_bytes\" : 0"));
@@ -114,13 +115,13 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_UNAUTHORIZED,
-            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_UNAUTHORIZED,
-            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+            is(rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode())
         );
 
     }
@@ -300,9 +301,9 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             setup(Settings.EMPTY, null, settings, false);
             RestHelper rh = nonSslRestHelper();
             Thread.sleep(10000);
-            Assert.assertEquals(
+            assertThat(
                 HttpStatus.SC_SERVICE_UNAVAILABLE,
-                rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
+                is(rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode())
             );
         } finally {
             ClusterHelper.resetSystemProperties();
@@ -325,18 +326,20 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testDiscoveryWithoutInitialization() throws Exception {
         setup(Settings.EMPTY, null, Settings.EMPTY, false);
-        Assert.assertEquals(
+        assertThat(
             clusterInfo.numNodes,
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .health(new ClusterHealthRequest().waitForGreenStatus())
-                .actionGet()
-                .getNumberOfNodes()
+            is(
+                clusterHelper.nodeClient()
+                    .admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest().waitForGreenStatus())
+                    .actionGet()
+                    .getNumberOfNodes()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
     }
 }

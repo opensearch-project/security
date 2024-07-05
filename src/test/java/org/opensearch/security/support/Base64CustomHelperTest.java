@@ -18,8 +18,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -33,6 +31,8 @@ import org.opensearch.security.user.User;
 import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.LdapEntry;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.Base64CustomHelper.deserializeObject;
 import static org.opensearch.security.support.Base64CustomHelper.serializeObject;
 

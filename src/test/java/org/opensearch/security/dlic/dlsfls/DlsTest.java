@@ -13,8 +13,6 @@ package org.opensearch.security.dlic.dlsfls;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -24,6 +22,9 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class DlsTest extends AbstractDlsFlsTest {
 
@@ -68,17 +69,17 @@ public class DlsTest extends AbstractDlsFlsTest {
             + "}";
 
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1500.0"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1510.0"));
@@ -105,32 +106,32 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         assertThat(res.getHeaders().toString(), res.getHeaders().size(), is(3));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -149,9 +150,9 @@ public class DlsTest extends AbstractDlsFlsTest {
                 + "}"
                 + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -170,23 +171,26 @@ public class DlsTest extends AbstractDlsFlsTest {
                 + "}"
                 + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?q=amount:10&pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?q=amount:10&pretty", encodeBasicHeader("dept_manager", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -200,16 +204,16 @@ public class DlsTest extends AbstractDlsFlsTest {
         res = rh.executeGetRequest("/deals/_doc/1?pretty", encodeBasicHeader("dept_manager", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"count\" : 2,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"count\" : 1,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -225,9 +229,9 @@ public class DlsTest extends AbstractDlsFlsTest {
             + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
             + System.lineSeparator();
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
@@ -247,9 +251,9 @@ public class DlsTest extends AbstractDlsFlsTest {
             + "]"
             + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
@@ -265,22 +269,22 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/terms/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/terms/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         assertThat("1", is(res.getTextFromJsonBody("/hits/total/value")));
         assertThat("0", is(res.getTextFromJsonBody("/_shards/failed")));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/terms/_doc/0", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/terms/_doc/0", encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         assertThat("bar", is(res.getTextFromJsonBody("/_source/foo")));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_NOT_FOUND,
-            rh.executeGetRequest("/terms/_doc/1", encodeBasicHeader("dept_manager", "password")).getStatusCode()
+            is(rh.executeGetRequest("/terms/_doc/1", encodeBasicHeader("dept_manager", "password")).getStatusCode())
         );
     }
 
@@ -305,9 +309,9 @@ public class DlsTest extends AbstractDlsFlsTest {
                 + "}"
                 + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -320,16 +324,16 @@ public class DlsTest extends AbstractDlsFlsTest {
         setup();
 
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -402,7 +406,7 @@ public class DlsTest extends AbstractDlsFlsTest {
         HttpResponse response1 = rh.executePostRequest("logs*/_search", query1, encodeBasicHeader("dept_manager", "password"));
 
         assertThat(response1.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
-        Assert.assertTrue(response1.getBody(), response1.getBody().contains("min_doc_count 0 is not supported when DLS is activated"));
+        Assert.assertTrue(response1.getBody(), response1.getBody().contains("min_doc_count 0 is not supported when DLS is activatedis("));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager excluding E with 0
         // doc_count".

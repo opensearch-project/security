@@ -17,8 +17,6 @@ import java.time.format.DateTimeFormatter;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.index.IndexRequest;
@@ -28,6 +26,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class DlsDateMathTest extends AbstractDlsFlsTest {
 
@@ -63,16 +64,16 @@ public class DlsDateMathTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -84,16 +85,16 @@ public class DlsDateMathTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_BAD_REQUEST,
-            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("'now' is not allowed in DLS queries"));
         Assert.assertTrue(res.getBody().contains("error"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));

@@ -33,8 +33,6 @@ import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,6 +64,8 @@ import org.opensearch.transport.Netty4ModulePlugin;
 
 import io.netty.util.internal.PlatformDependent;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
@@ -854,11 +854,13 @@ public class SSLTest extends SingleClusterTest {
             assertThat(tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(3));
             log.debug("Client connected");
             TestPrincipalExtractor.reset();
-            Assert.assertEquals(
+            assertThat(
                 "test",
-                tc.index(new IndexRequest("test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON))
-                    .actionGet()
-                    .getIndex()
+                is(
+                    tc.index(new IndexRequest("test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON))
+                        .actionGet()
+                        .getIndex()
+                )
             );
             log.debug("Index created");
             assertThat(tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value, is(1L));

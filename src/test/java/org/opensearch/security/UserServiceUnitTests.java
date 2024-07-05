@@ -18,9 +18,6 @@ import java.nio.file.Files;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,6 +33,9 @@ import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 
 import org.mockito.Mock;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class UserServiceUnitTests {
     SecurityDynamicConfiguration<?> config;

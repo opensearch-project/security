@@ -15,8 +15,6 @@ import java.io.IOException;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -26,6 +24,9 @@ import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class FlsFieldsTest extends AbstractDlsFlsTest {
 
@@ -58,18 +59,18 @@ public class FlsFieldsTest extends AbstractDlsFlsTest {
         String query = FileHelper.loadFile("dlsfls/flsquery.json");
 
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("secret"));
         Assert.assertTrue(res.getBody().contains("@timestamp"));
         Assert.assertTrue(res.getBody().contains("\"timestamp"));
         Assert.assertTrue(res.getBody().contains("numfield5"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("fls_fields", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("fls_fields", "password"))).getStatusCode())
         );
         Assert.assertFalse(res.getBody().contains("customer"));
         Assert.assertFalse(res.getBody().contains("secret"));
@@ -84,17 +85,20 @@ public class FlsFieldsTest extends AbstractDlsFlsTest {
         String query = FileHelper.loadFile("dlsfls/flsquery2.json");
 
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty=true", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executePostRequest("/deals/_search?pretty=true", query, encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("secret"));
         Assert.assertTrue(res.getBody().contains("@timestamp"));
         Assert.assertTrue(res.getBody().contains("\"timestamp"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("/deals/_search?pretty=true", query, encodeBasicHeader("fls_fields", "password"))).getStatusCode()
+            is(
+                (res = rh.executePostRequest("/deals/_search?pretty=true", query, encodeBasicHeader("fls_fields", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertFalse(res.getBody().contains("customer"));
         Assert.assertFalse(res.getBody().contains("secret"));

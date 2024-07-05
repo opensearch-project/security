@@ -19,8 +19,6 @@ import java.util.TreeSet;
 import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -40,7 +38,9 @@ import org.ldaptive.Connection;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 
 public class LdapBackendTestNewStyleConfig {
 

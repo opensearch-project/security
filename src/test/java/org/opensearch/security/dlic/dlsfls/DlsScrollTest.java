@@ -13,8 +13,6 @@ package org.opensearch.security.dlic.dlsfls;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.index.IndexRequest;
@@ -22,6 +20,9 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class DlsScrollTest extends AbstractDlsFlsTest {
 
@@ -57,10 +58,12 @@ public class DlsScrollTest extends AbstractDlsFlsTest {
         setup();
 
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?scroll=1m&pretty=true&size=5", encodeBasicHeader("dept_manager", "password")))
-                .getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?scroll=1m&pretty=true&size=5", encodeBasicHeader("dept_manager", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 101,"));
 
@@ -69,13 +72,15 @@ public class DlsScrollTest extends AbstractDlsFlsTest {
         while (true) {
             int start = res.getBody().indexOf("_scroll_id") + 15;
             String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start + 1));
-            Assert.assertEquals(
+            assertThat(
                 HttpStatus.SC_OK,
-                (res = rh.executePostRequest(
-                    "/_search/scroll?pretty=true",
-                    "{\"scroll\" : \"1m\", \"scroll_id\" : \"" + scrollid + "\"}",
-                    encodeBasicHeader("dept_manager", "password")
-                )).getStatusCode()
+                is(
+                    (res = rh.executePostRequest(
+                        "/_search/scroll?pretty=true",
+                        "{\"scroll\" : \"1m\", \"scroll_id\" : \"" + scrollid + "\"}",
+                        encodeBasicHeader("dept_manager", "password")
+                    )).getStatusCode()
+                )
             );
             Assert.assertTrue(res.getBody().contains("\"value\" : 101,"));
             Assert.assertFalse(res.getBody().contains("\"amount\" : 3"));

@@ -17,8 +17,6 @@ import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -30,6 +28,9 @@ import org.opensearch.common.StopWatch;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @Ignore
 public class FlsPerfTest extends AbstractDlsFlsTest {
@@ -92,9 +93,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         StopWatch sw = new StopWatch("testFlsPerfNamed");
         sw.start("non fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is(is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()))
         );
         sw.stop();
         Assert.assertTrue(res.getBody().contains("field1\""));
@@ -103,10 +104,12 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("field997\""));
 
         sw.start("with fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_only", "password")))
-                .getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_only", "password")))
+                    .getStatusCode()
+            )
         );
         sw.stop();
         Assert.assertFalse(res.getBody().contains("field1\""));
@@ -116,10 +119,12 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 2 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_only", "password")))
-                .getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_only", "password")))
+                    .getStatusCode()
+            )
         );
         sw.stop();
 
@@ -130,10 +135,12 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 3 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_only", "password")))
-                .getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_only", "password")))
+                    .getStatusCode()
+            )
         );
         sw.stop();
 
@@ -152,9 +159,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         StopWatch sw = new StopWatch("testFlsPerfWcEx");
         sw.start("non fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is(is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()))
         );
         sw.stop();
         Assert.assertTrue(res.getBody().contains("field1\""));
@@ -163,9 +170,14 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("field997\""));
 
         sw.start("with fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_ex", "password"))).getStatusCode()
+            is(
+                is(
+                    (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_ex", "password")))
+                        .getStatusCode()
+                )
+            )
         );
         sw.stop();
         Assert.assertTrue(res.getBody().contains("field1\""));
@@ -175,9 +187,14 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 2 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_ex", "password"))).getStatusCode()
+            is(
+                is(
+                    (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_ex", "password")))
+                        .getStatusCode()
+                )
+            )
         );
         sw.stop();
 
@@ -188,9 +205,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 3 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_ex", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_ex", "password"))).getStatusCode())
         );
         sw.stop();
 
@@ -209,9 +226,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         StopWatch sw = new StopWatch("testFlsPerfNamedEx");
         sw.start("non fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         sw.stop();
         Assert.assertTrue(res.getBody().contains("field1\""));
@@ -220,9 +237,12 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("field997\""));
 
         sw.start("with fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_ex", "password"))).getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_ex", "password")))
+                    .getStatusCode()
+            )
         );
         sw.stop();
         Assert.assertTrue(res.getBody().contains("field1\""));
@@ -232,9 +252,12 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 2 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_ex", "password"))).getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_ex", "password")))
+                    .getStatusCode()
+            )
         );
         sw.stop();
 
@@ -245,9 +268,12 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 3 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_ex", "password"))).getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_named_ex", "password")))
+                    .getStatusCode()
+            )
         );
         sw.stop();
 
@@ -266,9 +292,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         StopWatch sw = new StopWatch("testFlsWcIn");
         sw.start("non fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         sw.stop();
         Assert.assertTrue(res.getBody().contains("field1\""));
@@ -277,9 +303,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("field997\""));
 
         sw.start("with fls");
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_in", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_in", "password"))).getStatusCode())
         );
         sw.stop();
         Assert.assertFalse(res.getBody().contains("field0\""));
@@ -288,9 +314,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 2 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_in", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_in", "password"))).getStatusCode())
         );
         sw.stop();
 
@@ -300,9 +326,9 @@ public class FlsPerfTest extends AbstractDlsFlsTest {
 
         sw.start("with fls 3 after warmup");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_in", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/deals/_search?pretty&size=1000", encodeBasicHeader("perf_wc_in", "password"))).getStatusCode())
         );
         sw.stop();
 

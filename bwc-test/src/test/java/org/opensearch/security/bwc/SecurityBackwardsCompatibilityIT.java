@@ -32,9 +32,6 @@ import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.junit.AfterClass;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Assume;
 import org.junit.Before;
 
@@ -50,10 +47,12 @@ import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.is;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 

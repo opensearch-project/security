@@ -14,8 +14,6 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.index.IndexRequest;
@@ -30,6 +28,9 @@ import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 

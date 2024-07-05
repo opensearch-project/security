@@ -13,9 +13,6 @@ package org.opensearch.security.privileges;
 
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,6 +20,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class PrivilegesEvaluatorTest extends SingleClusterTest {
     private static final Header NegativeLookaheadUserHeader = encodeBasicHeader("negative_lookahead_user", "negative_lookahead_user");

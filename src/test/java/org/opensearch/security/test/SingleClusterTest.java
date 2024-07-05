@@ -31,8 +31,6 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;

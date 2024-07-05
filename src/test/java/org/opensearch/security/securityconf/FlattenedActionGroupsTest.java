@@ -18,14 +18,14 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class FlattenedActionGroupsTest {
     @Test
@@ -44,9 +44,9 @@ public class FlattenedActionGroupsTest {
 
         FlattenedActionGroups actionGroups = new FlattenedActionGroups(config);
 
-        Assert.assertEquals(
+        assertThat(
             ImmutableSet.of("C", "A", "A1", "A2", "A3", "C1", "B", "B1", "B2", "B3", "Z"),
-            actionGroups.resolve(ImmutableSet.of("Z"))
+            is(actionGroups.resolve(ImmutableSet.of("Z")))
         );
         assertThat(actionGroups.resolve(ImmutableSet.of("A")), is(ImmutableSet.of("A", "A1", "A2", "A3")));
     }

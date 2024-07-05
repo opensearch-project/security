@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -29,6 +27,9 @@ import org.opensearch.security.auditlog.sink.DebugSink;
 import org.opensearch.security.auditlog.sink.ExternalOpenSearchSink;
 import org.opensearch.security.auditlog.sink.InternalOpenSearchSink;
 import org.opensearch.security.test.helper.file.FileHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class RoutingConfigurationTest extends AbstractAuditlogiUnitTest {
 

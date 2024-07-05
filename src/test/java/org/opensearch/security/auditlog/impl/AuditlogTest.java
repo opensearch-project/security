@@ -12,8 +12,6 @@
 package org.opensearch.security.auditlog.impl;
 
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,6 +29,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.transport.TransportRequest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

@@ -21,8 +21,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
@@ -34,6 +32,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
 
 public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
@@ -240,14 +240,11 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
     protected void assertHealthy() throws Exception {
         assertThat(rh.executeGetRequest("_opendistro/_security/health?pretty").getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()
+            is(rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("admin", "admin")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()));
     }
 
     String createRestAdminPermissionsPayload(String... additionPerms) throws JsonProcessingException {

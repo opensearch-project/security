@@ -14,8 +14,6 @@ package org.opensearch.security.dlic.rest.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -23,6 +21,8 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class GetConfigurationApiTest extends AbstractRestApiUnitTest {

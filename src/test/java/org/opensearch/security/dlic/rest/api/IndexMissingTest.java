@@ -13,9 +13,6 @@ package org.opensearch.security.dlic.rest.api;
 
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.security.DefaultObjectMapper;
@@ -23,6 +20,8 @@ import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class IndexMissingTest extends AbstractRestApiUnitTest {
@@ -101,9 +100,9 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(ENDPOINT + "/roles");
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         SecurityJsonNode securityJsonNode = new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody()));
-        Assert.assertEquals(
+        assertThat(
             "OPENDISTRO_SECURITY_CLUSTER_ALL",
-            securityJsonNode.get("opendistro_security_admin").get("cluster_permissions").get(0).asString()
+            is(securityJsonNode.get("opendistro_security_admin").get("cluster_permissions").get(0).asString())
         );
 
     }

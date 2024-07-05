@@ -13,8 +13,6 @@ package org.opensearch.security.dlic.dlsfls;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -24,6 +22,9 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class FlsDlsTestAB extends AbstractDlsFlsTest {
 
@@ -77,9 +78,9 @@ public class FlsDlsTestAB extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/aaa,bbb/_search?pretty", encodeBasicHeader("user_aaa", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/aaa,bbb/_search?pretty", encodeBasicHeader("user_aaa", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -93,9 +94,9 @@ public class FlsDlsTestAB extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("f3_b"));
         Assert.assertFalse(res.getBody().contains("f1_b"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/abalias/_search?pretty", encodeBasicHeader("user_aaa", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/abalias/_search?pretty", encodeBasicHeader("user_aaa", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -109,9 +110,9 @@ public class FlsDlsTestAB extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("f3_b"));
         Assert.assertFalse(res.getBody().contains("f1_b"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/aaa,bbb/_search?pretty", encodeBasicHeader("user_bbb", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/aaa,bbb/_search?pretty", encodeBasicHeader("user_bbb", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -125,9 +126,9 @@ public class FlsDlsTestAB extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("f3_b"));
         Assert.assertTrue(res.getBody().contains("f1_b"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/abalias/_search?pretty", encodeBasicHeader("user_bbb", "password"))).getStatusCode()
+            is((res = rh.executeGetRequest("/abalias/_search?pretty", encodeBasicHeader("user_bbb", "password"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));

@@ -39,13 +39,12 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AuditApiActionTest extends AbstractRestApiUnitTest {
     // admin cred with roles in test yml files

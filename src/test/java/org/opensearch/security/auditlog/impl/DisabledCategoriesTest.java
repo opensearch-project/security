@@ -18,8 +18,6 @@ import java.util.List;
 
 import com.google.common.base.Joiner;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

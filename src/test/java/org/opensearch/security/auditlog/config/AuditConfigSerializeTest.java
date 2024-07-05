@@ -32,14 +32,13 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
-import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
-import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AuditConfigSerializeTest {
 
@@ -174,19 +173,19 @@ public class AuditConfigSerializeTest {
         assertThat(audit.getIgnoredAuditUsersMatcher(), is(WildcardMatcher.from(Collections.singleton("test-user-1"))));
         assertThat(audit.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.from(Collections.singleton("test-request"))));
         assertTrue(configCompliance.shouldLogReadMetadataOnly());
-        assertEquals(
+        assertThat(
             WildcardMatcher.from(Collections.singleton("test-user-2")),
-            configCompliance.getIgnoredComplianceUsersForReadMatcher()
+            is(configCompliance.getIgnoredComplianceUsersForReadMatcher())
         );
-        assertEquals(
+        assertThat(
             Collections.singletonMap(WildcardMatcher.from("test-read-watch-field"), Collections.singleton("test-field-1")),
-            configCompliance.getReadEnabledFields()
+            is(configCompliance.getReadEnabledFields())
         );
         assertTrue(configCompliance.shouldLogWriteMetadataOnly());
         assertFalse(configCompliance.shouldLogDiffsForWrite());
-        assertEquals(
+        assertThat(
             WildcardMatcher.from(Collections.singleton("test-user-3")),
-            configCompliance.getIgnoredComplianceUsersForWriteMatcher()
+            is(configCompliance.getIgnoredComplianceUsersForWriteMatcher())
         );
         assertThat(configCompliance.getWatchedWriteIndicesMatcher(), is(WildcardMatcher.from("test-write-watch-index")));
     }

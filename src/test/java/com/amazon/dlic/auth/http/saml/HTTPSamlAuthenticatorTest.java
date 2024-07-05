@@ -36,8 +36,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -64,6 +62,7 @@ import com.nimbusds.jwt.SignedJWT;
 import org.opensaml.saml.saml2.core.NameIDType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_CONTENT;
 import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.IDP_METADATA_URL;
 
