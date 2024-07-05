@@ -377,4 +377,37 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         assertThat(responseBody, not(equalTo("")));
     }
 
+    static ToXContentObject configJsonArray(final String... values) {
+        return (builder, params) -> {
+            builder.startArray();
+            if (values != null) {
+                for (final var v : values) {
+                    if (v == null) {
+                        builder.nullValue();
+                    } else {
+                        builder.value(v);
+                    }
+                }
+            }
+            return builder.endArray();
+        };
+    }
+
+    static String[] generateArrayValues(boolean useNulls) {
+        final var length = randomIntBetween(1, 5);
+        final var values = new String[length];
+        final var nullIndex = randomIntBetween(0, length - 1);
+        for (var i = 0; i < values.length; i++) {
+            if (useNulls && i == nullIndex) values[i] = null;
+            else values[i] = randomAsciiAlphanumOfLength(10);
+        }
+        return values;
+    }
+
+    static ToXContentObject randomConfigArray(final boolean useNulls) {
+        return useNulls
+            ? configJsonArray(generateArrayValues(useNulls))
+            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
+    }
+
 }
