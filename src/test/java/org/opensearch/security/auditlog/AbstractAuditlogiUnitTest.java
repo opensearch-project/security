@@ -38,6 +38,10 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         return "auditlog";
     }
 
+    protected final void setup(Settings settings) throws Exception {
+        setup(settings, new DynamicSecurityConfig());
+    }
+
     protected final void setup(Settings settings, DynamicSecurityConfig securityConfig) throws Exception {
         final Settings.Builder auditConfigSettings = Settings.builder();
         final Settings.Builder defaultNodeSettings = Settings.builder();

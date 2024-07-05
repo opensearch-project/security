@@ -37,7 +37,6 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
-import static org.opensearch.security.support.ConfigConstants.*;
 
 /**
  * This class updates the security related configuration, as needed.
@@ -88,7 +87,7 @@ public class SecuritySettingsConfigurer {
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(
-            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, BCRYPT).build()
+            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
         );
     }
 
@@ -145,8 +144,11 @@ public class SecuritySettingsConfigurer {
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
-                    .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
-                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, DEFAULT_PASSWORD_MIN_LENGTH)
+                    .put(
+                        ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
+                        "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}"
+                    )
+                    .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, DEFAULT_PASSWORD_MIN_LENGTH)
                     .build()
             );
 
