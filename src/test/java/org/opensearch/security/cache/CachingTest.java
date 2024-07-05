@@ -51,10 +51,10 @@ public class CachingTest extends SingleClusterTest {
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
-        assertThat(DummyHTTPAuthenticator.getCount(), is(3));
-        assertThat(DummyAuthorizer.getCount(), is(1));
-        assertThat(DummyAuthenticationBackend.getAuthCount(), is(3));
-        assertThat(DummyAuthenticationBackend.getExistsCount(), is(0));
+        assertThat(DummyHTTPAuthenticator.getCount(), is(3L));
+        assertThat(DummyAuthorizer.getCount(), is(1L));
+        assertThat(DummyAuthenticationBackend.getAuthCount(), is(3L));
+        assertThat(DummyAuthenticationBackend.getExistsCount(), is(0L));
     }
 
     @Test
@@ -69,10 +69,10 @@ public class CachingTest extends SingleClusterTest {
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
-        assertThat(DummyHTTPAuthenticator.getCount(), is(3));
-        assertThat(DummyAuthorizer.getCount(), is(3));
-        assertThat(DummyAuthenticationBackend.getAuthCount(), is(3));
-        assertThat(DummyAuthenticationBackend.getExistsCount(), is(0));
+        assertThat(DummyHTTPAuthenticator.getCount(), is(3L));
+        assertThat(DummyAuthorizer.getCount(), is(3L));
+        assertThat(DummyAuthenticationBackend.getAuthCount(), is(3L));
+        assertThat(DummyAuthenticationBackend.getExistsCount(), is(0L));
     }
 
     @Test
@@ -101,9 +101,9 @@ public class CachingTest extends SingleClusterTest {
         );
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
-        assertThat(DummyHTTPAuthenticator.getCount(), is(4));
-        assertThat(DummyAuthorizer.getCount(), is(3));
-        assertThat(DummyAuthenticationBackend.getAuthCount(), is(4));
-        assertThat(DummyAuthenticationBackend.getExistsCount(), is(2));
+        assertThat(DummyHTTPAuthenticator.getCount(), is(4L));
+        assertThat(DummyAuthorizer.getCount(), is(3L));
+        assertThat(DummyAuthenticationBackend.getAuthCount(), is(4L));
+        assertThat(DummyAuthenticationBackend.getExistsCount(), is(2L));
     }
 }

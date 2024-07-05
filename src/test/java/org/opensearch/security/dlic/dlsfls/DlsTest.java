@@ -406,7 +406,7 @@ public class DlsTest extends AbstractDlsFlsTest {
         HttpResponse response1 = rh.executePostRequest("logs*/_search", query1, encodeBasicHeader("dept_manager", "password"));
 
         assertThat(response1.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
-        Assert.assertTrue(response1.getBody(), response1.getBody().contains("min_doc_count 0 is not supported when DLS is activatedis("));
+        Assert.assertTrue(response1.getBody(), response1.getBody().contains("min_doc_count 0 is not supported when DLS is activated"));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager excluding E with 0
         // doc_count".

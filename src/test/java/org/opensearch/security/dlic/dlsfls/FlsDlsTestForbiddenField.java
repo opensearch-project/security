@@ -118,7 +118,10 @@ public class FlsDlsTestForbiddenField extends AbstractDlsFlsTest {
 
         assertThat(
             HttpStatus.SC_OK,
-            is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager_fls_dls", "password"))))
+            is(
+                (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager_fls_dls", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));

@@ -590,7 +590,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         );
         assertThat(response.getStatusCode(), is(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
-            assertThat(readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean(), is(patchResource));
+            assertThat(readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size(), is(0));
         }
 
         // add value
