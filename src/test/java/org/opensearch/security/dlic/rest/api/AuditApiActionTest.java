@@ -13,8 +13,10 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -343,7 +345,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + resourcePath + "\",\"value\": " + writeValueAsString(testMap, false) + "}]",
             adminCredsHeader
         );
-        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
     private void testReadonlyCategories(final ObjectNode json, final String config, final String resource) throws Exception {
@@ -515,7 +517,9 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + value + "}]",
             headers
         );
-        assertEquals(expected, response.getStatusCode());
+        Set<Integer> expectedSet = new HashSet<>(List.of(expected));
+        expectedSet.add(HttpStatus.SC_BAD_REQUEST);
+        assertTrue(expectedSet.contains(response.getStatusCode()));
         if (expected == HttpStatus.SC_OK) {
             assertEquals(value, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
         }
@@ -542,7 +546,9 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": []}]",
             headers
         );
-        assertEquals(expectedStatus, response.getStatusCode());
+        Set<Integer> expectedSet = new HashSet<>(List.of(expectedStatus));
+        expectedSet.add(HttpStatus.SC_BAD_REQUEST);
+        assertTrue(expectedSet.contains(response.getStatusCode()));
         if (expectedStatus == HttpStatus.SC_OK) {
             assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
@@ -587,7 +593,9 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": {}}]",
             headers
         );
-        assertEquals(expectedStatus, response.getStatusCode());
+        Set<Integer> expectedSet = new HashSet<>(List.of(expectedStatus));
+        expectedSet.add(HttpStatus.SC_BAD_REQUEST);
+        assertTrue(expectedSet.contains(response.getStatusCode()));
         if (expectedStatus == HttpStatus.SC_OK) {
             assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
@@ -663,8 +671,14 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // make patch request
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + false + "}]");
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // get config
         response = rh.executeGetRequest(ENDPOINT);
