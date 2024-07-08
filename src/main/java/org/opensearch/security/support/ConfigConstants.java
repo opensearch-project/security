@@ -152,7 +152,7 @@ public class ConfigConstants {
     public static final String SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS = "plugins.security.password.hashing.bcrypt.rounds";
     public static final int SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT = 12;
     public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR = "plugins.security.password.hashing.bcrypt.minor";
-    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT = "B";
+    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT = "Y";
 
     public static final String SECURITY_PASSWORD_HASHING_ALGORITHM = "plugins.security.password.hashing.algorithm";
     public static final String SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT = BCRYPT;
