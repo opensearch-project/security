@@ -43,17 +43,17 @@ public class HasherTests {
     @Test
     public void testWithDefaultArguments() {
         Hasher.main(new String[] { "-p", "password" });
-        assertTrue("should return a valid BCrypt hash with the default BCrypt configuration", out.toString().startsWith("$2b$12"));
+        assertTrue("should return a valid BCrypt hash with the default BCrypt configuration", out.toString().startsWith("$2y$12"));
     }
 
     @Test
     public void testWithBCryptRoundsArgument() {
         Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-r", "5" });
-        assertTrue("should return a valid BCrypt hash with the correct value for \"rounds\"", out.toString().startsWith("$2b$05"));
+        assertTrue("should return a valid BCrypt hash with the correct value for \"rounds\"", out.toString().startsWith("$2y$05"));
         out.reset();
 
         Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-r", "5" });
-        assertTrue("should return a valid BCrypt hash with the correct value for \"rounds\"", out.toString().startsWith("$2b$05"));
+        assertTrue("should return a valid BCrypt hash with the correct value for \"rounds\"", out.toString().startsWith("$2y$05"));
     }
 
     @Test
