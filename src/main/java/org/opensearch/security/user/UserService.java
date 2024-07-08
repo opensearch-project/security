@@ -12,6 +12,7 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -123,6 +124,18 @@ public class UserService {
         return DynamicConfigFactory.addStatics(loaded);
     }
 
+    public static Optional<String> restrictedFromUsername(final String accountName) {
+        final var foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
+            .filter(r -> URLDecoder.decode(accountName, StandardCharsets.UTF_8).contains(r))
+            .collect(Collectors.toList());
+        if (!foundRestrictedContents.isEmpty()) {
+            return Optional.of(
+                RESTRICTED_CHARACTER_USE_MESSAGE + foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","))
+            );
+        }
+        return Optional.empty();
+    }
+
     /**
      * This function will handle the creation or update of a user account.
      *
@@ -156,12 +169,9 @@ public class UserService {
         }
 
         securityJsonNode = new SecurityJsonNode(contentAsNode);
-        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
-            .filter(accountName::contains)
-            .collect(Collectors.toList());
-        if (!foundRestrictedContents.isEmpty()) {
-            final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
-            throw new UserServiceException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
+        final var foundRestrictedContents = restrictedFromUsername(accountName);
+        if (foundRestrictedContents.isPresent()) {
+            throw new UserServiceException(foundRestrictedContents.get());
         }
 
         // if password is set, it takes precedence over hash

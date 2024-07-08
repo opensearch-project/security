@@ -59,7 +59,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         request.param("filterBy");
     }
 
-    static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
+    public static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
@@ -264,7 +264,16 @@ public class InternalUsersApiAction extends AbstractApiAction {
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
                 // this method will be called only for PATCH
-                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::generateHashForPassword);
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateUserName)
+                    .map(this::generateHashForPassword)
+                    .map(InternalUsersApiAction.this::validateAndUpdatePassword)
+                    .map(InternalUsersApiAction.this::validateSecurityRoles);
+            }
+
+            private ValidationResult<SecurityConfiguration> validateUserName(final SecurityConfiguration securityConfiguration) {
+                return UserService.restrictedFromUsername(securityConfiguration.entityName())
+                    .<ValidationResult<SecurityConfiguration>>map(m -> ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(m)))
+                    .orElseGet(() -> ValidationResult.success(securityConfiguration));
             }
 
             private ValidationResult<SecurityConfiguration> generateHashForPassword(final SecurityConfiguration securityConfiguration) {
@@ -294,6 +303,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
                         final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
+                            allowedKeys.put("hidden", DataType.BOOLEAN);
                             allowedKeys.put("reserved", DataType.BOOLEAN);
                         }
                         return allowedKeys.put("backend_roles", DataType.ARRAY)
