@@ -19,6 +19,8 @@ package org.opensearch.security.auth.limiting;
 
 import java.net.InetAddress;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthFailureListener;
@@ -30,8 +32,10 @@ import org.opensearch.security.util.ratetracking.RateTracker;
 public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureListener, ClientBlockRegistry<ClientIdType> {
     protected final ClientBlockRegistry<ClientIdType> clientBlockRegistry;
     protected final RateTracker<ClientIdType> rateTracker;
+    protected final List<String> ignoreHosts;
 
     public AbstractRateLimiter(Settings settings, Path configPath, Class<ClientIdType> clientIdType) {
+        this.ignoreHosts = settings.getAsList("ignore_hosts", Collections.emptyList());
         this.clientBlockRegistry = new HeapBasedClientBlockRegistry<>(
             settings.getAsInt("block_expiry_seconds", 60 * 10) * 1000,
             settings.getAsInt("max_blocked_clients", 100_000),
@@ -46,6 +50,11 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
 
     @Override
     public abstract void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
+
+    @Override
+    public List<String> getIgnoreHosts() {
+        return this.ignoreHosts;
+    }
 
     @Override
     public boolean isBlocked(ClientIdType clientId) {

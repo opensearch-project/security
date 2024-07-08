@@ -64,6 +64,7 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -680,6 +681,19 @@ public class BackendRegistry {
         }
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
+            List<String> ignoreHosts = ((AuthFailureListener) clientBlockRegistry).getIgnoreHosts();
+            WildcardMatcher ignoreHostMatcher = WildcardMatcher.NONE;
+            if (ignoreHosts != null && !ignoreHosts.isEmpty()) {
+                ignoreHostMatcher = WildcardMatcher.from(ignoreHosts);
+            }
+            if (address != null) {
+                final String ipAddress = address.getHostAddress();
+                final String hostname = address.getHostName();
+
+                if (ignoreHostMatcher.test(ipAddress) || ignoreHostMatcher.test(hostname)) {
+                    return false;
+                }
+            }
             if (clientBlockRegistry.isBlocked(address)) {
                 return true;
             }

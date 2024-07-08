@@ -10,6 +10,7 @@
 package org.opensearch.test.framework;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -20,6 +21,7 @@ public class RateLimiting implements ToXContentObject {
     private final String name;
     private String type;
     private String authenticationBackend;
+    private List<String> ignoreHosts;
     private Integer allowedTries;
     private Integer timeWindowSeconds;
     private Integer blockExpirySeconds;
@@ -44,8 +46,13 @@ public class RateLimiting implements ToXContentObject {
         return this;
     }
 
-    public RateLimiting allowedTries(Integer allowedTries) {
+    public RateLimiting ignoreHosts(List<String> ignoreHosts) {
         this.allowedTries = allowedTries;
+        return this;
+    }
+
+    public RateLimiting allowedTries(Integer allowedTries) {
+        this.ignoreHosts = ignoreHosts;
         return this;
     }
 
