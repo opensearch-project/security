@@ -16,12 +16,9 @@ import java.io.UncheckedIOException;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -31,7 +28,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.tuple.Pair;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchParseException;
@@ -41,9 +37,9 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
@@ -128,17 +124,13 @@ public class Utils {
 
     public static JsonNode convertJsonToJackson(ToXContent jsonContent, boolean omitDefaults) {
         try {
-            Map<String, String> pm = new HashMap<>(1);
-            pm.put("omit_defaults", String.valueOf(omitDefaults));
-            ToXContent.MapParams params = new ToXContent.MapParams(pm);
-
-            final BytesReference bytes = org.opensearch.core.xcontent.XContentHelper.toXContent(
-                jsonContent,
-                MediaTypeRegistry.JSON,
-                params,
-                false
+            return DefaultObjectMapper.readTree(
+                Strings.toString(
+                    XContentType.JSON,
+                    jsonContent,
+                    new ToXContent.MapParams(Map.of("omit_defaults", String.valueOf(omitDefaults)))
+                )
             );
-            return DefaultObjectMapper.readTree(bytes.utf8ToString());
         } catch (IOException e1) {
             throw ExceptionsHelper.convertToOpenSearchException(e1);
         }
@@ -193,21 +185,6 @@ public class Utils {
                 throw new RuntimeException(e.getCause());
             }
         }
-    }
-
-    /**
-     * This generates hash for a given password
-     * @param clearTextPassword plain text password for which hash should be generated.
-     *                          This will be cleared from memory.
-     * @return hash of the password
-     */
-    public static String hash(final char[] clearTextPassword) {
-        final byte[] salt = new byte[16];
-        new SecureRandom().nextBytes(salt);
-        final String hash = OpenBSDBCrypt.generate((Objects.requireNonNull(clearTextPassword)), salt, 12);
-        Arrays.fill(salt, (byte) 0);
-        Arrays.fill(clearTextPassword, '\0');
-        return hash;
     }
 
     /**

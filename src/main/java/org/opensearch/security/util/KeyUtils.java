@@ -33,6 +33,7 @@ import io.jsonwebtoken.security.Keys;
 
 public class KeyUtils {
 
+    @SuppressWarnings("removal")
     public static JwtParserBuilder createJwtParserBuilderFromSigningKey(final String signingKey, final Logger log) {
         final SecurityManager sm = System.getSecurityManager();
 

@@ -11,6 +11,7 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -18,7 +19,9 @@ import org.junit.Test;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class FieldMaskedTest extends AbstractDlsFlsTest {
@@ -218,6 +221,42 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
     }
 
     @Test
+    public void testMaskedSearchWithClusterDefaultSHA512() throws Exception {
+
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, "SHA-512").build();
+        setup(settings);
+
+        HttpResponse res;
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"value\" : 32,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertTrue(res.getBody().contains("cust2"));
+        Assert.assertTrue(res.getBody().contains("100.100.1.1"));
+        Assert.assertTrue(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("user_masked", "password"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"value\" : 32,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertTrue(res.getBody().contains("cust2"));
+        Assert.assertFalse(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+        Assert.assertTrue(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
+
+    }
+
+    @Test
     public void testMaskedGet() throws Exception {
 
         setup();
@@ -247,4 +286,83 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
     }
 
+    @Test
+    public void testMaskedGetWithClusterDefaultSHA512() throws Exception {
+
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, "SHA-512").build();
+        setup(settings);
+
+        HttpResponse res;
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"found\" : true"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertFalse(res.getBody().contains("cust2"));
+        Assert.assertTrue(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha3_224Hex("100.100.1.1")));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("user_masked", "password"))).getStatusCode()
+        );
+
+        Assert.assertTrue(res.getBody().contains("\"found\" : true"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertFalse(res.getBody().contains("cust2"));
+        Assert.assertFalse(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha3_224Hex("100.100.1.1")));
+        Assert.assertTrue(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
+    }
+
+    @Test
+    public void testMaskedGetWithClusterDefaultSHA3() throws Exception {
+
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, "SHA3-224").build();
+        setup(settings);
+
+        HttpResponse res;
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"found\" : true"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertFalse(res.getBody().contains("cust2"));
+        Assert.assertTrue(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha3_224Hex("100.100.1.1")));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("user_masked", "password"))).getStatusCode()
+        );
+
+        Assert.assertTrue(res.getBody().contains("\"found\" : true"));
+        Assert.assertTrue(res.getBody().contains("cust1"));
+        Assert.assertFalse(res.getBody().contains("cust2"));
+        Assert.assertFalse(res.getBody().contains("100.100.1.1"));
+        Assert.assertFalse(res.getBody().contains("100.100.2.2"));
+        Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
+        Assert.assertTrue(res.getBody().contains(DigestUtils.sha3_224Hex("100.100.1.1")));
+        Assert.assertFalse(res.getBody().contains(DigestUtils.sha512Hex("100.100.1.1")));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testMaskedGetClusterDefaultDoesNotExist() throws Exception {
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, "SHA6-FORCEFAIL")
+            .build();
+        setup(settings);
+    }
 }

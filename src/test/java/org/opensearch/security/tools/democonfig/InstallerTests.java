@@ -44,6 +44,7 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
+@SuppressWarnings("removal")
 public class InstallerTests {
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;

@@ -12,6 +12,7 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +46,7 @@ import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
@@ -57,8 +59,6 @@ import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
 
-import static org.opensearch.security.dlic.rest.support.Utils.hash;
-
 /**
  * This class handles user registration and operations on behalf of the Security Plugin.
  */
@@ -67,6 +67,7 @@ public class UserService {
     protected final Logger log = LogManager.getLogger(this.getClass());
     ClusterService clusterService;
     private final ConfigurationRepository configurationRepository;
+    private final PasswordHasher passwordHasher;
     String securityIndex;
     Client client;
 
@@ -94,9 +95,16 @@ public class UserService {
     );
 
     @Inject
-    public UserService(ClusterService clusterService, ConfigurationRepository configurationRepository, Settings settings, Client client) {
+    public UserService(
+        ClusterService clusterService,
+        ConfigurationRepository configurationRepository,
+        PasswordHasher passwordHasher,
+        Settings settings,
+        Client client
+    ) {
         this.clusterService = clusterService;
         this.configurationRepository = configurationRepository;
+        this.passwordHasher = passwordHasher;
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
@@ -115,6 +123,18 @@ public class UserService {
             logComplianceEvent
         ).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
+    }
+
+    public static Optional<String> restrictedFromUsername(final String accountName) {
+        final var foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
+            .filter(r -> URLDecoder.decode(accountName, StandardCharsets.UTF_8).contains(r))
+            .collect(Collectors.toList());
+        if (!foundRestrictedContents.isEmpty()) {
+            return Optional.of(
+                RESTRICTED_CHARACTER_USE_MESSAGE + foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","))
+            );
+        }
+        return Optional.empty();
     }
 
     /**
@@ -142,19 +162,16 @@ public class UserService {
                                                                                                                           // service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
-            contentAsNode.put("hash", hash(password.toCharArray()));
+            contentAsNode.put("hash", passwordHasher.hash(password.toCharArray()));
             contentAsNode.put("service", "true");
         } else {
             contentAsNode.put("service", "false");
         }
 
         securityJsonNode = new SecurityJsonNode(contentAsNode);
-        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
-            .filter(accountName::contains)
-            .collect(Collectors.toList());
-        if (!foundRestrictedContents.isEmpty()) {
-            final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
-            throw new UserServiceException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
+        final var foundRestrictedContents = restrictedFromUsername(accountName);
+        if (foundRestrictedContents.isPresent()) {
+            throw new UserServiceException(foundRestrictedContents.get());
         }
 
         // if password is set, it takes precedence over hash
@@ -162,7 +179,7 @@ public class UserService {
         final String origHash = securityJsonNode.get("hash").asString();
         if (plainTextPassword != null && plainTextPassword.length() > 0) {
             contentAsNode.remove("password");
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
         } else if (origHash != null && origHash.length() > 0) {
             contentAsNode.remove("password");
         } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
@@ -275,7 +292,7 @@ public class UserService {
 
             // Generate a new password for the account and store the hash of it
             String plainTextPassword = generatePassword();
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
             contentAsNode.put("enabled", "true");
             contentAsNode.put("service", "true");
 

@@ -23,6 +23,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -47,7 +48,8 @@ public class SecurityRestApiActions {
         final AuditLog auditLog,
         final SecurityKeyStore securityKeyStore,
         final UserService userService,
-        final boolean certificatesReloadEnabled
+        final boolean certificatesReloadEnabled,
+        final PasswordHasher passwordHasher
     ) {
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
@@ -64,7 +66,7 @@ public class SecurityRestApiActions {
             settings
         );
         return List.of(
-            new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies),
+            new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, passwordHasher),
             new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
             new RolesApiAction(clusterService, threadPool, securityApiDependencies),
             new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
@@ -88,15 +90,16 @@ public class SecurityRestApiActions {
             new TenantsApiAction(clusterService, threadPool, securityApiDependencies),
             new MigrateApiAction(clusterService, threadPool, securityApiDependencies),
             new ValidateApiAction(clusterService, threadPool, securityApiDependencies),
-            new AccountApiAction(clusterService, threadPool, securityApiDependencies),
+            new AccountApiAction(clusterService, threadPool, securityApiDependencies, passwordHasher),
             new NodesDnApiAction(clusterService, threadPool, securityApiDependencies),
             new WhitelistApiAction(clusterService, threadPool, securityApiDependencies),
             // FIXME change it as soon as WhitelistApiAction will be removed
             new AllowlistApiAction(Endpoint.ALLOWLIST, clusterService, threadPool, securityApiDependencies),
             new AuditApiAction(clusterService, threadPool, securityApiDependencies),
             new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),
+            new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies),
             new SecuritySSLCertsApiAction(clusterService, threadPool, securityKeyStore, certificatesReloadEnabled, securityApiDependencies),
-            new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies)
+            new CertificatesApiAction(clusterService, threadPool, securityApiDependencies)
         );
     }
 

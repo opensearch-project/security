@@ -37,12 +37,12 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.SpecialPermission;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.common.util.IndexUtils;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.repositories.Repository;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.snapshots.SnapshotId;
 import org.opensearch.snapshots.SnapshotInfo;
-import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.threadpool.ThreadPool;
 
 public class SnapshotRestoreHelper {
@@ -56,7 +56,7 @@ public class SnapshotRestoreHelper {
             log.warn("snapshot repository '{}', snapshot '{}' not found", restoreRequest.repository(), restoreRequest.snapshot());
             return null;
         } else {
-            return SnapshotUtils.filterIndices(snapshotInfo.indices(), restoreRequest.indices(), restoreRequest.indicesOptions());
+            return IndexUtils.filterIndices(snapshotInfo.indices(), restoreRequest.indices(), restoreRequest.indicesOptions());
         }
 
     }

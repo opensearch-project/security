@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -163,8 +164,9 @@ public class LocalOpenSearchCluster {
         this.initialClusterManagerHosts = toHostList(clusterManagerPorts);
 
         started = true;
-
+        final var nodeCounter = new AtomicInteger(0);
         CompletableFuture<Void> clusterManagerNodeFuture = startNodes(
+            nodeCounter,
             clusterManager.getClusterManagerNodeSettings(),
             clusterManagerNodeTransportPorts,
             clusterManagerNodeHttpPorts
@@ -178,6 +180,7 @@ public class LocalOpenSearchCluster {
         SortedSet<Integer> nonClusterManagerNodeHttpPorts = TCP.allocate(clusterName, nonClusterManagerNodeCount, 5000 + 42 * 1000 + 210);
 
         CompletableFuture<Void> nonClusterManagerNodeFuture = startNodes(
+            nodeCounter,
             clusterManager.getNonClusterManagerNodeSettings(),
             nonClusterManagerNodeTransportPorts,
             nonClusterManagerNodeHttpPorts
@@ -195,7 +198,6 @@ public class LocalOpenSearchCluster {
         log.info("Startup finished. Waiting for GREEN");
 
         waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), nodes.size());
-
         log.info("Started: {}", this);
 
     }
@@ -294,6 +296,7 @@ public class LocalOpenSearchCluster {
     }
 
     private CompletableFuture<Void> startNodes(
+        AtomicInteger nodeCounter,
         List<NodeSettings> nodeSettingList,
         SortedSet<Integer> transportPorts,
         SortedSet<Integer> httpPorts
@@ -302,11 +305,10 @@ public class LocalOpenSearchCluster {
         Iterator<Integer> httpPortIterator = httpPorts.iterator();
         List<CompletableFuture<StartStage>> futures = new ArrayList<>();
 
-        for (NodeSettings nodeSettings : nodeSettingList) {
-            Node node = new Node(nodeSettings, transportPortIterator.next(), httpPortIterator.next());
+        for (final var nodeSettings : nodeSettingList) {
+            Node node = new Node(nodeCounter.getAndIncrement(), nodeSettings, transportPortIterator.next(), httpPortIterator.next());
             futures.add(node.start());
         }
-
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
@@ -386,8 +388,14 @@ public class LocalOpenSearchCluster {
         private PluginAwareNode node;
         private boolean running = false;
         private boolean portCollision = false;
+        private final int nodeNumber;
 
-        Node(NodeSettings nodeSettings, int transportPort, int httpPort) {
+        boolean hasAssignedType(NodeType type) {
+            return requireNonNull(type, "Node type is required.").equals(this.nodeType);
+        }
+
+        Node(int nodeNumber, NodeSettings nodeSettings, int transportPort, int httpPort) {
+            this.nodeNumber = nodeNumber;
             this.nodeName = createNextNodeName(requireNonNull(nodeSettings, "Node settings are required."));
             this.nodeSettings = nodeSettings;
             this.nodeHomeDir = new File(clusterHomeDir, nodeName);
@@ -403,8 +411,8 @@ public class LocalOpenSearchCluster {
             nodes.add(this);
         }
 
-        boolean hasAssignedType(NodeType type) {
-            return requireNonNull(type, "Node type is required.").equals(this.nodeType);
+        public int nodeNumber() {
+            return nodeNumber;
         }
 
         CompletableFuture<StartStage> start() {
@@ -516,8 +524,7 @@ public class LocalOpenSearchCluster {
                 .build();
 
             if (nodeSettingsSupplier != null) {
-                // TODO node number
-                return Settings.builder().put(settings).put(nodeSettingsSupplier.get(0)).build();
+                return Settings.builder().put(settings).put(nodeSettingsSupplier.get(nodeNumber)).build();
             }
             return settings;
         }

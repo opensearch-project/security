@@ -14,6 +14,7 @@ package org.opensearch.security.tools.democonfig.util;
 /**
  * Helper class to allow capturing and testing exit codes and block test execution from exiting mid-way
  */
+@SuppressWarnings("removal")
 public class NoExitSecurityManager extends SecurityManager {
     @Override
     public void checkPermission(java.security.Permission perm) {

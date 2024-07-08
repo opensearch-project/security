@@ -106,6 +106,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     private final ShardId shardId;
     private final boolean maskFields;
     private final Salt salt;
+    private final String maskingAlgorithmDefault;
 
     private DlsGetEvaluator dge = null;
 
@@ -130,7 +131,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         this.clusterService = clusterService;
         this.auditlog = auditlog;
         this.salt = salt;
-        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt);
+        this.maskingAlgorithmDefault = clusterService.getSettings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT);
+        this.maskedFieldsMap = MaskedFieldsMap.extractMaskedFields(maskFields, maskedFields, salt, maskingAlgorithmDefault);
 
         this.shardId = shardId;
         flsEnabled = includesExcludes != null && !includesExcludes.isEmpty();
@@ -292,11 +294,16 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             this.maskedFieldsMap = maskedFieldsMap;
         }
 
-        public static MaskedFieldsMap extractMaskedFields(boolean maskFields, Set<String> maskedFields, final Salt salt) {
+        public static MaskedFieldsMap extractMaskedFields(
+            boolean maskFields,
+            Set<String> maskedFields,
+            final Salt salt,
+            String algorithmDefault
+        ) {
             if (maskFields) {
                 return new MaskedFieldsMap(
                     maskedFields.stream()
-                        .map(mf -> new MaskedField(mf, salt))
+                        .map(mf -> new MaskedField(mf, salt, algorithmDefault))
                         .collect(ImmutableMap.toImmutableMap(mf -> WildcardMatcher.from(mf.getName()), Function.identity()))
                 );
             } else {
@@ -1210,7 +1217,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         if (maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);
             if (mf != null && !mf.isEmpty()) {
-                return MaskedFieldsMap.extractMaskedFields(true, mf, salt);
+                return MaskedFieldsMap.extractMaskedFields(true, mf, salt, maskingAlgorithmDefault);
             }
 
         }

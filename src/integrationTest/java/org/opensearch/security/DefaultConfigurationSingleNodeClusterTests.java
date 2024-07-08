@@ -9,10 +9,14 @@
 */
 package org.opensearch.security;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 
@@ -22,6 +26,8 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DefaultConfigurationSingleNodeClusterTests extends AbstractDefaultConfigurationTests {
+
+    static Path configurationFolder = ConfigurationFiles.createConfigurationDirectory();
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -36,6 +42,11 @@ public class DefaultConfigurationSingleNodeClusterTests extends AbstractDefaultC
         .defaultConfigurationInitDirectory(configurationFolder.toString())
         .loadConfigurationIntoIndex(false)
         .build();
+
+    @AfterClass
+    public static void cleanConfigurationDirectory() throws IOException {
+        FileUtils.deleteDirectory(configurationFolder.toFile());
+    }
 
     public DefaultConfigurationSingleNodeClusterTests() {
         super(cluster);

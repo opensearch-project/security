@@ -20,6 +20,7 @@ normal_role:
   index_permissions:
     - index_patterns:
         - '.system*'
+        - '.no_system*'
       allowed_actions:
         - '*'
         - 'system:admin/system_index'
@@ -31,5 +32,6 @@ normal_role_without_system_index:
   index_permissions:
     - index_patterns:
         - '.system*'
+        - '.no_system*'
       allowed_actions:
         - '*'

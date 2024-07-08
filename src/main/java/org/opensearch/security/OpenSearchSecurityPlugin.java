@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
@@ -151,9 +152,13 @@ import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
+import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
+import org.opensearch.security.dlic.rest.api.ssl.TransportCertificatesInfoNodesAction;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.hasher.BCryptPasswordHasher;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
@@ -170,6 +175,7 @@ import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.ssl.ExternalSecurityKeyStore;
 import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -255,6 +261,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
+    private volatile PasswordHasher passwordHasher;
 
     public static boolean isActionTraceEnabled() {
 
@@ -412,6 +419,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     }
                 }
             }
+        }
+
+        try {
+            String maskingAlgorithmDefault = settings.get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT);
+            if (StringUtils.isNotEmpty(maskingAlgorithmDefault)) {
+                MessageDigest.getInstance(maskingAlgorithmDefault);
+            }
+        } catch (Exception ex) {
+            throw new OpenSearchSecurityException(
+                "JVM does not support algorithm for {}",
+                ex,
+                ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT
+            );
         }
 
         if (!client && !settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
@@ -615,7 +635,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         Objects.requireNonNull(auditLog),
                         sks,
                         Objects.requireNonNull(userService),
-                        sslCertReloadEnabled
+                        sslCertReloadEnabled,
+                        passwordHasher
                     )
                 );
                 log.debug("Added {} rest handler(s)", handlers.size());
@@ -640,6 +661,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if (!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            // external storage does not support reload and does not provide SSL certs info
+            if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
+                actions.add(new ActionHandler<>(CertificatesActionType.INSTANCE, TransportCertificatesInfoNodesAction.class));
+            }
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
         }
         return actions;
@@ -1067,7 +1092,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
-        userService = new UserService(cs, cr, settings, localClient);
+        this.passwordHasher = new BCryptPasswordHasher();
+
+        userService = new UserService(cs, cr, passwordHasher, settings, localClient);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
@@ -1113,7 +1140,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
@@ -1163,13 +1190,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(si);
         components.add(dcf);
         components.add(userService);
+        components.add(passwordHasher);
+
+        if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
+            components.add(sks);
+        }
         final var allowDefaultInit = settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
         final var useClusterState = useClusterStateToInitSecurityConfig(settings);
         if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
             clusterService.addListener(cr);
         }
         return components;
-
     }
 
     @Override
@@ -1366,6 +1397,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
             settings.add(
                 Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered)
+            );
+            settings.add(
+                Setting.simpleString(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, Property.NodeScope, Property.Filtered)
             );
             final List<String> disabledCategories = new ArrayList<String>(2);
             disabledCategories.add("AUTHENTICATED");

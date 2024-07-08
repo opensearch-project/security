@@ -148,7 +148,7 @@ This project has adopted the [Amazon Open Source Code of Conduct](CODE_OF_CONDUC
 
 ## Security
 
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public GitHub issue.
+If you discover a potential security issue in this project we ask that you notify OpenSearch Security directly via email to security@opensearch.org. Please do **not** create a public GitHub issue.
 
 ## License
 

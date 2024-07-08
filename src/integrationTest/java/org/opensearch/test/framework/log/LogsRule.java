@@ -64,7 +64,7 @@ public class LogsRule extends ExternalResource {
     */
     public void assertThatContain(String messageFragment) {
         List<String> messages = LogCapturingAppender.getLogMessagesAsString();
-        ;
+
         String reason = reasonMessage(messageFragment, messages);
         assertThat(reason, messages, hasItem(containsString(messageFragment)));
     }

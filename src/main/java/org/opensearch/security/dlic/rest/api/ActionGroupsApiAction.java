@@ -13,6 +13,7 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,9 +23,11 @@ import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -40,6 +43,14 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ActionGroupsApiAction extends AbstractApiAction {
+
+    private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenSearchSecurityPlugin.class);
+
+    static final String CLUSTER_TYPE = "cluster";
+
+    static final String INDEX_TYPE = "index";
+
+    static final Set<String> ALLOWED_TYPES = Set.of(CLUSTER_TYPE, INDEX_TYPE);
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
@@ -88,6 +99,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
     @Override
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
+
             @Override
             public Endpoint endpoint() {
                 return endpoint;
@@ -100,7 +112,8 @@ public class ActionGroupsApiAction extends AbstractApiAction {
 
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
-                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::actionGroupNameIsNotSameAsRoleName)
+                return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateType)
+                    .map(this::actionGroupNameIsNotSameAsRoleName)
                     .map(this::hasSelfReference);
             }
 
@@ -132,6 +145,27 @@ public class ActionGroupsApiAction extends AbstractApiAction {
                             securityConfiguration.entityName()
                                 + " is an existing role. A action group cannot be named with an existing role name."
                         )
+                    );
+                }
+                return ValidationResult.success(securityConfiguration);
+            }
+
+            private ValidationResult<SecurityConfiguration> validateType(final SecurityConfiguration securityConfiguration) {
+                final var requestContent = securityConfiguration.requestContent();
+                if (requestContent.has("type") && !ALLOWED_TYPES.contains(requestContent.get("type").asText().toLowerCase(Locale.ROOT))) {
+                    final var supportedTypesMessage = String.format("Supported types are: %s, %s.", CLUSTER_TYPE, INDEX_TYPE);
+                    return ValidationResult.error(
+                        RestStatus.BAD_REQUEST,
+                        badRequestMessage(
+                            "Invalid action group type: " + requestContent.get("type").asText() + ". " + supportedTypesMessage
+                        )
+
+                    );
+                }
+                if (!requestContent.has("type")) {
+                    deprecationLogger.deprecate(
+                        "type",
+                        "Possibility to creation or update of action groups without type is deprecated and will be removed in next major release."
                     );
                 }
                 return ValidationResult.success(securityConfiguration);
@@ -175,6 +209,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
                         final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
+                            allowedKeys.put("hidden", DataType.BOOLEAN);
                             allowedKeys.put("reserved", DataType.BOOLEAN);
                         }
                         allowedKeys.put("allowed_actions", DataType.ARRAY);
