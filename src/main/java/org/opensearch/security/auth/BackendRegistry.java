@@ -202,7 +202,11 @@ public class BackendRegistry {
             .orElse(false);
         if (isBlockedBasedOnAddress) {
             if (isDebugEnabled) {
-                log.debug("Rejecting REST request because of blocked address: {}", request.getRemoteAddress().orElse(null));
+                InetSocketAddress ipAddress = request.getRemoteAddress().orElse(null);
+                log.debug(
+                    "Rejecting REST request because of blocked address: {}",
+                    ipAddress != null ? "/" + ipAddress.getAddress().getHostAddress() : null
+                );
             }
 
             request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"));
