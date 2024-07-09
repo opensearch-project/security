@@ -44,6 +44,7 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -360,6 +361,16 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
+    TestRestClient.HttpResponse ok(
+        final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback,
+        final String expectedMessage
+    ) throws Exception {
+        final var response = endpointCallback.get();
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertResponseBody(response.getBody(), expectedMessage);
+        return response;
+    }
+
     TestRestClient.HttpResponse unauthorized(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
@@ -371,6 +382,12 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
     void assertResponseBody(final String responseBody) {
         assertThat(responseBody, notNullValue());
         assertThat(responseBody, not(equalTo("")));
+    }
+
+    void assertResponseBody(final String responseBody, final String expectedMessage) {
+        assertThat(responseBody, notNullValue());
+        assertThat(responseBody, not(equalTo("")));
+        assertThat(responseBody, containsString(expectedMessage));
     }
 
     static ToXContentObject configJsonArray(final String... values) {
