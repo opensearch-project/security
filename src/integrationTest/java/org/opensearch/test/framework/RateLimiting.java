@@ -86,6 +86,7 @@ public class RateLimiting implements ToXContentObject {
         xContentBuilder.field("block_expiry_seconds", blockExpirySeconds);
         xContentBuilder.field("max_blocked_clients", maxBlockedClients);
         xContentBuilder.field("max_tracked_clients", maxTrackedClients);
+        xContentBuilder.field("ignore_hosts", ignoreHosts);
         xContentBuilder.endObject();
         return xContentBuilder;
     }
