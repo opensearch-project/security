@@ -101,7 +101,14 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         );
 
         // TODO related to issue #4426
-        ok(() -> client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b")))));
+        ok(
+            () -> client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b")))),
+            "No updates required"
+        );
+        ok(
+            () -> client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b", "c")))),
+            "'new_role_for_patch' updated."
+        );
         ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("index_permissions", randomIndexPermissions(false)))));
         ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("tenant_permissions", randomTenantPermissions(false)))));
 

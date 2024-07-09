@@ -33,6 +33,9 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 
+import com.flipkart.zjsonpatch.JsonDiff;
+
+import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
 
 public class RequestContentValidator implements ToXContent {
@@ -130,6 +133,18 @@ public class RequestContentValidator implements ToXContent {
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
             .map(ignored -> validatePassword(request, jsonContent));
+    }
+
+    public ValidationResult<JsonNode> validate(final RestRequest request, final JsonNode patchedContent, final JsonNode originalContent)
+        throws IOException {
+        JsonNode patch = JsonDiff.asJson(originalContent, patchedContent);
+        if (patch.isEmpty()) {
+            return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
+        }
+        return validateContentSize(patchedContent).map(this::validateJsonKeys)
+            .map(this::validateDataType)
+            .map(this::nullValuesInArrayValidator)
+            .map(ignored -> validatePassword(request, patchedContent));
     }
 
     private ValidationResult<JsonNode> parseRequestContent(final RestRequest request) {
