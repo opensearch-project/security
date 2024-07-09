@@ -110,8 +110,9 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
         String nextOriginalHostResolverMode = originalHostResolverMode.equals("other") ? "ip-only" : "other";
         ok(() -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", nextOriginalHostResolverMode))));
         ok(() -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", originalHostResolverMode))));
-        badRequest(
-            () -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", originalHostResolverMode)))
+        ok(
+            () -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", originalHostResolverMode))),
+            "No updates required"
         );
     }
 

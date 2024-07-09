@@ -345,7 +345,8 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + resourcePath + "\",\"value\": " + writeValueAsString(testMap, false) + "}]",
             adminCredsHeader
         );
-        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertTrue(response.getBody().contains("No updates required"));
     }
 
     private void testReadonlyCategories(final ObjectNode json, final String config, final String resource) throws Exception {
@@ -517,9 +518,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + value + "}]",
             headers
         );
-        Set<Integer> expectedSet = new HashSet<>(List.of(expected));
-        expectedSet.add(HttpStatus.SC_BAD_REQUEST);
-        assertTrue(expectedSet.contains(response.getStatusCode()));
+        assertEquals(expected, response.getStatusCode());
         if (expected == HttpStatus.SC_OK) {
             assertEquals(value, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
         }
@@ -546,9 +545,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": []}]",
             headers
         );
-        Set<Integer> expectedSet = new HashSet<>(List.of(expectedStatus));
-        expectedSet.add(HttpStatus.SC_BAD_REQUEST);
-        assertTrue(expectedSet.contains(response.getStatusCode()));
+        assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
             assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
@@ -678,7 +675,8 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
-        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertTrue(response.getBody().contains("No updates required"));
 
         // get config
         response = rh.executeGetRequest(ENDPOINT);

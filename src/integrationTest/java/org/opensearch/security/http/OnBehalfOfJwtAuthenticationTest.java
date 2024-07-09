@@ -43,7 +43,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -307,7 +306,7 @@ public class OnBehalfOfJwtAuthenticationTest {
                 + configBuilder.toString()
                 + "}]";
             final var response = adminClient.patch("_plugins/_security/api/securityconfig", patchBody);
-            assertThat(response.getStatusCode(), anyOf(equalTo(HttpStatus.SC_OK), equalTo(HttpStatus.SC_BAD_REQUEST)));
+            response.assertStatusCode(HttpStatus.SC_OK);
         } catch (final IOException ex) {
             throw new RuntimeException(ex);
         }

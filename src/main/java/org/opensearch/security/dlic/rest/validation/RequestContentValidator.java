@@ -35,7 +35,7 @@ import org.opensearch.security.DefaultObjectMapper;
 
 import com.flipkart.zjsonpatch.JsonDiff;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
 
 public class RequestContentValidator implements ToXContent {
@@ -139,7 +139,7 @@ public class RequestContentValidator implements ToXContent {
         throws IOException {
         JsonNode patch = JsonDiff.asJson(originalContent, patchedContent);
         if (patch.isEmpty()) {
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("PATCH Request does not update security config"));
+            return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
         }
         return validateContentSize(patchedContent).map(this::validateJsonKeys)
             .map(this::validateDataType)

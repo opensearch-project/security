@@ -241,7 +241,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             final var patchedConfigurationAsJson = JsonPatch.apply(patchContent, configurationAsJson);
             JsonNode patch = JsonDiff.asJson(configurationAsJson, patchedConfigurationAsJson);
             if (patch.isEmpty()) {
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("PATCH Request does not update security config"));
+                return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
             }
             for (final var entityName : patchEntityNames(patchContent)) {
                 final var beforePatchEntity = configurationAsJson.get(entityName);
