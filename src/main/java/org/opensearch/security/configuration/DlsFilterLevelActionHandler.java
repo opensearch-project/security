@@ -58,6 +58,7 @@ import org.opensearch.script.mustache.SearchTemplateAction;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.privileges.DocumentAllowList;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.queries.QueryBuilderTraverser;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
@@ -74,11 +75,9 @@ public class DlsFilterLevelActionHandler {
     );
 
     public static boolean handle(
-        String action,
-        ActionRequest request,
-        ActionListener<?> listener,
+        PrivilegesEvaluationContext context,
         EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
-        Resolved resolved,
+        ActionListener<?> listener,
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
@@ -90,6 +89,9 @@ public class DlsFilterLevelActionHandler {
         if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
             return true;
         }
+
+        String action = context.getAction();
+        ActionRequest request = context.getRequest();
 
         if (action.startsWith("cluster:")
             || action.startsWith("indices:admin/template/")
@@ -112,11 +114,9 @@ public class DlsFilterLevelActionHandler {
         }
 
         return new DlsFilterLevelActionHandler(
-            action,
-            request,
-            listener,
+            context,
             evaluatedDlsFlsConfig,
-            resolved,
+            listener,
             nodeClient,
             clusterService,
             indicesService,
@@ -142,11 +142,9 @@ public class DlsFilterLevelActionHandler {
     private DocumentAllowList documentAllowlist;
 
     DlsFilterLevelActionHandler(
-        String action,
-        ActionRequest request,
-        ActionListener<?> listener,
+        PrivilegesEvaluationContext context,
         EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
-        Resolved resolved,
+        ActionListener<?> listener,
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
@@ -154,11 +152,11 @@ public class DlsFilterLevelActionHandler {
         DlsQueryParser dlsQueryParser,
         ThreadContext threadContext
     ) {
-        this.action = action;
-        this.request = request;
+        this.action = context.getAction();
+        this.request = context.getRequest();
         this.listener = listener;
         this.evaluatedDlsFlsConfig = evaluatedDlsFlsConfig;
-        this.resolved = resolved;
+        this.resolved = context.getResolvedRequest();
         this.nodeClient = nodeClient;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
