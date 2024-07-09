@@ -9,6 +9,7 @@
 */
 package org.opensearch.security;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -49,6 +50,7 @@ public class IpBruteForceAttacksPreventionTests {
     public static final String CLIENT_IP_7 = "127.0.0.7";
     public static final String CLIENT_IP_8 = "127.0.0.8";
     public static final String CLIENT_IP_9 = "127.0.0.9";
+    public static final String CLIENT_IP_10 = "127.0.0.10";
 
     protected static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
         new RateLimiting("internal_authentication_backend_limiting").type("ip")
@@ -57,6 +59,7 @@ public class IpBruteForceAttacksPreventionTests {
             .blockExpirySeconds(2)
             .maxBlockedClients(500)
             .maxTrackedClients(500)
+            .ignoreHosts(List.of(CLIENT_IP_10))
     );
 
     @Rule
@@ -81,6 +84,18 @@ public class IpBruteForceAttacksPreventionTests {
             HttpResponse response = client.getAuthInfo();
 
             response.assertStatusCode(SC_OK);
+        }
+    }
+
+    @Test
+    public void shouldAllowIpAddressIfMatchesIgnoreHost() {
+        authenticateUserWithIncorrectPassword(CLIENT_IP_10, USER_2, ALLOWED_TRIES);
+        try (TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_2, CLIENT_IP_10))) {
+
+            HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(SC_UNAUTHORIZED);
+            logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_10);
         }
     }
 

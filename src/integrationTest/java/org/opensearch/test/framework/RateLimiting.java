@@ -47,12 +47,12 @@ public class RateLimiting implements ToXContentObject {
     }
 
     public RateLimiting ignoreHosts(List<String> ignoreHosts) {
-        this.allowedTries = allowedTries;
+        this.ignoreHosts = ignoreHosts;
         return this;
     }
 
     public RateLimiting allowedTries(Integer allowedTries) {
-        this.ignoreHosts = ignoreHosts;
+        this.allowedTries = allowedTries;
         return this;
     }
 
