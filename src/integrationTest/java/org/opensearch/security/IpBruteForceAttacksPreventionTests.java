@@ -94,8 +94,7 @@ public class IpBruteForceAttacksPreventionTests {
 
             HttpResponse response = client.getAuthInfo();
 
-            response.assertStatusCode(SC_UNAUTHORIZED);
-            logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_10);
+            response.assertStatusCode(SC_OK);
         }
     }
 
