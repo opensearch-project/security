@@ -106,7 +106,14 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
         final var dynamicConfigJson = (ObjectNode) configJson.get("config").get("dynamic");
         dynamicConfigJson.set("auth_failure_listeners", authFailureListeners);
         ok(() -> client.putJson(securityConfigPath("config"), DefaultObjectMapper.writeValueAsString(configJson.get("config"), false)));
-        ok(() -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", "other"))));
+        String originalHostResolverMode = configJson.get("config").get("dynamic").get("hosts_resolver_mode").asText();
+        String nextOriginalHostResolverMode = originalHostResolverMode.equals("other") ? "ip-only" : "other";
+        ok(() -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", nextOriginalHostResolverMode))));
+        ok(() -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", originalHostResolverMode))));
+        ok(
+            () -> client.patch(securityConfigPath(), patch(replaceOp("/config/dynamic/hosts_resolver_mode", originalHostResolverMode))),
+            "No updates required"
+        );
     }
 
     void verifyNotAllowedMethods(final TestRestClient client) throws Exception {
