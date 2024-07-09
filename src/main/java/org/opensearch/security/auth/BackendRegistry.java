@@ -593,6 +593,7 @@ public class BackendRegistry {
                 }
             });
         } catch (Exception e) {
+            System.out.println("Received exception: " + e);
             if (log.isDebugEnabled()) {
                 log.debug("Can not authenticate {} due to exception", ac.getUsername(), e);
             }
