@@ -72,13 +72,17 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
+
+import org.greenrobot.eventbus.Subscribe;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
@@ -91,6 +95,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final Mode mode;
     private final DlsQueryParser dlsQueryParser;
     private final IndexNameExpressionResolver resolver;
+    private final boolean dfmEmptyOverwritesAll;
+    private final NamedXContentRegistry namedXContentRegistry;
+    private volatile ConfigModel configModel;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -107,21 +114,29 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.threadContext = threadContext;
         this.mode = Mode.get(settings);
         this.dlsQueryParser = new DlsQueryParser(namedXContentRegistry);
+        this.dfmEmptyOverwritesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
+        this.namedXContentRegistry = namedXContentRegistry;
+    }
+
+    @Subscribe
+    public void onConfigModelChanged(ConfigModel configModel) {
+        this.configModel = configModel;
     }
 
     /**
      *
-     * @param request
      * @param listener
      * @return false on error
      */
-    public boolean invoke(
-        String action,
-        ActionRequest request,
-        final ActionListener<?> listener,
-        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
-        final Resolved resolved
-    ) {
+    @Override
+    public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
+
+        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig = configModel.getSecurityRoles()
+            .filter(context.getMappedRoles())
+            .getDlsFls(context.getUser(), dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
+
+        ActionRequest request = context.getRequest();
+        IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
         if (log.isDebugEnabled()) {
             log.debug(
@@ -288,7 +303,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return false;
         }
 
-        if (action.contains("plugins/replication")) {
+        if (context.getAction().contains("plugins/replication")) {
             listener.onFailure(
                 new OpenSearchSecurityException(
                     "Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated",
@@ -324,11 +339,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         if (doFilterLevelDls && filteredDlsFlsConfig.hasDls()) {
             return DlsFilterLevelActionHandler.handle(
-                action,
-                request,
-                listener,
+                context,
                 evaluatedDlsFlsConfig,
-                resolved,
+                listener,
                 nodeClient,
                 clusterService,
                 OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
