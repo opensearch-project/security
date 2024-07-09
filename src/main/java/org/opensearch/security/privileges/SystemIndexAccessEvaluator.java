@@ -41,6 +41,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -63,29 +64,26 @@ public class SystemIndexAccessEvaluator {
     private final String securityIndex;
     private final AuditLog auditLog;
     private final IndexResolverReplacer irr;
-    private final IndexNameExpressionResolver resolver;
     private final boolean filterSecurityIndex;
     // for system-indices configuration
+    private final WildcardMatcher systemIndexMatcher;
     private final WildcardMatcher superAdminAccessOnlyIndexMatcher;
     private final WildcardMatcher deniedActionsMatcher;
 
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
 
-    public SystemIndexAccessEvaluator(
-        final Settings settings,
-        AuditLog auditLog,
-        IndexResolverReplacer irr,
-        IndexNameExpressionResolver resolver
-    ) {
+    public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
         this.irr = irr;
-        this.resolver = resolver;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
+        this.systemIndexMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
+        );
 
         this.superAdminAccessOnlyIndexMatcher = WildcardMatcher.from(this.securityIndex);
         this.isSystemIndexEnabled = settings.getAsBoolean(
@@ -172,7 +170,7 @@ public class SystemIndexAccessEvaluator {
      * It will always return security index if it is present in the request, as security index is protected regardless
      * of feature being enabled or disabled
      * @param requestedResolved request which contains indices to be matched against system indices
-     * @return the list of protected system indices present in the request
+     * @return the set of protected system indices present in the request
      */
     private Set<String> getAllSystemIndices(final Resolved requestedResolved) {
         final Set<String> systemIndices = requestedResolved.getAllIndices()
@@ -180,7 +178,8 @@ public class SystemIndexAccessEvaluator {
             .filter(securityIndex::equals)
             .collect(Collectors.toSet());
         if (isSystemIndexEnabled) {
-            systemIndices.addAll(resolver.concreteSystemIndices(requestedResolved.getAllIndices().toArray(new String[0])));
+            systemIndices.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
+            systemIndices.addAll(SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices().toArray(String[]::new)));
         }
         return systemIndices;
     }
