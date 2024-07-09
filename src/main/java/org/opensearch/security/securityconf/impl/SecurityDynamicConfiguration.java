@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -116,6 +117,20 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         sdc.version = version;
 
         return sdc;
+    }
+
+    /**
+     * For testing only
+     */
+    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType ctype, int version)
+        throws JsonProcessingException {
+        Class<?> implementationClass = ctype.getImplementationClass().get(version);
+        SecurityDynamicConfiguration<T> result = DefaultObjectMapper.objectMapper.convertValue(
+            map,
+            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
+        );
+        result.ctype = ctype;
+        return result;
     }
 
     public static void validate(SecurityDynamicConfiguration<?> sdc, int version, CType ctype) throws IOException {

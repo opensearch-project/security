@@ -411,34 +411,6 @@ public class PrivilegesEvaluator {
                         }
                     }
 
-                    if (dnfofEnabled && (action0.startsWith("indices:data/read/")) && !requestedResolved.getAllIndices().isEmpty()) {
-
-                        if (requestedResolved.getAllIndices().isEmpty()) {
-                            presponse.missingPrivileges.clear();
-                            presponse.allowed = true;
-                            return presponse;
-                        }
-
-                        Set<String> reduced = securityRoles.reduce(
-                            requestedResolved,
-                            user,
-                            new String[] { action0 },
-                            resolver,
-                            clusterService
-                        );
-
-                        if (reduced.isEmpty()) {
-                            presponse.allowed = false;
-                            return presponse;
-                        }
-
-                        if (irr.replace(request, true, reduced.toArray(new String[0]))) {
-                            presponse.missingPrivileges.clear();
-                            presponse.allowed = true;
-                            return presponse;
-                        }
-                    }
-
                     if (isDebugEnabled) {
                         log.debug("Allowed because we have cluster permissions for {}", action0);
                     }

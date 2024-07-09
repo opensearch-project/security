@@ -659,7 +659,9 @@ public class IntegrationTests extends SingleClusterTest {
             + System.lineSeparator();
 
         resc = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(403, resc.getStatusCode());
+        Assert.assertEquals(resc.getBody(), 200, resc.getStatusCode());
+        Assert.assertEquals(resc.getBody(), "security_exception", resc.findValueInJson("responses[0].error.type"));
+        Assert.assertEquals(resc.getBody(), "security_exception", resc.findValueInJson("responses[1].error.type"));
 
         String mgetBody = "{"
             + "\"docs\" : ["
@@ -696,7 +698,9 @@ public class IntegrationTests extends SingleClusterTest {
             + "}";
 
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
-        Assert.assertEquals(403, resc.getStatusCode());
+        Assert.assertEquals(resc.getBody(), 200, resc.getStatusCode());
+        Assert.assertEquals(resc.getBody(), "index_not_found_exception", resc.findValueInJson("docs[0].error.type"));
+        Assert.assertEquals(resc.getBody(), "index_not_found_exception", resc.findValueInJson("docs[1].error.type"));
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
