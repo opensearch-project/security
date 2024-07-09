@@ -61,10 +61,9 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
 
     private final static String SOME_ROLE = "some-role";
 
-    private final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(Settings
-            .builder()
-            .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT)
-            .build());
+    private final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
+        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+    );
     static {
         testSecurityConfig.withRestAdminUser(REST_API_ADMIN_INTERNAL_USERS_ONLY, restAdminPermission(Endpoint.INTERNALUSERS))
             .user(new TestSecurityConfig.User(SERVICE_ACCOUNT_USER).attr("service", "true").attr("enabled", "true"))

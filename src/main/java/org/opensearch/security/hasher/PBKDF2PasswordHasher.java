@@ -15,16 +15,15 @@ import java.nio.CharBuffer;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 
 import com.password4j.CompressedPBKDF2Function;
 import com.password4j.HashingFunction;
 import com.password4j.Password;
 
-import static org.opensearch.core.common.Strings.isNullOrEmpty;
-
 class PBKDF2PasswordHasher extends AbstractPasswordHasher {
+
+    private static final int DEFAULT_SALT_LENGTH = 128;
 
     @SuppressWarnings("removal")
     PBKDF2PasswordHasher(String function, int iterations, int length) {
@@ -40,9 +39,7 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
     @Override
     @SuppressWarnings("removal")
     public String hash(char[] password) {
-        if (password == null || password.length == 0) {
-            throw new OpenSearchSecurityException("Password cannot be empty or null");
-        }
+        checkPasswordNotNullOrEmpty(password);
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
             SecurityManager securityManager = System.getSecurityManager();
@@ -50,7 +47,10 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
                 securityManager.checkPermission(new SpecialPermission());
             }
             return AccessController.doPrivileged(
-                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer).addRandomSalt(64).with(hashingFunction).getResult()
+                (PrivilegedAction<String>) () -> Password.hash(passwordBuffer)
+                    .addRandomSalt(DEFAULT_SALT_LENGTH)
+                    .with(hashingFunction)
+                    .getResult()
             );
         } finally {
             cleanup(passwordBuffer);
@@ -60,12 +60,8 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
     @SuppressWarnings("removal")
     @Override
     public boolean check(char[] password, String hash) {
-        if (password == null || password.length == 0) {
-            throw new OpenSearchSecurityException("Password cannot be empty or null");
-        }
-        if (isNullOrEmpty(hash)) {
-            throw new OpenSearchSecurityException("Hash cannot be empty or null");
-        }
+        checkPasswordNotNullOrEmpty(password);
+        checkHashNotNullOrEmpty(hash);
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
             SecurityManager securityManager = System.getSecurityManager();

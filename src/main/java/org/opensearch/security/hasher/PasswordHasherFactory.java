@@ -11,6 +11,8 @@
 
 package org.opensearch.security.hasher;
 
+import java.util.Set;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -19,8 +21,9 @@ import static org.opensearch.security.support.ConfigConstants.PBKDF2;
 
 public class PasswordHasherFactory {
 
-    public static PasswordHasher createPasswordHasher(Settings settings) {
+    private static final Set<String> ALLOWED_BCRYPT_MINORS = Set.of("A", "B", "Y");
 
+    public static PasswordHasher createPasswordHasher(Settings settings) {
         String algorithm = settings.get(
             ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
             ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT
@@ -51,10 +54,10 @@ public class PasswordHasherFactory {
         ).toUpperCase();
 
         if (rounds < 4 || rounds > 31) {
-            throw new IllegalArgumentException("BCrypt rounds must be between 4 and 31.");
+            throw new IllegalArgumentException(String.format("BCrypt rounds must be between 4 and 31. Got: %d", rounds));
         }
-        if (!minor.equals("A") && !minor.equals("B") && !minor.equals("Y")) {
-            throw new IllegalArgumentException("BCrypt minor must be 'A', 'B', or 'Y'.");
+        if (!ALLOWED_BCRYPT_MINORS.contains(minor)) {
+            throw new IllegalArgumentException(String.format("BCrypt minor must be 'A', 'B', or 'Y'. Got: %s", minor));
         }
         return new BCryptPasswordHasher(minor, rounds);
     }
@@ -75,13 +78,15 @@ public class PasswordHasherFactory {
         );
 
         if (!pbkdf2Function.matches("SHA(1|224|256|384|512)")) {
-            throw new IllegalArgumentException("PBKDF2 function must be one of SHA1, SHA224, SHA256, SHA384, or SHA512.");
+            throw new IllegalArgumentException(
+                String.format("PBKDF2 function must be one of SHA1, SHA224, SHA256, SHA384, or SHA512. Got: %s", pbkdf2Function)
+            );
         }
         if (iterations <= 0) {
-            throw new IllegalArgumentException("PBKDF2 iterations must be a positive integer.");
+            throw new IllegalArgumentException(String.format("PBKDF2 iterations must be a positive integer. Got: %d", iterations));
         }
         if (length <= 0) {
-            throw new IllegalArgumentException("PBKDF2 length must be a positive integer.");
+            throw new IllegalArgumentException(String.format("PBKDF2 length must be a positive integer. Got: %d", length));
         }
         return new PBKDF2PasswordHasher(pbkdf2Function, iterations, length);
     }

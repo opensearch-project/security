@@ -28,13 +28,7 @@ package org.opensearch.security.tools;
 
 import java.io.Console;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
@@ -51,14 +45,21 @@ public class Hasher {
     private static final String LENGTH_OPTION = "l";
     private static final String ITERATIONS_OPTION = "i";
     private static final String MINOR_OPTION = "min";
+    private static final String HELP_OPTION = "h";
 
     public static void main(final String[] args) {
         final HelpFormatter formatter = new HelpFormatter();
+        formatter.setOptionComparator(null);
         Options options = buildOptions();
         final CommandLineParser parser = new DefaultParser();
         try {
             final CommandLine line = parser.parse(options, args);
             final char[] password;
+
+            if (line.hasOption(HELP_OPTION)) {
+                formatter.printHelp("hash.sh", options, true);
+                System.exit(0);
+            }
 
             if (line.hasOption(PASSWORD_OPTION)) {
                 password = line.getOptionValue(PASSWORD_OPTION).toCharArray();
@@ -147,6 +148,7 @@ public class Hasher {
 
     private static Options buildOptions() {
         final Options options = new Options();
+        options.addOption(Option.builder(HELP_OPTION).longOpt("help").desc("Display the help information").argName("help").build());
         options.addOption(
             Option.builder(PASSWORD_OPTION).longOpt("password").argName("password").hasArg().desc("Cleartext password to hash").build()
         );
@@ -162,45 +164,52 @@ public class Hasher {
                 .longOpt("algorithm")
                 .argName("hashing algorithm")
                 .hasArg()
-                .desc("Hashing algorithm (BCrypt, PBKDF2)")
+                .desc("Algorithm to use for password hashing. Valid values are: BCrypt | PBKDF2. Default: BCrypt")
                 .build()
         );
         options.addOption(
             Option.builder(ROUNDS_OPTION)
                 .longOpt("rounds")
-                .desc("Number of rounds (for BCrypt).")
+                .desc("Number of rounds to use in logarithmic form. Valid values are: 4 to 31. Default: 12")
                 .hasArg()
-                .argName("rounds")
+                .argName("rounds (BCrypt)")
                 .type(Number.class)
                 .build()
         );
         options.addOption(
-            Option.builder(MINOR_OPTION).longOpt("minor").desc("Minor version (for BCrypt).").hasArg().argName("minor").build()
+            Option.builder(MINOR_OPTION)
+                .longOpt("minor")
+                .desc("Version of BCrypt algorithm to use. Valid values are: A | B | Y. Default: Y")
+                .hasArg()
+                .argName("minor (BCrypt)")
+                .build()
         );
         options.addOption(
             Option.builder(LENGTH_OPTION)
                 .longOpt("length")
-                .desc("Desired length of the final derived key (for PBKDF2).")
+                .desc("Desired length of the final derived key. Default: 256")
                 .hasArg()
-                .argName("length")
-                .type(Number.class)
-                .build()
-        );
-        options.addOption(
-            Option.builder(ITERATIONS_OPTION)
-                .longOpt("iterations")
-                .desc("Iterations to perform (for PBKDF2).")
-                .hasArg()
-                .argName("iterations")
+                .argName("length (PBKDF2)")
                 .type(Number.class)
                 .build()
         );
         options.addOption(
             Option.builder(FUNCTION_OPTION)
                 .longOpt("function")
-                .desc("Pseudo-random function applied to the password (for PBKDF2).")
+                .desc(
+                    "Pseudo-random function applied to the password. Valid values are SHA1 | SHA224 | SHA256 | SHA384 | SHA512. Default: SHA256"
+                )
                 .hasArg()
-                .argName("function")
+                .argName("function (PBDKF2)")
+                .build()
+        );
+        options.addOption(
+            Option.builder(ITERATIONS_OPTION)
+                .longOpt("iterations")
+                .desc("Number of times the pseudo-random function is applied to the password. Default: 600000")
+                .hasArg()
+                .argName("iterations (PBKDF2)")
+                .type(Number.class)
                 .build()
         );
         return options;

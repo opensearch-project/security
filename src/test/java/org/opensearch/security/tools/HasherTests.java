@@ -83,7 +83,7 @@ public class HasherTests {
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
-        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 512);
+        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 256);
     }
 
     @Test
@@ -92,14 +92,14 @@ public class HasherTests {
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA512");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
-        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 512);
+        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 256);
         out.reset();
 
         Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-f", "SHA384" });
         pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA384");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
-        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 512);
+        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 256);
     }
 
     @Test
@@ -108,14 +108,14 @@ public class HasherTests {
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 100000);
-        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 512);
+        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 256);
         out.reset();
 
         Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-i", "200000" });
         pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 200000);
-        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 512);
+        assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 256);
     }
 
     @Test

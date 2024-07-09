@@ -157,9 +157,9 @@ public class ConfigConstants {
     public static final String SECURITY_PASSWORD_HASHING_ALGORITHM = "plugins.security.password.hashing.algorithm";
     public static final String SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT = BCRYPT;
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS = "plugins.security.password.hashing.pbkdf2.iterations";
-    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT = 600000;
+    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT = 600_000;
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH = "plugins.security.password.hashing.pbkdf2.length";
-    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT = 512;
+    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT = 256;
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION = "plugins.security.password.hashing.pbkdf2.function";
     public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT = Hmac.SHA256.name();
 

@@ -60,4 +60,5 @@ public class BCryptPasswordHasherTests extends AbstractPasswordHasherTests {
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
     }
+
 }
