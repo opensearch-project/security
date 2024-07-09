@@ -597,7 +597,6 @@ public class BackendRegistry {
                 }
             });
         } catch (Exception e) {
-            System.out.println("Received exception: " + e);
             if (log.isDebugEnabled()) {
                 log.debug("Can not authenticate {} due to exception", ac.getUsername(), e);
             }
@@ -687,16 +686,13 @@ public class BackendRegistry {
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
             List<String> ignoreHosts = ((AuthFailureListener) clientBlockRegistry).getIgnoreHosts();
-            System.out.println("ignoreHosts: " + ignoreHosts);
             WildcardMatcher ignoreHostMatcher = WildcardMatcher.NONE;
             if (ignoreHosts != null && !ignoreHosts.isEmpty()) {
                 ignoreHostMatcher = WildcardMatcher.from(ignoreHosts);
             }
             if (address != null) {
                 final String ipAddress = address.getHostAddress();
-                System.out.println("ipAddress: " + ipAddress);
                 final String hostname = address.getHostName();
-                System.out.println("hostname: " + hostname);
 
                 if (ignoreHostMatcher.test(ipAddress) || ignoreHostMatcher.test(hostname)) {
                     return false;
