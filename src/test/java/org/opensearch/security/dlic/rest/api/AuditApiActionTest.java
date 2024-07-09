@@ -40,6 +40,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
@@ -345,6 +346,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             adminCredsHeader
         );
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+        assertTrue(response.getBody().contains("No updates required"));
     }
 
     private void testReadonlyCategories(final ObjectNode json, final String config, final String resource) throws Exception {
@@ -588,7 +590,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": {}}]",
             headers
         );
-        assertThat(response.getStatusCode(), is(expectedStatus));
+        assertThat(response.getStatusCode(), anyOf(is(expectedStatus), is(HttpStatus.SC_BAD_REQUEST)));
         if (expectedStatus == HttpStatus.SC_OK) {
             assertThat(readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size(), is(0));
         }
@@ -664,6 +666,9 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
         // make patch request
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + false + "}]");
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 

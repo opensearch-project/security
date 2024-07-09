@@ -66,6 +66,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.flipkart.zjsonpatch.JsonDiff;
 import com.flipkart.zjsonpatch.JsonPatch;
 import com.flipkart.zjsonpatch.JsonPatchApplicationException;
 
@@ -203,7 +204,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                     final var entityAsJson = (ObjectNode) configurationAsJson.get(entityName);
                     return withJsonPatchException(
                         () -> endpointValidator.createRequestContentValidator(entityName)
-                            .validate(request, JsonPatch.apply(patchContent, entityAsJson))
+                            .validate(request, JsonPatch.apply(patchContent, entityAsJson), configurationAsJson.get(entityName))
                             .map(
                                 patchedEntity -> endpointValidator.onConfigChange(
                                     SecurityConfiguration.of(patchedEntity, entityName, configuration)
@@ -238,6 +239,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
         return withIOException(() -> withJsonPatchException(() -> {
             final var patchedConfigurationAsJson = JsonPatch.apply(patchContent, configurationAsJson);
+            JsonNode patch = JsonDiff.asJson(configurationAsJson, patchedConfigurationAsJson);
+            if (patch.isEmpty()) {
+                return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
+            }
             for (final var entityName : patchEntityNames(patchContent)) {
                 final var beforePatchEntity = configurationAsJson.get(entityName);
                 final var patchedEntity = patchedConfigurationAsJson.get(entityName);
