@@ -18,7 +18,8 @@ Do these changes introduce new permission(s) to be displayed in the static dropd
 - [ ] New functionality includes testing
 - [ ] New functionality has been documented
 - [ ] New Roles/Permissions have a corresponding security dashboards plugin PR
+- [ ] API changes companion pull request [created](https://github.com/opensearch-project/opensearch-api-specification/blob/main/DEVELOPER_GUIDE.md)
 - [ ] Commits are signed per the DCO using --signoff
 
 By submitting this pull request, I confirm that my contribution is made under the terms of the Apache 2.0 license.
-For more information on following Developer Certificate of Origin and signing off your commits, please check [here](https://github.com/opensearch-project/OpenSearch/blob/main/CONTRIBUTING.md#developer-certificate-of-origin).
+For more information on following Developer Certificate of Origin and signing off your commits, please check [here](https://github.com/opensearch-project/security/blob/main/CONTRIBUTING.md#developer-certificate-of-origin).
