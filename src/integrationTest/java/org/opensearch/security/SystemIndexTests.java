@@ -47,7 +47,7 @@ public class SystemIndexTests {
         .build();
 
     @Test
-    public void shouldAdminShouldNotBeAbleToDeleteSecurityIndex() {
+    public void adminShouldNotBeAbleToDeleteSecurityIndex() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.delete(".opendistro_security");
 
