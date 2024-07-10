@@ -68,6 +68,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Netty4ModulePlugin;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 // CS-ENFORCE-SINGLE
 
 public class CCReplicationTest extends AbstractDlsFlsTest {
@@ -200,18 +203,20 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
     public void testReplication() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_ccreplication.yml"), Settings.EMPTY);
 
-        Assert.assertEquals(
+        assertThat(
             clusterInfo.numNodes,
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .health(new ClusterHealthRequest().waitForGreenStatus())
-                .actionGet()
-                .getNumberOfNodes()
+            is(
+                clusterHelper.nodeClient()
+                    .admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest().waitForGreenStatus())
+                    .actionGet()
+                    .getNumberOfNodes()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
@@ -243,7 +248,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Assert.assertTrue(
                 ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
             );
-            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
+            assertThat(RestStatus.FORBIDDEN, is(ex.status()));
         }
 
         try (
@@ -261,7 +266,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Assert.assertTrue(
                 ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
             );
-            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
+            assertThat(RestStatus.FORBIDDEN, is(ex.status()));
         }
 
         try (
@@ -279,7 +284,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             Assert.assertTrue(
                 ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
             );
-            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
+            assertThat(RestStatus.FORBIDDEN, is(ex.status()));
         }
 
         try (

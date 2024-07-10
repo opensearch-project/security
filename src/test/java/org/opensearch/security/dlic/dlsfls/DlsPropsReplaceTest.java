@@ -21,6 +21,9 @@ import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class DlsPropsReplaceTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
@@ -62,23 +65,27 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode()
+            is((res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 5,\n      \"relation"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password")))
-                .getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("/prop-mapped/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password")))
-                .getStatusCode()
+            is(
+                (res = rh.executeGetRequest("/prop-mapped/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"amount\" : 6060"));

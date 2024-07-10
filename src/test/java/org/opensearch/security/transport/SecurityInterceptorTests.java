@@ -54,7 +54,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static java.util.Collections.emptySet;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -208,7 +209,7 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                assertEquals(serializedUserHeader, Base64Helper.serializeObject(user, true));
+                assertThat(serializedUserHeader, is(Base64Helper.serializeObject(user, true)));
                 senderLatch.get().countDown();
             }
         };
@@ -223,7 +224,7 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                assertEquals(transientUser, user);
+                assertThat(user, is(transientUser));
                 senderLatch.get().countDown();
             }
         };
@@ -238,7 +239,7 @@ public class SecurityInterceptorTests {
     final void verifyOriginalContext(User user) {
 
         User transientUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(transientUser, user);
+        assertThat(user, is(transientUser));
         assertNull(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER));
     }
 

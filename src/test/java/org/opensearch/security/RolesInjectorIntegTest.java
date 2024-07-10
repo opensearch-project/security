@@ -53,6 +53,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Netty4ModulePlugin;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class RolesInjectorIntegTest extends SingleClusterTest {
 
     public static class RolesInjectorPlugin extends Plugin implements ActionPlugin {
@@ -87,18 +90,20 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
     public void testRolesInject() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles.yml"), Settings.EMPTY);
 
-        Assert.assertEquals(
+        assertThat(
             clusterInfo.numNodes,
-            clusterHelper.nodeClient()
-                .admin()
-                .cluster()
-                .health(new ClusterHealthRequest().waitForGreenStatus())
-                .actionGet()
-                .getNumberOfNodes()
+            is(
+                clusterHelper.nodeClient()
+                    .admin()
+                    .cluster()
+                    .health(new ClusterHealthRequest().waitForGreenStatus())
+                    .actionGet()
+                    .getNumberOfNodes()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             ClusterHealthStatus.GREEN,
-            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+            is(clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus())
         );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)

@@ -33,7 +33,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,11 +75,11 @@ public class EndpointValidatorTest {
     public void requiredEntityName() {
         var validationResult = endpointValidator.withRequiredEntityName(null);
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.BAD_REQUEST));
 
         validationResult = endpointValidator.withRequiredEntityName("a");
         assertTrue(validationResult.isValid());
-        assertEquals(RestStatus.OK, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -86,7 +87,7 @@ public class EndpointValidatorTest {
         when(configuration.exists("some_role")).thenReturn(false);
         final var validationResult = endpointValidator.entityExists(SecurityConfiguration.of("some_role", configuration));
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.NOT_FOUND, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.NOT_FOUND));
     }
 
     @Test
@@ -94,7 +95,7 @@ public class EndpointValidatorTest {
         when(configuration.exists("some_role")).thenReturn(true);
         final var validationResult = endpointValidator.entityExists(SecurityConfiguration.of("some_role", configuration));
         assertTrue(validationResult.isValid());
-        assertEquals(RestStatus.OK, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -102,7 +103,7 @@ public class EndpointValidatorTest {
         when(configuration.exists(null)).thenReturn(false);
         final var validationResult = endpointValidator.entityExists(SecurityConfiguration.of(null, configuration));
         assertTrue(validationResult.isValid());
-        assertEquals(RestStatus.OK, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -110,7 +111,7 @@ public class EndpointValidatorTest {
         when(configuration.isHidden("some_entity")).thenReturn(true);
         final var validationResult = endpointValidator.entityHidden( SecurityConfiguration.of("some_entity", configuration));
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.NOT_FOUND, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.NOT_FOUND));
     }
 
     @Test
@@ -118,7 +119,7 @@ public class EndpointValidatorTest {
         when(configuration.isHidden("some_entity")).thenReturn(false);
         final var validationResult = endpointValidator.entityHidden( SecurityConfiguration.of("some_entity", configuration));
         assertTrue(validationResult.isValid());
-        assertEquals(RestStatus.OK, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -126,7 +127,7 @@ public class EndpointValidatorTest {
         when(configuration.isReserved("some_entity")).thenReturn(true);
         final var validationResult = endpointValidator.entityReserved( SecurityConfiguration.of("some_entity", configuration));
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -134,7 +135,7 @@ public class EndpointValidatorTest {
         when(configuration.isReserved("some_entity")).thenReturn(false);
         final var validationResult = endpointValidator.entityReserved( SecurityConfiguration.of("some_entity", configuration));
         assertTrue(validationResult.isValid());
-        assertEquals(RestStatus.OK, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -142,7 +143,7 @@ public class EndpointValidatorTest {
         when(configuration.isStatic("some_entity")).thenReturn(true);
         final var validationResult = endpointValidator.entityStatic( SecurityConfiguration.of("some_entity", configuration));
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -150,7 +151,7 @@ public class EndpointValidatorTest {
         when(configuration.isStatic("some_entity")).thenReturn(false);
         final var validationResult = endpointValidator.entityStatic( SecurityConfiguration.of("some_entity", configuration));
         assertTrue(validationResult.isValid());
-        assertEquals(RestStatus.OK, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -159,7 +160,7 @@ public class EndpointValidatorTest {
 
         var validationResult = endpointValidator.entityImmutable( SecurityConfiguration.of("some_entity", configuration));
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.NOT_FOUND, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.NOT_FOUND));
     }
 
     @Test
@@ -168,7 +169,7 @@ public class EndpointValidatorTest {
         when(configuration.isStatic("some_entity")).thenReturn(true);
         final var validationResult = endpointValidator.entityImmutable( SecurityConfiguration.of("some_entity", configuration));
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -178,7 +179,7 @@ public class EndpointValidatorTest {
         when(configuration.isReserved("some_entity")).thenReturn(true);
         final var validationResult = endpointValidator.entityImmutable( SecurityConfiguration.of("some_entity", configuration));
         assertFalse(validationResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -186,19 +187,19 @@ public class EndpointValidatorTest {
         configImmutableEntities(false);
         var result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_FOUND, result.status());
+        assertThat(result.status(), is(RestStatus.NOT_FOUND));
 
         result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("static_entity", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
         result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("reserved_entity", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
         result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -207,19 +208,19 @@ public class EndpointValidatorTest {
 
         var result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
 
         result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("static_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
 
         result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("reserved_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
 
         result = endpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -228,11 +229,11 @@ public class EndpointValidatorTest {
 
         var result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_FOUND, result.status());
+        assertThat(result.status(), is(RestStatus.NOT_FOUND));
 
         result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -241,11 +242,11 @@ public class EndpointValidatorTest {
 
         var result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("hidden_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
 
         result = endpointValidator.isAllowedToLoadOrChangeHiddenEntity(SecurityConfiguration.of("just_entity", configuration));
         assertTrue(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     private void configImmutableEntities(final boolean isAdmin) {
@@ -267,7 +268,7 @@ public class EndpointValidatorTest {
 
         var validationResult = endpointValidator.entityImmutable( SecurityConfiguration.of("some_entity", configuration));
         assertTrue(validationResult.isValid());
-        assertEquals(RestStatus.OK, validationResult.status());
+        assertThat(validationResult.status(), is(RestStatus.OK));
     }
 
     @Test
@@ -283,8 +284,8 @@ public class EndpointValidatorTest {
 
         for (final var roleWithExpectedResults : expectedResultForRoles) {
             final var validationResult = endpointValidator.validateRoles(List.of(roleWithExpectedResults.getLeft()), configuration);
-            assertEquals(roleWithExpectedResults.getMiddle(), validationResult.isValid());
-            assertEquals(roleWithExpectedResults.getRight(), validationResult.status());
+            assertThat(validationResult.isValid(), is(roleWithExpectedResults.getMiddle()));
+            assertThat(validationResult.status(), is(roleWithExpectedResults.getRight()));
         }
 
     }
@@ -302,8 +303,8 @@ public class EndpointValidatorTest {
 
         for (final var roleWithExpectedResults : expectedResultForRoles) {
             final var validationResult = endpointValidator.validateRoles(List.of(roleWithExpectedResults.getLeft()), configuration);
-            assertEquals(roleWithExpectedResults.getMiddle(), validationResult.isValid());
-            assertEquals(roleWithExpectedResults.getRight(), validationResult.status());
+            assertThat(validationResult.isValid(), is(roleWithExpectedResults.getMiddle()));
+            assertThat(validationResult.status(), is(roleWithExpectedResults.getRight()));
         }
 
     }
@@ -338,7 +339,7 @@ public class EndpointValidatorTest {
             SecurityConfiguration.of("some_role", configuration)
         );
         assertFalse(roleCheckResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, roleCheckResult.status());
+        assertThat(roleCheckResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -359,7 +360,7 @@ public class EndpointValidatorTest {
             SecurityConfiguration.of(objectMapper.createObjectNode().set("cluster_permissions", array), "some_role", configuration)
         );
         assertFalse(roleCheckResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, roleCheckResult.status());
+        assertThat(roleCheckResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -372,7 +373,7 @@ public class EndpointValidatorTest {
             SecurityConfiguration.of("some_ag", configuration)
         );
         assertFalse(agCheckResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, agCheckResult.status());
+        assertThat(agCheckResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -391,7 +392,7 @@ public class EndpointValidatorTest {
                 SecurityConfiguration.of(objectMapper.createObjectNode().set("allowed_actions", array), "some_ag", configuration)
         );
         assertFalse(agCheckResult.isValid());
-        assertEquals(RestStatus.FORBIDDEN, agCheckResult.status());
+        assertThat(agCheckResult.status(), is(RestStatus.FORBIDDEN));
     }
 
     private List<String> restAdminPermissions() {

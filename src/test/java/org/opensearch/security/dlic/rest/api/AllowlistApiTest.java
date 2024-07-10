@@ -34,8 +34,8 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -70,9 +70,9 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
             // Note: the response has no whitespaces, so the .json file does not have whitespaces
-            Assert.assertEquals(
+            assertThat(
                 FileHelper.loadFile("restapi/whitelist_response_success.json"),
-                FileHelper.loadFile("restapi/whitelist_response_success.json")
+                is(FileHelper.loadFile("restapi/whitelist_response_success.json"))
             );
         }
         // FORBIDDEN FOR NON SUPER ADMIN
@@ -97,7 +97,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertFalse(response.getHeaders().contains("_meta"));
     }
 
@@ -111,7 +111,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
             ENDPOINT,
             "{ \"unknownkey\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}"
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
     }
@@ -125,7 +125,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
             ENDPOINT,
             "{ \"invalid\"::{{ [\"*\"], \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}"
         );
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         assertHealthy();
     }
 
@@ -140,9 +140,9 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(ENDPOINT, "", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         JsonNode settings = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message(), settings.get("reason").asText());
+        assertThat(settings.get("reason").asText(), is(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message()));
     }
 
     /**
@@ -257,11 +257,11 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/config\", \"value\": {\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"PUT\"] }}}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
-        assertEquals(
+        assertThat(
             response.getBody(),
-            "{\"config\":{\"enabled\":true,\"requests\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}"
+            is("{\"config\":{\"enabled\":true,\"requests\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}")
         );
 
         // PATCH just requests
@@ -270,7 +270,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/config/requests\", \"value\": {\"/_cat/nodes\": [\"GET\"]}}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"requests\":{\"/_cat/nodes\":[\"GET\"]}"));
 
@@ -280,19 +280,19 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
             "[{ \"op\": \"replace\", \"path\": \"/config/enabled\", \"value\": false}]",
             new Header[0]
         );
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":false"));
 
         // PATCH just enabled using "add" operation when it is currently false - works correctly
         response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": true}]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":true"));
 
         // PATCH just enabled using "add" operation when it is currently true - works correctly
         response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": false}]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":false"));

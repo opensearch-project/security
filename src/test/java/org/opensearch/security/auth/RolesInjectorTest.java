@@ -30,8 +30,10 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class RolesInjectorTest {
@@ -52,9 +54,9 @@ public class RolesInjectorTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         RolesInjector rolesInjector = new RolesInjector(auditLog);
         Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
-        assertEquals(null, roles);
+        assertThat(roles, is(nullValue()));
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals(null, user);
+        assertThat(user, is(nullValue()));
     }
 
     @Test
@@ -66,11 +68,11 @@ public class RolesInjectorTest {
         Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
 
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        assertEquals("user1", user.getName());
-        assertEquals(0, user.getRoles().size());
-        assertEquals(2, roles.size());
-        assertEquals(true, roles.contains("role_1"));
-        assertEquals(true, roles.contains("role_2"));
+        assertThat(user.getName(), is("user1"));
+        assertThat(user.getRoles().size(), is(0));
+        assertThat(roles.size(), is(2));
+        assertThat(roles.contains("role_1"), is(true));
+        assertThat(roles.contains("role_2"), is(true));
     }
 
     @Test
@@ -84,9 +86,9 @@ public class RolesInjectorTest {
             RolesInjector rolesInjector = new RolesInjector(auditLog);
             Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
 
-            assertEquals(null, roles);
+            assertThat(roles, is(nullValue()));
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            assertEquals(null, user);
+            assertThat(user, is(nullValue()));
         });
     }
 }
