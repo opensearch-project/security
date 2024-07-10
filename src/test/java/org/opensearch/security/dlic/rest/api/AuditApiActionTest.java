@@ -676,7 +676,6 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         assertTrue(response.getBody().contains("No updates required"));
 
-
         // get config
         response = rh.executeGetRequest(ENDPOINT);
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
