@@ -671,7 +671,11 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+
+        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/enabled" + "\",\"value\": " + true + "}]");
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         assertTrue(response.getBody().contains("No updates required"));
+
 
         // get config
         response = rh.executeGetRequest(ENDPOINT);
