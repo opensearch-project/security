@@ -33,17 +33,17 @@ public class SelfRefreshingKeySetTest {
 
         OctetSequenceKey key1 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
         assertThat(key1.getKeyValue().decodeToString(), is(TestJwk.OCT_1_K));
-        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1));
+        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1L));
 
         OctetSequenceKey key2 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/b");
         assertThat(key2.getKeyValue().decodeToString(), is(TestJwk.OCT_2_K));
-        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1));
+        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1L));
 
         try {
             selfRefreshingKeySet.getKey("kid/X");
             Assert.fail("Expected a BadCredentialsException");
         } catch (BadCredentialsException e) {
-            assertThat(selfRefreshingKeySet.getRefreshCount(), is(2));
+            assertThat(selfRefreshingKeySet.getRefreshCount(), is(2L));
         }
 
     }
@@ -71,8 +71,8 @@ public class SelfRefreshingKeySetTest {
         assertThat(((OctetSequenceKey) f1.get()).getKeyValue().decodeToString(), is(TestJwk.OCT_1_K));
         assertThat(((OctetSequenceKey) f2.get()).getKeyValue().decodeToString(), is(TestJwk.OCT_2_K));
 
-        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1));
-        assertThat(selfRefreshingKeySet.getQueuedGetCount(), is(1));
+        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1L));
+        assertThat(selfRefreshingKeySet.getQueuedGetCount(), is(1L));
 
     }
 
