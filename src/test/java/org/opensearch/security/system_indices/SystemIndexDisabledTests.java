@@ -23,7 +23,8 @@ import org.opensearch.client.Client;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -53,7 +54,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery);
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+        assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
     }
 
     @Test
@@ -69,7 +70,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+        assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
         assertTrue(response.getBody().contains(SYSTEM_INDICES.get(0)));
         assertFalse(response.getBody().contains(ACCESSIBLE_ONLY_BY_SUPER_ADMIN));
     }
@@ -100,7 +101,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", "", header);
-        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        assertThat(response.getStatusCode(), is(RestStatus.FORBIDDEN.getStatus()));
         validateForbiddenResponse(response, "indices:data/read/search", user);
     }
 
@@ -113,10 +114,10 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse responseDoc = restHelper.executeDeleteRequest(index + "/_doc/document1");
-            assertEquals(RestStatus.OK.getStatus(), responseDoc.getStatusCode());
+            assertThat(responseDoc.getStatusCode(), is(RestStatus.OK.getStatus()));
 
             RestHelper.HttpResponse responseIndex = restHelper.executeDeleteRequest(index);
-            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
+            assertThat(responseIndex.getStatusCode(), is(RestStatus.OK.getStatus()));
         }
     }
 
@@ -161,10 +162,10 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse responseClose = restHelper.executePostRequest(index + "/_close", "");
-            assertEquals(RestStatus.OK.getStatus(), responseClose.getStatusCode());
+            assertThat(responseClose.getStatusCode(), is(RestStatus.OK.getStatus()));
 
             RestHelper.HttpResponse responseOpen = restHelper.executePostRequest(index + "/_open", "");
-            assertEquals(RestStatus.OK.getStatus(), responseOpen.getStatusCode());
+            assertThat(responseOpen.getStatusCode(), is(RestStatus.OK.getStatus()));
         }
     }
 
@@ -178,7 +179,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
             // User can open the index but cannot close it
             response = restHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
         }
     }
 
@@ -204,7 +205,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
             if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN) || index.equals(SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS)) {
                 validateForbiddenResponse(response, "indices:admin/open", user);
             } else {
-                assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+                assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
             }
         }
     }
@@ -218,10 +219,10 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         for (String index : INDICES_FOR_CREATE_REQUEST) {
             RestHelper.HttpResponse responseIndex = restHelper.executePutRequest(index, createIndexSettings);
-            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
+            assertThat(responseIndex.getStatusCode(), is(RestStatus.OK.getStatus()));
 
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}");
-            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.CREATED.getStatus()));
         }
     }
 
@@ -245,10 +246,10 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         for (String index : INDICES_FOR_CREATE_REQUEST) {
             RestHelper.HttpResponse response = restHelper.executePutRequest(index, createIndexSettings, header);
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
 
             response = restHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", header);
-            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.CREATED.getStatus()));
         }
     }
 
@@ -261,10 +262,10 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
 
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings);
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
 
             response = restHelper.executePutRequest(index + "/_mapping", newMappings);
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
         }
     }
 
@@ -310,22 +311,22 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
         }
 
         for (String index : SYSTEM_INDICES) {
-            assertEquals(HttpStatus.SC_OK, restHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1").getStatusCode());
-            assertEquals(
-                HttpStatus.SC_OK,
+            assertThat(restHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1").getStatusCode(), is(HttpStatus.SC_OK));
+            assertThat(
                 restHelper.executePostRequest(
                     "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
                     "",
                     allAccessUserHeader
-                ).getStatusCode()
+                ).getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
-            assertEquals(
-                HttpStatus.SC_OK,
+            assertThat(
                 restHelper.executePostRequest(
                     "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
                     "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
                     allAccessUserHeader
-                ).getStatusCode()
+                ).getStatusCode(),
+                is(HttpStatus.SC_OK)
             );
         }
     }
@@ -344,7 +345,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
         for (String index : SYSTEM_INDICES) {
             String snapshotRequest = "_snapshot/" + index + "/" + index + "_1";
             RestHelper.HttpResponse res = restHelper.executeGetRequest(snapshotRequest);
-            assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
             res = restHelper.executePostRequest(snapshotRequest + "/_restore?wait_for_completion=true", "", allAccessUserHeader);
             shouldBeAllowedOnlyForAuthorizedIndices(index, res, "", allAccessUser);
@@ -381,7 +382,7 @@ public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
         for (String index : SYSTEM_INDICES) {
             String snapshotRequest = "_snapshot/" + index + "/" + index + "_1";
             RestHelper.HttpResponse res = restHelper.executeGetRequest(snapshotRequest);
-            assertEquals(HttpStatus.SC_UNAUTHORIZED, res.getStatusCode());
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
             String action = index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN) ? "" : "indices:data/write/index, indices:admin/create";
 

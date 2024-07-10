@@ -32,9 +32,10 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -100,23 +101,23 @@ public class AuditConfigSerializeTest {
         final ComplianceConfig compliance = auditConfig.getCompliance();
         // assert
         assertTrue(audit.isRestApiAuditEnabled());
-        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES));
+        assertThat(audit.getDisabledRestCategories(), is(EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES)));
         assertTrue(audit.isTransportApiAuditEnabled());
-        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES));
+        assertThat(audit.getDisabledTransportCategories(), is(EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES)));
         assertFalse(audit.shouldResolveBulkRequests());
         assertTrue(audit.shouldLogRequestBody());
         assertTrue(audit.shouldResolveIndices());
         assertTrue(audit.shouldExcludeSensitiveHeaders());
         assertSame(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
-        assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
-        assertEquals(WildcardMatcher.NONE, audit.getIgnoredCustomHeadersMatcher());
+        assertThat(audit.getIgnoredAuditUsersMatcher(), is(DEFAULT_IGNORED_USER));
+        assertThat(audit.getIgnoredCustomHeadersMatcher(), is(WildcardMatcher.NONE));
         assertFalse(compliance.shouldLogExternalConfig());
         assertFalse(compliance.shouldLogInternalConfig());
         assertFalse(compliance.shouldLogReadMetadataOnly());
-        assertEquals(DEFAULT_IGNORED_USER, compliance.getIgnoredComplianceUsersForReadMatcher());
+        assertThat(compliance.getIgnoredComplianceUsersForReadMatcher(), is(DEFAULT_IGNORED_USER));
         assertFalse(compliance.shouldLogWriteMetadataOnly());
         assertFalse(compliance.shouldLogDiffsForWrite());
-        assertEquals(DEFAULT_IGNORED_USER, compliance.getIgnoredComplianceUsersForWriteMatcher());
+        assertThat(compliance.getIgnoredComplianceUsersForWriteMatcher(), is(DEFAULT_IGNORED_USER));
     }
 
     @Test
@@ -160,33 +161,33 @@ public class AuditConfigSerializeTest {
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
         // assert
         assertTrue(audit.isRestApiAuditEnabled());
-        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.AUTHENTICATED));
+        assertThat(EnumSet.of(AuditCategory.AUTHENTICATED), is(audit.getDisabledRestCategories()));
         assertTrue(audit.isTransportApiAuditEnabled());
-        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.SSL_EXCEPTION));
+        assertThat(EnumSet.of(AuditCategory.SSL_EXCEPTION), is(audit.getDisabledTransportCategories()));
         assertTrue(audit.shouldResolveBulkRequests());
         assertTrue(audit.shouldLogRequestBody());
         assertTrue(audit.shouldResolveIndices());
         assertTrue(audit.shouldExcludeSensitiveHeaders());
         assertTrue(configCompliance.shouldLogExternalConfig());
         assertTrue(configCompliance.shouldLogInternalConfig());
-        assertEquals(WildcardMatcher.from(Collections.singleton("test-user-1")), audit.getIgnoredAuditUsersMatcher());
-        assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), audit.getIgnoredAuditRequestsMatcher());
+        assertThat(audit.getIgnoredAuditUsersMatcher(), is(WildcardMatcher.from(Collections.singleton("test-user-1"))));
+        assertThat(audit.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.from(Collections.singleton("test-request"))));
         assertTrue(configCompliance.shouldLogReadMetadataOnly());
-        assertEquals(
+        assertThat(
             WildcardMatcher.from(Collections.singleton("test-user-2")),
-            configCompliance.getIgnoredComplianceUsersForReadMatcher()
+            is(configCompliance.getIgnoredComplianceUsersForReadMatcher())
         );
-        assertEquals(
+        assertThat(
             Collections.singletonMap(WildcardMatcher.from("test-read-watch-field"), Collections.singleton("test-field-1")),
-            configCompliance.getReadEnabledFields()
+            is(configCompliance.getReadEnabledFields())
         );
         assertTrue(configCompliance.shouldLogWriteMetadataOnly());
         assertFalse(configCompliance.shouldLogDiffsForWrite());
-        assertEquals(
+        assertThat(
             WildcardMatcher.from(Collections.singleton("test-user-3")),
-            configCompliance.getIgnoredComplianceUsersForWriteMatcher()
+            is(configCompliance.getIgnoredComplianceUsersForWriteMatcher())
         );
-        assertEquals(WildcardMatcher.from("test-write-watch-index"), configCompliance.getWatchedWriteIndicesMatcher());
+        assertThat(configCompliance.getWatchedWriteIndicesMatcher(), is(WildcardMatcher.from("test-write-watch-index")));
     }
 
     @Test
@@ -313,15 +314,15 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
-        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
-        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
-        assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
-        assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
-        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());
-        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
+        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledRestCategories()));
+        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledTransportCategories()));
+        assertThat(audit.getIgnoredAuditUsersMatcher(), is(DEFAULT_IGNORED_USER));
+        assertThat(audit.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.NONE));
+        assertThat(configCompliance.getIgnoredComplianceUsersForReadMatcher(), is(DEFAULT_IGNORED_USER));
+        assertThat(configCompliance.getIgnoredComplianceUsersForWriteMatcher(), is(DEFAULT_IGNORED_USER));
         assertTrue(configCompliance.getReadEnabledFields().isEmpty());
-        assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
-        assertEquals(".opendistro_security", configCompliance.getSecurityIndex());
+        assertThat(configCompliance.getWatchedWriteIndicesMatcher(), is(WildcardMatcher.NONE));
+        assertThat(configCompliance.getSecurityIndex(), is(".opendistro_security"));
     }
 
     @Test
@@ -368,16 +369,16 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
-        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
-        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
-        assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
-        assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
-        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());
-        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
+        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledRestCategories()));
+        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledTransportCategories()));
+        assertThat(audit.getIgnoredAuditUsersMatcher(), is(DEFAULT_IGNORED_USER));
+        assertThat(audit.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.NONE));
+        assertThat(configCompliance.getIgnoredComplianceUsersForReadMatcher(), is(DEFAULT_IGNORED_USER));
+        assertThat(configCompliance.getIgnoredComplianceUsersForWriteMatcher(), is(DEFAULT_IGNORED_USER));
         assertTrue(configCompliance.getReadEnabledFields().isEmpty());
-        assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
-        assertEquals("test-security-index", configCompliance.getSecurityIndex());
-        assertEquals("test-auditlog-index", configCompliance.getAuditLogIndex());
+        assertThat(configCompliance.getWatchedWriteIndicesMatcher(), is(WildcardMatcher.NONE));
+        assertThat(configCompliance.getSecurityIndex(), is("test-security-index"));
+        assertThat(configCompliance.getAuditLogIndex(), is("test-auditlog-index"));
     }
 
     private boolean compareJson(final String json1, final String json2) throws JsonProcessingException {

@@ -22,7 +22,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -57,25 +58,25 @@ public class SecurityConfigurationTest {
     public void testNewOrUpdatedEntity() {
         var securityConfiguration = SecurityConfiguration.of("security_rest_api_access", configuration);
         assertTrue(securityConfiguration.entityExists());
-        assertEquals("security_rest_api_access", securityConfiguration.entityName());
+        assertThat(securityConfiguration.entityName(), is("security_rest_api_access"));
 
         securityConfiguration = SecurityConfiguration.of("security_rest_api_access_v2", configuration);
         assertFalse(securityConfiguration.entityExists());
-        assertEquals("security_rest_api_access_v2", securityConfiguration.entityName());
+        assertThat(securityConfiguration.entityName(), is("security_rest_api_access_v2"));
 
         final var newRole = new RoleV7();
         newRole.setCluster_permissions(List.of("cluster:admin/opendistro/alerting/alerts/get"));
         configuration.putCObject("security_rest_api_access_v2", newRole);
         assertTrue(configuration.exists("security_rest_api_access_v2"));
         assertFalse(securityConfiguration.entityExists());
-        assertEquals("security_rest_api_access_v2", securityConfiguration.entityName());
+        assertThat(securityConfiguration.entityName(), is("security_rest_api_access_v2"));
     }
 
     @Test
     public void testNoEntityNameConfiguration() {
         final var securityConfiguration = SecurityConfiguration.of(null, configuration);
         assertFalse(securityConfiguration.entityExists());
-        assertEquals("empty", securityConfiguration.entityName());
+        assertThat(securityConfiguration.entityName(), is("empty"));
     }
 
 }

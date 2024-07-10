@@ -54,8 +54,9 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
 
 public class ProtectedIndicesTests extends SingleClusterTest {
 
@@ -887,41 +888,49 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            assertEquals(
+            assertThat(
                 HttpStatus.SC_OK,
-                rh.executeGetRequest("_snapshot/" + index + "/" + index + "_1", protectedIndexUserHeader).getStatusCode()
+                is(rh.executeGetRequest("_snapshot/" + index + "/" + index + "_1", protectedIndexUserHeader).getStatusCode())
             );
-            assertEquals(
+            assertThat(
                 HttpStatus.SC_OK,
-                rh.executePostRequest(
-                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
-                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                    protectedIndexUserHeader
-                ).getStatusCode()
+                is(
+                    rh.executePostRequest(
+                        "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                        "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                        protectedIndexUserHeader
+                    ).getStatusCode()
+                )
             );
-            assertEquals(
+            assertThat(
                 HttpStatus.SC_OK,
-                rh.executePostRequest(
-                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
-                    "",
-                    protectedIndexUserHeader
-                ).getStatusCode()
+                is(
+                    rh.executePostRequest(
+                        "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                        "",
+                        protectedIndexUserHeader
+                    ).getStatusCode()
+                )
             );
-            assertEquals(
+            assertThat(
                 HttpStatus.SC_OK,
-                rh.executePostRequest(
-                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
-                    "{ \"indices\": \"" + index + "\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"" + index + "_1\" }",
-                    protectedIndexUserHeader
-                ).getStatusCode()
+                is(
+                    rh.executePostRequest(
+                        "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                        "{ \"indices\": \"" + index + "\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"" + index + "_1\" }",
+                        protectedIndexUserHeader
+                    ).getStatusCode()
+                )
             );
-            assertEquals(
+            assertThat(
                 HttpStatus.SC_OK,
-                rh.executePutRequest(
-                    "_snapshot/" + index + "/" + index + "_2?wait_for_completion=true",
-                    String.format(putSnapshot, index),
-                    protectedIndexUserHeader
-                ).getStatusCode()
+                is(
+                    rh.executePutRequest(
+                        "_snapshot/" + index + "/" + index + "_2?wait_for_completion=true",
+                        String.format(putSnapshot, index),
+                        protectedIndexUserHeader
+                    ).getStatusCode()
+                )
             );
         }
     }

@@ -707,7 +707,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                     case HttpStatus.SC_OK:
                         break;
                     default:
-                        Assert.assertEquals(HttpStatus.SC_CONFLICT, sc);
+                        assertThat(sc, is(HttpStatus.SC_CONFLICT));
                         break;
                 }
             }

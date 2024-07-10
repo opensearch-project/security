@@ -27,7 +27,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 
@@ -43,10 +42,12 @@ import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.is;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -184,7 +185,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     public void testNodeStats() throws IOException {
         List<Response> responses = RestHelper.requestAgainstAllNodes(client(), "GET", "_nodes/stats", null);
-        responses.forEach(r -> Assert.assertEquals(200, r.getStatusLine().getStatusCode()));
+        responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
     }
 
     @SuppressWarnings("unchecked")
@@ -231,7 +232,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 "_bulk?refresh=wait_for",
                 RestHelper.toHttpEntity(bulkRequestBody.toString())
             );
-            responses.forEach(r -> assertEquals(200, r.getStatusLine().getStatusCode()));
+            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
         }
     }
 
@@ -249,7 +250,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 index + "/_search",
                 RestHelper.toHttpEntity(matchAllQuery)
             );
-            responses.forEach(r -> assertEquals(200, r.getStatusLine().getStatusCode()));
+            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
         }
     }
 

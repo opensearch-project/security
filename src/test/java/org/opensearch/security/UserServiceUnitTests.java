@@ -20,7 +20,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,27 +76,27 @@ public class UserServiceUnitTests {
     public void testServiceUserTypeFilter() {
 
         userService.includeAccountsIfType(config, UserFilterType.SERVICE);
-        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
-        Assert.assertEquals(config.getCEntries().containsKey(serviceAccountUsername), true);
-        Assert.assertEquals(config.getCEntries().containsKey(internalAccountUsername), false);
+        assertThat(config.getCEntries().size(), is(SERVICE_ACCOUNTS_IN_SETTINGS));
+        assertThat(true, is(config.getCEntries().containsKey(serviceAccountUsername)));
+        assertThat(false, is(config.getCEntries().containsKey(internalAccountUsername)));
 
     }
 
     @Test
     public void testInternalUserTypeFilter() {
         userService.includeAccountsIfType(config, UserFilterType.INTERNAL);
-        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
-        Assert.assertEquals(config.getCEntries().containsKey(serviceAccountUsername), false);
-        Assert.assertEquals(config.getCEntries().containsKey(internalAccountUsername), true);
+        assertThat(config.getCEntries().size(), is(INTERNAL_ACCOUNTS_IN_SETTINGS));
+        assertThat(false, is(config.getCEntries().containsKey(serviceAccountUsername)));
+        assertThat(true, is(config.getCEntries().containsKey(internalAccountUsername)));
 
     }
 
     @Test
     public void testAnyUserTypeFilter() {
         userService.includeAccountsIfType(config, UserFilterType.ANY);
-        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS + SERVICE_ACCOUNTS_IN_SETTINGS, config.getCEntries().size());
-        Assert.assertEquals(config.getCEntries().containsKey(serviceAccountUsername), true);
-        Assert.assertEquals(config.getCEntries().containsKey(internalAccountUsername), true);
+        assertThat(config.getCEntries().size(), is(INTERNAL_ACCOUNTS_IN_SETTINGS + SERVICE_ACCOUNTS_IN_SETTINGS));
+        assertThat(true, is(config.getCEntries().containsKey(serviceAccountUsername)));
+        assertThat(true, is(config.getCEntries().containsKey(internalAccountUsername)));
     }
 
     private SecurityDynamicConfiguration<?> readConfigFromYml(String file, CType cType) throws Exception {
@@ -109,7 +108,7 @@ public class UserServiceUnitTests {
         int configVersion = 1;
 
         if (jsonNode.get("_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
         return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);

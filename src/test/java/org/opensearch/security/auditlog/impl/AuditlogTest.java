@@ -29,6 +29,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.transport.TransportRequest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +57,7 @@ public class AuditlogTest {
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", new ClusterHealthRequest(), null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
     }
 
     @Test
@@ -71,7 +73,7 @@ public class AuditlogTest {
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
         al.logGrantedPrivileges("indices:data/read/search", sr, null);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
     }
 
     @Test
@@ -87,7 +89,7 @@ public class AuditlogTest {
         TestAuditlogImpl.clear();
         al.logSSLException(null, new Exception("test rest"));
         al.logSSLException(null, new Exception("test rest"), null, null);
-        Assert.assertEquals(2, TestAuditlogImpl.messages.size());
+        assertThat(TestAuditlogImpl.messages.size(), is(2));
     }
 
     @Test

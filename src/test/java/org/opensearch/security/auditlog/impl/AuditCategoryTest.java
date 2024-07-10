@@ -17,12 +17,13 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static org.opensearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
 
@@ -73,7 +74,7 @@ public class AuditCategoryTest {
         @Test
         public void testAuditCategoryEnumSetGenerationWhenEmpty() {
             Set<AuditCategory> categories = AuditCategory.parse(input);
-            Assert.assertEquals(categories, expected);
+            assertThat(expected, is(categories));
         }
     }
 
