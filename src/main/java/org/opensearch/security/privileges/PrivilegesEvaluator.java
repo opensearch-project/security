@@ -295,7 +295,7 @@ public class PrivilegesEvaluator {
         TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         ImmutableSet<String> mappedRoles = ImmutableSet.copyOf((injectedRoles == null) ? mapRoles(user, caller) : injectedRoles);
 
-        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr);
+        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, irr, resolver, clusterStateSupplier);
     }
 
     public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
@@ -330,45 +330,14 @@ public class PrivilegesEvaluator {
         if (injectedRolesValidationString != null) {
             HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
             if (!mappedRoles.containsAll(injectedRolesValidationSet)) {
-                PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
                 presponse.allowed = false;
                 presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
-                presponse.reason("Injected roles validation failed");
                 log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
-                throw new PrivilegesEvaluatorResponse.NotAllowedException(presponse);
+                return presponse;
             }
             mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
             context.setMappedRoles(mappedRoles);
         }
-
-        return new PrivilegesEvaluationContext(user, mappedRoles, action0, request, task, clusterStateSupplier, irr, resolver);
-    }
-
-    public PrivilegesEvaluatorResponse evaluate(PrivilegesEvaluationContext context) {
-
-        if (!isInitialized()) {
-            throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
-        }
-
-        String action0 = context.getAction();
-        ImmutableSet<String> mappedRoles = context.getMappedRoles();
-        User user = context.getUser();
-        ActionRequest request = context.getRequest();
-        Task task = context.getTask();
-
-        if (action0.startsWith("internal:indices/admin/upgrade")) {
-            action0 = "indices:admin/upgrade";
-        }
-
-        if (AutoCreateAction.NAME.equals(action0)) {
-            action0 = CreateIndexAction.NAME;
-        }
-
-        if (AutoPutMappingAction.NAME.equals(action0)) {
-            action0 = PutMappingAction.NAME;
-        }
-
-        PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
         // Add the security roles for this user so that they can be used for DLS parameter substitution.
         user.addSecurityRoles(mappedRoles);

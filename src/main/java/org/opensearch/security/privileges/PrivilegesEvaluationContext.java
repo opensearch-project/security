@@ -17,16 +17,11 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
-
-import java.util.HashMap;
-import java.util.Map;
 import org.opensearch.tasks.Task;
 
 /**
@@ -46,6 +41,8 @@ public class PrivilegesEvaluationContext {
     private final Task task;
     private ImmutableSet<String> mappedRoles;
     private final IndexResolverReplacer indexResolverReplacer;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
+    private final Supplier<ClusterState> clusterStateSupplier;
 
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
@@ -54,30 +51,24 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
-    private final Supplier<ClusterState> clusterStateSupplier;
-    private final IndexResolverReplacer indexResolverReplacer;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
-
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
         String action,
         ActionRequest request,
         Task task,
-        Supplier<ClusterState> clusterStateSupplier,
         IndexResolverReplacer indexResolverReplacer,
-        IndexNameExpressionResolver indexNameExpressionResolver
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<ClusterState> clusterStateSupplier
     ) {
         this.user = user;
         this.mappedRoles = mappedRoles;
         this.action = action;
         this.request = request;
-        this.task = task;
         this.clusterStateSupplier = clusterStateSupplier;
         this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
-        this.indexResolverReplacer = indexResolverReplacer;
     }
 
     public User getUser() {
@@ -144,4 +135,7 @@ public class PrivilegesEvaluationContext {
         return clusterStateSupplier;
     }
 
+    public IndexNameExpressionResolver getIndexNameExpressionResolver() {
+        return indexNameExpressionResolver;
+    }
 }
