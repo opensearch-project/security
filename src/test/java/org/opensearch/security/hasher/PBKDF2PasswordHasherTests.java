@@ -18,47 +18,43 @@ import org.opensearch.security.support.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
 
-public class BCryptPasswordHasherTests extends AbstractPasswordHasherTests {
+public class PBKDF2PasswordHasherTests extends AbstractPasswordHasherTests {
 
     @Before
     public void setup() {
-        passwordHasher = new BCryptPasswordHasher(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+        passwordHasher = new PBKDF2PasswordHasher(
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
+            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
         );
     }
 
-    /**
-     * Ensures that the hashes that were previously created by OpenBSDBCrypt are still valid
-     */
     @Test
-    public void shouldBeBackwardsCompatible() {
-        String legacyHash = "$2y$12$gdh2ecVBQmwpmcAeyReicuNtXyR6GMWSfXHxtcBBqFeFz2VQ8kDZe";
-        assertThat(passwordHasher.check(password.toCharArray(), legacyHash), is(true));
-        assertThat(passwordHasher.check(wrongPassword.toCharArray(), legacyHash), is(false));
-    }
-
-    @Test
-    public void shouldGenerateAValidHashForParameters() {
-        PasswordHasher hasher = new BCryptPasswordHasher("A", 8);
+    public void shouldGenerateValidHashesFromParameters() {
+        PasswordHasher hasher = new PBKDF2PasswordHasher("SHA1", 150000, 128);
         String hash = hasher.hash(password.toCharArray());
-        assertThat(hash, startsWith("$2a$08"));
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new BCryptPasswordHasher("B", 10);
+        hasher = new PBKDF2PasswordHasher("SHA224", 100000, 224);
         hash = hasher.hash(password.toCharArray());
-        assertThat(hash, startsWith("$2b$10"));
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
-        hasher = new BCryptPasswordHasher("Y", 13);
+        hasher = new PBKDF2PasswordHasher("SHA256", 75000, 256);
         hash = hasher.hash(password.toCharArray());
-        assertThat(hash, startsWith("$2y$13"));
+        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
+
+        hasher = new PBKDF2PasswordHasher("SHA384", 50000, 384);
+        hash = hasher.hash(password.toCharArray());
+        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
+
+        hasher = new PBKDF2PasswordHasher("SHA512", 10000, 512);
+        hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
     }
-
 }
