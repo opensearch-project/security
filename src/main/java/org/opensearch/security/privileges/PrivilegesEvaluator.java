@@ -136,7 +136,7 @@ public class PrivilegesEvaluator {
     private ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
-    private final SecurityIndexAccessEvaluator securityIndexAccessEvaluator;
+    private final SystemIndexAccessEvaluator systemIndexAccessEvaluator;
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
@@ -172,7 +172,7 @@ public class PrivilegesEvaluator {
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        securityIndexAccessEvaluator = new SecurityIndexAccessEvaluator(settings, auditLog, irr);
+        systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
@@ -328,7 +328,7 @@ public class PrivilegesEvaluator {
         }
 
         // Security index access
-        if (securityIndexAccessEvaluator.evaluate(
+        if (systemIndexAccessEvaluator.evaluate(
             request,
             task,
             action0,
