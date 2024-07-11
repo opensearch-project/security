@@ -32,8 +32,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
-import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
@@ -58,8 +56,6 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     private final static String RESERVED_ROLE = "reserved-role";
 
     private final static String SOME_ROLE = "some-role";
-
-    private final PasswordHasher passwordHasher = new BCryptPasswordHasher();
 
     static {
         testSecurityConfig.withRestAdminUser(REST_API_ADMIN_INTERNAL_USERS_ONLY, restAdminPermission(Endpoint.INTERNALUSERS))

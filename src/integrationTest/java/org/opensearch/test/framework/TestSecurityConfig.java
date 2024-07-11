@@ -50,14 +50,16 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -79,7 +81,10 @@ public class TestSecurityConfig {
     public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
-    private static final PasswordHasher passwordHasher = new BCryptPasswordHasher();
+
+    private static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
+        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+    );
 
     private Config config = new Config();
     private Map<String, User> internalUsers = new LinkedHashMap<>();
@@ -414,6 +419,8 @@ public class TestSecurityConfig {
 
         private String description;
 
+        private String hash;
+
         public User(String name) {
             this(name, null);
         }
@@ -458,6 +465,11 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public User hash(String hash) {
+            this.hash = hash;
+            return this;
+        }
+
         public String getName() {
             return name;
         }
@@ -478,8 +490,11 @@ public class TestSecurityConfig {
         public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
             xContentBuilder.startObject();
 
-            xContentBuilder.field("hash", hash(password.toCharArray()));
-
+            if (this.hash == null) {
+                xContentBuilder.field("hash", hashPassword(password));
+            } else {
+                xContentBuilder.field("hash", hash);
+            }
             Set<String> roleNames = getRoleNames();
 
             if (!roleNames.isEmpty()) {
@@ -968,8 +983,8 @@ public class TestSecurityConfig {
         updateConfigInIndex(client, CType.INTERNALUSERS, userMap);
     }
 
-    static String hash(final char[] clearTextPassword) {
-        return passwordHasher.hash(clearTextPassword);
+    static String hashPassword(final String clearTextPassword) {
+        return passwordHasher.hash(clearTextPassword.toCharArray());
     }
 
     private void writeEmptyConfigToIndex(Client client, CType configType) {
