@@ -28,10 +28,11 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
@@ -79,7 +80,9 @@ public abstract class AbstractApiActionValidationTest {
             Settings.EMPTY
         );
 
-        passwordHasher = new BCryptPasswordHasher();
+        passwordHasher = PasswordHasherFactory.createPasswordHasher(
+            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        );
     }
 
     void setupRolesConfiguration() throws IOException {

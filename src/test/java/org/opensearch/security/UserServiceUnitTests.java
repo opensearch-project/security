@@ -28,10 +28,11 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 
@@ -66,9 +67,9 @@ public class UserServiceUnitTests {
     @Before
     public void setup() throws Exception {
         String usersYmlFile = "./internal_users.yml";
-        Settings.Builder builder = Settings.builder();
-        PasswordHasher passwordHasher = new BCryptPasswordHasher();
-        userService = new UserService(clusterService, configurationRepository, passwordHasher, builder.build(), client);
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build();
+        PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
+        userService = new UserService(clusterService, configurationRepository, passwordHasher, settings, client);
         config = readConfigFromYml(usersYmlFile, CType.INTERNALUSERS);
     }
 

@@ -31,8 +31,8 @@ import java.util.Map;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
@@ -52,7 +52,9 @@ public class UtilTests {
         return WildcardMatcher.from(pattern, false);
     }
 
-    static private final PasswordHasher passwordHasher = new BCryptPasswordHasher();
+    static private final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
+        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+    );
 
     @Test
     public void testWildcardMatcherClasses() {
