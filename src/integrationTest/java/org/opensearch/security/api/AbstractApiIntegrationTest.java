@@ -79,6 +79,10 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
     public static final ToXContentObject EMPTY_BODY = (builder, params) -> builder.startObject().endObject();
 
+    public static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
+        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+    );
+
     public static Path configurationFolder;
 
     public static ImmutableMap.Builder<String, Object> clusterSettings = ImmutableMap.builder();
@@ -86,10 +90,6 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
     protected static TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
 
     public static LocalCluster localCluster;
-
-    public static PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
-    );
 
     @BeforeClass
     public static void startCluster() throws IOException {

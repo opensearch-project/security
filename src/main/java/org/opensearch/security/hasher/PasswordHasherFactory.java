@@ -38,7 +38,7 @@ public class PasswordHasherFactory {
                 passwordHasher = getPBKDF2Hasher(settings);
                 break;
             default:
-                throw new IllegalArgumentException("Password hashing algorithm not supported");
+                throw new IllegalArgumentException(String.format("Password hashing algorithm '%s' not supported.", algorithm));
         }
         return passwordHasher;
     }
