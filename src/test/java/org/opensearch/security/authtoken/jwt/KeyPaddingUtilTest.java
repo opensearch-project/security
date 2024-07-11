@@ -15,7 +15,8 @@ import org.junit.Test;
 
 import com.nimbusds.jose.JWSAlgorithm;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class KeyPaddingUtilTest {
 
@@ -28,7 +29,7 @@ public class KeyPaddingUtilTest {
 
         // For HS256, HMAC using SHA-256, typical key length is 256 bits or 32 bytes
         int expectedLength = 32;
-        assertEquals(expectedLength, paddedKey.length());
+        assertThat(paddedKey.length(), is(expectedLength));
     }
 
     @Test
@@ -38,6 +39,6 @@ public class KeyPaddingUtilTest {
 
         // For HS384, HMAC using SHA-384, typical key length is 384 bits or 48 bytes
         int expectedLength = 48;
-        assertEquals(expectedLength, paddedKey.length());
+        assertThat(paddedKey.length(), is(expectedLength));
     }
 }

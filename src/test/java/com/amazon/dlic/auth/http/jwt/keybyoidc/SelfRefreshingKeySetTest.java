@@ -22,6 +22,9 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class SelfRefreshingKeySetTest {
 
     @Test
@@ -29,18 +32,18 @@ public class SelfRefreshingKeySetTest {
         SelfRefreshingKeySet selfRefreshingKeySet = new SelfRefreshingKeySet(new MockKeySetProvider());
 
         OctetSequenceKey key1 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/a");
-        Assert.assertEquals(TestJwk.OCT_1_K, key1.getKeyValue().decodeToString());
-        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
+        assertThat(key1.getKeyValue().decodeToString(), is(TestJwk.OCT_1_K));
+        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1L));
 
         OctetSequenceKey key2 = (OctetSequenceKey) selfRefreshingKeySet.getKey("kid/b");
-        Assert.assertEquals(TestJwk.OCT_2_K, key2.getKeyValue().decodeToString());
-        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
+        assertThat(key2.getKeyValue().decodeToString(), is(TestJwk.OCT_2_K));
+        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1L));
 
         try {
             selfRefreshingKeySet.getKey("kid/X");
             Assert.fail("Expected a BadCredentialsException");
         } catch (BadCredentialsException e) {
-            Assert.assertEquals(2, selfRefreshingKeySet.getRefreshCount());
+            assertThat(selfRefreshingKeySet.getRefreshCount(), is(2L));
         }
 
     }
@@ -65,11 +68,11 @@ public class SelfRefreshingKeySetTest {
 
         provider.unblock();
 
-        Assert.assertEquals(TestJwk.OCT_1_K, ((OctetSequenceKey) f1.get()).getKeyValue().decodeToString());
-        Assert.assertEquals(TestJwk.OCT_2_K, ((OctetSequenceKey) f2.get()).getKeyValue().decodeToString());
+        assertThat(((OctetSequenceKey) f1.get()).getKeyValue().decodeToString(), is(TestJwk.OCT_1_K));
+        assertThat(((OctetSequenceKey) f2.get()).getKeyValue().decodeToString(), is(TestJwk.OCT_2_K));
 
-        Assert.assertEquals(1, selfRefreshingKeySet.getRefreshCount());
-        Assert.assertEquals(1, selfRefreshingKeySet.getQueuedGetCount());
+        assertThat(selfRefreshingKeySet.getRefreshCount(), is(1L));
+        assertThat(selfRefreshingKeySet.getQueuedGetCount(), is(1L));
 
     }
 

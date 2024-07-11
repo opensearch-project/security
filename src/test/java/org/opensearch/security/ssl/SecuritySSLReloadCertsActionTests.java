@@ -18,7 +18,6 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,6 +32,9 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
@@ -94,11 +96,11 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         String clusterHealthResponse = rh.executeSimpleRequest("_cluster/health");
         final var clusterHealthResponseJson = DefaultObjectMapper.readTree(clusterHealthResponse);
-        Assert.assertEquals("green", clusterHealthResponseJson.get("status").asText());
+        assertThat(clusterHealthResponseJson.get("status").asText(), is("green"));
 
         String catNodesResponse = rh.executeSimpleRequest("_cat/nodes?format=json");
         final var catNodesResponseJson = DefaultObjectMapper.readTree(catNodesResponse);// (JSONArray) parser.parse(catNodesResponse);
-        Assert.assertEquals(clusterConfiguration.getNodes(), catNodesResponseJson.size());
+        assertThat(catNodesResponseJson.size(), is(clusterConfiguration.getNodes()));
     }
 
     @Test
@@ -108,7 +110,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
 
         final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
+        assertThat(DefaultObjectMapper.readTree(certDetailsResponse), is(expectedJsonResponse));
 
         // Test Valid Case: Change transport file details to "ssl/pem/node-new.crt.pem" and "ssl/pem/node-new.key.pem"
         updateFiles(newCertFilePath, pemCertFilePath);
@@ -125,7 +127,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
         final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
+        assertThat(DefaultObjectMapper.readTree(certDetailsResponse), is(expectedJsonResponse));
 
         // Test Valid Case: Change rest file details to "ssl/pem/node-new.crt.pem" and "ssl/pem/node-new.key.pem"
         updateFiles(newCertFilePath, pemCertFilePath);
@@ -143,11 +145,11 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         updateFiles("ssl/reload/node-wrong.key.pem", pemKeyFilePath);
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
-        Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
-        Assert.assertEquals(
+        assertThat(reloadCertsResponse.getStatusCode(), is(500));
+        assertThat(
             "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
                 + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];",
-            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText()
+            is(DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText())
         );
     }
 
@@ -159,7 +161,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
 
         final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
+        assertThat(DefaultObjectMapper.readTree(certDetailsResponse), is(expectedJsonResponse));
 
         // Test Valid Case: Reload same certificate
         updateFiles(defaultCertFilePath, pemCertFilePath);
@@ -175,7 +177,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
         final var expectedJsonResponse = getInitCertDetailsExpectedResponse();
-        Assert.assertEquals(expectedJsonResponse, DefaultObjectMapper.readTree(certDetailsResponse));
+        assertThat(DefaultObjectMapper.readTree(certDetailsResponse), is(expectedJsonResponse));
 
         // Test Valid Case: Reload same certificate
         updateFiles(defaultCertFilePath, pemCertFilePath);
@@ -196,13 +198,13 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         String reloadEndpoint = updateChannel.equals("http") ? RELOAD_HTTP_CERTS_ENDPOINT : RELOAD_TRANSPORT_CERTS_ENDPOINT;
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(reloadEndpoint, null);
-        Assert.assertEquals(200, reloadCertsResponse.getStatusCode());
+        assertThat(reloadCertsResponse.getStatusCode(), is(200));
         final var expectedJsonResponse = DefaultObjectMapper.objectMapper.createObjectNode();
         expectedJsonResponse.put("message", String.format("updated %s certs", updateChannel));
-        Assert.assertEquals(expectedJsonResponse.toString(), reloadCertsResponse.getBody());
+        assertThat(reloadCertsResponse.getBody(), is(expectedJsonResponse.toString()));
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        Assert.assertEquals(expectedCertResponse, DefaultObjectMapper.readTree(certDetailsResponse));
+        assertThat(DefaultObjectMapper.readTree(certDetailsResponse), is(expectedCertResponse));
     }
 
     private void updateFiles(String srcFile, String dstFile) {

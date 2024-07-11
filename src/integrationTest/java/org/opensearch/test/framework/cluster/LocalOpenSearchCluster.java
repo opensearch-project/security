@@ -70,11 +70,12 @@ import org.opensearch.test.framework.cluster.ClusterManager.NodeSettings;
 import org.opensearch.transport.BindTransportException;
 
 import static java.util.Objects.requireNonNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.test.framework.cluster.NodeType.CLIENT;
 import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
 import static org.opensearch.test.framework.cluster.NodeType.DATA;
 import static org.opensearch.test.framework.cluster.PortAllocator.TCP;
-import static org.junit.Assert.assertEquals;
 
 /**
 * Encapsulates all the logic to start a local OpenSearch cluster - without any configuration of the security plugin.
@@ -339,7 +340,7 @@ public class LocalOpenSearchCluster {
             log.debug("... cluster state ok {} with {} nodes", healthResponse.getStatus().name(), healthResponse.getNumberOfNodes());
         }
 
-        assertEquals(expectedNodeCount, healthResponse.getNumberOfNodes());
+        assertThat(healthResponse.getNumberOfNodes(), is(expectedNodeCount));
 
     }
 

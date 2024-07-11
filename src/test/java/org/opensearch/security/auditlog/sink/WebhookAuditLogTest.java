@@ -43,6 +43,9 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class WebhookAuditLogTest {
 
     protected HttpServer server = null;
@@ -77,8 +80,8 @@ public class WebhookAuditLogTest {
         // Webhook sink has failed ...
         Assert.assertNull(auditlog.webhookFormat);
         // ... so message must be stored in fallback
-        Assert.assertEquals(1, fallback.messages.size());
-        Assert.assertEquals(msg, fallback.messages.get(0));
+        assertThat(fallback.messages.size(), is(1));
+        assertThat(fallback.messages.get(0), is(msg));
 
     }
 
@@ -101,8 +104,8 @@ public class WebhookAuditLogTest {
 
         MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
         auditlog.store(msg);
-        Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
-        Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
+        assertThat(auditlog.webhookFormat, is(WebhookFormat.TEXT));
+        assertThat(auditlog.webhookFormat.getContentType(), is(ContentType.TEXT_PLAIN));
         Assert.assertFalse(auditlog.payload, auditlog.payload.startsWith("{\"text\":"));
 
         // provide faulty format, defaults to TEXT
@@ -117,8 +120,8 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
         auditlog.store(msg);
-        Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
-        Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
+        assertThat(auditlog.webhookFormat, is(WebhookFormat.TEXT));
+        assertThat(auditlog.webhookFormat.getContentType(), is(ContentType.TEXT_PLAIN));
         Assert.assertFalse(auditlog.payload, auditlog.payload.startsWith("{\"text\":"));
         auditlog.close();
 
@@ -134,8 +137,8 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
         auditlog.store(msg);
-        Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
-        Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
+        assertThat(auditlog.webhookFormat, is(WebhookFormat.TEXT));
+        assertThat(auditlog.webhookFormat.getContentType(), is(ContentType.TEXT_PLAIN));
         Assert.assertFalse(auditlog.payload, auditlog.payload.startsWith("{\"text\":"));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains("audit_request_remote_address"));
@@ -152,8 +155,8 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
         auditlog.store(msg);
-        Assert.assertEquals(WebhookFormat.JSON, auditlog.webhookFormat);
-        Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
+        assertThat(auditlog.webhookFormat, is(WebhookFormat.JSON));
+        assertThat(auditlog.webhookFormat.getContentType(), is(ContentType.APPLICATION_JSON));
         Assert.assertFalse(auditlog.payload, auditlog.payload.startsWith("{\"text\":"));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains("audit_request_remote_address"));
@@ -170,8 +173,8 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
         auditlog.store(msg);
-        Assert.assertEquals(WebhookFormat.SLACK, auditlog.webhookFormat);
-        Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
+        assertThat(auditlog.webhookFormat, is(WebhookFormat.SLACK));
+        assertThat(auditlog.webhookFormat.getContentType(), is(ContentType.APPLICATION_JSON));
         Assert.assertTrue(auditlog.payload, auditlog.payload.startsWith("{\"text\":"));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
         Assert.assertTrue(auditlog.payload, auditlog.payload.contains("audit_request_remote_address"));
@@ -199,8 +202,8 @@ public class WebhookAuditLogTest {
         Assert.assertNull(auditlog.payload);
         Assert.assertNull(auditlog.webhookUrl);
         // message must be stored in fallback
-        Assert.assertEquals(1, fallback.messages.size());
-        Assert.assertEquals(msg, fallback.messages.get(0));
+        assertThat(fallback.messages.size(), is(1));
+        assertThat(fallback.messages.get(0), is(msg));
     }
 
     @Test
@@ -222,10 +225,10 @@ public class WebhookAuditLogTest {
         AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
         auditlog.store(msg);
         // can't connect, no server running ...
-        Assert.assertEquals("http://localhost:8080/endpoint", auditlog.webhookUrl);
+        assertThat(auditlog.webhookUrl, is("http://localhost:8080/endpoint"));
         // ... message must be stored in fallback
-        Assert.assertEquals(1, fallback.messages.size());
-        Assert.assertEquals(msg, fallback.messages.get(0));
+        assertThat(fallback.messages.size(), is(1));
+        assertThat(fallback.messages.get(0), is(msg));
     }
 
     @Test
@@ -254,12 +257,12 @@ public class WebhookAuditLogTest {
         WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.startsWith("{\"text\":"));
         assertStringContainsAllKeysAndValues(handler.body);
         // no message stored on fallback
-        Assert.assertEquals(0, fallback.messages.size());
+        assertThat(fallback.messages.size(), is(0));
         handler.reset();
 
         // TEXT
@@ -275,7 +278,7 @@ public class WebhookAuditLogTest {
 
         auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertFalse(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -294,7 +297,7 @@ public class WebhookAuditLogTest {
 
         auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -313,8 +316,8 @@ public class WebhookAuditLogTest {
 
         auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
-        Assert.assertEquals("", handler.body);
+        assertThat(handler.method, is("POST"));
+        assertThat(handler.body, is(""));
         Assert.assertFalse(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(URLDecoder.decode(handler.uri, StandardCharsets.UTF_8.displayName()));
         handler.reset();
@@ -332,7 +335,7 @@ public class WebhookAuditLogTest {
 
         auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("GET", handler.method);
+        assertThat(handler.method, is("GET"));
         Assert.assertNull(handler.body);
         assertStringContainsAllKeysAndValues(URLDecoder.decode(handler.uri, StandardCharsets.UTF_8.displayName()));
         server.shutdown(3l, TimeUnit.SECONDS);
@@ -368,8 +371,8 @@ public class WebhookAuditLogTest {
         Assert.assertNull(handler.body);
         Assert.assertNull(handler.uri);
         // ... so message must be stored in fallback
-        Assert.assertEquals(1, fallback.messages.size());
-        Assert.assertEquals(msg, fallback.messages.get(0));
+        assertThat(fallback.messages.size(), is(1));
+        assertThat(fallback.messages.get(0), is(msg));
         server.shutdown(3l, TimeUnit.SECONDS);
     }
 
@@ -404,8 +407,8 @@ public class WebhookAuditLogTest {
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
         // message must be stored in fallback
-        Assert.assertEquals(1, fallback.messages.size());
-        Assert.assertEquals(msg, fallback.messages.get(0));
+        assertThat(fallback.messages.size(), is(1));
+        assertThat(fallback.messages.get(0), is(msg));
 
         // disable ssl verification, no ca, call must succeed
         handler.reset();
@@ -417,7 +420,7 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -436,7 +439,7 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -493,7 +496,7 @@ public class WebhookAuditLogTest {
             .build();
         AuditLogSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -512,7 +515,7 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -622,7 +625,7 @@ public class WebhookAuditLogTest {
             .build();
         AuditLogSink auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -641,7 +644,7 @@ public class WebhookAuditLogTest {
             .build();
         auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
@@ -730,7 +733,7 @@ public class WebhookAuditLogTest {
 
         AuditLogSink auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
-        Assert.assertEquals("POST", handler.method);
+        assertThat(handler.method, is("POST"));
         Assert.assertNotNull(handler.body);
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);

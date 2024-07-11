@@ -34,44 +34,44 @@ public class ConfigV7Test {
     }
 
     public void assertEquals(ConfigV7.Kibana expected, JsonNode node) {
-        Assert.assertEquals(expected.multitenancy_enabled, node.get("multitenancy_enabled").asBoolean());
+        assertThat(node.get("multitenancy_enabled").asBoolean(), is(expected.multitenancy_enabled));
         assertThat(node.get("sign_in_options").isArray(), is(true));
         assertThat(node.get("sign_in_options").toString(), containsString(expected.sign_in_options.get(0).toString()));
 
         if (expected.server_username == null) {
             Assert.assertNull(node.get("server_username"));
         } else {
-            Assert.assertEquals(expected.server_username, node.get("server_username").asText());
+            assertThat(node.get("server_username").asText(), is(expected.server_username));
         }
         if (expected.index == null) {
             // null is not persisted
             Assert.assertNull(node.get("index"));
         } else {
-            Assert.assertEquals(expected.index, node.get("index").asText());
+            assertThat(node.get("index").asText(), is(expected.index));
         }
         if (expected.opendistro_role == null) {
             Assert.assertNull(node.get("opendistro_role"));
         } else {
-            Assert.assertEquals(expected.opendistro_role, node.get("opendistro_role").asText());
+            assertThat(node.get("opendistro_role").asText(), is(expected.opendistro_role));
         }
     }
 
     private void assertEquals(ConfigV7.Kibana expected, ConfigV7.Kibana actual) {
-        Assert.assertEquals(expected.multitenancy_enabled, actual.multitenancy_enabled);
+        assertThat(actual.multitenancy_enabled, is(expected.multitenancy_enabled));
         assertThat(expected.sign_in_options, is(actual.sign_in_options));
         if (expected.server_username == null) {
             // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.Kibana().server_username, actual.server_username);
+            assertThat(actual.server_username, is(new ConfigV7.Kibana().server_username));
         } else {
-            Assert.assertEquals(expected.server_username, actual.server_username);
+            assertThat(actual.server_username, is(expected.server_username));
         }
         // null is restored to default (which is null).
-        Assert.assertEquals(expected.opendistro_role, actual.opendistro_role);
+        assertThat(actual.opendistro_role, is(expected.opendistro_role));
         if (expected.index == null) {
             // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.Kibana().index, actual.index);
+            assertThat(actual.index, is(new ConfigV7.Kibana().index));
         } else {
-            Assert.assertEquals(expected.index, actual.index);
+            assertThat(actual.index, is(expected.index));
         }
     }
 
@@ -111,7 +111,7 @@ public class ConfigV7Test {
         ConfigV7.OnBehalfOfSettings oboSettings;
 
         oboSettings = new ConfigV7.OnBehalfOfSettings();
-        Assert.assertEquals(oboSettings.getOboEnabled(), Boolean.FALSE);
+        assertThat(Boolean.FALSE, is(oboSettings.getOboEnabled()));
         Assert.assertNull(oboSettings.getSigningKey());
         Assert.assertNull(oboSettings.getEncryptionKey());
     }

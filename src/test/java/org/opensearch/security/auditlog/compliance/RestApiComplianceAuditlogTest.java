@@ -30,6 +30,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -56,7 +57,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 body,
                 encodeBasicHeader("admin", "admin")
             );
-            Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
         });
         validateMsgs(List.of(message));
 
@@ -87,7 +88,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
-            Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
         });
         validateMsgs(List.of(message));
         assertThat(message.toString(), containsString("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
@@ -115,7 +116,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.keystore = "kirk-keystore.jks";
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
-            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         });
         validateMsgs(List.of(message));
         assertThat(message.toString(), containsString("audit_request_effective_user"));
@@ -167,7 +168,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 body,
                 encodeBasicHeader("admin", "admin")
             );
-            Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+            assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
         });
         validateMsgs(List.of(message));
         assertThat(message.toString(), containsString("audit_request_effective_user"));
@@ -199,7 +200,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
             String auditLogImpl = TestAuditlogImpl.sb.toString();
-            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
             Assert.assertTrue(auditLogImpl.contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         });
         validateMsgs(List.of(message));

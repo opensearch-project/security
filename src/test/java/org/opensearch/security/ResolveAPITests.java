@@ -18,7 +18,6 @@ package org.opensearch.security;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -31,6 +30,9 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class ResolveAPITests extends SingleClusterTest {
 
@@ -47,9 +49,9 @@ public class ResolveAPITests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode())
         );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
@@ -61,9 +63,9 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode())
         );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
@@ -77,15 +79,15 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode())
         );
         log.debug(res.getBody());
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode())
         );
         log.debug(res.getBody());
         assertContains(res, "*starfleet*");
@@ -103,9 +105,9 @@ public class ResolveAPITests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse res;
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode())
         );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
@@ -117,9 +119,9 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode())
         );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
@@ -133,9 +135,9 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode())
         );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
@@ -147,9 +149,9 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*public*");
         assertContains(res, "*xyz*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode())
         );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
@@ -163,9 +165,9 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            (res = rh.executeGetRequest("_resolve/index/vulcangov*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+            is((res = rh.executeGetRequest("_resolve/index/vulcangov*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode())
         );
         log.debug(res.getBody());
     }
