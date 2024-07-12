@@ -63,15 +63,17 @@ public class CType<T> implements Comparable<CType<?>> {
     private static Map<Integer, CType<?>> ordToInstanceMap = new HashMap<>();
 
     public static final CType<ActionGroupsV7> ACTIONGROUPS = new CType<>(
+        "actiongroups",
         "action_groups",
         ActionGroupsV7.class,
         0,
         false,
         new OldConfigVersion<>(1, ActionGroupsV6.class, ActionGroupsV7::new)
     );
-    public static final CType<AllowlistingSettings> ALLOWLIST = new CType<>("allowlist", AllowlistingSettings.class, 1, true);
-    public static final CType<AuditConfig> AUDIT = new CType<>("audit", AuditConfig.class, 2, true);
+    public static final CType<AllowlistingSettings> ALLOWLIST = new CType<>("allowlist", "allowlist", AllowlistingSettings.class, 1, true);
+    public static final CType<AuditConfig> AUDIT = new CType<>("audit", "audit", AuditConfig.class, 2, true);
     public static final CType<ConfigV7> CONFIG = new CType<>(
+        "config",
         "config",
         ConfigV7.class,
         3,
@@ -79,14 +81,16 @@ public class CType<T> implements Comparable<CType<?>> {
         new OldConfigVersion<>(1, ConfigV6.class, ConfigV7::new)
     );
     public static final CType<InternalUserV7> INTERNALUSERS = new CType<>(
+        "internalusers",
         "internal_users",
         InternalUserV7.class,
         4,
         false,
         new OldConfigVersion<>(1, InternalUserV6.class, InternalUserV7::new)
     );
-    public static final CType<NodesDn> NODESDN = new CType<>("nodes_dn", NodesDn.class, 5, true);
+    public static final CType<NodesDn> NODESDN = new CType<>("nodesdn", "nodes_dn", NodesDn.class, 5, true);
     public static final CType<RoleV7> ROLES = new CType<>(
+        "roles",
         "roles",
         RoleV7.class,
         6,
@@ -94,14 +98,15 @@ public class CType<T> implements Comparable<CType<?>> {
         new OldConfigVersion<>(1, RoleV6.class, RoleV7::new)
     );
     public static final CType<RoleMappingsV7> ROLESMAPPING = new CType<>(
+        "rolesmapping",
         "roles_mapping",
         RoleMappingsV7.class,
         7,
         false,
         new OldConfigVersion<>(1, RoleMappingsV6.class, RoleMappingsV7::new)
     );
-    public static final CType<TenantV7> TENANTS = new CType<>("tenants", TenantV7.class, 8, false);
-    public static final CType<WhitelistingSettings> WHITELIST = new CType<>("whitelist", WhitelistingSettings.class, 9, true);
+    public static final CType<TenantV7> TENANTS = new CType<>("tenants", "tenants", TenantV7.class, 8, false);
+    public static final CType<WhitelistingSettings> WHITELIST = new CType<>("whitelist", "whitelist", WhitelistingSettings.class, 9, true);
 
     private final String name;
     private final Class<T> configClass;
@@ -112,11 +117,18 @@ public class CType<T> implements Comparable<CType<?>> {
 
     @SafeVarargs
     @SuppressWarnings("varargs")
-    private CType(String name, Class<T> configClass, int ord, boolean emptyIfMissing, OldConfigVersion<?, T>... oldConfigVersions) {
+    private CType(
+        String name,
+        String configFileName,
+        Class<T> configClass,
+        int ord,
+        boolean emptyIfMissing,
+        OldConfigVersion<?, T>... oldConfigVersions
+    ) {
         this.name = name;
         this.configClass = configClass;
         this.ord = ord;
-        this.configFileName = name + ".yml";
+        this.configFileName = configFileName + ".yml";
         this.emptyIfMissing = emptyIfMissing;
         this.oldConfigVersions = oldConfigVersions;
 
