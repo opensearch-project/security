@@ -281,13 +281,7 @@ public class BackendRegistry {
                 continue;
             }
 
-            InetSocketAddress ipAddress = request.getRemoteAddress().orElse(null);
-            if (ac != null
-                && isBlocked(
-                    authDomain.getBackend().getClass().getName(),
-                    ac.getUsername(),
-                    ipAddress != null ? ipAddress.getAddress() : null
-                )) {
+            if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
                 if (isDebugEnabled) {
                     log.debug("Rejecting REST request because of blocked user: {}, authDomain: {}", ac.getUsername(), authDomain);
                 }
@@ -717,14 +711,9 @@ public class BackendRegistry {
         return false;
     }
 
-    private boolean isBlocked(String authBackend, String userName, InetAddress address) {
+    private boolean isBlocked(String authBackend, String userName) {
 
         if (this.authBackendClientBlockRegistries == null) {
-            return false;
-        }
-
-        List<String> ignoreHosts = ((AuthFailureListener) authBackendClientBlockRegistries).getIgnoreHosts();
-        if (matchesHostPatterns(ignoreHosts, address)) {
             return false;
         }
 
