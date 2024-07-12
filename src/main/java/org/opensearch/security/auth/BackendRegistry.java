@@ -198,7 +198,7 @@ public class BackendRegistry {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)
-            .map(address -> isBlocked(address))
+            .map(this::isBlocked)
             .orElse(false);
         if (isBlockedBasedOnAddress) {
             if (isDebugEnabled) {
@@ -281,7 +281,13 @@ public class BackendRegistry {
                 continue;
             }
 
-            if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
+            InetSocketAddress ipAddress = request.getRemoteAddress().orElse(null);
+            if (ac != null
+                && isBlocked(
+                    authDomain.getBackend().getClass().getName(),
+                    ac.getUsername(),
+                    ipAddress != null ? ipAddress.getAddress() : null
+                )) {
                 if (isDebugEnabled) {
                     log.debug("Rejecting REST request because of blocked user: {}, authDomain: {}", ac.getUsername(), authDomain);
                 }
@@ -686,17 +692,8 @@ public class BackendRegistry {
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
             List<String> ignoreHosts = ((AuthFailureListener) clientBlockRegistry).getIgnoreHosts();
-            WildcardMatcher ignoreHostMatcher = WildcardMatcher.NONE;
-            if (ignoreHosts != null && !ignoreHosts.isEmpty()) {
-                ignoreHostMatcher = WildcardMatcher.from(ignoreHosts);
-            }
-            if (address != null) {
-                final String ipAddress = address.getHostAddress();
-                final String hostname = address.getHostName();
-
-                if (ignoreHostMatcher.test(ipAddress) || ignoreHostMatcher.test(hostname)) {
-                    return false;
-                }
+            if (matchesHostPatterns(ignoreHosts, address)) {
+                return false;
             }
             if (clientBlockRegistry.isBlocked(address)) {
                 return true;
@@ -706,9 +703,28 @@ public class BackendRegistry {
         return false;
     }
 
-    private boolean isBlocked(String authBackend, String userName) {
+    public static boolean matchesHostPatterns(List<String> hostPatterns, InetAddress address) {
+        WildcardMatcher hostMatcher = WildcardMatcher.NONE;
+        if (hostPatterns != null && !hostPatterns.isEmpty()) {
+            hostMatcher = WildcardMatcher.from(hostPatterns);
+        }
+        if (address != null) {
+            final String ipAddress = address.getHostAddress();
+            final String hostname = address.getHostName();
+
+            return hostMatcher.test(ipAddress) || hostMatcher.test(hostname);
+        }
+        return false;
+    }
+
+    private boolean isBlocked(String authBackend, String userName, InetAddress address) {
 
         if (this.authBackendClientBlockRegistries == null) {
+            return false;
+        }
+
+        List<String> ignoreHosts = ((AuthFailureListener) authBackendClientBlockRegistries).getIgnoreHosts();
+        if (matchesHostPatterns(ignoreHosts, address)) {
             return false;
         }
 
