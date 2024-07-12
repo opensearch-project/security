@@ -49,7 +49,6 @@ import org.opensearch.index.get.GetResult;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.state.SecurityConfig;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -451,7 +450,7 @@ public class SecurityIndexHandlerTest {
 
     @Test
     public void testLoadConfiguration_shouldBuildSecurityConfig() {
-        final var listener = spy(ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(config -> {
+        final var listener = spy(ActionListener.<ConfigurationMap>wrap(config -> {
             assertThat(config.keySet().size(), is(CType.values().size()));
             for (final var c : CType.values()) {
                 assertTrue(c.toLCString(), config.containsKey(c));

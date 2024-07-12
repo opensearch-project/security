@@ -57,11 +57,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
-import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
-import org.opensearch.security.securityconf.impl.v6.RoleV6;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
@@ -239,55 +236,44 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final AllowlistingSettings allowlist = cr.getConfiguration(CType.ALLOWLIST).getCEntry("config");
         final AuditConfig audit = cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
-            if (roles.containsAny(staticRoles)) {
-                throw new StaticResourceException("Cannot override static roles");
-            }
-            if (!roles.add(staticRoles) && !staticRoles.getCEntries().isEmpty()) {
-                throw new StaticResourceException("Unable to load static roles");
-            }
+        if (roles.containsAny(staticRoles)) {
+            throw new StaticResourceException("Cannot override static roles");
+        }
+        if (!roles.add(staticRoles) && !staticRoles.getCEntries().isEmpty()) {
+            throw new StaticResourceException("Unable to load static roles");
+        }
 
-            log.debug("Static roles loaded ({})", staticRoles.getCEntries().size());
+        log.debug("Static roles loaded ({})", staticRoles.getCEntries().size());
 
-            if (actionGroups.containsAny(staticActionGroups)) {
-                throw new StaticResourceException("Cannot override static action groups");
-            }
-            if (!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
-                throw new StaticResourceException("Unable to load static action groups");
-            }
+        if (actionGroups.containsAny(staticActionGroups)) {
+            throw new StaticResourceException("Cannot override static action groups");
+        }
+        if (!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
+            throw new StaticResourceException("Unable to load static action groups");
+        }
 
-            log.debug("Static action groups loaded ({})", staticActionGroups.getCEntries().size());
+        log.debug("Static action groups loaded ({})", staticActionGroups.getCEntries().size());
 
-            if (tenants.containsAny(staticTenants)) {
-                throw new StaticResourceException("Cannot override static tenants");
-            }
-            if (!tenants.add(staticTenants) && !staticTenants.getCEntries().isEmpty()) {
-                throw new StaticResourceException("Unable to load static tenants");
-            }
+        if (tenants.containsAny(staticTenants)) {
+            throw new StaticResourceException("Cannot override static tenants");
+        }
+        if (!tenants.add(staticTenants) && !staticTenants.getCEntries().isEmpty()) {
+            throw new StaticResourceException("Unable to load static tenants");
+        }
 
-            log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
+        log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
 
-            log.debug(
-                "Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
-                roles.getCEntries().size(),
-                actionGroups.getCEntries().size(),
-                tenants.getCEntries().size()
-            );
+        log.debug(
+            "Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
+            roles.getCEntries().size(),
+            actionGroups.getCEntries().size(),
+            tenants.getCEntries().size()
+        );
 
-            // rebuild v7 Models
-            dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
-            ium = new InternalUsersModelV7(
-                internalusers,
-                roles,
-                rolesmapping
-            );
-            cm = new ConfigModelV7(
-                roles,
-                rolesmapping,
-                actionGroups,
-                tenants,
-                dcm,
-                opensearchSettings
-            );
+        // rebuild v7 Models
+        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
+        ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
+        cm = new ConfigModelV7(roles, rolesmapping, actionGroups, tenants, dcm, opensearchSettings);
 
         // notify subscribers
         eventBus.post(cm);
@@ -444,9 +430,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         public NodesDnModelImpl(SecurityDynamicConfiguration<NodesDn> configuration) {
             super();
-            this.configuration = null == configuration.getCType()
-                ? SecurityDynamicConfiguration.empty(CType.NODESDN)
-                : configuration;
+            this.configuration = null == configuration.getCType() ? SecurityDynamicConfiguration.empty(CType.NODESDN) : configuration;
         }
 
         @Override

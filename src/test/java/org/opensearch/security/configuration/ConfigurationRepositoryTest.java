@@ -14,7 +14,6 @@ package org.opensearch.security.configuration;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;

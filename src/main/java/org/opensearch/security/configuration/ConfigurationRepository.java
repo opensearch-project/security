@@ -33,7 +33,6 @@ import java.security.PrivilegedAction;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -585,10 +584,7 @@ public class ConfigurationRepository implements ClusterStateListener {
      * @param logComplianceEvent
      * @return
      */
-    public ConfigurationMap getConfigurationsFromIndex(
-        Collection<CType<?>> configTypes,
-        boolean logComplianceEvent
-    ) {
+    public ConfigurationMap getConfigurationsFromIndex(Collection<CType<?>> configTypes, boolean logComplianceEvent) {
         return getConfigurationsFromIndex(configTypes, logComplianceEvent, this.acceptInvalid);
     }
 
@@ -641,8 +637,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         return result;
     }
 
-    private ConfigurationMap validate(ConfigurationMap conf, int expectedSize)
-        throws InvalidConfigException {
+    private ConfigurationMap validate(ConfigurationMap conf, int expectedSize) throws InvalidConfigException {
 
         if (conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");

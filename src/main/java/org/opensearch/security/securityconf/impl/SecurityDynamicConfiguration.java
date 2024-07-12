@@ -46,7 +46,6 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
@@ -95,8 +94,8 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
                 sdc = oldConfigVersion.parseJson(ctype, json, acceptInvalid);
             } else {
                 sdc = DefaultObjectMapper.readValue(
-                        json,
-                        DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
+                    json,
+                    DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
                 );
             }
 
@@ -117,8 +116,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     /**
      * For testing only
      */
-    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType<T> ctype)
-        throws JsonProcessingException {
+    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType<T> ctype) throws JsonProcessingException {
         SecurityDynamicConfiguration<T> result = DefaultObjectMapper.objectMapper.convertValue(
             map,
             DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
@@ -150,7 +148,13 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType<T> ctype, int version, long seqNo, long primaryTerm)
         throws IOException {
-        return SecurityDynamicConfiguration.<T>fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
+        return SecurityDynamicConfiguration.<T>fromJson(
+            DefaultObjectMapper.writeValueAsString(json, false),
+            ctype,
+            version,
+            seqNo,
+            primaryTerm
+        );
     }
 
     // for Jackson

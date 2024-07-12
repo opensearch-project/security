@@ -54,7 +54,10 @@ public class ConfigTests {
 
     @Test
     public void testEmptyConfig() throws Exception {
-        Assert.assertNotSame(SecurityDynamicConfiguration.empty(CType.CONFIG).deepClone(), SecurityDynamicConfiguration.empty(CType.CONFIG));
+        Assert.assertNotSame(
+            SecurityDynamicConfiguration.empty(CType.CONFIG).deepClone(),
+            SecurityDynamicConfiguration.empty(CType.CONFIG)
+        );
     }
 
     @Test

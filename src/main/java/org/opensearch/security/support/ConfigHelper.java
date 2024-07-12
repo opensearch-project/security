@@ -177,8 +177,13 @@ public class ConfigHelper {
         }
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromYamlFile(String filepath, CType<T> ctype, int version, long seqNo, long primaryTerm)
-        throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromYamlFile(
+        String filepath,
+        CType<T> ctype,
+        int version,
+        long seqNo,
+        long primaryTerm
+    ) throws IOException {
         return fromYamlReader(new FileReader(filepath, StandardCharsets.UTF_8), ctype, version, seqNo, primaryTerm);
     }
 

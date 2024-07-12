@@ -92,8 +92,8 @@ public class ConfigurationLoaderSecurity7 {
         return isAuditConfigDocPresentInIndex.get();
     }
 
-    ConfigurationMap load(final CType<?>[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid)
-        throws InterruptedException, TimeoutException {
+    ConfigurationMap load(final CType<?>[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException,
+        TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
         ConfigurationMap.Builder result = new ConfigurationMap.Builder();
         final boolean isDebugEnabled = log.isDebugEnabled();

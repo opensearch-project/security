@@ -33,18 +33,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JavaType;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
@@ -63,14 +58,44 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 
 public class CType<T> implements Comparable<CType<?>> {
 
-    public static final CType<ActionGroupsV7> ACTIONGROUPS = new CType<>("action_groups", ActionGroupsV7.class, 0, false, new OldConfigVersion<>(1, ActionGroupsV6.class, ActionGroupsV7::new));
+    public static final CType<ActionGroupsV7> ACTIONGROUPS = new CType<>(
+        "action_groups",
+        ActionGroupsV7.class,
+        0,
+        false,
+        new OldConfigVersion<>(1, ActionGroupsV6.class, ActionGroupsV7::new)
+    );
     public static final CType<AllowlistingSettings> ALLOWLIST = new CType<>("allowlist", AllowlistingSettings.class, 1, true);
     public static final CType<AuditConfig> AUDIT = new CType<>("audit", AuditConfig.class, 2, true);
-    public static final CType<ConfigV7> CONFIG = new CType<>("config", ConfigV7.class, 3, false, new OldConfigVersion<>(1, ConfigV6.class, ConfigV7::new));
-    public static final CType<InternalUserV7> INTERNALUSERS = new CType<>("internal_users", InternalUserV7.class, 4, false, new OldConfigVersion<>(1, InternalUserV6.class, InternalUserV7::new));
+    public static final CType<ConfigV7> CONFIG = new CType<>(
+        "config",
+        ConfigV7.class,
+        3,
+        false,
+        new OldConfigVersion<>(1, ConfigV6.class, ConfigV7::new)
+    );
+    public static final CType<InternalUserV7> INTERNALUSERS = new CType<>(
+        "internal_users",
+        InternalUserV7.class,
+        4,
+        false,
+        new OldConfigVersion<>(1, InternalUserV6.class, InternalUserV7::new)
+    );
     public static final CType<NodesDn> NODESDN = new CType<>("nodes_dn", NodesDn.class, 5, true);
-    public static final CType<RoleV7> ROLES = new CType<>("roles", RoleV7.class, 6, false, new OldConfigVersion<>(1, RoleV6.class, RoleV7::new));
-    public static final CType<RoleMappingsV7> ROLESMAPPING = new CType<>("roles_mapping", RoleMappingsV7.class, 7, false, new OldConfigVersion<>(1, RoleMappingsV6.class, RoleMappingsV7::new));
+    public static final CType<RoleV7> ROLES = new CType<>(
+        "roles",
+        RoleV7.class,
+        6,
+        false,
+        new OldConfigVersion<>(1, RoleV6.class, RoleV7::new)
+    );
+    public static final CType<RoleMappingsV7> ROLESMAPPING = new CType<>(
+        "roles_mapping",
+        RoleMappingsV7.class,
+        7,
+        false,
+        new OldConfigVersion<>(1, RoleMappingsV6.class, RoleMappingsV7::new)
+    );
     public static final CType<TenantV7> TENANTS = new CType<>("tenants", TenantV7.class, 8, false);
     public static final CType<WhitelistingSettings> WHITELIST = new CType<>("whitelist", WhitelistingSettings.class, 9, true);
 
@@ -78,7 +103,7 @@ public class CType<T> implements Comparable<CType<?>> {
     private final Class<T> configClass;
     private final String configFileName;
     private final boolean emptyIfMissing;
-    private final OldConfigVersion<?, T> [] oldConfigVersions;
+    private final OldConfigVersion<?, T>[] oldConfigVersions;
     private final int ord;
 
     private final static Set<CType<?>> allSet = new HashSet<>();
@@ -88,7 +113,7 @@ public class CType<T> implements Comparable<CType<?>> {
 
     @SafeVarargs
     @SuppressWarnings("varargs")
-    private CType(String name, Class<T> configClass, int ord, boolean emptyIfMissing, OldConfigVersion<?, T> ... oldConfigVersions) {
+    private CType(String name, Class<T> configClass, int ord, boolean emptyIfMissing, OldConfigVersion<?, T>... oldConfigVersions) {
         this.name = name;
         this.configClass = configClass;
         this.ord = ord;
@@ -142,15 +167,11 @@ public class CType<T> implements Comparable<CType<?>> {
     }
 
     public static Set<CType<?>> requiredConfigTypes() {
-        return values().stream()
-                .filter(Predicate.not(CType::emptyIfMissing))
-                .collect(Collectors.toUnmodifiableSet());
+        return values().stream().filter(Predicate.not(CType::emptyIfMissing)).collect(Collectors.toUnmodifiableSet());
     }
 
     public static Set<CType<?>> notRequiredConfigTypes() {
-        return values().stream()
-                .filter(CType::emptyIfMissing)
-                .collect(Collectors.toUnmodifiableSet());
+        return values().stream().filter(CType::emptyIfMissing).collect(Collectors.toUnmodifiableSet());
     }
 
     public Path configFile(final Path configDir) {
@@ -199,7 +220,8 @@ public class CType<T> implements Comparable<CType<?>> {
             return conversionFunction;
         }
 
-        public SecurityDynamicConfiguration<NewType> parseJson(CType<NewType> ctype, String json, boolean acceptInvalid) throws IOException {
+        public SecurityDynamicConfiguration<NewType> parseJson(CType<NewType> ctype, String json, boolean acceptInvalid)
+            throws IOException {
             JavaType javaType = DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, oldType);
 
             if (acceptInvalid) {

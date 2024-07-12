@@ -1558,30 +1558,32 @@ public class SecurityAdmin {
                 )
             );
             SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(
-                    Migration.readYaml(new File(backupDir, "config.yml"), ConfigV6.class)
+                Migration.readYaml(new File(backupDir, "config.yml"), ConfigV6.class)
             );
             SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(
-                    Migration.readYaml(new File(backupDir, "internal_users.yml"), InternalUserV6.class)
+                Migration.readYaml(new File(backupDir, "internal_users.yml"), InternalUserV6.class)
             );
-            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 =
-                    Migration.readYaml(new File(backupDir, "roles_mapping.yml"), RoleMappingsV6.class);
+            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = Migration.readYaml(
+                new File(backupDir, "roles_mapping.yml"),
+                RoleMappingsV6.class
+            );
 
             Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(
-                    Migration.readYaml(new File(backupDir, "roles.yml"), RoleV6.class),
+                Migration.readYaml(new File(backupDir, "roles.yml"), RoleV6.class),
                 rolesmappingV6
             );
             SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
             SecurityDynamicConfiguration<NodesDn> nodesDn = Migration.migrateNodesDn(
-                    Migration.readYaml(new File(backupDir, "nodes_dn.yml"), NodesDn.class)
+                Migration.readYaml(new File(backupDir, "nodes_dn.yml"), NodesDn.class)
             );
             SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettings = Migration.migrateWhitelistingSetting(
-                    Migration.readYaml(new File(backupDir, "whitelist.yml"), WhitelistingSettings.class)
+                Migration.readYaml(new File(backupDir, "whitelist.yml"), WhitelistingSettings.class)
             );
             SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettings = Migration.migrateAllowlistingSetting(
-                    Migration.readYaml(new File(backupDir, "allowlist.yml"), AllowlistingSettings.class)
+                Migration.readYaml(new File(backupDir, "allowlist.yml"), AllowlistingSettings.class)
             );
             SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(
-                    Migration.readYaml(new File(backupDir, "audit.yml"), AuditConfig.class)
+                Migration.readYaml(new File(backupDir, "audit.yml"), AuditConfig.class)
             );
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);

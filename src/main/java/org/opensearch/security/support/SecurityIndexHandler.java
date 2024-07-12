@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
@@ -129,13 +128,12 @@ public class SecurityIndexHandler {
         }
     }
 
-    public void loadConfiguration(
-        final Set<SecurityConfig> configuration,
-        final ActionListener<ConfigurationMap> listener
-    ) {
+    public void loadConfiguration(final Set<SecurityConfig> configuration, final ActionListener<ConfigurationMap> listener) {
         try (final ThreadContext.StoredContext threadContext = client.threadPool().getThreadContext().stashContext()) {
             client.threadPool().getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-            final List<CType<?>> configurationTypes = configuration.stream().map(SecurityConfig::type).collect(Collectors.toUnmodifiableList());
+            final List<CType<?>> configurationTypes = configuration.stream()
+                .map(SecurityConfig::type)
+                .collect(Collectors.toUnmodifiableList());
             client.multiGet(newMultiGetRequest(configurationTypes), ActionListener.runBefore(ActionListener.wrap(r -> {
                 final var cTypeConfigsBuilder = new ConfigurationMap.Builder();
                 var hasFailures = false;

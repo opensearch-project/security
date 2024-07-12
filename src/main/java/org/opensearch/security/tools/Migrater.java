@@ -40,7 +40,6 @@ import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
 import org.opensearch.security.securityconf.impl.v6.RoleV6;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.support.ConfigHelper;
 
 public class Migrater {
 
@@ -123,15 +122,13 @@ public class Migrater {
             }
 
             if (cType == CType.CONFIG) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateConfig(
-                        Migration.readYaml(file, ConfigV6.class)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateConfig(Migration.readYaml(file, ConfigV6.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.ROLES) {
                 Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> tup = Migration.migrateRoles(
-                        Migration.readYaml(file, RoleV6.class),
+                    Migration.readYaml(file, RoleV6.class),
                     null
                 );
                 boolean roles = backupAndWrite(file, tup.v1(), backup);
@@ -139,30 +136,22 @@ public class Migrater {
             }
 
             if (cType == CType.ROLESMAPPING) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateRoleMappings(
-                        Migration.readYaml(file, RoleMappingsV6.class)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateRoleMappings(Migration.readYaml(file, RoleMappingsV6.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.INTERNALUSERS) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateInternalUsers(
-                        Migration.readYaml(file, InternalUserV6.class)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateInternalUsers(Migration.readYaml(file, InternalUserV6.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.AUDIT) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateAudit(
-                        Migration.readYaml(file, AuditConfig.class)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateAudit(Migration.readYaml(file, AuditConfig.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.NODESDN) {
-                SecurityDynamicConfiguration<NodesDn> val = Migration.migrateNodesDn(
-                        Migration.readYaml(file, NodesDn.class)
-                );
+                SecurityDynamicConfiguration<NodesDn> val = Migration.migrateNodesDn(Migration.readYaml(file, NodesDn.class));
                 return backupAndWrite(file, val, backup);
             }
         } catch (Exception e) {

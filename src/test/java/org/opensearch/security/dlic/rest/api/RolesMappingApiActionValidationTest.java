@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;

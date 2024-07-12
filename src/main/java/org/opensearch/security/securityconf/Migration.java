@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.fasterxml.jackson.databind.JavaType;
+
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.DefaultObjectMapper;
@@ -206,13 +207,13 @@ public class Migration {
         a7.get_meta().setConfig_version(2);
         a7.get_meta().setType("actiongroups");
 
-            for (final Entry<String, ?> r6a : r6as.getCEntries().entrySet()) {
-                if (r6a.getValue() instanceof List) {
-                    a7.putCEntry(r6a.getKey(), new ActionGroupsV7(r6a.getKey(), (List<String>) r6a.getValue()));
-                } else {
-                    a7.putCEntry(r6a.getKey(), new ActionGroupsV7(r6a.getKey(), (ActionGroupsV6) r6a.getValue()));
-                }
+        for (final Entry<String, ?> r6a : r6as.getCEntries().entrySet()) {
+            if (r6a.getValue() instanceof List) {
+                a7.putCEntry(r6a.getKey(), new ActionGroupsV7(r6a.getKey(), (List<String>) r6a.getValue()));
+            } else {
+                a7.putCEntry(r6a.getKey(), new ActionGroupsV7(r6a.getKey(), (ActionGroupsV6) r6a.getValue()));
             }
+        }
 
         return a7;
     }

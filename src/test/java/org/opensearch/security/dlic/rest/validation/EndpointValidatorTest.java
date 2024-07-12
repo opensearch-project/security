@@ -390,7 +390,7 @@ public class EndpointValidatorTest {
         restAdminPermissions().forEach(array::add);
 
         var agCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
-                SecurityConfiguration.of(objectMapper.createObjectNode().set("allowed_actions", array), "some_ag", configuration)
+            SecurityConfiguration.of(objectMapper.createObjectNode().set("allowed_actions", array), "some_ag", configuration)
         );
         assertFalse(agCheckResult.isValid());
         assertThat(agCheckResult.status(), is(RestStatus.FORBIDDEN));

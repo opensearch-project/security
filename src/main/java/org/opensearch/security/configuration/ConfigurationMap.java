@@ -11,11 +11,12 @@
 
 package org.opensearch.security.configuration;
 
+import java.util.Set;
+
 import com.google.common.collect.ImmutableMap;
+
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-
-import java.util.Set;
 
 /**
  * Allows type safe access of configuration instances via the configuration type
@@ -60,7 +61,7 @@ public class ConfigurationMap {
         return this.map;
     }
 
-    public static ConfigurationMap of(SecurityDynamicConfiguration<?> ... configs) {
+    public static ConfigurationMap of(SecurityDynamicConfiguration<?>... configs) {
         Builder builder = new Builder();
 
         for (SecurityDynamicConfiguration<?> config : configs) {
@@ -73,8 +74,7 @@ public class ConfigurationMap {
     public static class Builder {
         private ImmutableMap.Builder<CType<?>, SecurityDynamicConfiguration<?>> map = new ImmutableMap.Builder<>();
 
-        public Builder() {
-        }
+        public Builder() {}
 
         public <T> Builder with(SecurityDynamicConfiguration<T> config) {
             map.put(config.getCType(), config);
