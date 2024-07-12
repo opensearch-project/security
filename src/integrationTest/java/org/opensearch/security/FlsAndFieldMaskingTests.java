@@ -216,6 +216,13 @@ public class FlsAndFieldMaskingTests {
             .on("*")
     );
 
+    static final TestSecurityConfig.User USER_FLS_INCLUDE_STARS = new TestSecurityConfig.User("fls_include_stars_reader").roles(
+        new TestSecurityConfig.Role("fls_include_stars_reader").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .fls(FIELD_STARS)
+            .on("*")
+    );
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
@@ -230,7 +237,8 @@ public class FlsAndFieldMaskingTests {
             MASKED_ARTIST_LYRICS_READER,
             ALL_INDICES_STRING_ARTIST_READER,
             ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
-            TWINS_FIRST_ARTIST_READER
+            TWINS_FIRST_ARTIST_READER,
+            USER_FLS_INCLUDE_STARS
         )
         .build();
 
@@ -840,13 +848,9 @@ public class FlsAndFieldMaskingTests {
     @Test
     public void flsWithIncludesRulesIncludesFieldMappersFromPlugins() throws IOException {
         String indexName = "fls_includes_index";
-        TestSecurityConfig.Role userRole = new TestSecurityConfig.Role("fls_include_stars_reader").clusterPermissions(
-            "cluster_composite_ops_ro"
-        ).indexPermissions("read").fls(FIELD_STARS).on("*");
-        TestSecurityConfig.User user = createUserWithRole("fls_includes_user", userRole);
         List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_FLS_INCLUDE_STARS)) {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             MatchAllQueryBuilder matchAllQueryBuilder = QueryBuilders.matchAllQuery();
@@ -863,11 +867,7 @@ public class FlsAndFieldMaskingTests {
 
     @Test
     public void testFlsOnAClosedAndReopenedIndex() throws IOException {
-        String indexName = "fls_includes_index";
-        TestSecurityConfig.Role userRole = new TestSecurityConfig.Role("fls_include_stars_reader").clusterPermissions(
-            "cluster_composite_ops_ro"
-        ).indexPermissions("read").fls(FIELD_STARS).on("*");
-        TestSecurityConfig.User user = createUserWithRole("fls_includes_user", userRole);
+        String indexName = "fls_includes_index2";
         List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
 
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
@@ -876,7 +876,7 @@ public class FlsAndFieldMaskingTests {
             logsRule.assertThatContainExactly(indexName + " was closed. Setting metadataFields to empty. Closed index is not searchable.");
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_FLS_INCLUDE_STARS)) {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             MatchAllQueryBuilder matchAllQueryBuilder = QueryBuilders.matchAllQuery();
