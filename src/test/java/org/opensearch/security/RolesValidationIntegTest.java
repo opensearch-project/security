@@ -25,7 +25,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.opensearch.client.Client;
+import org.opensearch.client.node.PluginAwareNodeClient;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -59,7 +59,7 @@ public class RolesValidationIntegTest extends SingleClusterTest {
 
         @Override
         public Collection<Object> createComponents(
-            Client client,
+            PluginAwareNodeClient client,
             ClusterService clusterService,
             ThreadPool threadPool,
             ResourceWatcherService resourceWatcherService,

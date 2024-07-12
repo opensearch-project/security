@@ -38,6 +38,7 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.action.support.master.AcknowledgedRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
+import org.opensearch.client.node.PluginAwareNodeClient;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -81,7 +82,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
 
         @Override
         public Collection<Object> createComponents(
-            Client client,
+            PluginAwareNodeClient client,
             ClusterService clusterService,
             ThreadPool threadPool,
             ResourceWatcherService resourceWatcherService,

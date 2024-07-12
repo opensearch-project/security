@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.client.Client;
+import org.opensearch.client.node.PluginAwareNodeClient;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
@@ -61,7 +61,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
 
         @Override
         public Collection<Object> createComponents(
-            Client client,
+            PluginAwareNodeClient client,
             ClusterService clusterService,
             ThreadPool threadPool,
             ResourceWatcherService resourceWatcherService,

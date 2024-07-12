@@ -38,7 +38,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
-import org.opensearch.client.Client;
+import org.opensearch.client.node.PluginAwareNodeClient;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -365,7 +365,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     @Override
     public Collection<Object> createComponents(
-        Client localClient,
+        PluginAwareNodeClient localClient,
         ClusterService clusterService,
         ThreadPool threadPool,
         ResourceWatcherService resourceWatcherService,

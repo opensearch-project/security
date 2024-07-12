@@ -72,6 +72,7 @@ import org.opensearch.core.common.logging.LoggerMessageFormat;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
+import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
@@ -321,6 +322,24 @@ public class SecurityFilter implements ActionFilter {
                 && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                 && (injectedRoles == null)
                 && !enforcePrivilegesEvaluation) {
+
+                String pluginExecutionContext = threadContext.getHeader(ThreadContext.PLUGIN_EXECUTION_CONTEXT);
+                if (pluginExecutionContext != null) {
+                    IndexResolverReplacer.Resolved requestedResolved = indexResolverReplacer.resolveRequest(request);
+                    ;
+                    if (!requestedResolved.getAllIndices().isEmpty()) {
+                        Set<String> matchingSystemIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
+                            pluginExecutionContext,
+                            requestedResolved.getAllIndices()
+                        );
+                        if (!matchingSystemIndices.equals(requestedResolved.getAllIndices())) {
+                            auditLog.logMissingPrivileges(action, request, task);
+                            String err = "Plugin " + pluginExecutionContext + " can only interact with its own system indices";
+                            listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
+                            return;
+                        }
+                    }
+                }
 
                 chain.proceed(task, action, request, listener);
                 return;

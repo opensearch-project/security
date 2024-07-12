@@ -74,6 +74,7 @@ import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
+import org.opensearch.client.node.PluginAwareNodeClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.NamedDiff;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -1020,7 +1021,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Collection<Object> createComponents(
-        Client localClient,
+        PluginAwareNodeClient localClient,
         ClusterService clusterService,
         ThreadPool threadPool,
         ResourceWatcherService resourceWatcherService,
