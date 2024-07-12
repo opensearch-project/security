@@ -188,18 +188,22 @@ public class PrivilegesEvaluator {
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
 
-        configurationRepository.subscribeOnChange(configMap -> {
-            try {
-                // TODO: It is not nice that we cannot use a concrete generic parameter for SecurityDynamicConfiguration
-                // TODO: At the moment, the implementations only support the V7 config objects
-                SecurityDynamicConfiguration<?> actionGroupsConfiguration = configurationRepository.getConfiguration(CType.ACTIONGROUPS);
-                SecurityDynamicConfiguration<?> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
+        if (configurationRepository != null) {
+            configurationRepository.subscribeOnChange(configMap -> {
+                try {
+                    // TODO: It is not nice that we cannot use a concrete generic parameter for SecurityDynamicConfiguration
+                    // TODO: At the moment, the implementations only support the V7 config objects
+                    SecurityDynamicConfiguration<?> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                        CType.ACTIONGROUPS
+                    );
+                    SecurityDynamicConfiguration<?> rolesConfiguration = configurationRepository.getConfiguration(CType.ROLES);
 
-                this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration);
-            } catch (Exception e) {
-                log.error("Error while updating ActionPrivileges object with {}", configMap, e);
-            }
-        });
+                    this.updateConfiguration(actionGroupsConfiguration, rolesConfiguration);
+                } catch (Exception e) {
+                    log.error("Error while updating ActionPrivileges object with {}", configMap, e);
+                }
+            });
+        }
 
         if (clusterService != null) {
             clusterService.addListener(new ClusterStateListener() {
@@ -226,11 +230,11 @@ public class PrivilegesEvaluator {
         if (rolesConfiguration != null) {
             @SuppressWarnings("unchecked")
             SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsWithStatics = actionGroupsConfiguration != null
-                ? (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(actionGroupsConfiguration.deepClone())
+                ? (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(actionGroupsConfiguration.clone())
                 : (SecurityDynamicConfiguration<ActionGroupsV7>) DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty());
             FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsWithStatics);
             ActionPrivileges actionPrivileges = new ActionPrivileges(
-                DynamicConfigFactory.addStatics(rolesConfiguration.deepClone()),
+                DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
                 flattenedActionGroups,
                 () -> clusterStateSupplier.get().metadata().getIndicesLookup()
             );
@@ -249,6 +253,10 @@ public class PrivilegesEvaluator {
         this.dcm = dcm;
     }
 
+    ActionPrivileges getActionPrivileges() {
+        return this.actionPrivileges;
+    }
+
     public SecurityRoles getSecurityRoles(Set<String> roles) {
         return configModel.getSecurityRoles().filter(roles);
     }
@@ -264,7 +272,7 @@ public class PrivilegesEvaluator {
     }
 
     public boolean isInitialized() {
-        return configModel != null && configModel.getSecurityRoles() != null && dcm != null;
+        return configModel != null && dcm != null && actionPrivileges != null;
     }
 
     private void setUserInfoInThreadContext(User user) {
@@ -279,6 +287,10 @@ public class PrivilegesEvaluator {
             }
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
+    }
+
+    public PrivilegesEvaluationContext createContext(User user, String action) {
+        return createContext(user, action, null, null, null);
     }
 
     public PrivilegesEvaluationContext createContext(

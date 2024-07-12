@@ -1138,7 +1138,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
-        restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool);
+        restLayerEvaluator = new RestLayerPrivilegesEvaluator(evaluator);
 
         securityRestHandler = new SecurityRestFilter(
             backendRegistry,
@@ -1157,7 +1157,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(restLayerEvaluator);
-        dcf.registerDCFListener(securityRestHandler);
         dcf.registerDCFListener(tokenManager);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog

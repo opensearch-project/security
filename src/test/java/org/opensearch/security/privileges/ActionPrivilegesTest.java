@@ -571,8 +571,8 @@ public class ActionPrivilegesTest {
             null,
             null,
             null,
-                new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-        null
+            new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
+            null
         );
     }
 }

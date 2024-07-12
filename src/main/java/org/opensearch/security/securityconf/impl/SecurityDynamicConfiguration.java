@@ -169,6 +169,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
             DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
         );
         result.ctype = ctype;
+        result.version = 2;
         return result;
     }
 
@@ -325,6 +326,18 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public Class<?> getImplementingClass() {
         return getCType() == null ? null : getCType().getImplementationClass().get(getVersion());
+    }
+
+    @JsonIgnore
+    public SecurityDynamicConfiguration<T> clone() {
+        SecurityDynamicConfiguration<T> result = new SecurityDynamicConfiguration<T>();
+        result.version = this.version;
+        result.ctype = this.ctype;
+        result.primaryTerm = this.primaryTerm;
+        result.seqNo = this.seqNo;
+        result._meta = this._meta;
+        result.centries.putAll(this.centries);
+        return result;
     }
 
     @JsonIgnore

@@ -111,6 +111,10 @@ public class ActionPrivileges {
         return cluster.providesPrivilege(context, action, context.getMappedRoles());
     }
 
+    public PrivilegesEvaluatorResponse hasAnyClusterPrivilege(PrivilegesEvaluationContext context, Set<String> actions) {
+        return cluster.providesAnyPrivilege(context, actions, context.getMappedRoles());
+    }
+
     public PrivilegesEvaluatorResponse hasIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
@@ -310,6 +314,46 @@ public class ActionPrivileges {
             }
 
             return PrivilegesEvaluatorResponse.insufficient(action, context);
+        }
+
+        /**
+         * Checks whether this instance provides privileges for the combination of any of the provided actions and the
+         * provided roles. Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
+         * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
+         */
+        PrivilegesEvaluatorResponse providesAnyPrivilege(PrivilegesEvaluationContext context, Set<String> actions, Set<String> roles) {
+            // 1: Check roles with wildcards
+            if (CollectionUtils.containsAny(roles, this.rolesWithWildcardPermissions)) {
+                return PrivilegesEvaluatorResponse.ok();
+            }
+
+            // 2: Check well-known actions - this should cover most cases
+            for (String action : actions) {
+                ImmutableSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
+
+                if (rolesWithPrivileges != null && CollectionUtils.containsAny(roles, rolesWithPrivileges)) {
+                    return PrivilegesEvaluatorResponse.ok();
+                }
+            }
+
+            // 3: Only if everything else fails: Check the matchers in case we have a non-well-known action
+            for (String action : actions) {
+                if (!this.wellKnownClusterActions.contains(action)) {
+                    for (String role : roles) {
+                        WildcardMatcher matcher = this.rolesToActionMatcher.get(role);
+
+                        if (matcher != null && matcher.test(action)) {
+                            return PrivilegesEvaluatorResponse.ok();
+                        }
+                    }
+                }
+            }
+
+            if (actions.size() == 1) {
+                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next(), context);
+            } else {
+                return PrivilegesEvaluatorResponse.insufficient("any of " + actions, context);
+            }
         }
     }
 

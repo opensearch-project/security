@@ -163,7 +163,7 @@ public class SystemIndexAccessEvaluatorTest {
             request,
             null,
             null,
-                indexNameExpressionResolver,
+            indexNameExpressionResolver,
             null
         );
     }
