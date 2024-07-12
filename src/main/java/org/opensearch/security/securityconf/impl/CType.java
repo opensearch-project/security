@@ -58,6 +58,10 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 
 public class CType<T> implements Comparable<CType<?>> {
 
+    private final static Set<CType<?>> allSet = new HashSet<>();
+    private static Map<String, CType<?>> nameToInstanceMap = new HashMap<>();
+    private static Map<Integer, CType<?>> ordToInstanceMap = new HashMap<>();
+
     public static final CType<ActionGroupsV7> ACTIONGROUPS = new CType<>(
         "action_groups",
         ActionGroupsV7.class,
@@ -105,11 +109,6 @@ public class CType<T> implements Comparable<CType<?>> {
     private final boolean emptyIfMissing;
     private final OldConfigVersion<?, T>[] oldConfigVersions;
     private final int ord;
-
-    private final static Set<CType<?>> allSet = new HashSet<>();
-
-    private static Map<String, CType<?>> nameToInstanceMap = new HashMap<>();
-    private static Map<Integer, CType<?>> ordToInstanceMap = new HashMap<>();
 
     @SafeVarargs
     @SuppressWarnings("varargs")
