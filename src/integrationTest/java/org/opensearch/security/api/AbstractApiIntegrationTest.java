@@ -30,20 +30,23 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedSupplier;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.ConfigurationFiles;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -77,6 +80,10 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
     public static final ToXContentObject EMPTY_BODY = (builder, params) -> builder.startObject().endObject();
 
+    public static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
+        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+    );
+
     public static Path configurationFolder;
 
     public static ImmutableMap.Builder<String, Object> clusterSettings = ImmutableMap.builder();
@@ -84,8 +91,6 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
     protected static TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
 
     public static LocalCluster localCluster;
-
-    public static PasswordHasher passwordHasher = new BCryptPasswordHasher();
 
     @BeforeClass
     public static void startCluster() throws IOException {
@@ -360,6 +365,16 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         return response;
     }
 
+    TestRestClient.HttpResponse ok(
+        final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback,
+        final String expectedMessage
+    ) throws Exception {
+        final var response = endpointCallback.get();
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertResponseBody(response.getBody(), expectedMessage);
+        return response;
+    }
+
     TestRestClient.HttpResponse unauthorized(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback)
         throws Exception {
         final var response = endpointCallback.get();
@@ -371,6 +386,45 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
     void assertResponseBody(final String responseBody) {
         assertThat(responseBody, notNullValue());
         assertThat(responseBody, not(equalTo("")));
+    }
+
+    void assertResponseBody(final String responseBody, final String expectedMessage) {
+        assertThat(responseBody, notNullValue());
+        assertThat(responseBody, not(equalTo("")));
+        assertThat(responseBody, containsString(expectedMessage));
+    }
+
+    static ToXContentObject configJsonArray(final String... values) {
+        return (builder, params) -> {
+            builder.startArray();
+            if (values != null) {
+                for (final var v : values) {
+                    if (v == null) {
+                        builder.nullValue();
+                    } else {
+                        builder.value(v);
+                    }
+                }
+            }
+            return builder.endArray();
+        };
+    }
+
+    static String[] generateArrayValues(boolean useNulls) {
+        final var length = randomIntBetween(1, 5);
+        final var values = new String[length];
+        final var nullIndex = randomIntBetween(0, length - 1);
+        for (var i = 0; i < values.length; i++) {
+            if (useNulls && i == nullIndex) values[i] = null;
+            else values[i] = randomAsciiAlphanumOfLength(10);
+        }
+        return values;
+    }
+
+    static ToXContentObject randomConfigArray(final boolean useNulls) {
+        return useNulls
+            ? configJsonArray(generateArrayValues(useNulls))
+            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
     }
 
 }

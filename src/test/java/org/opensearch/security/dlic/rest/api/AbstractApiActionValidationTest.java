@@ -28,16 +28,18 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -78,7 +80,9 @@ public abstract class AbstractApiActionValidationTest {
             Settings.EMPTY
         );
 
-        passwordHasher = new BCryptPasswordHasher();
+        passwordHasher = PasswordHasherFactory.createPasswordHasher(
+            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        );
     }
 
     void setupRolesConfiguration() throws IOException {
@@ -112,13 +116,13 @@ public abstract class AbstractApiActionValidationTest {
         }.createEndpointValidator();
 
         var result = defaultPessimisticValidator.onConfigChange(SecurityConfiguration.of(null, configuration));
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
         result = defaultPessimisticValidator.onConfigDelete(SecurityConfiguration.of(null, configuration));
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
         result = defaultPessimisticValidator.onConfigLoad(SecurityConfiguration.of(null, configuration));
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
 
     }
 

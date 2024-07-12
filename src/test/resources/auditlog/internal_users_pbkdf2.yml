@@ -1,0 +1,46 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+admin:
+  hash: "$3$1331439861760512$wBFrJJIAokWuJxlO6BQPLashXgznvR4tRmXk3aEy9SpHWrb9kFjPPLByZZzMLBNQFjhepgbngYh7RfMh8TrPLw==$vqGlzGsxqGf9TgfxhORjdoqRFB3npvBd9B0GAtBMg9mD2zBbSTohRYlOxUL7UQLma66zZdD67c4RNE9BKelabw=="
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with PBKDF2 with standard configuration"
+user1:
+  hash: "$1$4294967296128$VmnDMbQ4wLiFUq178RKvj+EYfdb3Q26qCiDcJDoCxpYnKpyuG0JhTC2wpUkMUveV5RmBFzldKQkdqZEfE0XAgg==$9u3aMWc6VP2oGkXei7UaXA=="
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with PBKDF2 with: SHA1 function | 1000 iterations | 128 length"
+user2:
+  hash: "$2$214748364800224$eQgqv2RI6yo95yeVnM5sfwUCwxHo6re0w+wpx6ZqZtHQV+dzlyP6YFitjNG2mlaTkg0pR56xArQaAgapdVcBQQ==$tGHWhoc83cd5nZ7QIZKPORjW/N5jklhYhRgXpw=="
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with PBKDF2 with: SHA224 function | 50000 iterations | 224 length"
+user3:
+  hash: "$3$322122547200256$5b3wEAsMc05EZFxfncCUfZRERgvbwlBhYXd5vVR14kNJtmhXSpYMzydRZxO9096IPTkc47doH4hIdKX6LTguLg==$oQQvAtUyOC6cwdAYi5WeIM7rGUN9l3IdJ9y2RNxZCWo="
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with PBKDF2 with: SHA256 function | 75000 iterations | 256 length"
+user4:
+  hash: "$4$429496729600384$+SNSgbZD67a1bd92iuEiHCq5pvvrCx3HrNIf5hbGIJdxgXegpWilpB6vUGvYigegAUzZqE9iIsL4pSJztUNJYw==$lTxZ7tax6dBQ0r4qPJpc8d7YuoTBiUujY9HJeAZvARXMjIgvnJwa6FeYugttOKc0"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with PBKDF2 with: SHA384 function | 100000 iterations | 384 length"
+user5:
+  hash: "$5$644245094400512$HQe/MOv/NAlgodNhqTmjqj5jGxBwG5xuRaxKwn7r4nlUba1kj/CYnpdFaXGvVeRxt2NLm8fbekS6NYonv358Ew==$1sDx+0tMbtGzU6jlQg/Dyt30Yxuy5RdNmP9B1EzMTxYWi8k1xg2gXLy7w1XbetEC8UD/lpyXJPlaoxXpsaADyA=="
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Hashed with PBKDF2 with: SHA512 function | 150000 iterations | 512 length"

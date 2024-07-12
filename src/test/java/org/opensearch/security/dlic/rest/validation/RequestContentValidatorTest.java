@@ -38,7 +38,8 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -155,9 +156,9 @@ public class RequestContentValidatorTest {
         assertFalse(validationResult.isValid());
         assertErrorMessage(errorMessage, RequestContentValidator.ValidationError.WRONG_DATATYPE);
 
-        assertEquals("String expected", errorMessage.get("a").asText());
-        assertEquals("Object expected", errorMessage.get("b").asText());
-        assertEquals("Array expected", errorMessage.get("c").asText());
+        assertThat(errorMessage.get("a").asText(), is("String expected"));
+        assertThat(errorMessage.get("b").asText(), is("Object expected"));
+        assertThat(errorMessage.get("c").asText(), is("Array expected"));
     }
 
     @Test
@@ -190,8 +191,8 @@ public class RequestContentValidatorTest {
         final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
         assertErrorMessage(errorMessage, RequestContentValidator.ValidationError.INVALID_CONFIGURATION);
 
-        assertEquals("{\"keys\":\"c,d\"}", errorMessage.get("invalid_keys").toString());
-        assertEquals("{\"keys\":\"a\"}", errorMessage.get("missing_mandatory_keys").toString());
+        assertThat(errorMessage.get("invalid_keys").toString(), is("{\"keys\":\"c,d\"}"));
+        assertThat(errorMessage.get("missing_mandatory_keys").toString(), is("{\"keys\":\"a\"}"));
     }
 
     @Test
@@ -313,8 +314,8 @@ public class RequestContentValidatorTest {
     }
 
     private void assertErrorMessage(final JsonNode jsonNode, final RequestContentValidator.ValidationError expectedValidationError) {
-        assertEquals("error", jsonNode.get("status").asText());
-        assertEquals(expectedValidationError.message(), jsonNode.get("reason").asText());
+        assertThat(jsonNode.get("status").asText(), is("error"));
+        assertThat(jsonNode.get("reason").asText(), is(expectedValidationError.message()));
     }
 
 }

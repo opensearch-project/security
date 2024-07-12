@@ -21,6 +21,9 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class EncryptionInTransitMigrationTests extends SingleClusterTest {
 
     @Test
@@ -42,59 +45,59 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         res = rh.executePutRequest("/xyz/_doc/1", "{\"a\":5}");
-        Assert.assertEquals(HttpStatus.SC_CREATED, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_CREATED));
 
         res = rh.executeGetRequest("/_mappings");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         res = rh.executeGetRequest("/_search");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
         if (dualModeEnabled) {
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
             Assert.assertTrue(res.getBody().contains("\"plugins.security_config.ssl_dual_mode_enabled\":\"true\""));
 
             String disableDualModeClusterSetting = "{ \"persistent\": { \""
                 + ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED
                 + "\": false } }";
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals(
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
+            assertThat(
                 "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}",
-                res.getBody()
+                is(res.getBody())
             );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
             Assert.assertTrue(res.getBody().contains("\"plugins.security_config.ssl_dual_mode_enabled\":\"false\""));
 
             String enableDualModeClusterSetting = "{ \"persistent\": { \""
                 + ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED
                 + "\": true } }";
             res = rh.executePutRequest("_cluster/settings", enableDualModeClusterSetting);
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals(
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
+            assertThat(
                 "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"true\"}}},\"transient\":{}}",
-                res.getBody()
+                is(res.getBody())
             );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
             Assert.assertTrue(res.getBody().contains("\"plugins.security_config.ssl_dual_mode_enabled\":\"true\""));
 
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals(
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
+            assertThat(
                 "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}",
-                res.getBody()
+                is(res.getBody())
             );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
-            Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+            assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
             Assert.assertTrue(res.getBody().contains("\"plugins.security_config.ssl_dual_mode_enabled\":\"false\""));
         }
     }
@@ -109,7 +112,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executeGetRequest("/_search");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -122,7 +125,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executeGetRequest("/_search");
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -130,17 +133,17 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         final Settings legacySettings = Settings.builder()
             .put(ConfigConstants.LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true)
             .build();
-        Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(legacySettings), true);
+        assertThat(true, is(SecuritySettings.SSL_DUAL_MODE_SETTING.get(legacySettings)));
 
         final Settings legacySettings2 = Settings.builder()
             .put(ConfigConstants.LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false)
             .build();
-        Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(legacySettings2), false);
+        assertThat(false, is(SecuritySettings.SSL_DUAL_MODE_SETTING.get(legacySettings2)));
 
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true).build();
-        Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings), true);
+        assertThat(true, is(SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings)));
 
         final Settings settings2 = Settings.builder().put(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false).build();
-        Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings2), false);
+        assertThat(false, is(SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings2)));
     }
 }

@@ -14,14 +14,13 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.stream.IntStream;
 
-import org.junit.Assert;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.Base64Helper.deserializeObject;
 import static org.opensearch.security.support.Base64Helper.serializeObject;
-import static org.junit.Assert.assertThat;
 
 public class Base64HelperTest {
 
@@ -41,8 +40,8 @@ public class Base64HelperTest {
     @Test
     public void testSerde() {
         String test = "string";
-        Assert.assertEquals(test, ds(test));
-        Assert.assertEquals(test, dsJDK(test));
+        assertThat(ds(test), is(test));
+        assertThat(dsJDK(test), is(test));
     }
 
     @Test
@@ -50,8 +49,8 @@ public class Base64HelperTest {
         String test = "string";
         String jdkSerialized = Base64Helper.serializeObject(test, true);
         String customSerialized = Base64Helper.serializeObject(test, false);
-        Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(jdkSerialized));
-        Assert.assertEquals(jdkSerialized, Base64Helper.ensureJDKSerialized(customSerialized));
+        assertThat(Base64Helper.ensureJDKSerialized(jdkSerialized), is(jdkSerialized));
+        assertThat(Base64Helper.ensureJDKSerialized(customSerialized), is(jdkSerialized));
     }
 
     @Test
@@ -65,9 +64,9 @@ public class Base64HelperTest {
         final var customSerialized = Base64Helper.serializeObject(largeObject, false);
         final var customSerializedOnlyHashMap = Base64Helper.serializeObject(hm, false);
 
-        assertThat(jdkSerialized.length(), equalTo(3832));
+        assertThat(jdkSerialized.length(), is(3832));
         // The custom serializer is ~50x larger than the jdk serialized version
-        assertThat(customSerialized.length(), equalTo(184792));
+        assertThat(customSerialized.length(), is(184792));
         // Show that the majority of the size of the custom serialized large object is the map duplicated ~100 times
         assertThat((double) customSerializedOnlyHashMap.length(), closeTo(customSerialized.length() / 100, 70d));
     }

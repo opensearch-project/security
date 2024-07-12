@@ -27,7 +27,6 @@
 package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -47,6 +46,9 @@ import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @Ignore("subject for manual execution")
 public class TracingTests extends SingleClusterTest {
@@ -389,7 +391,7 @@ public class TracingTests extends SingleClusterTest {
         // end pause1
 
         // search
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        assertThat(rh.executeGetRequest("_search", encodeBasicHeader("nagilum", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
         // search done
 
         // pause2
@@ -438,21 +440,26 @@ public class TracingTests extends SingleClusterTest {
 
         // search
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+            is(
+                (res = rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum")))
+                    .getStatusCode()
+            )
         );
 
         int start = res.getBody().indexOf("_scroll_id") + 15;
         String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start + 1));
         // search scroll
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
-                "/_search/scroll?pretty=true",
-                "{\"scroll_id\" : \"" + scrollid + "\"}",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            is(
+                (res = rh.executePostRequest(
+                    "/_search/scroll?pretty=true",
+                    "{\"scroll_id\" : \"" + scrollid + "\"}",
+                    encodeBasicHeader("nagilum", "nagilum")
+                )).getStatusCode()
+            )
         );
         // search done
     }

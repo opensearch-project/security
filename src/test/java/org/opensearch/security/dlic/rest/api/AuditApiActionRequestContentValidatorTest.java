@@ -28,7 +28,8 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.util.FakeRestRequest;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 
 public class AuditApiActionRequestContentValidatorTest extends AbstractApiActionValidationTest {
@@ -53,7 +54,7 @@ public class AuditApiActionRequestContentValidatorTest extends AbstractApiAction
         final var content = DefaultObjectMapper.writeValueAsString(objectMapper.valueToTree(auditConfig), false);
         var result = auditApiActionRequestContentValidator.validate(FakeRestRequest.builder().withContent(new BytesArray(content)).build());
         assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
     }
 
     @Test
@@ -76,6 +77,6 @@ public class AuditApiActionRequestContentValidatorTest extends AbstractApiAction
         final var content = DefaultObjectMapper.writeValueAsString(objectMapper.valueToTree(auditConfig), false);
         var result = auditApiActionRequestContentValidator.validate(FakeRestRequest.builder().withContent(new BytesArray(content)).build());
         assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
     }
 }

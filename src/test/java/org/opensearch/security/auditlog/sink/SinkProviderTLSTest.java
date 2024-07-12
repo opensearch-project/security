@@ -36,6 +36,9 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class SinkProviderTLSTest {
 
     protected HttpServer server = null;
@@ -91,7 +94,7 @@ public class SinkProviderTLSTest {
 
         SinkProvider provider = new SinkProvider(builder.build(), null, null, null);
         WebhookSink defaultSink = (WebhookSink) provider.defaultSink;
-        Assert.assertEquals(true, defaultSink.verifySSL);
+        assertThat(defaultSink.verifySSL, is(true));
 
         AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
         provider.allSinks.get("endpoint1").store(msg);

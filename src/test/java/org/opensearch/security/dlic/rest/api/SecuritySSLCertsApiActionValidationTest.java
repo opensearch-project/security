@@ -17,9 +17,10 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.util.FakeRestRequest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -37,7 +38,7 @@ public class SecuritySSLCertsApiActionValidationTest extends AbstractApiActionVa
         );
         final var result = securitySSLCertsApiAction.withSecurityKeyStore();
         assertFalse(result.isValid());
-        assertEquals(RestStatus.OK, result.status());
+        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test

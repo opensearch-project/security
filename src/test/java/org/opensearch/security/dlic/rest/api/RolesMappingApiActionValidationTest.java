@@ -20,7 +20,8 @@ import org.junit.Test;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.securityconf.impl.CType;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,7 +55,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
                  SecurityConfiguration.of("rest_api_admin_role", configuration));
 
          assertFalse(result.isValid());
-         assertEquals(RestStatus.FORBIDDEN, result.status());
+         assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -69,7 +70,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
         // no role
         var result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("aaa", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_FOUND, result.status());
+        assertThat(result.status(), is(RestStatus.NOT_FOUND));
         //static role is ok
         result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("all_access", configuration));
         assertTrue(result.isValid());
@@ -82,7 +83,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
         //hidden role is not ok
         result = rolesApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of("some_hidden_role", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.NOT_FOUND, result.status());
+        assertThat(result.status(), is(RestStatus.NOT_FOUND));
     }
 
 }

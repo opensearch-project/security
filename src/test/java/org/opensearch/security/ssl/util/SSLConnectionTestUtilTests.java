@@ -17,12 +17,14 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class SSLConnectionTestUtilTests {
     private Socket socket;
@@ -64,7 +66,7 @@ public class SSLConnectionTestUtilTests {
 
         verifyClientHelloSend();
         Mockito.verify(socket, Mockito.times(1)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.SSL_AVAILABLE, result);
+        assertThat("Unexpected result for testConnection invocation", result, is(SSLConnectionTestResult.SSL_AVAILABLE));
     }
 
     @Test
@@ -85,7 +87,7 @@ public class SSLConnectionTestUtilTests {
         verifyClientHelloSend();
         verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.SSL_NOT_AVAILABLE, result);
+        assertThat("Unexpected result for testConnection invocation", result, is(SSLConnectionTestResult.SSL_NOT_AVAILABLE));
     }
 
     @Test
@@ -107,7 +109,7 @@ public class SSLConnectionTestUtilTests {
         Mockito.verifyNoInteractions(inputStreamReader);
         verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.SSL_NOT_AVAILABLE, result);
+        assertThat("Unexpected result for testConnection invocation", result, is(SSLConnectionTestResult.SSL_NOT_AVAILABLE));
     }
 
     @Test
@@ -131,7 +133,7 @@ public class SSLConnectionTestUtilTests {
         verifyClientHelloSend();
         verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.OPENSEARCH_PING_FAILED, result);
+        assertThat("Unexpected result for testConnection invocation", result, is(SSLConnectionTestResult.OPENSEARCH_PING_FAILED));
     }
 
     @Test
@@ -161,7 +163,7 @@ public class SSLConnectionTestUtilTests {
         verifyClientHelloSend();
         verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.OPENSEARCH_PING_FAILED, result);
+        assertThat("Unexpected result for testConnection invocation", result, is(SSLConnectionTestResult.OPENSEARCH_PING_FAILED));
     }
 
     @Test
@@ -185,7 +187,7 @@ public class SSLConnectionTestUtilTests {
         verifyOpenSearchPingSend();
         Mockito.verifyNoInteractions(inputStream);
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.OPENSEARCH_PING_FAILED, result);
+        assertThat("Unexpected result for testConnection invocation", result, is(SSLConnectionTestResult.OPENSEARCH_PING_FAILED));
     }
 
     private void verifyClientHelloSend() throws IOException {
@@ -193,7 +195,7 @@ public class SSLConnectionTestUtilTests {
         Mockito.verify(outputStreamWriter, Mockito.times(1)).write(clientHelloMsgArgCaptor.capture());
         String msgWritten = clientHelloMsgArgCaptor.getValue();
         String expectedMsg = "DUALCM";
-        Assert.assertEquals("Unexpected Dual SSL Client Hello message written to socket", expectedMsg, msgWritten);
+        assertThat("Unexpected Dual SSL Client Hello message written to socket", msgWritten, is(expectedMsg));
     }
 
     private void verifyOpenSearchPingSend() throws IOException {
@@ -202,7 +204,7 @@ public class SSLConnectionTestUtilTests {
         byte[] bytesWritten = argumentCaptor.getValue();
         byte[] expectedBytes = new byte[] { 'E', 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF };
         for (int i = 0; i < bytesWritten.length; i++) {
-            Assert.assertEquals("Unexpected OpenSearch Ping bytes written to socket", expectedBytes[i], bytesWritten[i]);
+            assertThat("Unexpected OpenSearch Ping bytes written to socket", bytesWritten[i], is(expectedBytes[i]));
         }
     }
 

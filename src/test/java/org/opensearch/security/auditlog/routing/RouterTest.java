@@ -31,6 +31,9 @@ import org.opensearch.security.auditlog.sink.InternalOpenSearchSink;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class RouterTest extends AbstractAuditlogiUnitTest {
 
     @Test
@@ -40,24 +43,24 @@ public class RouterTest extends AbstractAuditlogiUnitTest {
             .build();
         AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
         // default
-        Assert.assertEquals("default", router.defaultSink.getName());
-        Assert.assertEquals(ExternalOpenSearchSink.class, router.defaultSink.getClass());
+        assertThat(router.defaultSink.getName(), is("default"));
+        assertThat(router.defaultSink.getClass(), is(ExternalOpenSearchSink.class));
         // test category sinks
         List<AuditLogSink> sinks = router.categorySinks.get(AuditCategory.MISSING_PRIVILEGES);
         Assert.assertNotNull(sinks);
         // 3, since we include default as well
-        Assert.assertEquals(3, sinks.size());
-        Assert.assertEquals("endpoint1", sinks.get(0).getName());
-        Assert.assertEquals(InternalOpenSearchSink.class, sinks.get(0).getClass());
-        Assert.assertEquals("endpoint2", sinks.get(1).getName());
-        Assert.assertEquals(ExternalOpenSearchSink.class, sinks.get(1).getClass());
-        Assert.assertEquals("default", sinks.get(2).getName());
-        Assert.assertEquals(ExternalOpenSearchSink.class, sinks.get(2).getClass());
+        assertThat(sinks.size(), is(3));
+        assertThat(sinks.get(0).getName(), is("endpoint1"));
+        assertThat(sinks.get(0).getClass(), is(InternalOpenSearchSink.class));
+        assertThat(sinks.get(1).getName(), is("endpoint2"));
+        assertThat(sinks.get(1).getClass(), is(ExternalOpenSearchSink.class));
+        assertThat(sinks.get(2).getName(), is("default"));
+        assertThat(sinks.get(2).getClass(), is(ExternalOpenSearchSink.class));
         sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
         // 1, since we do not include default
-        Assert.assertEquals(1, sinks.size());
-        Assert.assertEquals("endpoint3", sinks.get(0).getName());
-        Assert.assertEquals(DebugSink.class, sinks.get(0).getClass());
+        assertThat(sinks.size(), is(1));
+        assertThat(sinks.get(0).getName(), is("endpoint3"));
+        assertThat(sinks.get(0).getClass(), is(DebugSink.class));
     }
 
     @Test
@@ -113,8 +116,8 @@ public class RouterTest extends AbstractAuditlogiUnitTest {
                 // each sink must contain our message
                 for (AuditLogSink sink : sinks) {
                     LoggingSink logSink = (LoggingSink) sink;
-                    Assert.assertEquals(1, logSink.messages.size());
-                    Assert.assertEquals(msg, logSink.messages.get(0));
+                    assertThat(logSink.messages.size(), is(1));
+                    assertThat(logSink.messages.get(0), is(msg));
                     Assert.assertTrue(logSink.sb.length() > 0);
                     Assert.assertTrue(Arrays.stream(sinkNames).anyMatch(sink.getName()::equals));
                 }
@@ -126,7 +129,7 @@ public class RouterTest extends AbstractAuditlogiUnitTest {
                         continue;
                     }
                     LoggingSink logSink = (LoggingSink) sink;
-                    Assert.assertEquals(0, logSink.messages.size());
+                    assertThat(logSink.messages.size(), is(0));
                     Assert.assertTrue(logSink.sb.length() == 0);
                 }
             }

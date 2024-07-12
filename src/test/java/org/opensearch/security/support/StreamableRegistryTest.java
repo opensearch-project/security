@@ -18,13 +18,16 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class StreamableRegistryTest {
 
     StreamableRegistry streamableRegistry = StreamableRegistry.getInstance();
 
     @Test
     public void testStreamableTypeIDs() {
-        Assert.assertEquals(1, streamableRegistry.getStreamableID(InetSocketAddress.class));
+        assertThat(streamableRegistry.getStreamableID(InetSocketAddress.class), is(1));
         Assert.assertThrows(OpenSearchException.class, () -> streamableRegistry.getStreamableID(String.class));
     }
 }
