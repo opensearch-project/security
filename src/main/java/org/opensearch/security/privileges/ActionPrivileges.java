@@ -115,6 +115,10 @@ public class ActionPrivileges {
         return cluster.providesAnyPrivilege(context, actions, context.getMappedRoles());
     }
 
+    public PrivilegesEvaluatorResponse hasExplicitClusterPrivilege(PrivilegesEvaluationContext context, String action) {
+        return cluster.providesExplicitPrivilege(context, action, context.getMappedRoles());
+    }
+
     public PrivilegesEvaluatorResponse hasIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
@@ -191,6 +195,9 @@ public class ActionPrivileges {
          * Maps names of actions to the roles that provide a privilege for the respective action.
          * Note that the mapping is not comprehensive, additionally the data structures rolesWithWildcardPermissions
          * and rolesToActionMatcher need to be considered for a full view of the privileges.
+         *
+         * This does not include privileges obtained via "*" action patterns. This is both meant as a
+         * optimization and to support explicit privileges.
          */
         private final ImmutableMap<String, ImmutableSet<String>> actionToRoles;
 
@@ -205,6 +212,9 @@ public class ActionPrivileges {
          * This is only used as a last resort if the test with actionToRole and rolesWithWildcardPermissions failed.
          * This is only necessary for actions which are not contained in the list of "well-known" actions provided
          * during construction.
+         *
+         * This does not include privileges obtained via "*" action patterns. This is both meant as a
+         * optimization and to support explicit privileges.
          */
         private final ImmutableMap<String, WildcardMatcher> rolesToActionMatcher;
 
@@ -224,6 +234,7 @@ public class ActionPrivileges {
             ImmutableSet<String> wellKnownClusterActions
         ) {
             Map<String, Set<String>> actionToRoles = new HashMap<>();
+            Map<String, Set<String>> explicitPermissionToRoles = new HashMap<>();
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
 
@@ -236,13 +247,6 @@ public class ActionPrivileges {
                     // This list collects all the matchers for action names that will be found for the current role
                     List<WildcardMatcher> wildcardMatchers = new ArrayList<>();
 
-                    // Special case: Roles with a wildcard "*" giving privileges for all actions. We will not resolve
-                    // this stuff, but just note separately that this role just gets all the cluster privileges.
-                    if (permissionPatterns.contains("*")) {
-                        rolesWithWildcardPermissions.add(roleName);
-                        continue;
-                    }
-
                     for (String permission : permissionPatterns) {
                         // If we have a permission which does not use any pattern, we just simply add it to the
                         // "actionToRoles" map.
@@ -252,6 +256,10 @@ public class ActionPrivileges {
 
                         if (WildcardMatcher.isExact(permission)) {
                             actionToRoles.computeIfAbsent(permission, k -> new HashSet<>()).add(roleName);
+                        } else if (permission.equals("*")) {
+                            // Special case: Roles with a wildcard "*" giving privileges for all actions. We will not resolve
+                            // this stuff, but just note separately that this role just gets all the cluster privileges.
+                            rolesWithWildcardPermissions.add(roleName);
                         } else {
                             WildcardMatcher wildcardMatcher = WildcardMatcher.from(permission);
                             Set<String> matchedActions = wildcardMatcher.getMatchAny(
@@ -303,6 +311,39 @@ public class ActionPrivileges {
             }
 
             // 3: Only if everything else fails: Check the matchers in case we have a non-well-known action
+            if (!this.wellKnownClusterActions.contains(action)) {
+                for (String role : roles) {
+                    WildcardMatcher matcher = this.rolesToActionMatcher.get(role);
+
+                    if (matcher != null && matcher.test(action)) {
+                        return PrivilegesEvaluatorResponse.ok();
+                    }
+                }
+            }
+
+            return PrivilegesEvaluatorResponse.insufficient(action, context);
+        }
+
+        /**
+         * Checks whether this instance provides explicit privileges for the combination of the provided action and the
+         * provided roles.
+         *
+         * Explicit means here that the privilege is not granted via a "*" action privilege wildcard. Other patterns
+         * are possible. See also: https://github.com/opensearch-project/security/pull/2411 and https://github.com/opensearch-project/security/issues/3038
+         *
+         * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
+         * Otherwise, allowed will be false and missingPrivileges will contain the name of the given action.
+         */
+        PrivilegesEvaluatorResponse providesExplicitPrivilege(PrivilegesEvaluationContext context, String action, Set<String> roles) {
+
+            // 1: Check well-known actions - this should cover most cases
+            ImmutableSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
+
+            if (rolesWithPrivileges != null && CollectionUtils.containsAny(roles, rolesWithPrivileges)) {
+                return PrivilegesEvaluatorResponse.ok();
+            }
+
+            // 2: Only if everything else fails: Check the matchers in case we have a non-well-known action
             if (!this.wellKnownClusterActions.contains(action)) {
                 for (String role : roles) {
                     WildcardMatcher matcher = this.rolesToActionMatcher.get(role);

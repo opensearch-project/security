@@ -39,7 +39,10 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
@@ -163,10 +166,12 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
                 // allow request without user from plugin.
                 return systemIndexMatcher.test(index.getName());
             }
-            final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-            final Set<String> mappedRoles = evaluator.mapRoles(user, caller);
-            final SecurityRoles securityRoles = evaluator.getSecurityRoles(mappedRoles);
-            return !securityRoles.isPermittedOnSystemIndex(index.getName());
+
+            String permission = ConfigConstants.SYSTEM_INDEX_PERMISSION;
+            PrivilegesEvaluationContext context = evaluator.createContext(user, permission);
+            PrivilegesEvaluatorResponse result = evaluator.getActionPrivileges().hasExplicitIndexPrivilege(context, Set.of(permission), IndexResolverReplacer.Resolved.ofIndex(index.getName()));
+
+            return !result.isAllowed();
         }
         return true;
     }

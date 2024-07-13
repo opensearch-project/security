@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -458,12 +459,19 @@ public class IndexResolverReplacer {
             SearchRequest.DEFAULT_INDICES_OPTIONS
         );
 
+
+        private static final IndicesOptions EXACT_INDEX_OPTIONS = new IndicesOptions(
+                EnumSet.of(IndicesOptions.Option.FORBID_ALIASES_TO_MULTIPLE_INDICES),
+                EnumSet.noneOf(IndicesOptions.WildcardStates.class)
+        );
+
         private final Set<String> aliases;
         private final Set<String> allIndices;
         private final Set<String> originalRequested;
         private final Set<String> remoteIndices;
         private final boolean isLocalAll;
         private final IndicesOptions indicesOptions;
+
 
         public Resolved(
             final ImmutableSet<String> aliases,
@@ -562,6 +570,11 @@ public class IndexResolverReplacer {
                 if (other.remoteIndices != null) return false;
             } else if (!remoteIndices.equals(other.remoteIndices)) return false;
             return true;
+        }
+
+        public static Resolved ofIndex(String index) {
+            ImmutableSet<String> indexSet = ImmutableSet.of(index);
+            return new Resolved(ImmutableSet.of(), indexSet, indexSet, ImmutableSet.of(), EXACT_INDEX_OPTIONS);
         }
     }
 

@@ -96,6 +96,8 @@ public class ActionPrivilegesTest {
                 isForbidden(missingPrivileges("cluster:monitor/nodes/something/else"))
             );
         }
+
+        // TODO explicit and stuff
     }
 
     /**
@@ -173,7 +175,29 @@ public class ActionPrivilegesTest {
             public void negative_wrongAction() throws Exception {
                 PrivilegesEvaluationContext ctx = ctx("test_role");
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(ctx, otherActions, resolved("index_a11"));
-                assertThat(result, isForbidden(missingPrivileges(otherActions)));
+
+                if (actionSpec.givenPrivs.contains("*")) {
+                    assertThat(result, isAllowed());
+                } else {
+                    assertThat(result, isForbidden(missingPrivileges(otherActions)));
+                }
+            }
+
+            @Test
+            public void positive_hasExplicit_full() {
+                PrivilegesEvaluationContext ctx = ctx("test_role");
+                PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(ctx, requiredActions, resolved("index_a11"));
+
+                if (actionSpec.givenPrivs.contains("*")) {
+                    // The * is forbidden for explicit privileges
+                    assertThat(result, isForbidden(missingPrivileges(requiredActions)));
+                } else if (!requiredActions.contains("indices:data/read/search")) {
+                    // For test purposes, we have designated "indices:data/read/search" as a action requiring explicit privileges
+                    // Other actions are not covered here
+                    assertThat(result, isForbidden(missingPrivileges(requiredActions)));
+                } else {
+                    assertThat(result, isAllowed());
+                }
             }
 
             private boolean covers(PrivilegesEvaluationContext ctx, String... indices) {
@@ -198,6 +222,9 @@ public class ActionPrivilegesTest {
                     new IndexSpec().givenIndexPrivs("alias_a1*") //
                 )) {
                     for (ActionSpec actionSpec : Arrays.asList(
+                            new ActionSpec("wildcard")//
+                                    .givenPrivs("*")
+                                    .requiredPrivs("indices:data/read/search"), //
                         new ActionSpec("constant, well known")//
                             .givenPrivs("indices:data/read/search")
                             .requiredPrivs("indices:data/read/search"), //
@@ -239,7 +266,9 @@ public class ActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA;
 
-                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA);
+                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA,  WellKnownActions.CLUSTER_ACTIONS,
+                        WellKnownActions.INDEX_ACTIONS,
+                        WellKnownActions.INDEX_ACTIONS);
 
                 if (statefulness == Statefulness.STATEFUL) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA);
