@@ -55,8 +55,8 @@ public class ConfigTests {
     @Test
     public void testEmptyConfig() throws Exception {
         Assert.assertNotSame(
-            SecurityDynamicConfiguration.empty(CType.CONFIG).deepClone(),
-            SecurityDynamicConfiguration.empty(CType.CONFIG)
+            SecurityDynamicConfiguration.empty(CType.ROLES).deepClone(),
+            SecurityDynamicConfiguration.empty(CType.ROLES)
         );
     }
 
@@ -119,7 +119,7 @@ public class ConfigTests {
         // Assert.assertTrue(dc.getCEntries().size() > 0);
         String jsonSerialize = DefaultObjectMapper.objectMapper.writeValueAsString(dc);
         SecurityDynamicConfiguration<?> conf = SecurityDynamicConfiguration.fromJson(jsonSerialize, cType, configVersion, 0, 0);
-        SecurityDynamicConfiguration.fromJson(Strings.toString(XContentType.JSON, conf), cType, configVersion, 0, 0);
+        SecurityDynamicConfiguration.fromJson(Strings.toString(XContentType.JSON, conf), cType, SecurityDynamicConfiguration.CURRENT_VERSION, 0, 0);
 
     }
 
@@ -132,6 +132,6 @@ public class ConfigTests {
             assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
-        return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);
+        return SecurityDynamicConfiguration.fromNodeWithoutAutoConversion(jsonNode, cType, configVersion, 0, 0);
     }
 }

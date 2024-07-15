@@ -78,7 +78,7 @@ public class CType<T> implements Comparable<CType<?>> {
         ConfigV7.class,
         3,
         false,
-        new OldConfigVersion<>(1, ConfigV6.class, ConfigV7::new)
+        new OldConfigVersion<>(1, ConfigV6.class, ConfigV7::new, ConfigV6::convertMapKeyToV7)
     );
     public static final CType<InternalUserV7> INTERNALUSERS = new CType<>(
         "internalusers",
@@ -109,6 +109,7 @@ public class CType<T> implements Comparable<CType<?>> {
     public static final CType<WhitelistingSettings> WHITELIST = new CType<>("whitelist", "whitelist", WhitelistingSettings.class, 9, true);
 
     private final String name;
+    private final String nameUpperCase;
     private final Class<T> configClass;
     private final String configFileName;
     private final boolean emptyIfMissing;
@@ -126,6 +127,7 @@ public class CType<T> implements Comparable<CType<?>> {
         OldConfigVersion<?, T>... oldConfigVersions
     ) {
         this.name = name;
+        this.nameUpperCase = name.toUpperCase();
         this.configClass = configClass;
         this.ord = ord;
         this.configFileName = configFileName + ".yml";
@@ -208,15 +210,29 @@ public class CType<T> implements Comparable<CType<?>> {
         return this.ord - cType.ord;
     }
 
+    @Override
+    public String toString() {
+        return this.nameUpperCase;
+    }
+
     public static class OldConfigVersion<OldType, NewType> {
         private final int versionNumber;
         private final Class<OldType> oldType;
-        private final Function<OldType, NewType> conversionFunction;
+        private final Function<OldType, NewType> entryConversionFunction;
+        private final Function<String, String> mapKeyConversionFunction;
 
-        public OldConfigVersion(int versionNumber, Class<OldType> oldType, Function<OldType, NewType> conversionFunction) {
+        public OldConfigVersion(int versionNumber, Class<OldType> oldType, Function<OldType, NewType> entryConversionFunction) {
             this.versionNumber = versionNumber;
             this.oldType = oldType;
-            this.conversionFunction = conversionFunction;
+            this.entryConversionFunction = entryConversionFunction;
+            this.mapKeyConversionFunction = Function.identity();
+        }
+
+        public OldConfigVersion(int versionNumber, Class<OldType> oldType, Function<OldType, NewType> entryConversionFunction, Function<String, String> mapKeyConversionFunction) {
+            this.versionNumber = versionNumber;
+            this.oldType = oldType;
+            this.entryConversionFunction = entryConversionFunction;
+            this.mapKeyConversionFunction = mapKeyConversionFunction;
         }
 
         public int getVersionNumber() {
@@ -227,8 +243,8 @@ public class CType<T> implements Comparable<CType<?>> {
             return oldType;
         }
 
-        public Function<OldType, NewType> getConversionFunction() {
-            return conversionFunction;
+        public Function<OldType, NewType> getEntryConversionFunction() {
+            return entryConversionFunction;
         }
 
         public SecurityDynamicConfiguration<NewType> parseJson(CType<NewType> ctype, String json, boolean acceptInvalid)
@@ -246,7 +262,7 @@ public class CType<T> implements Comparable<CType<?>> {
             SecurityDynamicConfiguration<NewType> newConfig = SecurityDynamicConfiguration.empty(ctype);
 
             for (Map.Entry<String, OldType> oldEntry : oldConfig.getCEntries().entrySet()) {
-                newConfig.putCEntry(oldEntry.getKey(), conversionFunction.apply(oldEntry.getValue()));
+                newConfig.putCEntry(mapKeyConversionFunction.apply(oldEntry.getKey()), entryConversionFunction.apply(oldEntry.getValue()));
             }
 
             return newConfig;

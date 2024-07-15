@@ -52,6 +52,8 @@ import org.opensearch.security.securityconf.StaticDefinable;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
 
+    public static final int CURRENT_VERSION = 2;
+
     private static final TypeReference<HashMap<String, Object>> typeRefMSO = new TypeReference<HashMap<String, Object>>() {
     };
 
@@ -78,6 +80,10 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return fromJson(json, ctype, version, seqNo, primaryTerm, false);
     }
 
+    /**
+     * Creates the SecurityDynamicConfiguration instance from the given JSON. If a config version is found, which
+     * is not the current one, it will be automatically converted into the current configuration version.
+     */
     public static <T> SecurityDynamicConfiguration<T> fromJson(
         String json,
         CType<T> ctype,
@@ -92,6 +98,12 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
             if (oldConfigVersion != null) {
                 sdc = oldConfigVersion.parseJson(ctype, json, acceptInvalid);
+                if (sdc._meta == null) {
+                    sdc._meta = new Meta();
+                    sdc._meta.setConfig_version(CURRENT_VERSION);
+                    sdc._meta.setType(ctype.toLCString());
+                }
+                version = CURRENT_VERSION;
             } else {
                 sdc = DefaultObjectMapper.readValue(
                     json,
@@ -106,6 +118,34 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         }
 
         sdc.ctype = ctype;
+        sdc.seqNo = seqNo;
+        sdc.primaryTerm = primaryTerm;
+        sdc.version = version;
+
+        return sdc;
+    }
+
+    /**
+     * Creates the SecurityDynamicConfiguration instance from the given JsonNode. If a config version is found, which
+     * is not the current one, no conversion will be performed. The configuration will be returned as it was found.
+     */
+    public static SecurityDynamicConfiguration<?> fromNodeWithoutAutoConversion(JsonNode jsonNode, CType<?> ctype, int version, long seqNo, long primaryTerm) throws IOException {
+        Class<?> configClass;
+        CType.OldConfigVersion<?, ?> oldConfigVersion = ctype.findOldConfigVersion(version);
+
+        if (oldConfigVersion != null) {
+            configClass = oldConfigVersion.getOldType();
+        } else {
+            configClass = ctype.getConfigClass();
+        }
+
+        SecurityDynamicConfiguration<?> sdc =  DefaultObjectMapper.convertValue(
+                jsonNode,
+                DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, configClass)
+        );
+
+        validate(sdc, version, ctype);
+
         sdc.seqNo = seqNo;
         sdc.primaryTerm = primaryTerm;
         sdc.version = version;

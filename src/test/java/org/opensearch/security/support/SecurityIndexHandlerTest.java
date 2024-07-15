@@ -380,39 +380,6 @@ public class SecurityIndexHandlerTest {
     }
 
     @Test
-    public void testLoadConfiguration_shouldFailForUnsupportedVersion() {
-        final var listener = spy(
-            ActionListener.<ConfigurationMap>wrap(
-                r -> fail("Unexpected behave"),
-                e -> assertThat(e.getMessage(), is("Version 1 is not supported for CONFIG"))
-            )
-        );
-        doAnswer(invocation -> {
-
-            final var objectMapper = DefaultObjectMapper.objectMapper;
-
-            ActionListener<MultiGetResponse> actionListener = invocation.getArgument(1);
-            final var getResult = mock(GetResult.class);
-            final var r = new MultiGetResponse(new MultiGetItemResponse[] { new MultiGetItemResponse(new GetResponse(getResult), null) });
-            when(getResult.getId()).thenReturn(CType.CONFIG.toLCString());
-            when(getResult.isExists()).thenReturn(true);
-
-            final var oldVersionJson = objectMapper.createObjectNode()
-                .set("opendistro_security", objectMapper.createObjectNode().set("dynamic", objectMapper.createObjectNode()))
-                .toString()
-                .getBytes(StandardCharsets.UTF_8);
-            final var configResponse = objectMapper.createObjectNode().put(CType.CONFIG.toLCString(), oldVersionJson);
-            final var source = objectMapper.writeValueAsBytes(configResponse);
-            when(getResult.sourceRef()).thenReturn(new BytesArray(source, 0, source.length));
-            actionListener.onResponse(r);
-            return null;
-        }).when(client).multiGet(any(MultiGetRequest.class), any());
-        securityIndexHandler.loadConfiguration(configuration(), listener);
-
-        verify(listener).onFailure(any());
-    }
-
-    @Test
     public void testLoadConfiguration_shouldFailForUnparseableConfig() {
         final var listener = spy(
             ActionListener.<ConfigurationMap>wrap(
