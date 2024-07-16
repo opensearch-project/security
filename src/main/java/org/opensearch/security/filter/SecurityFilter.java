@@ -331,10 +331,7 @@ public class SecurityFilter implements ActionFilter {
                             pluginExecutionContext,
                             requestedResolved.getAllIndices()
                         );
-                        System.out.println("requestedResolved.getAllIndices(): " + requestedResolved.getAllIndices());
-                        System.out.println("matchingSystemIndices: " + matchingSystemIndices);
                         if (!matchingSystemIndices.equals(requestedResolved.getAllIndices())) {
-                            System.out.println("Rejecting request");
                             auditLog.logMissingPrivileges(action, request, task);
                             String err = "Plugin " + pluginExecutionContext + " can only interact with its own system indices";
                             listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
