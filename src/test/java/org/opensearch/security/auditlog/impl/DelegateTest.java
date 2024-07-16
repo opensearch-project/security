@@ -40,7 +40,7 @@ public class DelegateTest {
         auditLog.close();
         // if (expectedClass != null) {
         // Assert.assertNotNull("delegate is null for type: "+type,auditLog.delegate);
-        // Assert.assertEquals(expectedClass, auditLog.delegate.getClass());
+        // assertThat(auditLog.delegate.getClass(), is(expectedClass));
         // } else {
         // Assert.assertNull(auditLog.delegate);
         // }

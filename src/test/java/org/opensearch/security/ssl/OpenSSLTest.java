@@ -47,6 +47,9 @@ import org.opensearch.transport.Netty4ModulePlugin;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class OpenSSLTest extends SSLTest {
     private static final String USE_NETTY_DEFAULT_ALLOCATOR_PROPERTY = "opensearch.unsafe.use_netty_default_allocator";
     private static String USE_NETTY_DEFAULT_ALLOCATOR;
@@ -218,8 +221,8 @@ public class OpenSSLTest extends SSLTest {
                 .health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(5)))
                 .actionGet();
             Assert.assertFalse(res.isTimedOut());
-            Assert.assertEquals(4, res.getNumberOfNodes());
-            Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(res.getNumberOfNodes(), is(4));
+            assertThat(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(4));
         }
 
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_size_in_bytes\" : 0"));

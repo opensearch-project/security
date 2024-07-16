@@ -30,6 +30,9 @@ import org.opensearch.security.auditlog.sink.AuditLogSink;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class FallbackTest extends AbstractAuditlogiUnitTest {
 
     @Test
@@ -48,28 +51,28 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
 
         // endpoint 1 is failing, endoint2 and default work
         List<AuditLogSink> sinks = router.categorySinks.get(AuditCategory.MISSING_PRIVILEGES);
-        Assert.assertEquals(3, sinks.size());
+        assertThat(sinks.size(), is(3));
         // this sink has failed, message must be logged to fallback sink
         AuditLogSink sink = sinks.get(0);
-        Assert.assertEquals("endpoint1", sink.getName());
-        Assert.assertEquals(FailingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("endpoint1"));
+        assertThat(sink.getClass(), is(FailingSink.class));
         sink = sink.getFallbackSink();
-        Assert.assertEquals("fallback", sink.getName());
-        Assert.assertEquals(LoggingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("fallback"));
+        assertThat(sink.getClass(), is(LoggingSink.class));
         LoggingSink loggingSkin = (LoggingSink) sink;
-        Assert.assertEquals(msg, loggingSkin.messages.get(0));
+        assertThat(loggingSkin.messages.get(0), is(msg));
         // this sink succeeds
         sink = sinks.get(1);
-        Assert.assertEquals("endpoint2", sink.getName());
-        Assert.assertEquals(LoggingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("endpoint2"));
+        assertThat(sink.getClass(), is(LoggingSink.class));
         loggingSkin = (LoggingSink) sink;
-        Assert.assertEquals(msg, loggingSkin.messages.get(0));
+        assertThat(loggingSkin.messages.get(0), is(msg));
         // default sink also succeeds
         sink = sinks.get(2);
-        Assert.assertEquals("default", sink.getName());
-        Assert.assertEquals(LoggingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("default"));
+        assertThat(sink.getClass(), is(LoggingSink.class));
         loggingSkin = (LoggingSink) sink;
-        Assert.assertEquals(msg, loggingSkin.messages.get(0));
+        assertThat(loggingSkin.messages.get(0), is(msg));
 
         // has only one end point which fails
         router = createMessageRouterComplianceEnabled(settings);
@@ -77,13 +80,13 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
         router.route(msg);
         sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_READ);
         sink = sinks.get(0);
-        Assert.assertEquals("endpoint3", sink.getName());
-        Assert.assertEquals(FailingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("endpoint3"));
+        assertThat(sink.getClass(), is(FailingSink.class));
         sink = sink.getFallbackSink();
-        Assert.assertEquals("fallback", sink.getName());
-        Assert.assertEquals(LoggingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("fallback"));
+        assertThat(sink.getClass(), is(LoggingSink.class));
         loggingSkin = (LoggingSink) sink;
-        Assert.assertEquals(msg, loggingSkin.messages.get(0));
+        assertThat(loggingSkin.messages.get(0), is(msg));
 
         // has only default which succeeds
         router = createMessageRouterComplianceEnabled(settings);
@@ -91,17 +94,17 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
         router.route(msg);
         sinks = router.categorySinks.get(AuditCategory.COMPLIANCE_DOC_WRITE);
         sink = sinks.get(0);
-        Assert.assertEquals("default", sink.getName());
-        Assert.assertEquals(LoggingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("default"));
+        assertThat(sink.getClass(), is(LoggingSink.class));
         loggingSkin = (LoggingSink) sink;
-        Assert.assertEquals(1, loggingSkin.messages.size());
-        Assert.assertEquals(msg, loggingSkin.messages.get(0));
+        assertThat(loggingSkin.messages.size(), is(1));
+        assertThat(loggingSkin.messages.get(0), is(msg));
         // fallback must be empty
         sink = sink.getFallbackSink();
-        Assert.assertEquals("fallback", sink.getName());
-        Assert.assertEquals(LoggingSink.class, sink.getClass());
+        assertThat(sink.getName(), is("fallback"));
+        assertThat(sink.getClass(), is(LoggingSink.class));
         loggingSkin = (LoggingSink) sink;
-        Assert.assertEquals(0, loggingSkin.messages.size());
+        assertThat(loggingSkin.messages.size(), is(0));
 
         // test non configured categories, must be logged to default only
         router = createMessageRouterComplianceEnabled(settings);
@@ -109,8 +112,8 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
         router.route(msg);
         Assert.assertNull(router.categorySinks.get(AuditCategory.FAILED_LOGIN));
         loggingSkin = (LoggingSink) router.defaultSink;
-        Assert.assertEquals(1, loggingSkin.messages.size());
-        Assert.assertEquals(msg, loggingSkin.messages.get(0));
+        assertThat(loggingSkin.messages.size(), is(1));
+        assertThat(loggingSkin.messages.get(0), is(msg));
         // all others must be empty
         assertLoggingSinksEmpty(router);
 
@@ -123,7 +126,7 @@ public class FallbackTest extends AbstractAuditlogiUnitTest {
         allSinks.removeAll(Collections.singleton(router.defaultSink));
         for (AuditLogSink sink : allSinks) {
             LoggingSink loggingSink = (LoggingSink) sink;
-            Assert.assertEquals(0, loggingSink.messages.size());
+            assertThat(loggingSink.messages.size(), is(0));
         }
     }
 

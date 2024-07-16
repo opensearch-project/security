@@ -21,9 +21,10 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.configuration.Salt.SALT_SIZE;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 public class SaltTest {
 
@@ -36,7 +37,7 @@ public class SaltTest {
         final Salt salt = Salt.from(Settings.EMPTY);
 
         // assert
-        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertThat(salt.getSalt16().length, is(SALT_SIZE));
         assertArrayEquals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
     }
 
@@ -51,7 +52,7 @@ public class SaltTest {
 
         // assert
         assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
-        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertThat(salt.getSalt16().length, is(SALT_SIZE));
     }
 
     @Test
@@ -63,7 +64,7 @@ public class SaltTest {
         final Salt salt = Salt.from(settings);
 
         // assert
-        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertThat(salt.getSalt16().length, is(SALT_SIZE));
         assertArrayEquals(testSalt.substring(0, SALT_SIZE).getBytes(StandardCharsets.UTF_8), salt.getSalt16());
     }
 

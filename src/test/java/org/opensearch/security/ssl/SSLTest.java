@@ -64,6 +64,8 @@ import org.opensearch.transport.Netty4ModulePlugin;
 
 import io.netty.util.internal.PlatformDependent;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
@@ -161,15 +163,15 @@ public class SSLTest extends SingleClusterTest {
             String[] enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledProtocols();
 
             if (allowOpenSSL) {
-                Assert.assertEquals(2, enabledProtocols.length); // SSLv2Hello is always enabled when using openssl
+                assertThat(enabledProtocols.length, is(2)); // SSLv2Hello is always enabled when using openssl
                 Assert.assertTrue("Check SSLv3", "SSLv3".equals(enabledProtocols[0]) || "SSLv3".equals(enabledProtocols[1]));
-                Assert.assertEquals(1, enabledCiphers.length);
-                Assert.assertEquals("TLS_RSA_EXPORT_WITH_RC4_40_MD5", enabledCiphers[0]);
+                assertThat(enabledCiphers.length, is(1));
+                assertThat(enabledCiphers[0], is("TLS_RSA_EXPORT_WITH_RC4_40_MD5"));
             } else {
-                Assert.assertEquals(1, enabledProtocols.length);
-                Assert.assertEquals("SSLv3", enabledProtocols[0]);
-                Assert.assertEquals(1, enabledCiphers.length);
-                Assert.assertEquals("SSL_RSA_EXPORT_WITH_RC4_40_MD5", enabledCiphers[0]);
+                assertThat(enabledProtocols.length, is(1));
+                assertThat(enabledProtocols[0], is("SSLv3"));
+                assertThat(enabledCiphers.length, is(1));
+                assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
             }
 
             settings = Settings.builder()
@@ -198,15 +200,15 @@ public class SSLTest extends SingleClusterTest {
             enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledProtocols();
 
             if (allowOpenSSL) {
-                Assert.assertEquals(2, enabledProtocols.length); // SSLv2Hello is always enabled when using openssl
+                assertThat(enabledProtocols.length, is(2)); // SSLv2Hello is always enabled when using openssl
                 Assert.assertTrue("Check SSLv3", "SSLv3".equals(enabledProtocols[0]) || "SSLv3".equals(enabledProtocols[1]));
-                Assert.assertEquals(1, enabledCiphers.length);
-                Assert.assertEquals("TLS_RSA_EXPORT_WITH_RC4_40_MD5", enabledCiphers[0]);
+                assertThat(enabledCiphers.length, is(1));
+                assertThat(enabledCiphers[0], is("TLS_RSA_EXPORT_WITH_RC4_40_MD5"));
             } else {
-                Assert.assertEquals(1, enabledProtocols.length);
-                Assert.assertEquals("SSLv3", enabledProtocols[0]);
-                Assert.assertEquals(1, enabledCiphers.length);
-                Assert.assertEquals("SSL_RSA_EXPORT_WITH_RC4_40_MD5", enabledCiphers[0]);
+                assertThat(enabledProtocols.length, is(1));
+                assertThat(enabledProtocols[0], is("SSLv3"));
+                assertThat(enabledCiphers.length, is(1));
+                assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
             }
             enabledCiphers = new DefaultSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1)
                 .getEnabledCipherSuites();
@@ -214,15 +216,15 @@ public class SSLTest extends SingleClusterTest {
                 .getEnabledProtocols();
 
             if (allowOpenSSL) {
-                Assert.assertEquals(2, enabledProtocols.length); // SSLv2Hello is always enabled when using openssl
+                assertThat(enabledProtocols.length, is(2)); // SSLv2Hello is always enabled when using openssl
                 Assert.assertTrue("Check SSLv3", "SSLv3".equals(enabledProtocols[0]) || "SSLv3".equals(enabledProtocols[1]));
-                Assert.assertEquals(1, enabledCiphers.length);
-                Assert.assertEquals("TLS_RSA_EXPORT_WITH_RC4_40_MD5", enabledCiphers[0]);
+                assertThat(enabledCiphers.length, is(1));
+                assertThat(enabledCiphers[0], is("TLS_RSA_EXPORT_WITH_RC4_40_MD5"));
             } else {
-                Assert.assertEquals(1, enabledProtocols.length);
-                Assert.assertEquals("SSLv3", enabledProtocols[0]);
-                Assert.assertEquals(1, enabledCiphers.length);
-                Assert.assertEquals("SSL_RSA_EXPORT_WITH_RC4_40_MD5", enabledCiphers[0]);
+                assertThat(enabledProtocols.length, is(1));
+                assertThat(enabledProtocols[0], is("SSLv3"));
+                assertThat(enabledCiphers.length, is(1));
+                assertThat(enabledCiphers[0], is("SSL_RSA_EXPORT_WITH_RC4_40_MD5"));
             }
         } catch (OpenSearchSecurityException e) {
             Assert.assertTrue(
@@ -757,8 +759,8 @@ public class SSLTest extends SingleClusterTest {
                 .health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(15)))
                 .actionGet();
             Assert.assertFalse(res.isTimedOut());
-            Assert.assertEquals(4, res.getNumberOfNodes());
-            Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(res.getNumberOfNodes(), is(4));
+            assertThat(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(4));
         }
 
         String res = rh.executeSimpleRequest("_nodes/stats?pretty");
@@ -788,7 +790,7 @@ public class SSLTest extends SingleClusterTest {
     @Test
     public void testUnmodifieableCipherProtocolConfig() throws Exception {
         SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, false)[0] = "bogus";
-        Assert.assertEquals("TLSv1.3", SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, false)[0]);
+        assertThat(SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, false)[0], is("TLSv1.3"));
 
         try {
             SSLConfigConstants.getSecureSSLCiphers(Settings.EMPTY, false).set(0, "bogus");
@@ -849,21 +851,23 @@ public class SSLTest extends SingleClusterTest {
 
             log.debug("Client built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.httpPort);
 
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(3));
             log.debug("Client connected");
             TestPrincipalExtractor.reset();
-            Assert.assertEquals(
+            assertThat(
                 "test",
-                tc.index(new IndexRequest("test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON))
-                    .actionGet()
-                    .getIndex()
+                is(
+                    tc.index(new IndexRequest("test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON))
+                        .actionGet()
+                        .getIndex()
+                )
             );
             log.debug("Index created");
-            Assert.assertEquals(1L, tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value);
+            assertThat(tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value, is(1L));
             log.debug("Search done");
-            Assert.assertEquals(3, tc.admin().cluster().health(new ClusterHealthRequest("test")).actionGet().getNumberOfNodes());
+            assertThat(tc.admin().cluster().health(new ClusterHealthRequest("test")).actionGet().getNumberOfNodes(), is(3));
             log.debug("ClusterHealth done");
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(3));
             log.debug("NodesInfoRequest asserted");
         }
 
@@ -1005,8 +1009,8 @@ public class SSLTest extends SingleClusterTest {
                 .health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(5)))
                 .actionGet();
             Assert.assertFalse(res.isTimedOut());
-            Assert.assertEquals(4, res.getNumberOfNodes());
-            Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            assertThat(res.getNumberOfNodes(), is(4));
+            assertThat(node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size(), is(4));
         }
 
         String res = rh.executeSimpleRequest("_nodes/stats?pretty");

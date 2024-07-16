@@ -12,11 +12,14 @@
 package org.opensearch.security.auditlog.sink;
 
 import org.apache.logging.log4j.Level;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.test.helper.file.FileHelper;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class SinkProviderTest {
 
@@ -29,70 +32,70 @@ public class SinkProviderTest {
         SinkProvider provider = new SinkProvider(settings, null, null, null);
 
         // make sure we have a debug sink as fallback
-        Assert.assertEquals(DebugSink.class, provider.fallbackSink.getClass());
+        assertThat(provider.fallbackSink.getClass(), is(DebugSink.class));
 
         AuditLogSink sink = provider.getSink("DefaULT");
-        Assert.assertEquals(sink.getClass(), DebugSink.class);
+        assertThat(DebugSink.class, is(sink.getClass()));
 
         sink = provider.getSink("endpoint1");
-        Assert.assertEquals(InternalOpenSearchSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(InternalOpenSearchSink.class));
 
         sink = provider.getSink("endpoint2");
-        Assert.assertEquals(ExternalOpenSearchSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(ExternalOpenSearchSink.class));
         // todo: sink does not work
 
         sink = provider.getSink("endpoinT3");
-        Assert.assertEquals(DebugSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(DebugSink.class));
 
         // no valid type
         sink = provider.getSink("endpoint4");
-        Assert.assertEquals(null, sink);
+        assertThat(sink, is(nullValue()));
 
         sink = provider.getSink("endpoint2");
-        Assert.assertEquals(ExternalOpenSearchSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(ExternalOpenSearchSink.class));
         // todo: sink does not work, no valid config
 
         // no valid type
         sink = provider.getSink("endpoint6");
-        Assert.assertEquals(null, sink);
+        assertThat(sink, is(nullValue()));
 
         // no valid type
         sink = provider.getSink("endpoint7");
-        Assert.assertEquals(null, sink);
+        assertThat(sink, is(nullValue()));
 
         sink = provider.getSink("endpoint8");
-        Assert.assertEquals(DebugSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(DebugSink.class));
 
         // wrong type in config
         sink = provider.getSink("endpoint9");
-        Assert.assertEquals(ExternalOpenSearchSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(ExternalOpenSearchSink.class));
 
         // log4j, valid configuration
         sink = provider.getSink("endpoint10");
-        Assert.assertEquals(Log4JSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(Log4JSink.class));
         Log4JSink lsink = (Log4JSink) sink;
-        Assert.assertEquals("loggername", lsink.loggerName);
-        Assert.assertEquals(Level.WARN, lsink.logLevel);
+        assertThat(lsink.loggerName, is("loggername"));
+        assertThat(lsink.logLevel, is(Level.WARN));
 
         // log4j, no level, fallback to default
         sink = provider.getSink("endpoint11");
-        Assert.assertEquals(Log4JSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(Log4JSink.class));
         lsink = (Log4JSink) sink;
-        Assert.assertEquals("loggername", lsink.loggerName);
-        Assert.assertEquals(Level.INFO, lsink.logLevel);
+        assertThat(lsink.loggerName, is("loggername"));
+        assertThat(lsink.logLevel, is(Level.INFO));
 
         // log4j, wrong level, fallback to log4j default
         sink = provider.getSink("endpoint12");
-        Assert.assertEquals(Log4JSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(Log4JSink.class));
         lsink = (Log4JSink) sink;
-        Assert.assertEquals("loggername", lsink.loggerName);
-        Assert.assertEquals(Level.DEBUG, lsink.logLevel);
+        assertThat(lsink.loggerName, is("loggername"));
+        assertThat(lsink.logLevel, is(Level.DEBUG));
 
         sink = provider.getSink("endpoint13");
-        Assert.assertEquals(Log4JSink.class, sink.getClass());
+        assertThat(sink.getClass(), is(Log4JSink.class));
         lsink = (Log4JSink) sink;
-        Assert.assertEquals("audit", lsink.loggerName);
-        Assert.assertEquals(Level.INFO, lsink.logLevel);
+        assertThat(lsink.loggerName, is("audit"));
+        assertThat(lsink.logLevel, is(Level.INFO));
 
     }
 
@@ -103,8 +106,8 @@ public class SinkProviderTest {
             .build();
         SinkProvider provider = new SinkProvider(settings, null, null, null);
         InternalOpenSearchSink sink = (InternalOpenSearchSink) provider.defaultSink;
-        Assert.assertEquals("myownindex", sink.index);
-        Assert.assertEquals("auditevents", sink.type);
+        assertThat(sink.index, is("myownindex"));
+        assertThat(sink.type, is("auditevents"));
     }
 
 }

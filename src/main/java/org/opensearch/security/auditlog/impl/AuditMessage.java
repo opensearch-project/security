@@ -73,8 +73,10 @@ public final class AuditMessage {
     );
 
     @VisibleForTesting
-    public static final Pattern BCRYPT_HASH = Pattern.compile("\\$2[ayb]\\$.{56}");
-    private static final String BCRYPT_HASH_REPLACEMENT_VALUE = "__HASH__";
+    public static final String BCRYPT_REGEX = "\\$2[ayb]\\$.{56}";
+    public static final String PBKDF2_REGEX = "\\$\\d+\\$\\d+\\$[A-Za-z0-9+/]+={0,2}\\$[A-Za-z0-9+/]+={0,2}";
+    public static final Pattern HASH_REGEX_PATTERN = Pattern.compile(BCRYPT_REGEX + "|" + PBKDF2_REGEX);
+    private static final String HASH_REPLACEMENT_VALUE = "__HASH__";
     private static final String INTERNALUSERS_DOC_ID = CType.INTERNALUSERS.toLCString();
 
     public static final String FORMAT_VERSION = "audit_format_version";
@@ -237,7 +239,7 @@ public final class AuditMessage {
 
     private String redactSecurityConfigContent(String content, String id) {
         if (content != null && INTERNALUSERS_DOC_ID.equals(id)) {
-            content = BCRYPT_HASH.matcher(content).replaceAll(BCRYPT_HASH_REPLACEMENT_VALUE);
+            content = HASH_REGEX_PATTERN.matcher(content).replaceAll(HASH_REPLACEMENT_VALUE);
         }
         return content;
     }

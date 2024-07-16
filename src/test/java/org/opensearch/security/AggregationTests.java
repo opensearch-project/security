@@ -27,7 +27,6 @@
 package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -41,6 +40,9 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class AggregationTests extends SingleClusterTest {
 
@@ -106,13 +108,15 @@ public class AggregationTests extends SingleClusterTest {
         }
 
         HttpResponse res;
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
-                "_search?pretty",
-                "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            is(
+                (res = rh.executePostRequest(
+                    "_search?pretty",
+                    "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
+                    encodeBasicHeader("nagilum", "nagilum")
+                )).getStatusCode()
+            )
         );
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -125,13 +129,15 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
-                "*/_search?pretty",
-                "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+            is(
+                (res = rh.executePostRequest(
+                    "*/_search?pretty",
+                    "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
+                    encodeBasicHeader("nagilum", "nagilum")
+                )).getStatusCode()
+            )
         );
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -144,13 +150,15 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*role01_role02*");
         assertContains(res, "*\"failed\" : 0*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
-                "_search?pretty",
-                "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
-                encodeBasicHeader("worf", "worf")
-            )).getStatusCode()
+            is(
+                (res = rh.executePostRequest(
+                    "_search?pretty",
+                    "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
+                    encodeBasicHeader("worf", "worf")
+                )).getStatusCode()
+            )
         );
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -163,13 +171,15 @@ public class AggregationTests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*\"failed\" : 0*");
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_search?pretty",
-                "{\"size\":0,\"aggs\":{\"myindices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
-                encodeBasicHeader("worf", "worf")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_search?pretty",
+                    "{\"size\":0,\"aggs\":{\"myindices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",
+                    encodeBasicHeader("worf", "worf")
+                ).getStatusCode()
+            )
         );
 
     }

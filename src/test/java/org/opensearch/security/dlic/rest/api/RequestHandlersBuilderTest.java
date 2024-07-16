@@ -31,7 +31,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.reset;
@@ -73,9 +74,9 @@ public class RequestHandlersBuilderTest {
             final var responseBytes = responseArgumentCaptor.getValue();
             final var json = DefaultObjectMapper.readTree(responseBytes.content().utf8ToString());
             if (method == RestRequest.Method.POST) {
-                assertEquals(RestStatus.NOT_IMPLEMENTED.name(), json.get("status").asText());
+                assertThat(json.get("status").asText(), is(RestStatus.NOT_IMPLEMENTED.name()));
             } else {
-                assertEquals(RestStatus.FORBIDDEN.name(), json.get("status").asText());
+                assertThat(json.get("status").asText(), is(RestStatus.FORBIDDEN.name()));
             }
             reset(channel);
         }
@@ -116,12 +117,12 @@ public class RequestHandlersBuilderTest {
             .withSaveOrUpdateConfigurationHandler((client, configuration, indexResponseOnSucessActionListener) -> {})
             .build();
 
-        assertEquals(
+        assertThat(
             RequestHandler.RequestHandlersBuilder.SUPPORTED_METHODS.stream().sorted().collect(Collectors.toList()),
-            requestHandlers.keySet().stream().sorted().collect(Collectors.toList())
+            is(requestHandlers.keySet().stream().sorted().collect(Collectors.toList()))
         );
         requestHandlers.forEach(
-            ((method, requestOperationHandler) -> assertEquals(RequestHandler.methodNotImplementedHandler, requestOperationHandler))
+            ((method, requestOperationHandler) -> assertThat(requestOperationHandler, is(RequestHandler.methodNotImplementedHandler)))
         );
     }
 

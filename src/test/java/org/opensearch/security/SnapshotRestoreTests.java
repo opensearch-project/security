@@ -52,6 +52,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class SnapshotRestoreTests extends SingleClusterTest {
@@ -118,143 +119,164 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         }
 
         RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/vulcangov", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/vulcangov", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/vulcangov/vulcangov_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/vulcangov/vulcangov_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         // worf not allowed to restore vulcangov index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("worf", "worf")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("worf", "worf")
+                ).getStatusCode()
+            )
         );
         // Try to restore vulcangov index as .opendistro_security index, not possible since Security index is open
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_INTERNAL_SERVER_ERROR,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore .opendistro_security index.
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/.opendistro_security", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/.opendistro_security", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/.opendistro_security/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executeGetRequest("_snapshot/.opendistro_security/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         // 500 because Security index is open
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_INTERNAL_SERVER_ERROR,
-            rh.executePostRequest(
-                "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore all indices.
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
-        );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
         // 500 because Security index is open
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_INTERNAL_SERVER_ERROR,
-            rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         // Try to restore vulcangov index as .opendistro_security index -> 500 because Security index is open
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_INTERNAL_SERVER_ERROR,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index. Delete opendistro_security_copy first, was created
         // in test above
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeDeleteRequest("opendistro_security_copy", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeDeleteRequest("opendistro_security_copy", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore an unknown snapshot
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_INTERNAL_SERVER_ERROR,
-            rh.executePostRequest(
-                "_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // close and restore Security index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(".opendistro_security/_close", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executePostRequest(".opendistro_security/_close", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(".opendistro_security/_open", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executePostRequest(".opendistro_security/_open", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
     }
 
@@ -318,121 +340,140 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         }
 
         RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/vulcangov", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/vulcangov", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/vulcangov/vulcangov_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/vulcangov/vulcangov_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("worf", "worf")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("worf", "worf")
+                ).getStatusCode()
+            )
         );
         // Try to restore vulcangov index as .opendistro_security index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore .opendistro_security index.
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/.opendistro_security", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/.opendistro_security", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/.opendistro_security/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executeGetRequest("_snapshot/.opendistro_security/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore all indices.
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
-        );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore an unknown snapshot
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        // Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
+        // assertThat(HttpStatus.SC_FORBIDDEN,
         // executePostRequest("_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true","{ \"indices\": \"the-unknown-index\" }",
-        // encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        // encois(deBasicHeader("nagilum", "nagilum"))).getStatusCode());
     }
 
     @Test
@@ -495,173 +536,204 @@ public class SnapshotRestoreTests extends SingleClusterTest {
                 new ConfigUpdateRequest(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups" })
             ).actionGet();
             Assert.assertFalse(cur.hasFailures());
-            Assert.assertEquals(currentClusterConfig.getNodes(), cur.getNodes().size());
+            assertThat(cur.getNodes().size(), is(currentClusterConfig.getNodes()));
         }
 
         RestHelper rh = nonSslRestHelper();
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/vulcangov", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/vulcangov", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/vulcangov/vulcangov_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/vulcangov/vulcangov_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("worf", "worf")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("worf", "worf")
+                ).getStatusCode()
+            )
         );
         // Try to restore vulcangov index as .opendistro_security index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore .opendistro_security index.
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/.opendistro_security", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/.opendistro_security", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/.opendistro_security/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executeGetRequest("_snapshot/.opendistro_security/opendistro_security_1", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/.opendistro_security/opendistro_security_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore all indices.
-        Assert.assertEquals(
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()));
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+            is(rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
-        );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum"))
-                .getStatusCode()
+            is(
+                rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum"))
+                    .getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \".opendistro_security\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"opendistro_security_copy\" }",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Try to restore an unknown snapshot
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true",
-                "",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/unknown-snapshot/_restore?wait_for_completion=true",
+                    "",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         // Tests snapshot with write permissions (OK)
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_restore_1\" }",
-                encodeBasicHeader("restoreuser", "restoreuser")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_restore_1\" }",
+                    encodeBasicHeader("restoreuser", "restoreuser")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_restore_2a\" }",
-                encodeBasicHeader("restoreuser", "restoreuser")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_restore_2a\" }",
+                    encodeBasicHeader("restoreuser", "restoreuser")
+                ).getStatusCode()
+            )
         );
 
         // Test snapshot with write permissions (OK)
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_1\" }",
-                encodeBasicHeader("restoreuser", "restoreuser")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_1\" }",
+                    encodeBasicHeader("restoreuser", "restoreuser")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_2\" }",
-                encodeBasicHeader("restoreuser", "restoreuser")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_2\" }",
+                    encodeBasicHeader("restoreuser", "restoreuser")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_3\" }",
-                encodeBasicHeader("restoreuser", "restoreuser")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_3\" }",
+                    encodeBasicHeader("restoreuser", "restoreuser")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_4\" }",
-                encodeBasicHeader("restoreuser", "restoreuser")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"$1_no_restore_4\" }",
+                    encodeBasicHeader("restoreuser", "restoreuser")
+                ).getStatusCode()
+            )
         );
     }
 
@@ -708,21 +780,25 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             + "\"include_global_state\": false"
             + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePutRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+                    putSnapshot,
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         putSnapshot = "{"
@@ -731,40 +807,48 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             + "\"include_global_state\": false"
             + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePutRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+                    putSnapshot,
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         putSnapshot = "{" + "\"indices\": \"testsnap2\"," + "\"ignore_unavailable\": false," + "\"include_global_state\": true" + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePutRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+                    putSnapshot,
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
-                "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
+                    "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
     }
 
@@ -813,21 +897,25 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{\"indices\": \"b*,-bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wild_first_restored_index_$1\"}",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{\"indices\": \"b*,-bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wild_first_restored_index_$1\"}",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePostRequest(
-                "_snapshot/all/all_1/_restore?wait_for_completion=true",
-                "{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"neg_first_restored_index_$1\"}",
-                encodeBasicHeader("nagilum", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/all/all_1/_restore?wait_for_completion=true",
+                    "{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"neg_first_restored_index_$1\"}",
+                    encodeBasicHeader("nagilum", "nagilum")
+                ).getStatusCode()
+            )
         );
         String wild_first_body = rh.executePostRequest(
             "_snapshot/all/all_1/_restore?wait_for_completion=true",
@@ -849,7 +937,6 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
     @Test
     public void testNoSnapshotRestore() throws Exception {
-
         final Settings settings = Settings.builder()
             .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
             .put("plugins.security.enable_snapshot_restore_privilege", false)
@@ -893,21 +980,25 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             + "\"include_global_state\": false"
             + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePutRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+                    putSnapshot,
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         putSnapshot = "{"
@@ -916,40 +1007,48 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             + "\"include_global_state\": false"
             + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePutRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+                    putSnapshot,
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
-                "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
 
         putSnapshot = "{" + "\"indices\": \"testsnap2\"," + "\"ignore_unavailable\": false," + "\"include_global_state\": true" + "}";
 
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePutRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+                    putSnapshot,
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_FORBIDDEN,
-            rh.executePostRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
-                "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+            is(
+                rh.executePostRequest(
+                    "_snapshot/bckrepo/" + putSnapshot.hashCode() + "/_restore?wait_for_completion=true&pretty",
+                    "{ \"include_global_state\": true, \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }",
+                    encodeBasicHeader("snapresuser", "nagilum")
+                ).getStatusCode()
+            )
         );
     }
 }

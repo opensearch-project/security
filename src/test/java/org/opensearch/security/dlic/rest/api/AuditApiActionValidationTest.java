@@ -22,7 +22,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.util.FakeRestRequest;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -37,7 +38,7 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
         for (final var m : RequestHandler.RequestHandlersBuilder.SUPPORTED_METHODS) {
             final var result = auditApiAction.withEnabledAuditApi(FakeRestRequest.builder().withMethod(m).build());
             assertFalse(result.isValid());
-            assertEquals(RestStatus.NOT_IMPLEMENTED, result.status());
+            assertThat(result.status(), is(RestStatus.NOT_IMPLEMENTED));
         }
     }
 
@@ -84,6 +85,6 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
             SecurityConfiguration.of(objectMapper.valueToTree(AuditConfig.from(Settings.EMPTY)), "config", dynamicConfiguration)
         );
         assertFalse(result.isValid());
-        assertEquals(RestStatus.CONFLICT, result.status());
+        assertThat(result.status(), is(RestStatus.CONFLICT));
     }
 }

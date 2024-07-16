@@ -44,7 +44,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -65,8 +64,8 @@ public class JwtVendorTest {
         final Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
 
         final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings);
-        Assert.assertEquals("HS512", jwk.v1().getAlgorithm().getName());
-        Assert.assertEquals("sig", jwk.v1().getKeyUse().toString());
+        assertThat(jwk.v1().getAlgorithm().getName(), is("HS512"));
+        assertThat(jwk.v1().getKeyUse().toString(), is("sig"));
         Assert.assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
     }
 
@@ -173,7 +172,7 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        assertEquals("java.lang.IllegalArgumentException: The expiration time should be a positive integer", exception.getMessage());
+        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: The expiration time should be a positive integer"));
     }
 
     @Test
@@ -212,7 +211,7 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        assertEquals("java.lang.IllegalArgumentException: encryption_key cannot be null", exception.getMessage());
+        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: encryption_key cannot be null"));
     }
 
     @Test
@@ -233,7 +232,7 @@ public class JwtVendorTest {
                 throw new RuntimeException(e);
             }
         });
-        assertEquals("java.lang.IllegalArgumentException: Roles cannot be null", exception.getMessage());
+        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: Roles cannot be null"));
     }
 
     @Test

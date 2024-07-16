@@ -21,6 +21,9 @@ import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class MFlsTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
@@ -51,9 +54,12 @@ public class MFlsTest extends AbstractDlsFlsTest {
         HttpResponse res;
 
         // normal search
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("deals,finance/_search?pretty", encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode()
+            is(
+                (res = rh.executeGetRequest("deals,finance/_search?pretty", encodeBasicHeader("dept_manager_fls", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -76,9 +82,12 @@ public class MFlsTest extends AbstractDlsFlsTest {
             + System.lineSeparator();
 
         // msearch
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode()
+            is(
+                (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager_fls", "password")))
+                    .getStatusCode()
+            )
         );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -103,9 +112,9 @@ public class MFlsTest extends AbstractDlsFlsTest {
             + "}";
 
         // mget
-        Assert.assertEquals(
+        assertThat(
             HttpStatus.SC_OK,
-            (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode()
+            is((res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode())
         );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));

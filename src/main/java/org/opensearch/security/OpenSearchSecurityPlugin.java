@@ -157,8 +157,8 @@ import org.opensearch.security.dlic.rest.api.ssl.TransportCertificatesInfoNodesA
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.hasher.BCryptPasswordHasher;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
@@ -1092,7 +1092,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
-        this.passwordHasher = new BCryptPasswordHasher();
+        this.passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
 
         userService = new UserService(cs, cr, passwordHasher, settings, localClient);
 
@@ -1102,8 +1102,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
-        // DLS-FLS is enabled if not client and not disabled and not SSL only.
-        final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(
             clusterService,
             threadPool,
@@ -1114,7 +1112,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             privilegesInterceptor,
             cih,
             irr,
-            dlsFlsEnabled,
             namedXContentRegistry.get()
         );
 
@@ -1152,6 +1149,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
+        }
+        if (dlsFlsValve instanceof DlsFlsValveImpl) {
+            dcf.registerDCFListener(dlsFlsValve);
         }
 
         cr.setDynamicConfigFactory(dcf);
@@ -1288,6 +1288,60 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Function.identity(),
                 Property.NodeScope,
                 Property.Filtered,
+                Property.Final
+            )
+        );
+
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT,
+                Property.NodeScope,
+                Property.Final
+            )
+        );
+
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
+                Property.NodeScope,
                 Property.Final
             )
         );

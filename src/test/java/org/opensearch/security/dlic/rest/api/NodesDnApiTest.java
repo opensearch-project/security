@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -36,6 +35,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
@@ -123,8 +123,8 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", body, headers);
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        assertThat(settings.get("reason"), is(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message()));
     }
 
     @Test
