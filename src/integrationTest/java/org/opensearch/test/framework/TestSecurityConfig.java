@@ -1115,7 +1115,7 @@ public class TestSecurityConfig {
         builder.field("config_version", 2);
         builder.endObject();
 
-        builder.field(configType.toLCString(), config);
+        builder.field(configurationRoot, config);
 
         builder.endObject();
 
