@@ -50,7 +50,7 @@ public class FlushCacheApiIntegrationTest extends AbstractApiIntegrationTest {
             assertThat(
                 deleteUserCacheResponse.getBody(),
                 deleteAllCacheResponse.getTextFromJsonBody("/message"),
-                is("Cache invalidated for user: " + TEST_USER)
+                is("Cache flushed successfully.")
             );
         });
     }
