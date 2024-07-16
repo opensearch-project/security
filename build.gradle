@@ -612,7 +612,12 @@ dependencies {
     implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
-    implementation 'com.selectivem:checklists:1.1.0'
+
+    // Action privileges
+    implementation 'com.selectivem.collections:checklists:1.2.1'
+    implementation 'com.selectivem.collections:compact-subsets:1.2.1'
+    implementation 'com.selectivem.collections:interfaces:1.2.1'
+    runtimeOnly 'com.selectivem.collections:backing-collections:1.2.1'
 
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"

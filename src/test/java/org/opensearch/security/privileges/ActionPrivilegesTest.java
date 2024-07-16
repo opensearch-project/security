@@ -222,9 +222,9 @@ public class ActionPrivilegesTest {
                     new IndexSpec().givenIndexPrivs("alias_a1*") //
                 )) {
                     for (ActionSpec actionSpec : Arrays.asList(
-                            new ActionSpec("wildcard")//
-                                    .givenPrivs("*")
-                                    .requiredPrivs("indices:data/read/search"), //
+                        new ActionSpec("wildcard")//
+                            .givenPrivs("*")
+                            .requiredPrivs("indices:data/read/search"), //
                         new ActionSpec("constant, well known")//
                             .givenPrivs("indices:data/read/search")
                             .requiredPrivs("indices:data/read/search"), //
@@ -266,9 +266,14 @@ public class ActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA;
 
-                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA,  WellKnownActions.CLUSTER_ACTIONS,
-                        WellKnownActions.INDEX_ACTIONS,
-                        WellKnownActions.INDEX_ACTIONS);
+                this.subject = new ActionPrivileges(
+                    roles,
+                    FlattenedActionGroups.EMPTY,
+                    () -> INDEX_METADATA,
+                    WellKnownActions.CLUSTER_ACTIONS,
+                    WellKnownActions.INDEX_ACTIONS,
+                    WellKnownActions.INDEX_ACTIONS
+                );
 
                 if (statefulness == Statefulness.STATEFUL) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA);

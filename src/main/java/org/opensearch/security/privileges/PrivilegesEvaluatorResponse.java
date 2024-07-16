@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 
-import com.selectivem.check.CheckTable;
+import com.selectivem.collections.CheckTable;
 
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;

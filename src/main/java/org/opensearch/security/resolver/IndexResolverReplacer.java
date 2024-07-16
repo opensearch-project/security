@@ -459,10 +459,9 @@ public class IndexResolverReplacer {
             SearchRequest.DEFAULT_INDICES_OPTIONS
         );
 
-
         private static final IndicesOptions EXACT_INDEX_OPTIONS = new IndicesOptions(
-                EnumSet.of(IndicesOptions.Option.FORBID_ALIASES_TO_MULTIPLE_INDICES),
-                EnumSet.noneOf(IndicesOptions.WildcardStates.class)
+            EnumSet.of(IndicesOptions.Option.FORBID_ALIASES_TO_MULTIPLE_INDICES),
+            EnumSet.noneOf(IndicesOptions.WildcardStates.class)
         );
 
         private final Set<String> aliases;
@@ -471,7 +470,6 @@ public class IndexResolverReplacer {
         private final Set<String> remoteIndices;
         private final boolean isLocalAll;
         private final IndicesOptions indicesOptions;
-
 
         public Resolved(
             final ImmutableSet<String> aliases,

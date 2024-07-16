@@ -14,7 +14,6 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +37,9 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
 
-import com.selectivem.check.CheckTable;
+import com.selectivem.collections.CheckTable;
+import com.selectivem.collections.DeduplicatingCompactSubSetBuilder;
+import com.selectivem.collections.ImmutableCompactSubSet;
 
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking privileges.
@@ -199,7 +200,7 @@ public class ActionPrivileges {
          * This does not include privileges obtained via "*" action patterns. This is both meant as a
          * optimization and to support explicit privileges.
          */
-        private final ImmutableMap<String, ImmutableSet<String>> actionToRoles;
+        private final ImmutableMap<String, ImmutableCompactSubSet<String>> actionToRoles;
 
         /**
          * This contains all role names that provide wildcard (*) privileges for cluster actions.
@@ -233,7 +234,10 @@ public class ActionPrivileges {
             FlattenedActionGroups actionGroups,
             ImmutableSet<String> wellKnownClusterActions
         ) {
-            Map<String, Set<String>> actionToRoles = new HashMap<>();
+            DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
+                roles.getCEntries().keySet()
+            );
+            Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> actionToRoles = new HashMap<>();
             Map<String, Set<String>> explicitPermissionToRoles = new HashMap<>();
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
@@ -242,6 +246,9 @@ public class ActionPrivileges {
                 try {
                     String roleName = entry.getKey();
                     RoleV7 role = entry.getValue();
+
+                    roleSetBuilder.next(roleName);
+
                     ImmutableSet<String> permissionPatterns = actionGroups.resolve(role.getCluster_permissions());
 
                     // This list collects all the matchers for action names that will be found for the current role
@@ -255,7 +262,7 @@ public class ActionPrivileges {
                         // actions are not complete, we also collect the matcher to be used as a last resort later.
 
                         if (WildcardMatcher.isExact(permission)) {
-                            actionToRoles.computeIfAbsent(permission, k -> new HashSet<>()).add(roleName);
+                            actionToRoles.computeIfAbsent(permission, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
                         } else if (permission.equals("*")) {
                             // Special case: Roles with a wildcard "*" giving privileges for all actions. We will not resolve
                             // this stuff, but just note separately that this role just gets all the cluster privileges.
@@ -268,7 +275,7 @@ public class ActionPrivileges {
                             );
 
                             for (String action : matchedActions) {
-                                actionToRoles.computeIfAbsent(action, k -> new HashSet<>()).add(roleName);
+                                actionToRoles.computeIfAbsent(action, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
                             }
 
                             wildcardMatchers.add(wildcardMatcher);
@@ -283,9 +290,11 @@ public class ActionPrivileges {
                 }
             }
 
+            DeduplicatingCompactSubSetBuilder.Completed<String> completedRoleSetBuilder = roleSetBuilder.build();
+
             this.actionToRoles = actionToRoles.entrySet()
                 .stream()
-                .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> ImmutableSet.copyOf(entry.getValue())));
+                .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> entry.getValue().build(completedRoleSetBuilder)));
             this.rolesWithWildcardPermissions = rolesWithWildcardPermissions.build();
             this.rolesToActionMatcher = rolesToActionMatcher.build();
             this.wellKnownClusterActions = wellKnownClusterActions;
@@ -304,7 +313,7 @@ public class ActionPrivileges {
             }
 
             // 2: Check well-known actions - this should cover most cases
-            ImmutableSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
+            ImmutableCompactSubSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
 
             if (rolesWithPrivileges != null && CollectionUtils.containsAny(roles, rolesWithPrivileges)) {
                 return PrivilegesEvaluatorResponse.ok();
@@ -337,7 +346,7 @@ public class ActionPrivileges {
         PrivilegesEvaluatorResponse providesExplicitPrivilege(PrivilegesEvaluationContext context, String action, Set<String> roles) {
 
             // 1: Check well-known actions - this should cover most cases
-            ImmutableSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
+            ImmutableCompactSubSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
 
             if (rolesWithPrivileges != null && CollectionUtils.containsAny(roles, rolesWithPrivileges)) {
                 return PrivilegesEvaluatorResponse.ok();
@@ -370,9 +379,9 @@ public class ActionPrivileges {
 
             // 2: Check well-known actions - this should cover most cases
             for (String action : actions) {
-                ImmutableSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
+                ImmutableCompactSubSet<String> rolesWithPrivileges = this.actionToRoles.get(action);
 
-                if (rolesWithPrivileges != null && CollectionUtils.containsAny(roles, rolesWithPrivileges)) {
+                if (rolesWithPrivileges != null && rolesWithPrivileges.containsAny(roles)) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
             }
@@ -433,7 +442,7 @@ public class ActionPrivileges {
          * This allows to answer the question "given an action and a set of roles, do I have wildcard index privileges"
          * in O(1)
          */
-        private final ImmutableMap<String, ImmutableSet<String>> actionToRolesWithWildcardIndexPrivileges;
+        private final ImmutableMap<String, ImmutableCompactSubSet<String>> actionToRolesWithWildcardIndexPrivileges;
 
         /**
          * A pre-defined set of action names that is used to pre-compute the result of action patterns.
@@ -467,15 +476,21 @@ public class ActionPrivileges {
             ImmutableSet<String> wellKnownIndexActions,
             ImmutableSet<String> explicitlyRequiredIndexActions
         ) {
+            DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
+                roles.getCEntries().keySet()
+            );
+
             Map<String, Map<String, IndexPattern.Builder>> rolesToActionToIndexPattern = new HashMap<>();
             Map<String, Map<WildcardMatcher, IndexPattern.Builder>> rolesToActionPatternToIndexPattern = new HashMap<>();
-            Map<String, Set<String>> actionToRolesWithWildcardIndexPrivileges = new HashMap<>();
+            Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> actionToRolesWithWildcardIndexPrivileges = new HashMap<>();
             Map<String, Map<String, IndexPattern.Builder>> rolesToExplicitActionToIndexPattern = new HashMap<>();
 
             for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
                     String roleName = entry.getKey();
                     RoleV7 role = entry.getValue();
+
+                    roleSetBuilder.next(roleName);
 
                     for (RoleV7.Index indexPermissions : role.getIndex_permissions()) {
                         ImmutableSet<String> permissions = actionGroups.resolve(indexPermissions.getAllowed_actions());
@@ -500,8 +515,10 @@ public class ActionPrivileges {
                                 }
 
                                 if (indexPermissions.getIndex_patterns().contains("*")) {
-                                    actionToRolesWithWildcardIndexPrivileges.computeIfAbsent(permission, k -> new HashSet<>())
-                                        .add(roleName);
+                                    actionToRolesWithWildcardIndexPrivileges.computeIfAbsent(
+                                        permission,
+                                        k -> roleSetBuilder.createSubSetBuilder()
+                                    ).add(roleName);
                                 }
                             } else {
                                 WildcardMatcher actionMatcher = WildcardMatcher.from(permission);
@@ -512,8 +529,10 @@ public class ActionPrivileges {
                                         .add(indexPermissions.getIndex_patterns());
 
                                     if (indexPermissions.getIndex_patterns().contains("*")) {
-                                        actionToRolesWithWildcardIndexPrivileges.computeIfAbsent(permission, k -> new HashSet<>())
-                                            .add(roleName);
+                                        actionToRolesWithWildcardIndexPrivileges.computeIfAbsent(
+                                            permission,
+                                            k -> roleSetBuilder.createSubSetBuilder()
+                                        ).add(roleName);
                                     }
                                 }
 
@@ -535,6 +554,8 @@ public class ActionPrivileges {
                     log.error("Unexpected exception while processing role: {}\nIgnoring role.", entry.getKey(), e);
                 }
             }
+
+            DeduplicatingCompactSubSetBuilder.Completed<String> completedRoleSetBuilder = roleSetBuilder.build();
 
             this.rolesToActionToIndexPattern = rolesToActionToIndexPattern.entrySet()
                 .stream()
@@ -562,7 +583,7 @@ public class ActionPrivileges {
 
             this.actionToRolesWithWildcardIndexPrivileges = actionToRolesWithWildcardIndexPrivileges.entrySet()
                 .stream()
-                .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> ImmutableSet.copyOf(entry.getValue())));
+                .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> entry.getValue().build(completedRoleSetBuilder)));
 
             this.rolesToExplicitActionToIndexPattern = rolesToExplicitActionToIndexPattern.entrySet()
                 .stream()
@@ -677,10 +698,9 @@ public class ActionPrivileges {
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
 
             for (String action : actions) {
-                ImmutableSet<String> rolesWithWildcardIndexPrivileges = this.actionToRolesWithWildcardIndexPrivileges.get(action);
+                ImmutableCompactSubSet<String> rolesWithWildcardIndexPrivileges = this.actionToRolesWithWildcardIndexPrivileges.get(action);
 
-                if (rolesWithWildcardIndexPrivileges == null
-                    || !CollectionUtils.containsAny(rolesWithWildcardIndexPrivileges, effectiveRoles)) {
+                if (rolesWithWildcardIndexPrivileges == null || !rolesWithWildcardIndexPrivileges.containsAny(effectiveRoles)) {
                     return null;
                 }
             }
@@ -755,7 +775,7 @@ public class ActionPrivileges {
          * combination of action and index. This map can contain besides indices also names of data streams and aliases.
          * For aliases and data streams, it will then contain both the actual alias/data stream and the backing indices.
          */
-        private final Map<String, Map<String, Set<String>>> actionToIndexToRoles;
+        private final Map<String, Map<String, ImmutableCompactSubSet<String>>> actionToIndexToRoles;
 
         /**
          * The index information that was used to construct this instance.
@@ -780,13 +800,19 @@ public class ActionPrivileges {
             ImmutableSet<String> wellKnownIndexActions,
             Map<String, IndexAbstraction> indices
         ) {
-            Map<String, Map<String, Set<String>>> actionToIndexToRoles = new HashMap<>();
+            DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
+                roles.getCEntries().keySet()
+            );
+
+            Map<String, Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>>> actionToIndexToRoles = new HashMap<>();
             int leafs = 0; // This counts the number of leafs in the actionToIndexToRoles data structure. Useful for estimating the size.
 
             for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
                     String roleName = entry.getKey();
                     RoleV7 role = entry.getValue();
+
+                    roleSetBuilder.next(roleName);
 
                     for (RoleV7.Index indexPermissions : role.getIndex_permissions()) {
                         ImmutableSet<String> permissions = actionGroups.resolve(indexPermissions.getAllowed_actions());
@@ -813,18 +839,20 @@ public class ActionPrivileges {
                                 Map.Entry::getKey
                             )) {
                                 for (String action : matchedActions) {
-                                    Map<String, Set<String>> indexToRoles = actionToIndexToRoles.computeIfAbsent(
-                                        action,
-                                        k -> new HashMap<>()
-                                    );
+                                    Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> indexToRoles = actionToIndexToRoles
+                                        .computeIfAbsent(action, k -> new HashMap<>());
 
-                                    indexToRoles.computeIfAbsent(indicesEntry.getKey(), k -> new HashSet<>()).add(roleName);
+                                    indexToRoles.computeIfAbsent(indicesEntry.getKey(), k -> roleSetBuilder.createSubSetBuilder())
+                                        .add(roleName);
                                     leafs++;
 
                                     if (indicesEntry.getValue() instanceof IndexAbstraction.Alias) {
                                         // For aliases we additionally add the sub-indices to the privilege map
                                         for (IndexMetadata subIndex : indicesEntry.getValue().getIndices()) {
-                                            indexToRoles.computeIfAbsent(subIndex.getIndex().getName(), k -> new HashSet<>()).add(roleName);
+                                            indexToRoles.computeIfAbsent(
+                                                subIndex.getIndex().getName(),
+                                                k -> roleSetBuilder.createSubSetBuilder()
+                                            ).add(roleName);
                                             leafs++;
                                         }
                                     }
@@ -837,6 +865,8 @@ public class ActionPrivileges {
                 }
             }
 
+            DeduplicatingCompactSubSetBuilder.Completed<String> completedRoleSetBuilder = roleSetBuilder.build();
+
             log.debug("StatefulIndexPermissions data structure contains {} leafs", leafs);
 
             this.actionToIndexToRoles = actionToIndexToRoles.entrySet()
@@ -848,7 +878,10 @@ public class ActionPrivileges {
                             .entrySet()
                             .stream()
                             .collect(
-                                ImmutableMap.toImmutableMap(entry2 -> entry2.getKey(), entry2 -> ImmutableSet.copyOf(entry2.getValue()))
+                                ImmutableMap.toImmutableMap(
+                                    entry2 -> entry2.getKey(),
+                                    entry2 -> entry2.getValue().build(completedRoleSetBuilder)
+                                )
                             )
                     )
                 );
@@ -885,7 +918,7 @@ public class ActionPrivileges {
             ImmutableSet<String> effectiveRoles = context.getMappedRoles();
 
             for (String action : actions) {
-                Map<String, Set<String>> indexToRoles = actionToIndexToRoles.get(action);
+                Map<String, ImmutableCompactSubSet<String>> indexToRoles = actionToIndexToRoles.get(action);
 
                 if (indexToRoles != null) {
                     for (String index : resolvedIndices.getAllIndices()) {
@@ -898,9 +931,9 @@ public class ActionPrivileges {
                             lookupIndex = backingIndexToDataStream(index, indexMetadata);
                         }
 
-                        Set<String> rolesWithPrivileges = indexToRoles.get(lookupIndex);
+                        ImmutableCompactSubSet<String> rolesWithPrivileges = indexToRoles.get(lookupIndex);
 
-                        if (rolesWithPrivileges != null && CollectionUtils.containsAny(rolesWithPrivileges, effectiveRoles)) {
+                        if (rolesWithPrivileges != null && rolesWithPrivileges.containsAny(effectiveRoles)) {
                             if (checkTable.check(index, action)) {
                                 return PrivilegesEvaluatorResponse.ok();
                             }

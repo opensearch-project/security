@@ -95,7 +95,6 @@ import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
