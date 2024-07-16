@@ -31,22 +31,7 @@ public class RestIndexDocumentIntoSystemIndexAction extends BaseRestHandler {
 
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        // String stashedContext;
         String indexName = request.param("index");
-        // System.out.println("Received request for index: " + indexName);
-        // try (ThreadContext.StoredContext storedContext = pluginAwareClient.switchContext()) {
-        // CreateIndexResponse cir = client.admin().indices().create(new CreateIndexRequest(indexName)).actionGet();
-        // client.index(
-        // new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-        // .source("{\"content\":1}", XContentType.JSON)
-        // );
-        // stashedContext = pluginAwareClient.threadPool().getThreadContext().getHeader(ThreadContext.PLUGIN_EXECUTION_CONTEXT);
-        // } catch (Exception e) {
-        // RestResponse failureResponse = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        // return channel -> channel.sendResponse(failureResponse);
-        // }
-        // RestResponse response = new BytesRestResponse(RestStatus.OK, stashedContext);
-        // return channel -> channel.sendResponse(response);
         IndexDocumentIntoSystemIndexRequest indexRequest = new IndexDocumentIntoSystemIndexRequest(indexName);
         return channel -> client.execute(IndexDocumentIntoSystemIndexAction.INSTANCE, indexRequest, new RestToXContentListener<>(channel));
     }
