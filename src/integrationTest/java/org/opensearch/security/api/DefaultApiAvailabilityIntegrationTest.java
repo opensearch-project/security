@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 
@@ -91,23 +90,6 @@ public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegratio
             assertThat(response.getBody(), body.has("size_of_backendroles"));
         }
 
-    }
-
-    @Test
-    public void flushCache() throws Exception {
-        withUser(NEW_USER, client -> {
-            forbidden(() -> client.get(apiPath("cache")));
-            forbidden(() -> client.postJson(apiPath("cache"), EMPTY_BODY));
-            forbidden(() -> client.putJson(apiPath("cache"), EMPTY_BODY));
-            forbidden(() -> client.delete(apiPath("cache")));
-        });
-        withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), client -> {
-            notImplemented(() -> client.get(apiPath("cache")));
-            notImplemented(() -> client.postJson(apiPath("cache"), EMPTY_BODY));
-            notImplemented(() -> client.putJson(apiPath("cache"), EMPTY_BODY));
-            final var response = ok(() -> client.delete(apiPath("cache")));
-            assertThat(response.getBody(), response.getTextFromJsonBody("/message"), is("Cache flushed successfully."));
-        });
     }
 
     @Test

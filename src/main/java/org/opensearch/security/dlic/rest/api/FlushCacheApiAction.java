@@ -41,7 +41,8 @@ public class FlushCacheApiAction extends AbstractApiAction {
             new Route(Method.DELETE, "/cache"),
             new Route(Method.GET, "/cache"),
             new Route(Method.PUT, "/cache"),
-            new Route(Method.POST, "/cache")
+            new Route(Method.POST, "/cache"),
+            new Route(Method.DELETE, "/cache/user/{username}")
         )
     );
 
@@ -61,37 +62,44 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     private void flushCacheApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented()
-            .override(
-                Method.DELETE,
-                (channel, request, client) -> client.execute(
-                    ConfigUpdateAction.INSTANCE,
-                    new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])),
-                    new ActionListener<>() {
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.DELETE, (channel, request, client) -> {
+            final ConfigUpdateRequest configUpdateRequest;
+            if (request.path().contains("/user/")) {
+                // Extract the username from the request
+                final String username = request.param("username");
+                if (username == null || username.isEmpty()) {
+                    internalServerError(channel, "No username provided for cache invalidation.");
+                    return;
+                }
+                // Validate and handle user-specific cache invalidation
+                configUpdateRequest = new ConfigUpdateRequest(CType.INTERNALUSERS.toLCString(), new String[] { username });
+            } else {
+                configUpdateRequest = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
+            }
+            client.execute(ConfigUpdateAction.INSTANCE, configUpdateRequest, new ActionListener<>() {
 
-                        @Override
-                        public void onResponse(ConfigUpdateResponse configUpdateResponse) {
-                            if (configUpdateResponse.hasFailures()) {
-                                LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
-                                internalServerError(
-                                    channel,
-                                    "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
-                                );
-                                return;
-                            }
-                            LOGGER.debug("cache flushed successfully");
-                            ok(channel, "Cache flushed successfully.");
-                        }
-
-                        @Override
-                        public void onFailure(final Exception e) {
-                            LOGGER.error("Cannot flush cache due to", e);
-                            internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
-                        }
-
+                @Override
+                public void onResponse(ConfigUpdateResponse configUpdateResponse) {
+                    if (configUpdateResponse.hasFailures()) {
+                        LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
+                        internalServerError(
+                            channel,
+                            "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
+                        );
+                        return;
                     }
-                )
-            );
+                    LOGGER.debug("cache flushed successfully");
+                    ok(channel, "Cache flushed successfully.");
+                }
+
+                @Override
+                public void onFailure(final Exception e) {
+                    LOGGER.error("Cannot flush cache due to", e);
+                    internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
+                }
+
+            });
+        });
     }
 
     @Override
@@ -101,6 +109,8 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     @Override
     protected void consumeParameters(final RestRequest request) {
-        // not needed
+        if (request.path().contains("/user/")) {
+            request.param("username");
+        }
     }
 }
