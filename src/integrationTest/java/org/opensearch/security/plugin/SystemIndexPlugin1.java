@@ -1,10 +1,12 @@
 package org.opensearch.security.plugin;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.opensearch.action.ActionRequest;
 import org.opensearch.client.node.PluginAwareNodeClient;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -13,6 +15,7 @@ import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -47,7 +50,7 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin {
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.client = client;
-        return Collections.emptyList();
+        return List.of(client);
     }
 
     @Override
@@ -67,5 +70,12 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin {
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
         return List.of(new RestIndexDocumentIntoSystemIndexAction(client));
+    }
+
+    @Override
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return Arrays.asList(
+            new ActionHandler<>(IndexDocumentIntoSystemIndexAction.INSTANCE, TransportIndexDocumentIntoSystemIndexAction.class)
+        );
     }
 }

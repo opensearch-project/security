@@ -27,8 +27,10 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.plugin.SystemIndexPlugin1.SYSTEM_INDEX_1;
+import static org.opensearch.security.plugin.SystemIndexPlugin2.SYSTEM_INDEX_2;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -88,7 +90,22 @@ public class SystemIndexTests {
     public void testPluginShouldBeAbleToIndexDocumentIntoItsSystemIndex() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("_plugins/system-index/" + SYSTEM_INDEX_1);
-            System.out.println("Response: " + response);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response.getBody(), containsString(SystemIndexPlugin1.class.getCanonicalName()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldNotBeAbleToIndexDocumentIntoSystemIndexRegisteredByOtherPlugin() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("_plugins/system-index/" + SYSTEM_INDEX_2);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(
+                response.getBody(),
+                containsString(SystemIndexPlugin1.class.getCanonicalName() + " can only interact with its own system indices")
+            );
         }
     }
 }
