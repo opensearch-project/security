@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,7 +24,6 @@ import org.opensearch.test.framework.AuthorizationBackend;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.LdapAuthorizationConfigBuilder;
-import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AuthenticationBackend;
@@ -66,8 +63,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class LdapAuthenticationCacheTest {
-
-    private static final Logger log = LogManager.getLogger(LdapAuthenticationCacheTest.class);
 
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
@@ -114,10 +109,9 @@ public class LdapAuthenticationCacheTest {
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
-        .rolesMapping(new RolesMapping(ALL_ACCESS).backendRoles(CN_GROUP_ADMIN))
+        .rolesMapping(new TestSecurityConfig.RoleMapping(ALL_ACCESS.getName()).backendRoles(CN_GROUP_ADMIN))
         .authz(
             new AuthzDomain("ldap_roles").httpEnabled(true)
-                .transportEnabled(true)
                 .authorizationBackend(
                     new AuthorizationBackend("ldap").config(
                         () -> new LdapAuthorizationConfigBuilder().hosts(List.of("localhost:" + embeddedLDAPServer.getLdapNonTlsPort()))

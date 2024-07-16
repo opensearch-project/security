@@ -68,7 +68,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
                 // Extract the username from the request
                 final String username = request.param("username");
                 if (username == null || username.isEmpty()) {
-                    internalSeverError(channel, "No username provided for cache invalidation.");
+                    internalServerError(channel, "No username provided for cache invalidation.");
                     return;
                 }
                 // Validate and handle user-specific cache invalidation
@@ -77,44 +77,25 @@ public class FlushCacheApiAction extends AbstractApiAction {
                 configUpdateRequest = new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]));
             }
             client.execute(ConfigUpdateAction.INSTANCE, configUpdateRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(ConfigUpdateResponse configUpdateResponse) {
+                    if (configUpdateResponse.hasFailures()) {
+                        LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
+                        internalServerError(
+                            channel,
+                            "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
+                        );
+                        return;
+                    }
+                    LOGGER.debug("cache flushed successfully");
+                    ok(channel, "Cache flushed successfully.");
+                }
 
-                                @Override
-                                public void onResponse(ConfigUpdateResponse configUpdateResponse) {
-                                    if (configUpdateResponse.hasFailures()) {
-                                        LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
-                                        internalSeverError(
-                                            channel,
-                                            "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
-                                        );
-                                        return;
-                                    }
-                                    LOGGER.debug("cache flushed successfully");
-                                    ok(channel, "Cache flushed successfully.");
-                                }
-                        @Override
-                        public void onResponse(ConfigUpdateResponse configUpdateResponse) {
-                            if (configUpdateResponse.hasFailures()) {
-                                LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
-                                internalServerError(
-                                    channel,
-                                    "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
-                                );
-                                return;
-                            }
-                            LOGGER.debug("cache flushed successfully");
-                            ok(channel, "Cache flushed successfully.");
-                        }
-
-                                @Override
-                                public void onFailure(final Exception e) {
-                                    LOGGER.error("Cannot flush cache due to", e);
-                                    internalSeverError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
-                                }
-                        @Override
-                        public void onFailure(final Exception e) {
-                            LOGGER.error("Cannot flush cache due to", e);
-                            internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
-                        }
+                @Override
+                public void onFailure(final Exception e) {
+                    LOGGER.error("Cannot flush cache due to", e);
+                    internalServerError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
+                }
 
             });
         });
