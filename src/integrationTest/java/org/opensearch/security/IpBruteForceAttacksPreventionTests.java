@@ -10,6 +10,7 @@
 package org.opensearch.security;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -32,8 +33,10 @@ import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.configJsonArray;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.userWithSourceIp;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -75,6 +78,7 @@ public class IpBruteForceAttacksPreventionTests {
             .authFailureListeners(listener)
             .authc(AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE)
             .users(USER_1, USER_2)
+            .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())))
             .build();
     }
 
