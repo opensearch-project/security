@@ -29,6 +29,9 @@ import org.opensearch.test.framework.log.LogsRule;
 
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.configJsonArray;
+import static org.opensearch.security.api.PatchPayloadHelper.patch;
+import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.userWithSourceIp;
@@ -51,9 +54,10 @@ public class IpBruteForceAttacksPreventionTests {
     public static final String CLIENT_IP_8 = "127.0.0.8";
     public static final String CLIENT_IP_9 = "127.0.0.9";
     public static final String CLIENT_IP_10 = "127.0.0.10";
+    public static final String CLIENT_IP_11 = "127.0.0.11";
 
     protected static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
-        new RateLimiting("internal_authentication_backend_limiting").type("ip")
+        new RateLimiting("ip_rate_limiting").type("ip")
             .allowedTries(ALLOWED_TRIES)
             .timeWindowSeconds(TIME_WINDOW_SECONDS)
             .blockExpirySeconds(2)
@@ -95,6 +99,34 @@ public class IpBruteForceAttacksPreventionTests {
             HttpResponse response = client.getAuthInfo();
 
             response.assertStatusCode(SC_OK);
+            HttpResponse patchResponse = client.patch(
+                "_plugins/_security/api/securityconfig",
+                patch(
+                    replaceOp(
+                        "/config/dynamic/auth_failure_listeners/ip_rate_limiting/ignore_hosts",
+                        configJsonArray(CLIENT_IP_10, CLIENT_IP_11)
+                    )
+                )
+            );
+            patchResponse.assertStatusCode(SC_OK);
+        }
+
+        authenticateUserWithIncorrectPassword(CLIENT_IP_11, USER_1, ALLOWED_TRIES);
+        try (TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_1, CLIENT_IP_11))) {
+
+            HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(SC_OK);
+        }
+
+        // Verify other ip addresses are still blocked
+        authenticateUserWithIncorrectPassword(CLIENT_IP_9, USER_1, ALLOWED_TRIES);
+        try (TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_1, CLIENT_IP_9))) {
+
+            HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(SC_UNAUTHORIZED);
+            logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_9);
         }
     }
 
