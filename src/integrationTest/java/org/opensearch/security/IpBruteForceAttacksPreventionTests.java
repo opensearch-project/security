@@ -34,6 +34,7 @@ import static org.opensearch.security.api.AbstractApiIntegrationTest.configJsonA
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -78,7 +79,14 @@ public class IpBruteForceAttacksPreventionTests {
             .authFailureListeners(listener)
             .authc(AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE)
             .users(USER_1, USER_2, USER_ADMIN)
-            .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())))
+            .nodeSettings(
+                Map.of(
+                    SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
+                    true,
+                    SECURITY_RESTAPI_ROLES_ENABLED,
+                    List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())
+                )
+            )
             .build();
     }
 
