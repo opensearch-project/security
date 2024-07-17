@@ -685,8 +685,8 @@ public class BackendRegistry {
         }
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
-            List<String> ignoreHosts = ((AuthFailureListener) clientBlockRegistry).getIgnoreHosts();
-            if (matchesHostPatterns(ignoreHosts, address)) {
+            WildcardMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
+            if (matchesHostPatterns(ignoreHostsMatcher, address)) {
                 return false;
             }
             if (clientBlockRegistry.isBlocked(address)) {
@@ -697,10 +697,9 @@ public class BackendRegistry {
         return false;
     }
 
-    public static boolean matchesHostPatterns(List<String> hostPatterns, InetAddress address) {
-        WildcardMatcher hostMatcher = WildcardMatcher.NONE;
-        if (hostPatterns != null && !hostPatterns.isEmpty()) {
-            hostMatcher = WildcardMatcher.from(hostPatterns);
+    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address) {
+        if (hostMatcher == null) {
+            return false;
         }
         if (address != null) {
             final String ipAddress = address.getHostAddress();

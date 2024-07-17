@@ -192,15 +192,39 @@ public class UtilTests {
     @Test
     public void testHostMatching() throws UnknownHostException {
         assertThat(BackendRegistry.matchesHostPatterns(null, null), is(false));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("127.0.0.1"), null), is(false));
+        assertThat(BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), null), is(false));
         assertThat(BackendRegistry.matchesHostPatterns(null, InetAddress.getByName("127.0.0.1")), is(false));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("127.0.0.1"), InetAddress.getByName("127.0.0.1")), is(true));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("127.0.0.*"), InetAddress.getByName("127.0.0.1")), is(true));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("127.0.0.1"), InetAddress.getByName("localhost")), is(true));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("127.0.0.1"), InetAddress.getByName("example.org")), is(false));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("example.org"), InetAddress.getByName("example.org")), is(true));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("*example.org"), InetAddress.getByName("example.org")), is(true));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("example.*"), InetAddress.getByName("example.org")), is(true));
-        assertThat(BackendRegistry.matchesHostPatterns(List.of("opensearch.org"), InetAddress.getByName("example.org")), is(false));
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), InetAddress.getByName("127.0.0.1")),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.*")), InetAddress.getByName("127.0.0.1")),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), InetAddress.getByName("localhost")),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), InetAddress.getByName("example.org")),
+            is(false)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("example.org")), InetAddress.getByName("example.org")),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("*example.org")), InetAddress.getByName("example.org")),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("example.*")), InetAddress.getByName("example.org")),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("opensearch.org")), InetAddress.getByName("example.org")),
+            is(false)
+        );
     }
 }

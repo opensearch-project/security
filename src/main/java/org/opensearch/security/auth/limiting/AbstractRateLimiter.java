@@ -26,6 +26,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.blocking.HeapBasedClientBlockRegistry;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.ratetracking.RateTracker;
 
@@ -33,6 +34,7 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     protected final ClientBlockRegistry<ClientIdType> clientBlockRegistry;
     protected final RateTracker<ClientIdType> rateTracker;
     protected final List<String> ignoreHosts;
+    private WildcardMatcher ignoreHostMatcher;
 
     public AbstractRateLimiter(Settings settings, Path configPath, Class<ClientIdType> clientIdType) {
         this.ignoreHosts = settings.getAsList("ignore_hosts", Collections.emptyList());
@@ -52,8 +54,16 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     public abstract void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
 
     @Override
-    public List<String> getIgnoreHosts() {
-        return this.ignoreHosts;
+    public WildcardMatcher getIgnoreHostsMatcher() {
+        if (this.ignoreHostMatcher != null) {
+            return this.ignoreHostMatcher;
+        }
+        WildcardMatcher hostMatcher = WildcardMatcher.NONE;
+        if (this.ignoreHosts != null && !this.ignoreHosts.isEmpty()) {
+            hostMatcher = WildcardMatcher.from(this.ignoreHosts);
+        }
+        this.ignoreHostMatcher = hostMatcher;
+        return hostMatcher;
     }
 
     @Override
