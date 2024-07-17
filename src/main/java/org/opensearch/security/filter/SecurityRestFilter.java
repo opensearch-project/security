@@ -254,7 +254,6 @@ public class SecurityRestFilter {
                 log.debug(err);
 
                 request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, err));
-                return;
             }
         }
     }
@@ -309,7 +308,6 @@ public class SecurityRestFilter {
             if (!registry.authenticate(requestChannel)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
-                return;
             } else {
                 // make it possible to filter logs by username
                 org.apache.logging.log4j.ThreadContext.put(
