@@ -37,12 +37,12 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_R
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.userWithSourceIp;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IpBruteForceAttacksPreventionTests {
+    private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
     protected static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
     protected static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
 
