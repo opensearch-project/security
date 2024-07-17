@@ -77,7 +77,7 @@ public class IpBruteForceAttacksPreventionTests {
             .anonymousAuth(false)
             .authFailureListeners(listener)
             .authc(AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE)
-            .users(USER_1, USER_2)
+            .users(USER_1, USER_2, USER_ADMIN)
             .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())))
             .build();
     }
@@ -103,6 +103,9 @@ public class IpBruteForceAttacksPreventionTests {
             HttpResponse response = client.getAuthInfo();
 
             response.assertStatusCode(SC_OK);
+        }
+
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse patchResponse = client.patch(
                 "_plugins/_security/api/securityconfig",
                 patch(
