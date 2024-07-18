@@ -26,7 +26,6 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
         kafka_version  = '3.7.1'
-        apache_cxf_version = '4.0.4'
         open_saml_version = '4.3.2'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.6'
@@ -589,10 +588,6 @@ dependencies {
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
     runtimeOnly 'net.minidev:accessors-smart:2.5.0'
-
-    runtimeOnly "org.apache.cxf:cxf-core:${apache_cxf_version}"
-    implementation "org.apache.cxf:cxf-rt-rs-json-basic:${apache_cxf_version}"
-    runtimeOnly "org.apache.cxf:cxf-rt-security:${apache_cxf_version}"
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
