@@ -53,9 +53,7 @@ public class TermsAggregationEvaluator {
         "indices:data/read/mget",
         "indices:data/read/get",
         "indices:data/read/search",
-        "indices:data/read/field_caps*"
-        // "indices:admin/mappings/fields/get*"
-    };
+        "indices:data/read/field_caps" };
 
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 
