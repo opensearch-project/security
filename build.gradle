@@ -65,7 +65,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.9.1"
-    id "org.gradle.test-retry" version "1.5.9"
+    id "org.gradle.test-retry" version "1.5.10"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
