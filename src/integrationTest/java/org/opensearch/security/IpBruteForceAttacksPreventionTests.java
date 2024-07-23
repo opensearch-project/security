@@ -113,7 +113,7 @@ public class IpBruteForceAttacksPreventionTests {
             response.assertStatusCode(SC_OK);
         }
 
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse patchResponse = client.patch(
                 "_plugins/_security/api/securityconfig",
                 patch(
