@@ -383,8 +383,17 @@ jacocoTestReport {
 
 checkstyle {
     toolVersion "10.3.3"
+    showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
+
+tasks.withType(Checkstyle) {
+    dependsOn(':precommit')
+    reports {
+        ignoreFailures = false
+    }
+}
+
 
 opensearchplugin {
     name 'opensearch-security'
@@ -434,22 +443,8 @@ repositories {
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+    maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
-}
-
-tasks.withType(Checkstyle) {
-    showViolations true
-    reports {
-        ignoreFailures = false
-    }
-}
-
-tasks.withType(JavaCompile) {
-    configure(options) {
-        options.encoding = 'UTF-8'
-        options.compilerArgs << '-Xlint:removal' << '-Werror'
-    }
 }
 
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
@@ -495,14 +490,10 @@ configurations {
             force "org.eclipse.platform:org.eclipse.equinox.common:3.19.100"
 
             // For integrationTest
-            force "org.apache.httpcomponents:httpclient-cache:4.5.14"
-            force "org.apache.httpcomponents:httpclient:4.5.13"
-            force "org.apache.httpcomponents:fluent-hc:4.5.13"
+            force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "org.apache.httpcomponents:httpcore-nio:4.4.16"
-            force "org.apache.httpcomponents:httpasyncclient:4.1.5"
-            force 'org.checkerframework:checker-qual:3.45.0'
-            force "com.google.errorprone:error_prone_annotations:2.28.0"
+            force "com.google.errorprone:error_prone_annotations:2.29.2"
+            force "org.checkerframework:checker-qual:3.45.0"
             force "ch.qos.logback:logback-classic:1.5.6"
         }
     }
@@ -552,6 +543,21 @@ task integrationTest(type: Test) {
     classpath = sourceSets.integrationTest.runtimeClasspath
     //run the integrationTest task after the test task
     shouldRunAfter test
+    jacoco {
+        excludes = [
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
+        ]
+    }
 }
 
 tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
@@ -562,7 +568,7 @@ check.dependsOn integrationTest
 dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
-    implementation "org.apache.httpcomponents:httpclient-cache:${versions.httpclient}"
+    implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
@@ -587,16 +593,16 @@ dependencies {
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.5.0'
+    runtimeOnly 'net.minidev:accessors-smart:2.5.1'
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.17.1'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.28.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.29.2'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
-    runtimeOnly 'org.ow2.asm:asm:9.6'
+    runtimeOnly 'org.ow2.asm:asm:9.7'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.2'
 
@@ -623,7 +629,7 @@ dependencies {
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.2'
-    runtimeOnly 'org.apache.commons:commons-text:1.11.0'
+    runtimeOnly 'org.apache.commons:commons-text:1.12.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -658,7 +664,8 @@ dependencies {
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
+    testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}"
@@ -687,12 +694,12 @@ dependencies {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.14'
-    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
+    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
