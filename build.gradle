@@ -27,7 +27,6 @@ buildscript {
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
 
         kafka_version  = '3.7.1'
-        apache_cxf_version = '4.0.4'
         open_saml_version = '4.3.2'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.12.6'
@@ -66,7 +65,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.9.1"
-    id "org.gradle.test-retry" version "1.5.9"
+    id "org.gradle.test-retry" version "1.5.10"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
@@ -470,7 +469,7 @@ bundlePlugin {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.17.0'
+            force 'commons-codec:commons-codec:1.17.1'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.14'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
@@ -496,7 +495,7 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.28.0"
+            force "com.google.errorprone:error_prone_annotations:2.29.2"
             force "org.checkerframework:checker-qual:3.45.0"
             force "ch.qos.logback:logback-classic:1.5.6"
         }
@@ -599,15 +598,11 @@ dependencies {
 
     runtimeOnly 'net.minidev:accessors-smart:2.5.1'
 
-    runtimeOnly "org.apache.cxf:cxf-core:${apache_cxf_version}"
-    implementation "org.apache.cxf:cxf-rt-rs-json-basic:${apache_cxf_version}"
-    runtimeOnly "org.apache.cxf:cxf-rt-security:${apache_cxf_version}"
-
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.17.0'
+    runtimeOnly 'commons-codec:commons-codec:1.17.1'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.28.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.29.2'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7'
