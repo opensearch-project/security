@@ -63,7 +63,7 @@ public class IpBruteForceAttacksPreventionTests {
         new RateLimiting("ip_rate_limiting").type("ip")
             .allowedTries(ALLOWED_TRIES)
             .timeWindowSeconds(TIME_WINDOW_SECONDS)
-            .blockExpirySeconds(2)
+            .blockExpirySeconds(5)
             .maxBlockedClients(500)
             .maxTrackedClients(500)
             .ignoreHosts(List.of(CLIENT_IP_10))
