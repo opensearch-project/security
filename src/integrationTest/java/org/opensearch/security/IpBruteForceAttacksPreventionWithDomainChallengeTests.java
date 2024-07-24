@@ -34,7 +34,7 @@ public class IpBruteForceAttacksPreventionWithDomainChallengeTests extends IpBru
             .anonymousAuth(false)
             .authFailureListeners(listener)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_1, USER_2)
+            .users(USER_1, USER_2, USER_ADMIN)
             .nodeSettings(
                 Map.of(
                     SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
