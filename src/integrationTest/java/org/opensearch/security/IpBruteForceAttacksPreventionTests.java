@@ -45,7 +45,7 @@ public class IpBruteForceAttacksPreventionTests {
     protected static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
 
     public static final int ALLOWED_TRIES = 3;
-    public static final int TIME_WINDOW_SECONDS = 4;
+    public static final int TIME_WINDOW_SECONDS = 3;
 
     public static final String CLIENT_IP_2 = "127.0.0.2";
     public static final String CLIENT_IP_3 = "127.0.0.3";
@@ -62,7 +62,7 @@ public class IpBruteForceAttacksPreventionTests {
         new RateLimiting("ip_rate_limiting").type("ip")
             .allowedTries(ALLOWED_TRIES)
             .timeWindowSeconds(TIME_WINDOW_SECONDS)
-            .blockExpirySeconds(3)
+            .blockExpirySeconds(2)
             .maxBlockedClients(500)
             .maxTrackedClients(500)
             .ignoreHosts(List.of(CLIENT_IP_10))
