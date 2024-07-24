@@ -46,6 +46,7 @@ public class IpBruteForceAttacksPreventionTests {
 
     public static final int ALLOWED_TRIES = 3;
     public static final int TIME_WINDOW_SECONDS = 3;
+    public static final int BLOCK_SECONDS = 5;
 
     public static final String CLIENT_IP_2 = "127.0.0.2";
     public static final String CLIENT_IP_3 = "127.0.0.3";
@@ -63,7 +64,7 @@ public class IpBruteForceAttacksPreventionTests {
         new RateLimiting("ip_rate_limiting").type("ip")
             .allowedTries(ALLOWED_TRIES)
             .timeWindowSeconds(TIME_WINDOW_SECONDS)
-            .blockExpirySeconds(5)
+            .blockExpirySeconds(BLOCK_SECONDS)
             .maxBlockedClients(500)
             .maxTrackedClients(500)
             .ignoreHosts(List.of(CLIENT_IP_10))
@@ -197,7 +198,7 @@ public class IpBruteForceAttacksPreventionTests {
     @Test
     public void shouldReleaseIpAddressLock() throws InterruptedException {
         authenticateUserWithIncorrectPassword(CLIENT_IP_9, USER_1, ALLOWED_TRIES * 2);
-        TimeUnit.SECONDS.sleep(TIME_WINDOW_SECONDS);
+        TimeUnit.SECONDS.sleep(BLOCK_SECONDS);
         try (TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_1, CLIENT_IP_9))) {
 
             HttpResponse response = client.getAuthInfo();
