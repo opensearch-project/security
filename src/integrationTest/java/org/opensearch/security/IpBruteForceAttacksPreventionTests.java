@@ -57,6 +57,7 @@ public class IpBruteForceAttacksPreventionTests {
     public static final String CLIENT_IP_9 = "127.0.0.9";
     public static final String CLIENT_IP_10 = "127.0.0.10";
     public static final String CLIENT_IP_11 = "127.0.0.11";
+    public static final String CLIENT_IP_12 = "127.0.0.12";
 
     protected static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
         new RateLimiting("ip_rate_limiting").type("ip")
@@ -126,13 +127,13 @@ public class IpBruteForceAttacksPreventionTests {
         }
 
         // Verify other ip addresses are still blocked
-        authenticateUserWithIncorrectPassword(CLIENT_IP_9, USER_1, ALLOWED_TRIES);
-        try (TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_1, CLIENT_IP_9))) {
+        authenticateUserWithIncorrectPassword(CLIENT_IP_12, USER_1, ALLOWED_TRIES);
+        try (TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_1, CLIENT_IP_12))) {
 
             HttpResponse response = client.getAuthInfo();
 
             response.assertStatusCode(SC_UNAUTHORIZED);
-            logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_9);
+            logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_12);
         }
     }
 
