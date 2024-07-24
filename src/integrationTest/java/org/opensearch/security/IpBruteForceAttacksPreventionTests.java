@@ -33,6 +33,7 @@ import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.configJsonArray;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
@@ -42,7 +43,7 @@ import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IpBruteForceAttacksPreventionTests {
-    private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
+    protected static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
     protected static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
     protected static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);
 
@@ -84,7 +85,9 @@ public class IpBruteForceAttacksPreventionTests {
                     SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
                     true,
                     SECURITY_RESTAPI_ROLES_ENABLED,
-                    List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())
+                    List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
+                    SECURITY_RESTAPI_ADMIN_ENABLED,
+                    true
                 )
             )
             .build();
@@ -113,7 +116,7 @@ public class IpBruteForceAttacksPreventionTests {
             response.assertStatusCode(SC_OK);
         }
 
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse patchResponse = client.patch(
                 "_plugins/_security/api/securityconfig",
                 patch(
