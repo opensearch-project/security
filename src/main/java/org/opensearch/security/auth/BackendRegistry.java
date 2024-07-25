@@ -28,6 +28,7 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -85,6 +86,7 @@ public class BackendRegistry {
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
+    private String hostResolverMode;
 
     private volatile boolean initialized;
     private volatile boolean injectedUserEnabled = false;
@@ -183,6 +185,7 @@ public class BackendRegistry {
         authBackendFailureListeners = dcm.getAuthBackendFailureListeners();
         ipClientBlockRegistries = dcm.getIpClientBlockRegistries();
         authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
+        hostResolverMode = dcm.getHostsResolverMode();
 
         // OpenSearch Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;
@@ -686,7 +689,7 @@ public class BackendRegistry {
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
             WildcardMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
-            if (matchesHostPatterns(ignoreHostsMatcher, address)) {
+            if (matchesHostPatterns(ignoreHostsMatcher, address, hostResolverMode)) {
                 return false;
             }
             if (clientBlockRegistry.isBlocked(address)) {
@@ -697,15 +700,19 @@ public class BackendRegistry {
         return false;
     }
 
-    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address) {
+    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
         if (hostMatcher == null) {
             return false;
         }
         if (address != null) {
-            final String ipAddress = address.getHostAddress();
-            final String hostname = address.getHostName();
+            List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
+            if (hostResolverMode != null
+                && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
+                final String hostName = address.getHostName();
+                valuesToCheck.add(hostName);
+            }
 
-            return hostMatcher.test(ipAddress) || hostMatcher.test(hostname);
+            return valuesToCheck.stream().anyMatch(hostMatcher);
         }
         return false;
     }
