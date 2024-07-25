@@ -165,7 +165,7 @@ public class CertificateGeneratorTests {
         try (BufferedReader reader = new BufferedReader(new FileReader(pemFilePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                pemContent.append(line).append("\n");
+                pemContent.append(line);
             }
         }
         return pemContent.toString();
