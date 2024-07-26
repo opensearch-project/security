@@ -36,6 +36,8 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
+import java.security.Provider;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,6 +67,7 @@ import org.apache.lucene.search.Weight;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.PitService;
@@ -375,6 +378,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         demoCertHashes.add("a2ce3f577a5031398c1b4f58761444d837b031d0aff7614f8b9b5e4a9d59dbd1"); // esnode
         demoCertHashes.add("cd708e8dc707ae065f7ad8582979764b497f062e273d478054ab2f49c5469c6"); // root-ca
 
+        tryAddSecurityProviders();
+
         final String advancedModulesEnabledKey = ConfigConstants.SECURITY_ADVANCED_MODULES_ENABLED;
         if (settings.hasValue(advancedModulesEnabledKey)) {
             deprecationLogger.deprecate("Setting {} is ignored.", advancedModulesEnabledKey);
@@ -466,6 +471,41 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
 
         }
+    }
+
+    @SuppressWarnings("removal")
+    private void tryAddSecurityProviders() {
+        final SecurityManager sm = System.getSecurityManager();
+
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+
+        // Add provider if on the classpath. Only add first provider found.
+        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+            if (Security.getProvider("BC") == null) {
+                try {
+                    Class<?> providerClass = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
+                    Provider provider = (Provider) providerClass.getDeclaredConstructor().newInstance();
+                    Security.addProvider(provider);
+                    log.debug("Bouncy Castle Provider added");
+                    return null;
+                } catch (Exception e) {
+                    log.debug("Bouncy Castle Provider could not be added", e);
+                }
+            }
+            if (Security.getProvider("BCFIPS") == null) {
+                try {
+                    Class<?> providerClass = Class.forName("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider");
+                    Provider provider = (Provider) providerClass.getDeclaredConstructor().newInstance();
+                    Security.addProvider(provider);
+                    log.debug("Bouncy Castle FIPS Provider added");
+                } catch (Exception e) {
+                    log.debug("Bouncy Castle FIPS Provider could not be added", e);
+                }
+            }
+            return null;
+        });
     }
 
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
