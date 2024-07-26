@@ -48,7 +48,7 @@ public enum Certificates {
                 "KRVHWCFiR7bZhHGLq3br8hSu0hwjb3oGa1ZI8dui6ujyZt6nm6BoEkau3G/6+zq9",
                 "E6vX3+8Fj4HKCAL6i0SwfGmEpTNp5WUhqibK/fMhhmMT4Mx6MxkT+OFnIjdUU0S/",
                 "e3kgnG8qjficUr38CyEli1U0M7koIXUZI7r+LQ==",
-                "-----END CERTIFICATE-----"
+                "-----END CERTIFICATE-----\n"
             )
         )
     ),
@@ -83,7 +83,7 @@ public enum Certificates {
                 "mQGwy8vIqMjAdHGLrCS35sVYBXG13knS52LJHvbVee39AbD5/LlWvjJGlQMzCLrw",
                 "F7oILW5kXxhb8S73GWcuMbuQMFVHFONbZAZgn+C9FW4l7XyRdkrbR1MRZ2km8YMs",
                 "/AHmo368d4PSNRMMzLHw8Q==",
-                "-----END PRIVATE KEY-----"
+                "-----END PRIVATE KEY-----\n"
             )
         )
     ),
@@ -115,7 +115,7 @@ public enum Certificates {
                 "hUBqIEAYly1EqH/y45APiRt3Nor1yF6zEI4TnL0yNrHw6LyQkUNCHIGMJLfnJQ9L",
                 "camMGIXOx60kXNMTigF9oXXwixWAnDM9y3QT8QXA7hej/4zkbO+vIeV/7lGUdkyg",
                 "PAi92EvyxmsliEMyMR0VINl8emyobvfwa7oMeWMR+hg=",
-                "-----END CERTIFICATE-----"
+                "-----END CERTIFICATE-----\n"
             )
         )
     ),
@@ -150,7 +150,7 @@ public enum Certificates {
                 "tu49A/0KZu4PBjrFMYTSEWGNJez3Fb2VsJwylVl6HivwbP61FhlYfyksCzQQFU71",
                 "+x7Nmybp7PmpEBECr3deoZKQ/acNHn0iwb0It+YqV5+TquQebqgwK6WCLsMuiYKT",
                 "bg/ch9Rhxbq22yrVgWHh6epp",
-                "-----END PRIVATE KEY-----"
+                "-----END PRIVATE KEY-----\n"
             )
         )
     ),
@@ -185,7 +185,7 @@ public enum Certificates {
                 "1yVJon6RkUGtqBqKIuLksKwEr//ELnjmXit4LQKSnqKr0FTCB7seIrKJNyb35Qnq",
                 "qy9a/Unhokrmdda1tr6MbqU8l7HmxLuSd/Ky+L0eDNtYv6YfMewtjg0TtAnFyQov",
                 "rdXmeq1dy9HLo3Ds4AFz3Gx9076TxcRS/iI=",
-                "-----END CERTIFICATE-----"
+                "-----END CERTIFICATE-----\n"
             )
         )
     );
