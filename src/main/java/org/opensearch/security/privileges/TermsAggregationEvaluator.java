@@ -32,6 +32,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.fieldcaps.FieldCapabilitiesAction;
+import org.opensearch.action.get.GetAction;
+import org.opensearch.action.get.MultiGetAction;
+import org.opensearch.action.search.MultiSearchAction;
+import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -49,13 +54,11 @@ public class TermsAggregationEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     private static final String[] READ_ACTIONS = new String[] {
-        "indices:data/read/msearch",
-        "indices:data/read/mget",
-        "indices:data/read/get",
-        "indices:data/read/search",
-        "indices:data/read/field_caps*"
-        // "indices:admin/mappings/fields/get*"
-    };
+        MultiSearchAction.NAME,
+        MultiGetAction.NAME,
+        GetAction.NAME,
+        SearchAction.NAME,
+        FieldCapabilitiesAction.NAME };
 
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 
