@@ -27,6 +27,7 @@
 package org.opensearch.security.action.configupdate;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -125,8 +126,14 @@ public class TransportConfigUpdateAction extends TransportNodesAction<
 
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
-        boolean didReload = configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
-        if (didReload) {
+        if (request.request.getConfigTypes() != null
+            && request.request.getEntityNames() != null
+            && request.request.getConfigTypes().length == 1
+            && Arrays.asList(request.request.getConfigTypes()).contains(CType.INTERNALUSERS.toLCString())
+            && request.request.getEntityNames().length > 0) {
+            backendRegistry.get().invalidateUserCache(request.request.getEntityNames());
+        } else {
+            configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));
             backendRegistry.get().invalidateCache();
         }
         return new ConfigUpdateNodeResponse(clusterService.localNode(), request.request.getConfigTypes(), null);
