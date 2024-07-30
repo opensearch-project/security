@@ -212,7 +212,8 @@ final class LdapServer {
         }
     }
 
-    private void loadLdifData(LdifData ldifData) throws Exception {
+    public void loadLdifData(LdifData ldifData) throws Exception {
+        server.clear();
         try (LDIFReader r = new LDIFReader(new BufferedReader(new StringReader(ldifData.getContent())))) {
             Entry entry;
             while ((entry = r.readEntry()) != null) {
