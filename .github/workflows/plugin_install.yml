@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        jdk: [21]
+        jdk: [11, 17, 21]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -46,7 +46,7 @@ jobs:
           plugins: "file:$(pwd)/${{ env.PLUGIN_NAME }}.zip"
           security-enabled: true
           admin-password: ${{ steps.random-password.outputs.generated_name }}
-          jdk-version: 21
+          jdk-version: 17
 
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v3
