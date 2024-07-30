@@ -19,19 +19,25 @@ package org.opensearch.security.auth.limiting;
 
 import java.net.InetAddress;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.blocking.HeapBasedClientBlockRegistry;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.ratetracking.RateTracker;
 
 public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureListener, ClientBlockRegistry<ClientIdType> {
     protected final ClientBlockRegistry<ClientIdType> clientBlockRegistry;
     protected final RateTracker<ClientIdType> rateTracker;
+    protected final List<String> ignoreHosts;
+    private WildcardMatcher ignoreHostMatcher;
 
     public AbstractRateLimiter(Settings settings, Path configPath, Class<ClientIdType> clientIdType) {
+        this.ignoreHosts = settings.getAsList("ignore_hosts", Collections.emptyList());
         this.clientBlockRegistry = new HeapBasedClientBlockRegistry<>(
             settings.getAsInt("block_expiry_seconds", 60 * 10) * 1000,
             settings.getAsInt("max_blocked_clients", 100_000),
@@ -46,6 +52,19 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
 
     @Override
     public abstract void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
+
+    @Override
+    public WildcardMatcher getIgnoreHostsMatcher() {
+        if (this.ignoreHostMatcher != null) {
+            return this.ignoreHostMatcher;
+        }
+        WildcardMatcher hostMatcher = WildcardMatcher.NONE;
+        if (this.ignoreHosts != null && !this.ignoreHosts.isEmpty()) {
+            hostMatcher = WildcardMatcher.from(this.ignoreHosts);
+        }
+        this.ignoreHostMatcher = hostMatcher;
+        return hostMatcher;
+    }
 
     @Override
     public boolean isBlocked(ClientIdType clientId) {

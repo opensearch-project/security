@@ -15,7 +15,7 @@ import java.util.Locale;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 
-interface PatchPayloadHelper extends ToXContentObject {
+public interface PatchPayloadHelper extends ToXContentObject {
 
     enum Op {
         ADD,

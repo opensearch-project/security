@@ -28,6 +28,7 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,6 +65,7 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -84,6 +86,7 @@ public class BackendRegistry {
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
+    private String hostResolverMode;
 
     private volatile boolean initialized;
     private volatile boolean injectedUserEnabled = false;
@@ -182,6 +185,7 @@ public class BackendRegistry {
         authBackendFailureListeners = dcm.getAuthBackendFailureListeners();
         ipClientBlockRegistries = dcm.getIpClientBlockRegistries();
         authBackendClientBlockRegistries = dcm.getAuthBackendClientBlockRegistries();
+        hostResolverMode = dcm.getHostsResolverMode();
 
         // OpenSearch Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;
@@ -197,11 +201,15 @@ public class BackendRegistry {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)
-            .map(address -> isBlocked(address))
+            .map(this::isBlocked)
             .orElse(false);
         if (isBlockedBasedOnAddress) {
             if (isDebugEnabled) {
-                log.debug("Rejecting REST request because of blocked address: {}", request.getRemoteAddress().orElse(null));
+                InetSocketAddress ipAddress = request.getRemoteAddress().orElse(null);
+                log.debug(
+                    "Rejecting REST request because of blocked address: {}",
+                    ipAddress != null ? "/" + ipAddress.getAddress().getHostAddress() : null
+                );
             }
 
             request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"));
@@ -680,11 +688,32 @@ public class BackendRegistry {
         }
 
         for (ClientBlockRegistry<InetAddress> clientBlockRegistry : ipClientBlockRegistries) {
+            WildcardMatcher ignoreHostsMatcher = ((AuthFailureListener) clientBlockRegistry).getIgnoreHostsMatcher();
+            if (matchesHostPatterns(ignoreHostsMatcher, address, hostResolverMode)) {
+                return false;
+            }
             if (clientBlockRegistry.isBlocked(address)) {
                 return true;
             }
         }
 
+        return false;
+    }
+
+    public static boolean matchesHostPatterns(WildcardMatcher hostMatcher, InetAddress address, String hostResolverMode) {
+        if (hostMatcher == null) {
+            return false;
+        }
+        if (address != null) {
+            List<String> valuesToCheck = new ArrayList<>(List.of(address.getHostAddress()));
+            if (hostResolverMode != null
+                && (hostResolverMode.equalsIgnoreCase("ip-hostname") || hostResolverMode.equalsIgnoreCase("ip-hostname-lookup"))) {
+                final String hostName = address.getHostName();
+                valuesToCheck.add(hostName);
+            }
+
+            return valuesToCheck.stream().anyMatch(hostMatcher);
+        }
         return false;
     }
 

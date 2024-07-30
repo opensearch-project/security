@@ -226,6 +226,7 @@ public class ConfigV7 {
     public static class AuthFailureListener {
         public String type;
         public String authentication_backend;
+        public List<String> ignore_hosts;
         public int allowed_tries = 10;
         public int time_window_seconds = 60 * 60;
         public int block_expiry_seconds = 60 * 10;
