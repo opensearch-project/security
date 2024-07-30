@@ -26,11 +26,15 @@
 
 package org.opensearch.security;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
@@ -183,5 +187,89 @@ public class UtilTests {
                 is("abv${env." + k + ":-k182765ggh}xyz")
             );
         }
+    }
+
+    @Test
+    public void testHostMatching() throws UnknownHostException {
+        assertThat(BackendRegistry.matchesHostPatterns(null, null, "ip-only"), is(false));
+        assertThat(BackendRegistry.matchesHostPatterns(null, null, null), is(false));
+        assertThat(BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), null, "ip-only"), is(false));
+        assertThat(BackendRegistry.matchesHostPatterns(null, InetAddress.getByName("127.0.0.1"), "ip-only"), is(false));
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), InetAddress.getByName("127.0.0.1"), "ip-only"),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.*")), InetAddress.getByName("127.0.0.1"), "ip-only"),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("127.0.0.1")),
+                InetAddress.getByName("localhost"),
+                "ip-hostname"
+            ),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(WildcardMatcher.from(List.of("127.0.0.1")), InetAddress.getByName("localhost"), "ip-only"),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("127.0.0.1")),
+                InetAddress.getByName("localhost"),
+                "ip-hostname"
+            ),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("127.0.0.1")),
+                InetAddress.getByName("example.org"),
+                "ip-hostname"
+            ),
+            is(false)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("example.org")),
+                InetAddress.getByName("example.org"),
+                "ip-hostname"
+            ),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("example.org")),
+                InetAddress.getByName("example.org"),
+                "ip-only"
+            ),
+            is(false)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("*example.org")),
+                InetAddress.getByName("example.org"),
+                "ip-hostname"
+            ),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("example.*")),
+                InetAddress.getByName("example.org"),
+                "ip-hostname"
+            ),
+            is(true)
+        );
+        assertThat(
+            BackendRegistry.matchesHostPatterns(
+                WildcardMatcher.from(List.of("opensearch.org")),
+                InetAddress.getByName("example.org"),
+                "ip-hostname"
+            ),
+            is(false)
+        );
     }
 }
