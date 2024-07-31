@@ -394,7 +394,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         assertThat(responseBody, containsString(expectedMessage));
     }
 
-    static ToXContentObject configJsonArray(final String... values) {
+    public static ToXContentObject configJsonArray(final String... values) {
         return (builder, params) -> {
             builder.startArray();
             if (values != null) {

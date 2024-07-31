@@ -10,6 +10,7 @@
 package org.opensearch.test.framework;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -20,6 +21,7 @@ public class RateLimiting implements ToXContentObject {
     private final String name;
     private String type;
     private String authenticationBackend;
+    private List<String> ignoreHosts;
     private Integer allowedTries;
     private Integer timeWindowSeconds;
     private Integer blockExpirySeconds;
@@ -41,6 +43,11 @@ public class RateLimiting implements ToXContentObject {
 
     public RateLimiting authenticationBackend(String authenticationBackend) {
         this.authenticationBackend = authenticationBackend;
+        return this;
+    }
+
+    public RateLimiting ignoreHosts(List<String> ignoreHosts) {
+        this.ignoreHosts = ignoreHosts;
         return this;
     }
 
@@ -79,6 +86,7 @@ public class RateLimiting implements ToXContentObject {
         xContentBuilder.field("block_expiry_seconds", blockExpirySeconds);
         xContentBuilder.field("max_blocked_clients", maxBlockedClients);
         xContentBuilder.field("max_tracked_clients", maxTrackedClients);
+        xContentBuilder.field("ignore_hosts", ignoreHosts);
         xContentBuilder.endObject();
         return xContentBuilder;
     }
