@@ -49,7 +49,7 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.opensearch.transport.Netty4ModulePlugin;
+import org.opensearch.transport.Netty4Plugin;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -120,7 +120,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
         log.debug("Start node client");
 
         try (
-                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
                         .start()
         ) {
             Assert.assertFalse(
@@ -174,7 +174,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
         log.debug("Start node client");
 
         try (
-                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
                         .start()
         ) {
             Thread.sleep(10000);
@@ -221,7 +221,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
         log.debug("Start node client");
 
         try (
-                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class))
+                Node node = new PluginAwareNode(false, tcSettings, Lists.newArrayList(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
                         .start()
         ) {
             Thread.sleep(10000);

@@ -35,15 +35,15 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 
-import org.opensearch.index.reindex.ReindexModulePlugin;
-import org.opensearch.join.ParentJoinModulePlugin;
-import org.opensearch.percolator.PercolatorModulePlugin;
+import org.opensearch.index.reindex.ReindexPlugin;
+import org.opensearch.join.ParentJoinPlugin;
+import org.opensearch.percolator.PercolatorPlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.script.mustache.MustacheModulePlugin;
-import org.opensearch.search.aggregations.matrix.MatrixAggregationModulePlugin;
+import org.opensearch.script.mustache.MustachePlugin;
+import org.opensearch.search.aggregations.matrix.MatrixAggregationPlugin;
 import org.opensearch.search.pipeline.common.SearchPipelineCommonModulePlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.transport.Netty4ModulePlugin;
+import org.opensearch.transport.Netty4Plugin;
 
 public enum ClusterConfiguration {
     // first one needs to be a cluster manager
@@ -128,13 +128,13 @@ public enum ClusterConfiguration {
         public boolean dataNode;
 
         public List<Class<? extends Plugin>> plugins = Lists.newArrayList(
-            Netty4ModulePlugin.class,
+            Netty4Plugin.class,
             OpenSearchSecurityPlugin.class,
-            MatrixAggregationModulePlugin.class,
-            MustacheModulePlugin.class,
-            ParentJoinModulePlugin.class,
-            PercolatorModulePlugin.class,
-            ReindexModulePlugin.class
+            MatrixAggregationPlugin.class,
+            MustachePlugin.class,
+            ParentJoinPlugin.class,
+            PercolatorPlugin.class,
+            ReindexPlugin.class
         );
 
         public NodeSettings(boolean clusterManagerNode, boolean dataNode) {
