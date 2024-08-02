@@ -149,6 +149,7 @@ public class PrivilegesEvaluator {
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
+    private final Settings settings;
     private volatile ActionPrivileges actionPrivileges;
 
     public PrivilegesEvaluator(
@@ -172,6 +173,7 @@ public class PrivilegesEvaluator {
         this.threadContext = threadContext;
         this.privilegesInterceptor = privilegesInterceptor;
         this.clusterStateSupplier = clusterStateSupplier;
+        this.settings = settings;
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
             ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
@@ -235,7 +237,8 @@ public class PrivilegesEvaluator {
             ActionPrivileges actionPrivileges = new ActionPrivileges(
                 DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
                 flattenedActionGroups,
-                () -> clusterStateSupplier.get().metadata().getIndicesLookup()
+                () -> clusterStateSupplier.get().metadata().getIndicesLookup(),
+                settings
             );
             actionPrivileges.updateStatefulIndexPrivileges(clusterStateSupplier.get().metadata().getIndicesLookup());
             this.actionPrivileges = actionPrivileges;

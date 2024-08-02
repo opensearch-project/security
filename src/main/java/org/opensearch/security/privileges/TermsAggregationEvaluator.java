@@ -54,7 +54,8 @@ public class TermsAggregationEvaluator {
         MultiGetAction.NAME,
         GetAction.NAME,
         SearchAction.NAME,
-        FieldCapabilitiesAction.NAME );
+        FieldCapabilitiesAction.NAME
+    );
 
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 

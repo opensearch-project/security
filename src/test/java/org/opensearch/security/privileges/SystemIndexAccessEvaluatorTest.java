@@ -129,7 +129,7 @@ public class SystemIndexAccessEvaluatorTest {
                 2
             );
 
-            this.actionPrivileges = new ActionPrivileges(rolesConfig, FlattenedActionGroups.EMPTY, () -> indexMetadata);
+            this.actionPrivileges = new ActionPrivileges(rolesConfig, FlattenedActionGroups.EMPTY, () -> indexMetadata, Settings.EMPTY);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

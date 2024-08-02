@@ -13,14 +13,17 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,6 +40,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
+import org.opensearch.security.util.MockIndexMetadataBuilder;
 
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isAllowed;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isForbidden;
@@ -56,7 +60,8 @@ import static org.junit.Assert.assertThat;
 @Suite.SuiteClasses({
     ActionPrivilegesTest.ClusterPrivileges.class,
     ActionPrivilegesTest.IndexPrivileges.IndicesAndAliases.class,
-    ActionPrivilegesTest.IndexPrivileges.DataStreams.class })
+    ActionPrivilegesTest.IndexPrivileges.DataStreams.class,
+    ActionPrivilegesTest.StatefulIndexPrivilegesHeapSize.class })
 public class ActionPrivilegesTest {
     public static class ClusterPrivileges {
         @Test
@@ -65,7 +70,7 @@ public class ActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - cluster:monitor/nodes/stats*", CType.ROLES);
 
-            ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null);
+            ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
 
             assertThat(subject.hasClusterPrivilege(ctx("test_role"), "cluster:monitor/nodes/stats"), isAllowed());
             assertThat(
@@ -84,7 +89,7 @@ public class ActionPrivilegesTest {
                 "  cluster_permissions:\n" + //
                 "  - cluster:monitor/nodes/stats*", CType.ROLES);
 
-            ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null);
+            ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
 
             assertThat(subject.hasClusterPrivilege(ctx("test_role"), "cluster:monitor/nodes/stats/somethingnotwellknown"), isAllowed());
             assertThat(
@@ -270,6 +275,7 @@ public class ActionPrivilegesTest {
                     roles,
                     FlattenedActionGroups.EMPTY,
                     () -> INDEX_METADATA,
+                    Settings.EMPTY,
                     WellKnownActions.CLUSTER_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS
@@ -437,7 +443,7 @@ public class ActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA;
 
-                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA);
+                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA, Settings.EMPTY);
 
                 if (statefulness == Statefulness.STATEFUL) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA);
@@ -592,6 +598,114 @@ public class ActionPrivilegesTest {
         enum Statefulness {
             STATEFUL,
             NON_STATEFUL
+        }
+    }
+
+    /**
+     * Verifies that the heap size used by StatefulIndexPrivileges stays within expected bounds.
+     */
+    @RunWith(Parameterized.class)
+    public static class StatefulIndexPrivilegesHeapSize {
+
+        final Map<String, IndexAbstraction> indices;
+        final SecurityDynamicConfiguration<RoleV7> roles;
+        final int expectedEstimatedNumberOfBytes;
+
+        @Test
+        public void estimatedSize() throws Exception {
+            ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> indices, Settings.EMPTY);
+
+            subject.updateStatefulIndexPrivileges(indices);
+
+            int lowerBound = (int) (expectedEstimatedNumberOfBytes * 0.9);
+            int upperBound = (int) (expectedEstimatedNumberOfBytes * 1.1);
+
+            int actualEstimatedNumberOfBytes = subject.getEstimatedStatefulIndexByteSize();
+
+            Assert.assertTrue(
+                "estimatedNumberOfBytes: " + lowerBound + " < " + actualEstimatedNumberOfBytes + " < " + upperBound,
+                lowerBound < actualEstimatedNumberOfBytes && actualEstimatedNumberOfBytes < upperBound
+            );
+        }
+
+        public StatefulIndexPrivilegesHeapSize(int numberOfIndices, int numberOfRoles, int expectedEstimatedNumberOfBytes) {
+            this.indices = createIndices(numberOfIndices);
+            this.roles = createRoles(numberOfRoles, numberOfIndices);
+            this.expectedEstimatedNumberOfBytes = expectedEstimatedNumberOfBytes;
+        }
+
+        @Parameterized.Parameters(name = "{0} indices; {1} roles; estimated number of bytes: {2}")
+        public static Collection<Object[]> params() {
+            List<Object[]> result = new ArrayList<>();
+
+            // indices; roles; expected number of bytes
+            result.add(new Object[] { 100, 10, 10_000 });
+            result.add(new Object[] { 100, 100, 13_000 });
+            result.add(new Object[] { 100, 1000, 26_000 });
+
+            result.add(new Object[] { 1000, 10, 92_000 });
+            result.add(new Object[] { 1000, 100, 94_000 });
+            result.add(new Object[] { 1000, 1000, 112_000 });
+
+            result.add(new Object[] { 10_000, 10, 890_000 });
+            result.add(new Object[] { 10_000, 100, 930_000 });
+
+            return result;
+        }
+
+        static Map<String, IndexAbstraction> createIndices(int numberOfIndices) {
+            String[] names = new String[numberOfIndices];
+
+            for (int i = 0; i < numberOfIndices; i++) {
+                names[i] = "index_" + i;
+            }
+
+            return MockIndexMetadataBuilder.indices(names).build();
+        }
+
+        static SecurityDynamicConfiguration<RoleV7> createRoles(int numberOfRoles, int numberOfIndices) {
+            try {
+                Random random = new Random(1);
+                Map<String, Object> rolesDocument = new HashMap<>();
+                List<String> allowedActions = Arrays.asList(
+                    "indices:data/read*",
+                    "indices:admin/mappings/fields/get*",
+                    "indices:admin/resolve/index",
+                    "indices:data/write*",
+                    "indices:admin/mapping/put"
+                );
+
+                for (int i = 0; i < numberOfRoles; i++) {
+                    List<String> indexPatterns = new ArrayList<>();
+                    int numberOfIndexPatterns = Math.min(
+                        (int) ((Math.abs(random.nextGaussian() + 0.3)) * 0.5 * numberOfIndices),
+                        numberOfIndices
+                    );
+
+                    int numberOfIndexPatterns10th = numberOfIndexPatterns / 10;
+
+                    if (numberOfIndexPatterns10th > 0) {
+                        for (int k = 0; k < numberOfIndexPatterns10th; k++) {
+                            indexPatterns.add("index_" + random.nextInt(numberOfIndices / 10) + "*");
+                        }
+                    } else {
+                        for (int k = 0; k < numberOfIndexPatterns; k++) {
+                            indexPatterns.add("index_" + random.nextInt(numberOfIndices));
+                        }
+                    }
+
+                    Map<String, Object> roleDocument = ImmutableMap.of(
+                        "index_permissions",
+                        Arrays.asList(ImmutableMap.of("index_patterns", indexPatterns, "allowed_actions", allowedActions))
+                    );
+
+                    rolesDocument.put("role_" + i, roleDocument);
+                }
+
+                return SecurityDynamicConfiguration.fromMap(rolesDocument, CType.ROLES, 2);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
