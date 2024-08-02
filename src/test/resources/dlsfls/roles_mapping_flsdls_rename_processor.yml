@@ -1,0 +1,22 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+flsdls_test:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  and_backend_roles: []
+  description: "Role for testing RenameFieldResponseProcessor"
+  users:
+  - "user_aaa"
+search_pipelines:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  and_backend_roles: []
+  description: "Adding permissions for search pipelines CRUD operations"
+  users:
+    - "admin"

@@ -1,0 +1,25 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+flsdls_test:
+  cluster_permissions:
+    - "data/read/search"
+    - "read"
+  index_permissions:
+    - index_patterns:
+        - "flights"
+      dls: "{ \"match\": { \"FlightDelay\": true }}"
+      fls:
+        - "~DestCountry"
+      masked_fields:
+        - "FlightNum"
+      allowed_actions:
+        - "data/read/search"
+        - "read"
+search_pipelines:
+  cluster_permissions:
+    - "cluster:admin/search/pipeline/put"
+    - "cluster:monitor/nodes/info"
+    - "cluster:monitor/nodes/stats"
+    - "cluster:monitor/state"
