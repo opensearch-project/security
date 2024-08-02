@@ -868,7 +868,7 @@ public class ActionPrivileges {
                 roles.getCEntries().keySet()
             );
             CompactMapGroupBuilder<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> indexMapBuilder =
-                    new CompactMapGroupBuilder<>(indices.keySet(), (k2) -> roleSetBuilder.createSubSetBuilder());
+                new CompactMapGroupBuilder<>(indices.keySet(), (k2) -> roleSetBuilder.createSubSetBuilder());
 
             top: for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
@@ -905,10 +905,7 @@ public class ActionPrivileges {
                                     CompactMapGroupBuilder.MapBuilder<
                                         String,
                                         DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> indexToRoles = actionToIndexToRoles
-                                            .computeIfAbsent(
-                                                action,
-                                                k -> indexMapBuilder.createMapBuilder()
-                                            );
+                                            .computeIfAbsent(action, k -> indexMapBuilder.createMapBuilder());
 
                                     indexToRoles.get(indicesEntry.getKey()).add(roleName);
 
