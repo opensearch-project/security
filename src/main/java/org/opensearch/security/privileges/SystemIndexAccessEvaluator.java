@@ -179,7 +179,7 @@ public class SystemIndexAccessEvaluator {
             .collect(Collectors.toSet());
         if (isSystemIndexEnabled) {
             systemIndices.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
-            systemIndices.addAll(SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices()));
+            systemIndices.addAll(SystemIndexRegistry.matchesSystemIndexPattern(requestedResolved.getAllIndices().toArray(String[]::new)));
         }
         return systemIndices;
     }
