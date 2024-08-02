@@ -4,7 +4,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 2.16.0
 
 ### Enhancements
 * Add support for PBKDF2 for password hashing & add support for configuring BCrypt and PBKDF2 ([#4524](https://github.com/opensearch-project/security/pull/4524))
-* Use SystemIndexRegistry from core to determine if request contains system indices ([#4471](https://github.com/opensearch-project/security/pull/4471))
 * Separated DLS/FLS privilege evaluation from action privilege evaluation ([#4490](https://github.com/opensearch-project/security/pull/4490))
 * Update PULL_REQUEST_TEMPLATE to include an API spec change in the checklist. ([#4533](https://github.com/opensearch-project/security/pull/4533))
 * Update PATCH API to fail validation if nothing changes ([#4530](https://github.com/opensearch-project/security/pull/4530))
@@ -26,7 +25,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 2.16.0
 ### Maintenance
 * Remove unused dependancy Apache CXF ([#4580](https://github.com/opensearch-project/security/pull/4580))
 * Remove unnecessary return statements ([#4558](https://github.com/opensearch-project/security/pull/4558))
-* Pass set to SystemIndexRegistry.matchesSystemIndexPattern ([#4569](https://github.com/opensearch-project/security/pull/4569))
 * Refactor and update existing ml roles ([#4151](https://github.com/opensearch-project/security/pull/4151))
 * Replace JUnit assertEquals() with Hamcrest matchers assertThat() ([#4544](https://github.com/opensearch-project/security/pull/4544))
 * Update Gradle to 8.9 ([#4553](https://github.com/opensearch-project/security/pull/4553))
