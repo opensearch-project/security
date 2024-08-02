@@ -56,7 +56,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SystemIndexAccessEvaluatorTest {
+public class SecurityIndexAccessEvaluatorTest {
 
     @Mock
     private AuditLog auditLog;
@@ -73,7 +73,7 @@ public class SystemIndexAccessEvaluatorTest {
     @Mock
     ClusterService cs;
 
-    private SystemIndexAccessEvaluator evaluator;
+    private SecurityIndexAccessEvaluator evaluator;
     private static final String UNPROTECTED_ACTION = "indices:data/read";
     private static final String PROTECTED_ACTION = "indices:data/write";
 
@@ -137,7 +137,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         // when trying to resolve Index Names
 
-        evaluator = new SystemIndexAccessEvaluator(
+        evaluator = new SecurityIndexAccessEvaluator(
             Settings.builder()
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, TEST_SYSTEM_INDEX)
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, isSystemIndexEnabled)
