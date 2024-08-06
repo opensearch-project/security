@@ -34,11 +34,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1186,7 +1188,10 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 ? cert.getSubjectAlternativeNames()
                 : null;
             if (altNames != null) {
-                Collection<List<?>> sans = new ArrayList<>();
+                Comparator<List<?>> comparator = Comparator.comparing((List<?> altName) -> (Integer) altName.get(0))
+                    .thenComparing((List<?> altName) -> (String) altName.get(1));
+
+                Set<List<?>> sans = new TreeSet<>(comparator);
                 for (List<?> altName : altNames) {
                     Integer type = (Integer) altName.get(0);
                     // otherName requires parsing to string
