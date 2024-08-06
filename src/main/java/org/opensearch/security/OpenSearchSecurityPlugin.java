@@ -165,6 +165,7 @@ import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.identity.labels.DefaultUserInfoLabelingRule;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
@@ -1212,6 +1213,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
             clusterService.addListener(cr);
         }
+        components.add(new DefaultUserInfoLabelingRule());
         return components;
     }
 
