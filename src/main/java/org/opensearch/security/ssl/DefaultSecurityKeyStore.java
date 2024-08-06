@@ -1178,8 +1178,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 ? cert.getSubjectAlternativeNames()
                 : null;
             if (altNames != null) {
-                Comparator<List<?>> comparator = Comparator
-                    .comparing((List<?> altName) -> (Integer) altName.get(0))
+                Comparator<List<?>> comparator = Comparator.comparing((List<?> altName) -> (Integer) altName.get(0))
                     .thenComparing((List<?> altName) -> (String) altName.get(1));
 
                 Set<List<?>> sans = new TreeSet<>(comparator);
