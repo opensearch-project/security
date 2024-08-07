@@ -15,6 +15,7 @@ import java.util.Set;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.opensearch.security.user.User;
 
@@ -80,6 +81,7 @@ public class UserAttributes {
         return retVal;
     }
 
+    @Deprecated
     private static String replaceSecurityRoles(final String orig, final User user) {
         String retVal = orig;
         if (orig.contains("${user.securityRoles}") || orig.contains("${user_securityRoles}")) {
