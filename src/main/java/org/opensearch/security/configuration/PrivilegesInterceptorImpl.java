@@ -46,6 +46,7 @@ import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -203,6 +204,11 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             // to avoid security issue
 
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
+
+            // The new DLS/FLS implementation defaults to a "deny all" pattern in case no roles are configured
+            // for an index. As the PrivilegeInterceptor grants access to indices bypassing index privileges,
+            // we need to allow-list these indices.
+            applyDocumentAllowList(tenantIndexName);
             return newAccessGrantedReplaceResult(replaceIndex(request, dashboardsIndexName, tenantIndexName, action));
 
         } else if (!user.getName().equals(dashboardsServerUsername)) {
@@ -216,6 +222,20 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         return CONTINUE_EVALUATION_REPLACE_RESULT;
+    }
+
+    private void applyDocumentAllowList(String indexName) {
+        DocumentAllowList documentAllowList = new DocumentAllowList();
+        documentAllowList.add(indexName, "*");
+        IndexAbstraction indexAbstraction = clusterService.state().getMetadata().getIndicesLookup().get(indexName);
+
+        if (indexAbstraction instanceof IndexAbstraction.Alias) {
+            for (IndexMetadata index : ((IndexAbstraction.Alias) indexAbstraction).getIndices()) {
+                documentAllowList.add(index.getIndex().getName(), "*");
+            }
+        }
+
+        documentAllowList.applyTo(threadPool.getThreadContext());
     }
 
     private String getConcreteIndexName(String name, Map<String, IndexAbstraction> indicesLookup) {

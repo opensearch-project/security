@@ -42,6 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,8 +58,10 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -682,6 +685,22 @@ public class TestSecurityConfig {
         public int hashCode() {
             return Objects.hash(name, clusterPermissions, indexPermissions, hidden, reserved, description);
         }
+
+        public static SecurityDynamicConfiguration<org.opensearch.security.securityconf.impl.v7.RoleV7> toRolesConfiguration(
+            TestSecurityConfig.Role... roles
+        ) {
+            try {
+                return SecurityDynamicConfiguration.fromJson(
+                    configToJson(CType.ROLES, Stream.of(roles).collect(Collectors.toMap(r -> r.name, r -> r))),
+                    CType.ROLES,
+                    2,
+                    0,
+                    0
+                );
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public static class RoleMapping implements ToXContentObject {
@@ -792,6 +811,11 @@ public class TestSecurityConfig {
 
         public IndexPermission dls(String dlsQuery) {
             this.dlsQuery = dlsQuery;
+            return this;
+        }
+
+        public IndexPermission dls(QueryBuilder dlsQuery) {
+            this.dlsQuery = Strings.toString(MediaTypeRegistry.JSON, dlsQuery);
             return this;
         }
 
