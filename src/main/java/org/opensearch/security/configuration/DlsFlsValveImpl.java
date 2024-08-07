@@ -16,14 +16,18 @@ import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -34,13 +38,12 @@ import org.apache.lucene.util.BytesRef;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
+import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
-import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.action.admin.indices.shrink.ResizeRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
-import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.update.UpdateRequest;
@@ -72,17 +75,23 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluationException;
+import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
+import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
+import org.opensearch.security.privileges.dlsfls.DlsRestriction;
+import org.opensearch.security.privileges.dlsfls.FieldMasking;
+import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
+import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
-
-import org.greenrobot.eventbus.Subscribe;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
@@ -93,11 +102,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final ClusterService clusterService;
     private final ThreadContext threadContext;
     private final Mode mode;
-    private final DlsQueryParser dlsQueryParser;
     private final IndexNameExpressionResolver resolver;
-    private final boolean dfmEmptyOverwritesAll;
     private final NamedXContentRegistry namedXContentRegistry;
-    private volatile ConfigModel configModel;
+    private final DlsFlsBaseContext dlsFlsBaseContext;
+    private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
+    private final FieldMasking.Config fieldMaskingConfig;
+    private final Settings settings;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -105,22 +115,27 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ClusterService clusterService,
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
-        ThreadContext threadContext
+        ThreadPool threadPool,
+        DlsFlsBaseContext dlsFlsBaseContext
     ) {
         super();
         this.nodeClient = nodeClient;
         this.clusterService = clusterService;
         this.resolver = resolver;
-        this.threadContext = threadContext;
+        this.threadContext = threadPool.getThreadContext();
         this.mode = Mode.get(settings);
-        this.dlsQueryParser = new DlsQueryParser(namedXContentRegistry);
-        this.dfmEmptyOverwritesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
         this.namedXContentRegistry = namedXContentRegistry;
-    }
+        this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
+        this.dlsFlsBaseContext = dlsFlsBaseContext;
+        this.settings = settings;
 
-    @Subscribe
-    public void onConfigModelChanged(ConfigModel configModel) {
-        this.configModel = configModel;
+        clusterService.addListener(event -> {
+            DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
+
+            if (config != null) {
+                config.updateIndicesAsync(clusterService, threadPool);
+            }
+        });
     }
 
     /**
@@ -130,269 +145,298 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-
-        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig = configModel.getSecurityRoles()
-            .filter(context.getMappedRoles())
-            .getDlsFls(context.getUser(), dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
-
+        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
-        if (log.isDebugEnabled()) {
-            log.debug(
-                "DlsFlsValveImpl.invoke()\nrequest: "
-                    + request
-                    + "\nevaluatedDlsFlsConfig: "
-                    + evaluatedDlsFlsConfig
-                    + "\ncontext: "
-                    + resolved
-                    + "\nmode: "
-                    + mode
-            );
-        }
+        try {
+            boolean hasDlsRestrictions = !config.getDocumentPrivileges().isUnrestricted(context, resolved);
+            boolean hasFlsRestrictions = !config.getFieldPrivileges().isUnrestricted(context, resolved);
+            boolean hasFieldMasking = !config.getFieldMasking().isUnrestricted(context, resolved);
 
-        if (evaluatedDlsFlsConfig == null || evaluatedDlsFlsConfig.isEmpty()) {
-            return true;
-        }
-
-        if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("DLS is already done for: " + threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE));
+            if (!hasDlsRestrictions && !hasFlsRestrictions && !hasFieldMasking) {
+                return true;
             }
 
-            return true;
-        }
+            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                        "DLS is already done for: {}",
+                        threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
+                    );
+                }
 
-        EvaluatedDlsFlsConfig filteredDlsFlsConfig = evaluatedDlsFlsConfig.filter(resolved);
+                return true;
+            }
 
-        boolean doFilterLevelDls;
+            IndexToRuleMap<DlsRestriction> dlsRestrictionMap = null;
+            boolean doFilterLevelDls;
 
-        if (mode == Mode.FILTER_LEVEL) {
-            doFilterLevelDls = true;
-        } else if (mode == Mode.LUCENE_LEVEL) {
-            doFilterLevelDls = false;
-        } else { // mode == Mode.ADAPTIVE
-            Mode modeByHeader = getDlsModeHeader();
-
-            if (modeByHeader == Mode.FILTER_LEVEL) {
+            if (mode == Mode.FILTER_LEVEL) {
                 doFilterLevelDls = true;
-                log.debug("Doing filter-level DLS due to header");
-            } else {
-                doFilterLevelDls = dlsQueryParser.containsTermLookupQuery(filteredDlsFlsConfig.getAllQueries());
+                dlsRestrictionMap = config.getDocumentPrivileges()
+                    .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
+            } else if (mode == Mode.LUCENE_LEVEL) {
+                doFilterLevelDls = false;
+            } else { // mode == Mode.ADAPTIVE
+                Mode modeByHeader = getDlsModeHeader();
 
-                if (doFilterLevelDls) {
-                    setDlsModeHeader(Mode.FILTER_LEVEL);
-                    log.debug("Doing filter-level DLS because the query contains a TLQ");
+                if (modeByHeader == Mode.FILTER_LEVEL) {
+                    doFilterLevelDls = true;
+                    log.debug("Doing filter-level DLS due to header");
+                    dlsRestrictionMap = config.getDocumentPrivileges()
+                        .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
                 } else {
-                    log.debug("Doing lucene-level DLS because the query does not contain a TLQ");
-                }
-            }
-        }
+                    dlsRestrictionMap = config.getDocumentPrivileges()
+                        .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
+                    doFilterLevelDls = dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery);
 
-        if (!doFilterLevelDls) {
-            setDlsHeaders(evaluatedDlsFlsConfig, request);
-        }
-
-        setFlsHeaders(evaluatedDlsFlsConfig, request);
-
-        if (filteredDlsFlsConfig.isEmpty()) {
-            return true;
-        }
-
-        if (request instanceof RealtimeRequest) {
-            ((RealtimeRequest) request).realtime(Boolean.FALSE);
-        }
-
-        if (request instanceof SearchRequest) {
-
-            SearchRequest searchRequest = ((SearchRequest) request);
-
-            // When we encounter a terms or sampler aggregation with masked fields activated we forcibly
-            // need to switch off global ordinals because field masking can break ordering
-            // CS-SUPPRESS-SINGLE: RegexpSingleline Ignore term inside of url
-            // https://www.elastic.co/guide/en/elasticsearch/reference/master/eager-global-ordinals.html#_avoiding_global_ordinal_loading
-            // CS-ENFORCE-SINGLE
-            if (evaluatedDlsFlsConfig.hasFieldMasking()) {
-
-                if (searchRequest.source() != null && searchRequest.source().aggregations() != null) {
-                    for (AggregationBuilder aggregationBuilder : searchRequest.source().aggregations().getAggregatorFactories()) {
-                        if (aggregationBuilder instanceof TermsAggregationBuilder) {
-                            ((TermsAggregationBuilder) aggregationBuilder).executionHint(MAP_EXECUTION_HINT);
-                        }
-
-                        if (aggregationBuilder instanceof SignificantTermsAggregationBuilder) {
-                            ((SignificantTermsAggregationBuilder) aggregationBuilder).executionHint(MAP_EXECUTION_HINT);
-                        }
-
-                        if (aggregationBuilder instanceof DiversifiedAggregationBuilder) {
-                            ((DiversifiedAggregationBuilder) aggregationBuilder).executionHint(MAP_EXECUTION_HINT);
-                        }
+                    if (doFilterLevelDls) {
+                        setDlsModeHeader(Mode.FILTER_LEVEL);
+                        log.debug("Doing filter-level DLS because the query contains a TLQ");
+                    } else {
+                        log.debug("Doing lucene-level DLS because the query does not contain a TLQ");
                     }
                 }
             }
 
-            if (!evaluatedDlsFlsConfig.hasFls() && !evaluatedDlsFlsConfig.hasDls() && searchRequest.source().aggregations() != null) {
+            if (legacyHeadersRequired()) {
+                Set<String> indices = clusterService.state().metadata().indices().keySet();
 
-                boolean cacheable = true;
-
-                for (AggregationBuilder af : searchRequest.source().aggregations().getAggregatorFactories()) {
-
-                    if (!af.getType().equals("cardinality") && !af.getType().equals("count")) {
-                        cacheable = false;
-                        continue;
-                    }
-
-                    StringBuilder sb = new StringBuilder();
-
-                    if (searchRequest.source() != null) {
-                        sb.append(Strings.toString(MediaTypeRegistry.JSON, searchRequest.source()) + System.lineSeparator());
-                    }
-
-                    sb.append(Strings.toString(MediaTypeRegistry.JSON, af) + System.lineSeparator());
-
-                    LogManager.getLogger("debuglogger").error(sb.toString());
-
+                if (!doFilterLevelDls) {
+                    setDlsHeaders(config.getDocumentPrivileges().getRestrictions(context, indices), request);
                 }
 
-                if (!cacheable) {
-                    searchRequest.requestCache(Boolean.FALSE);
-                } else {
-                    LogManager.getLogger("debuglogger")
-                        .error(
-                            "Shard requestcache enabled for "
-                                + (searchRequest.source() == null
-                                    ? "<NULL>"
-                                    : Strings.toString(MediaTypeRegistry.JSON, searchRequest.source()))
-                        );
-                }
-
-            } else {
-                searchRequest.requestCache(Boolean.FALSE);
+                setFlsHeaders(
+                    config.getFieldPrivileges().getRestrictions(context, indices),
+                    config.getFieldMasking().getRestrictions(context, indices),
+                    request
+                );
             }
-        }
 
-        if (request instanceof UpdateRequest) {
-            listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
-            return false;
-        }
-
-        if (request instanceof BulkRequest) {
-            for (DocWriteRequest<?> inner : ((BulkRequest) request).requests()) {
-                if (inner instanceof UpdateRequest) {
-                    listener.onFailure(
-                        new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated")
-                    );
-                    return false;
-                }
+            if (request instanceof RealtimeRequest) {
+                ((RealtimeRequest) request).realtime(Boolean.FALSE);
             }
-        }
 
-        if (request instanceof BulkShardRequest) {
-            for (BulkItemRequest inner : ((BulkShardRequest) request).items()) {
-                if (inner.request() instanceof UpdateRequest) {
-                    listener.onFailure(
-                        new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated")
-                    );
-                    return false;
-                }
-            }
-        }
-
-        if (request instanceof ResizeRequest) {
-            listener.onFailure(new OpenSearchSecurityException("Resize is not supported when FLS or DLS or Fieldmasking is activated"));
-            return false;
-        }
-
-        if (context.getAction().contains("plugins/replication")) {
-            listener.onFailure(
-                new OpenSearchSecurityException(
-                    "Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated",
-                    RestStatus.FORBIDDEN
-                )
-            );
-            return false;
-        }
-
-        if (evaluatedDlsFlsConfig.hasDls()) {
             if (request instanceof SearchRequest) {
 
-                final SearchSourceBuilder source = ((SearchRequest) request).source();
-                if (source != null) {
-                    AggregatorFactories.Builder aggregations = source.aggregations();
-                    if (aggregations != null) {
-                        for (AggregationBuilder factory : aggregations.getAggregatorFactories()) {
-                            if (factory instanceof TermsAggregationBuilder && ((TermsAggregationBuilder) factory).minDocCount() == 0) {
-                                listener.onFailure(new OpenSearchException("min_doc_count 0 is not supported when DLS is activated"));
-                                return false;
+                SearchRequest searchRequest = ((SearchRequest) request);
+
+                // When we encounter a terms or sampler aggregation with masked fields activated we forcibly
+                // need to switch off global ordinals because field masking can break ordering
+                // CS-SUPPRESS-SINGLE: RegexpSingleline Ignore term inside of url
+                // https://www.elastic.co/guide/en/elasticsearch/reference/master/eager-global-ordinals.html#_avoiding_global_ordinal_loading
+                // CS-ENFORCE-SINGLE
+                if (hasFieldMasking) {
+
+                    if (searchRequest.source() != null && searchRequest.source().aggregations() != null) {
+                        for (AggregationBuilder aggregationBuilder : searchRequest.source().aggregations().getAggregatorFactories()) {
+                            if (aggregationBuilder instanceof TermsAggregationBuilder) {
+                                ((TermsAggregationBuilder) aggregationBuilder).executionHint(MAP_EXECUTION_HINT);
+                            }
+
+                            if (aggregationBuilder instanceof SignificantTermsAggregationBuilder) {
+                                ((SignificantTermsAggregationBuilder) aggregationBuilder).executionHint(MAP_EXECUTION_HINT);
+                            }
+
+                            if (aggregationBuilder instanceof DiversifiedAggregationBuilder) {
+                                ((DiversifiedAggregationBuilder) aggregationBuilder).executionHint(MAP_EXECUTION_HINT);
                             }
                         }
                     }
+                }
 
-                    if (source.profile()) {
-                        listener.onFailure(new OpenSearchSecurityException("Profiling is not supported when DLS is activated"));
-                        return false;
+                if (!hasFlsRestrictions && !hasDlsRestrictions && searchRequest.source().aggregations() != null) {
+
+                    boolean cacheable = true;
+
+                    for (AggregationBuilder af : searchRequest.source().aggregations().getAggregatorFactories()) {
+
+                        if (!af.getType().equals("cardinality") && !af.getType().equals("count")) {
+                            cacheable = false;
+                            continue;
+                        }
+
+                        StringBuilder sb = new StringBuilder();
+
+                        if (searchRequest.source() != null) {
+                            sb.append(Strings.toString(MediaTypeRegistry.JSON, searchRequest.source()) + System.lineSeparator());
+                        }
+
+                        sb.append(Strings.toString(MediaTypeRegistry.JSON, af) + System.lineSeparator());
+
+                        LogManager.getLogger("debuglogger").error(sb.toString());
+
                     }
 
+                    if (!cacheable) {
+                        searchRequest.requestCache(Boolean.FALSE);
+                    } else {
+                        LogManager.getLogger("debuglogger")
+                            .error(
+                                "Shard requestcache enabled for "
+                                    + (searchRequest.source() == null
+                                        ? "<NULL>"
+                                        : Strings.toString(MediaTypeRegistry.JSON, searchRequest.source()))
+                            );
+                    }
+
+                } else {
+                    searchRequest.requestCache(Boolean.FALSE);
                 }
             }
-        }
 
-        if (doFilterLevelDls && filteredDlsFlsConfig.hasDls()) {
-            return DlsFilterLevelActionHandler.handle(
-                context,
-                evaluatedDlsFlsConfig,
-                listener,
-                nodeClient,
-                clusterService,
-                OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
-                resolver,
-                dlsQueryParser,
-                threadContext
-            );
-        } else {
-            return true;
+            if (request instanceof UpdateRequest) {
+                listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
+                return false;
+            }
+
+            if (request instanceof BulkShardRequest) {
+                for (BulkItemRequest inner : ((BulkShardRequest) request).items()) {
+                    if (inner.request() instanceof UpdateRequest) {
+                        listener.onFailure(
+                            new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated")
+                        );
+                        return false;
+                    }
+                }
+            }
+
+            if (request instanceof ResizeRequest) {
+                listener.onFailure(new OpenSearchSecurityException("Resize is not supported when FLS or DLS or Fieldmasking is activated"));
+                return false;
+            }
+
+            if (context.getAction().contains("plugins/replication")) {
+                listener.onFailure(
+                    new OpenSearchSecurityException(
+                        "Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated",
+                        RestStatus.FORBIDDEN
+                    )
+                );
+                return false;
+            }
+
+            if (hasDlsRestrictions) {
+                if (request instanceof SearchRequest) {
+
+                    final SearchSourceBuilder source = ((SearchRequest) request).source();
+                    if (source != null) {
+                        AggregatorFactories.Builder aggregations = source.aggregations();
+                        if (aggregations != null) {
+                            for (AggregationBuilder factory : aggregations.getAggregatorFactories()) {
+                                if (factory instanceof TermsAggregationBuilder && ((TermsAggregationBuilder) factory).minDocCount() == 0) {
+                                    listener.onFailure(new OpenSearchException("min_doc_count 0 is not supported when DLS is activated"));
+                                    return false;
+                                }
+                            }
+                        }
+
+                        if (source.profile()) {
+                            listener.onFailure(new OpenSearchSecurityException("Profiling is not supported when DLS is activated"));
+                            return false;
+                        }
+
+                    }
+                }
+            }
+
+            if (doFilterLevelDls && hasDlsRestrictions) {
+                return DlsFilterLevelActionHandler.handle(
+                    context,
+                    dlsRestrictionMap,
+                    listener,
+                    nodeClient,
+                    clusterService,
+                    OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
+                    resolver,
+                    threadContext
+                );
+            } else {
+                return true;
+            }
+
+        } catch (PrivilegesEvaluationException e) {
+            log.error("Error while evaluating DLS/FLS privileges", e);
+            listener.onFailure(new OpenSearchSecurityException("Error while evaluating DLS/FLS privileges"));
+            return false;
+        } catch (RuntimeException e) {
+            log.error(e);
+            throw e;
         }
     }
 
     @Override
-    public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
+    public void handleSearchContext(SearchContext searchContext, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
         try {
-            @SuppressWarnings("unchecked")
-            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
-                threadPool.getThreadContext(),
-                ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER
-            );
+            String index = searchContext.indexShard().indexSettings().getIndex().getName();
 
-            final String dlsEval = SecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
+            if (log.isTraceEnabled()) {
+                log.trace("handleSearchContext(); index: {}", index);
+            }
 
-            if (dlsEval != null) {
+            if (searchContext.suggest() != null) {
+                return;
+            }
 
-                if (context.suggest() != null) {
+            if (dlsFlsBaseContext.isDlsDoneOnFilterLevel() || mode == Mode.FILTER_LEVEL) {
+                // For filter level DLS, the query was already modified to include the DLS restrictions.
+                // Thus, we can exist here early.
+                log.trace("handleSearchContext(): DLS is done on the filter level; no further handling necessary");
+                return;
+            }
+
+            PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+            if (privilegesEvaluationContext == null) {
+                return;
+            }
+
+            DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+
+            DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
+
+            if (log.isTraceEnabled()) {
+                log.trace("handleSearchContext(); index: {}; dlsRestriction: {}", index, dlsRestriction);
+            }
+
+            DocumentAllowList documentAllowList = DocumentAllowList.get(threadContext);
+
+            if (documentAllowList.isEntryForIndexPresent(index)) {
+                // The documentAllowList is needed for two cases:
+                // - DLS rules which use "term lookup queries" and thus need to access indices for which no privileges are present
+                // - Dashboards multi tenancy which can redirect index accesses to indices for which no normal index privileges are present
+
+                if (!dlsRestriction.isUnrestricted() && documentAllowList.isAllowed(index, "*")) {
+                    dlsRestriction = DlsRestriction.NONE;
+                    log.debug("Lifting DLS for {} due to present document allowlist", index);
+                }
+            }
+
+            if (!dlsRestriction.isUnrestricted()) {
+                if (mode == Mode.ADAPTIVE && dlsRestriction.containsTermLookupQuery()) {
+                    // Special case for scroll operations:
+                    // Normally, the check dlsFlsBaseContext.isDlsDoneOnFilterLevel() already aborts early if DLS filter level mode
+                    // has been activated. However, this is not the case for scroll operations, as these lose the thread context value
+                    // on which dlsFlsBaseContext.isDlsDoneOnFilterLevel() is based on. Thus, we need to check here again the deeper
+                    // conditions.
+                    log.trace("DlsRestriction: contains TLQ.");
                     return;
                 }
 
-                assert context.parsedQuery() != null;
+                assert searchContext.parsedQuery() != null;
 
-                final Set<String> unparsedDlsQueries = queries.get(dlsEval);
+                BooleanQuery.Builder queryBuilder = dlsRestriction.toBooleanQueryBuilder(
+                    searchContext.getQueryShardContext(),
+                    (q) -> new ConstantScoreQuery(q)
+                );
 
-                if (unparsedDlsQueries != null && !unparsedDlsQueries.isEmpty()) {
-                    BooleanQuery.Builder queryBuilder = dlsQueryParser.parse(
-                        unparsedDlsQueries,
-                        context.getQueryShardContext(),
-                        (q) -> new ConstantScoreQuery(q)
-                    );
+                queryBuilder.add(searchContext.parsedQuery().query(), Occur.MUST);
 
-                    queryBuilder.add(context.parsedQuery().query(), Occur.MUST);
-
-                    ParsedQuery dlsQuery = new ParsedQuery(queryBuilder.build());
-
-                    if (dlsQuery != null) {
-                        context.parsedQuery(dlsQuery);
-                        context.preProcess(true);
-                    }
-                }
+                searchContext.parsedQuery(new ParsedQuery(queryBuilder.build()));
+                searchContext.preProcess(true);
             }
         } catch (Exception e) {
+            log.error("Error in handleSearchContext()", e);
             throw new RuntimeException("Error evaluating dls for a search query: " + e, e);
         }
     }
@@ -409,6 +453,45 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     .collect(ImmutableList.toImmutableList())
             )
         );
+    }
+
+    @Override
+    public DlsFlsProcessedConfig getCurrentConfig() {
+        return dlsFlsProcessedConfig.get();
+    }
+
+    @Override
+    public boolean hasFlsOrFieldMasking(String index) throws PrivilegesEvaluationException {
+        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        if (privilegesEvaluationContext == null) {
+            return false;
+        }
+
+        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+        return !config.getFieldPrivileges().isUnrestricted(privilegesEvaluationContext, index)
+            || !config.getFieldMasking().isUnrestricted(privilegesEvaluationContext, index);
+    }
+
+    @Override
+    public boolean hasFieldMasking(String index) throws PrivilegesEvaluationException {
+        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        if (privilegesEvaluationContext == null) {
+            return false;
+        }
+
+        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+        return !config.getFieldMasking().isUnrestricted(privilegesEvaluationContext, index);
+    }
+
+    @Override
+    public boolean isFieldAllowed(String index, String field) throws PrivilegesEvaluationException {
+        PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
+        if (privilegesEvaluationContext == null) {
+            return true;
+        }
+
+        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+        return config.getFieldPrivileges().getRestriction(privilegesEvaluationContext, index).isAllowed(field);
     }
 
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {
@@ -441,17 +524,33 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return buckets;
     }
 
-    private void setDlsHeaders(EvaluatedDlsFlsConfig dlsFls, ActionRequest request) {
-        if (!dlsFls.getDlsQueriesByIndex().isEmpty()) {
-            Map<String, Set<String>> dlsQueries = dlsFls.getDlsQueriesByIndex();
+    private boolean legacyHeadersRequired() {
+        // TODO this needs to be adapted if backported
+        return !clusterService.state().nodes().getMinNodeVersion().onOrAfter(Version.V_3_0_0);
+    }
+
+    private void setDlsHeaders(IndexToRuleMap<DlsRestriction> dlsRestrictionMap, ActionRequest request) {
+        if (!dlsRestrictionMap.getIndexMap().isEmpty()) {
+            Map<String, Set<String>> dlsQueriesByIndex = new HashMap<>();
+
+            for (Map.Entry<String, DlsRestriction> entry : dlsRestrictionMap.getIndexMap().entrySet()) {
+                dlsQueriesByIndex.put(
+                    entry.getKey(),
+                    entry.getValue()
+                        .getQueries()
+                        .stream()
+                        .map(queryBuilder -> Strings.toString(MediaTypeRegistry.JSON, queryBuilder))
+                        .collect(Collectors.toSet())
+                );
+            }
 
             if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
                 threadContext.addResponseHeader(
                     ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER,
-                    Base64Helper.serializeObject((Serializable) dlsQueries)
+                    Base64Helper.serializeObject((Serializable) dlsQueriesByIndex)
                 );
                 if (log.isDebugEnabled()) {
-                    log.debug("added response header for DLS info: {}", dlsQueries);
+                    log.debug("added response header for DLS info: {}", dlsQueriesByIndex);
                 }
             } else {
                 if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER) != null) {
@@ -459,7 +558,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER),
                         threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
                     );
-                    if (!dlsQueries.equals(deserializedDlsQueries)) {
+                    if (!dlsQueriesByIndex.equals(deserializedDlsQueries)) {
                         throw new OpenSearchSecurityException(
                             ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)"
                         );
@@ -467,10 +566,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 } else {
                     threadContext.putHeader(
                         ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER,
-                        Base64Helper.serializeObject((Serializable) dlsQueries)
+                        Base64Helper.serializeObject((Serializable) dlsQueriesByIndex)
                     );
                     if (log.isDebugEnabled()) {
-                        log.debug("attach DLS info: {}", dlsQueries);
+                        log.debug("attach DLS info: {}", dlsQueriesByIndex);
                     }
                 }
             }
@@ -504,9 +603,17 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
     }
 
-    private void setFlsHeaders(EvaluatedDlsFlsConfig dlsFls, ActionRequest request) {
-        if (!dlsFls.getFieldMaskingByIndex().isEmpty()) {
-            Map<String, Set<String>> maskedFieldsMap = dlsFls.getFieldMaskingByIndex();
+    private void setFlsHeaders(
+        IndexToRuleMap<FieldPrivileges.FlsRule> flsRuleMap,
+        IndexToRuleMap<FieldMasking.FieldMaskingRule> fmRuleMap,
+        ActionRequest request
+    ) {
+        if (!fmRuleMap.isUnrestricted()) {
+            Map<String, Set<String>> maskedFieldsMap = new HashMap<>();
+
+            for (Map.Entry<String, FieldMasking.FieldMaskingRule> entry : fmRuleMap.getIndexMap().entrySet()) {
+                maskedFieldsMap.put(entry.getKey(), Sets.newHashSet(entry.getValue().getSource()));
+            }
 
             if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
                 threadContext.addResponseHeader(
@@ -545,8 +652,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
 
-        if (!dlsFls.getFlsByIndex().isEmpty()) {
-            Map<String, Set<String>> flsFields = dlsFls.getFlsByIndex();
+        if (!flsRuleMap.isUnrestricted()) {
+            Map<String, Set<String>> flsFields = new HashMap<>();
+
+            for (Map.Entry<String, FieldPrivileges.FlsRule> entry : flsRuleMap.getIndexMap().entrySet()) {
+                flsFields.put(entry.getKey(), Sets.newHashSet(entry.getValue().getSource()));
+            }
 
             if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
                 threadContext.addResponseHeader(
@@ -728,6 +839,28 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             } else {
                 return Mode.ADAPTIVE;
             }
+        }
+    }
+
+    public void updateConfiguration(SecurityDynamicConfiguration<RoleV7> rolesConfiguration) {
+        try {
+            if (rolesConfiguration != null) {
+                DlsFlsProcessedConfig oldConfig = this.dlsFlsProcessedConfig.getAndSet(
+                    new DlsFlsProcessedConfig(
+                        DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
+                        clusterService.state().metadata().getIndicesLookup(),
+                        namedXContentRegistry,
+                        settings,
+                        fieldMaskingConfig
+                    )
+                );
+
+                if (oldConfig != null) {
+                    oldConfig.shutdown();
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error while updating DLS/FLS configuration with {}", rolesConfiguration, e);
         }
     }
 }
