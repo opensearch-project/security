@@ -740,6 +740,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
+    integrationTestImplementation "org.mockito:mockito-core:5.14.2"
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.24.0') {
