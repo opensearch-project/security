@@ -88,7 +88,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return CType.ACTIONGROUPS;
     }
 

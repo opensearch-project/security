@@ -45,10 +45,19 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.setting.DeprecatedSettings;
 
 public class ConfigV6 {
+
+    public static String convertMapKeyToV7(String mapKey) {
+        if (mapKey.equals("opendistro_security")) {
+            return CType.CONFIG.toLCString();
+        } else {
+            return mapKey;
+        }
+    }
 
     public Dynamic dynamic;
 

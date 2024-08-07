@@ -179,7 +179,7 @@ public class TenantInfoAction extends BaseRestHandler {
         return false;
     }
 
-    private final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+    private final SecurityDynamicConfiguration<?> load(final CType<?> config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
             Collections.singleton(config),
             logComplianceEvent

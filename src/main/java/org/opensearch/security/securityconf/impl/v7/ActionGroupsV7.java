@@ -58,6 +58,14 @@ public class ActionGroupsV7 implements Hideable, StaticDefinable {
         description = "Migrated from v6";
     }
 
+    public ActionGroupsV7(ActionGroupsV6 ag6) {
+        reserved = ag6.isReserved();
+        hidden = ag6.isHidden();
+        allowed_actions = ag6.getPermissions();
+        type = "unknown";
+        description = "Migrated from v6";
+    }
+
     public ActionGroupsV7(String key, List<String> allowed_actions) {
         this.allowed_actions = allowed_actions;
         type = "unknown";

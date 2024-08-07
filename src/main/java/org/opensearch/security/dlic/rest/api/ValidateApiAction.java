@@ -63,7 +63,7 @@ public class ValidateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return null;
     }
 
@@ -129,7 +129,7 @@ public class ValidateApiAction extends AbstractApiAction {
         }
     }
 
-    private SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
+    private SecurityDynamicConfiguration<?> load(final CType<?> config, boolean logComplianceEvent, boolean acceptInvalid) {
         SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
             .getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent, acceptInvalid)
             .get(config)

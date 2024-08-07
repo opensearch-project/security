@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -351,7 +352,7 @@ public class EndpointValidatorTest {
         final var array = objectMapper.createArrayNode();
         restAdminPermissions().forEach(array::add);
 
-        when(configuration.getCType()).thenReturn(CType.ROLES);
+        doReturn(CType.ROLES).when(configuration).getCType();
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         when(configuration.exists("some_role")).thenReturn(false);
@@ -378,7 +379,7 @@ public class EndpointValidatorTest {
 
     @Test
     public void regularUserCanNotChangeObjectWithRestAdminPermissionsForMewActionGroups() throws Exception {
-        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         when(configuration.exists("some_ag")).thenReturn(false);
@@ -389,7 +390,7 @@ public class EndpointValidatorTest {
         restAdminPermissions().forEach(array::add);
 
         var agCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
-                SecurityConfiguration.of(objectMapper.createObjectNode().set("allowed_actions", array), "some_ag", configuration)
+            SecurityConfiguration.of(objectMapper.createObjectNode().set("allowed_actions", array), "some_ag", configuration)
         );
         assertFalse(agCheckResult.isValid());
         assertThat(agCheckResult.status(), is(RestStatus.FORBIDDEN));
