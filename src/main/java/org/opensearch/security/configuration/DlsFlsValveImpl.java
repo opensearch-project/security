@@ -144,7 +144,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     + request
                     + "\nevaluatedDlsFlsConfig: "
                     + evaluatedDlsFlsConfig
-                    + "\nresolved: "
+                    + "\ncontext: "
                     + resolved
                     + "\nmode: "
                     + mode

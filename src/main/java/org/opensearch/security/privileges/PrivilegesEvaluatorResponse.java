@@ -26,25 +26,66 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
+
+import com.selectivem.collections.CheckTable;
 
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;
-    Set<String> missingPrivileges = new HashSet<String>();
     Set<String> missingSecurityRoles = new HashSet<>();
-    Set<String> resolvedSecurityRoles = new HashSet<>();
+    private ImmutableSet<String> resolvedSecurityRoles = ImmutableSet.of();
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     CreateIndexRequestBuilder createIndexRequestBuilder;
+    private Set<String> onlyAllowedForIndices = ImmutableSet.of();
+    private CheckTable<String, String> indexToActionCheckTable;
+    private String privilegeMatrix;
+    private String reason;
 
+    /**
+     * Returns true if the request can be fully allowed. See also isAllowedForSpecificIndices().
+     */
     public boolean isAllowed() {
         return allowed;
     }
 
+    /**
+     * Returns true if the request can be allowed if the referenced indices are reduced (aka "do not fail on forbidden")
+     */
+    public boolean isPartiallyOk() {
+        return !this.onlyAllowedForIndices.isEmpty();
+    }
+
+    public Set<String> getAvailableIndices() {
+        return this.onlyAllowedForIndices;
+    }
+
     public Set<String> getMissingPrivileges() {
-        return new HashSet<String>(missingPrivileges);
+        return this.indexToActionCheckTable != null ? this.indexToActionCheckTable.getIncompleteColumns() : Collections.emptySet();
+    }
+
+    public String getReason() {
+        return this.reason;
+    }
+
+    public PrivilegesEvaluatorResponse reason(String reason) {
+        this.reason = reason;
+        return this;
+    }
+
+    public String getPrivilegeMatrix() {
+        String result = this.privilegeMatrix;
+
+        if (result == null) {
+            result = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            this.privilegeMatrix = result;
+        }
+        return result;
     }
 
     public Set<String> getMissingSecurityRoles() {
@@ -52,7 +93,12 @@ public class PrivilegesEvaluatorResponse {
     }
 
     public Set<String> getResolvedSecurityRoles() {
-        return new HashSet<>(resolvedSecurityRoles);
+        return resolvedSecurityRoles;
+    }
+
+    public PrivilegesEvaluatorResponse resolvedSecurityRoles(Set<String> resolvedSecurityRoles) {
+        this.resolvedSecurityRoles = ImmutableSet.copyOf(resolvedSecurityRoles);
+        return this;
     }
 
     public CreateIndexRequestBuilder getCreateIndexRequestBuilder() {
@@ -79,11 +125,59 @@ public class PrivilegesEvaluatorResponse {
 
     @Override
     public String toString() {
-        return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges + "]";
+        return "PrivEvalResponse [\nallowed="
+            + allowed
+            + ",\nonlyAllowedForIndices="
+            + onlyAllowedForIndices
+            + ",\n"
+            + (indexToActionCheckTable != null ? indexToActionCheckTable.toTableString("ok", "MISSING") : "")
+            + "]";
+    }
+
+    public static PrivilegesEvaluatorResponse ok() {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.allowed = true;
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse partiallyOk(
+        Set<String> availableIndices,
+        CheckTable<String, String> indexToActionCheckTable,
+        PrivilegesEvaluationContext context
+    ) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.onlyAllowedForIndices = ImmutableSet.copyOf(availableIndices);
+        response.indexToActionCheckTable = indexToActionCheckTable;
+        response.resolvedSecurityRoles(context.getMappedRoles());
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse insufficient(String missingPrivilege, PrivilegesEvaluationContext context) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.of(missingPrivilege));
+        response.resolvedSecurityRoles(context.getMappedRoles());
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse insufficient(
+        CheckTable<String, String> indexToActionCheckTable,
+        PrivilegesEvaluationContext context
+    ) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.indexToActionCheckTable = indexToActionCheckTable;
+        response.resolvedSecurityRoles(context.getMappedRoles());
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse insufficient(Set<String> missingPrivileges) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.copyOf(missingPrivileges));
+        return response;
     }
 
     public static enum PrivilegesEvaluatorResponseState {
         PENDING,
         COMPLETE;
     }
+
 }

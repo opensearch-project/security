@@ -28,6 +28,7 @@ package org.opensearch.security.support;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -282,6 +283,55 @@ public abstract class WildcardMatcher implements Predicate<String> {
         return Optional.ofNullable(test(candidate) ? this : null);
     }
 
+    public Iterable<String> iterateMatching(Iterable<String> candidates) {
+        return iterateMatching(candidates, Function.identity());
+    }
+
+    public <E> Iterable<E> iterateMatching(Iterable<E> candidates, Function<E, String> toStringFunction) {
+        return new Iterable<E>() {
+
+            @Override
+            public Iterator<E> iterator() {
+                Iterator<E> delegate = candidates.iterator();
+
+                return new Iterator<E>() {
+                    private E next;
+
+                    @Override
+                    public boolean hasNext() {
+                        if (next == null) {
+                            init();
+                        }
+
+                        return next != null;
+                    }
+
+                    @Override
+                    public E next() {
+                        if (next == null) {
+                            init();
+                        }
+
+                        E result = next;
+                        next = null;
+                        return result;
+                    }
+
+                    private void init() {
+                        while (delegate.hasNext()) {
+                            E candidate = delegate.next();
+
+                            if (test(toStringFunction.apply(candidate))) {
+                                next = candidate;
+                                break;
+                            }
+                        }
+                    }
+                };
+            }
+        };
+    }
+
     public static List<WildcardMatcher> matchers(Collection<String> patterns) {
         return patterns.stream().map(p -> WildcardMatcher.from(p, true)).collect(Collectors.toList());
     }
@@ -292,6 +342,10 @@ public abstract class WildcardMatcher implements Predicate<String> {
 
     public static List<String> getAllMatchingPatterns(final Collection<WildcardMatcher> pattern, final Collection<String> candidates) {
         return pattern.stream().filter(p -> p.matchAny(candidates)).map(Objects::toString).collect(Collectors.toList());
+    }
+
+    public static boolean isExact(String pattern) {
+        return pattern == null || !(pattern.contains("*") || pattern.contains("?") || (pattern.startsWith("/") && pattern.endsWith("/")));
     }
 
     //
