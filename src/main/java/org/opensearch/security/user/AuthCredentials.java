@@ -47,6 +47,7 @@ public final class AuthCredentials {
 
     private static final String DIGEST_ALGORITHM = "SHA-256";
     private final String username;
+    private boolean isValid = true;
     private byte[] password;
     private Object nativeCredentials;
     private final Set<String> securityRoles = new HashSet<String>();
@@ -98,6 +99,17 @@ public final class AuthCredentials {
 
     /**
      * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
+
+     * @param username The username, must not be null or empty
+     * @param backendRoles set of roles this user is a member of
+     * @throws IllegalArgumentException if username is null or empty
+     */
+    public AuthCredentials(final String username, final boolean isValid, String... backendRoles) {
+        this(username, null, null, isValid, backendRoles);
+    }
+
+    /**
+     * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
      * @param username The username, must not be null or empty
      * @param securityRoles The internal roles the user has been mapped to
      * @param backendRoles set of roles this user is a member of
@@ -109,6 +121,10 @@ public final class AuthCredentials {
     }
 
     private AuthCredentials(final String username, byte[] password, Object nativeCredentials, String... backendRoles) {
+        this(username,  password, nativeCredentials, true, backendRoles);
+    }
+
+    private AuthCredentials(final String username, byte[] password, Object nativeCredentials, boolean isValid, String... backendRoles) {
         super();
 
         if (username == null || username.isEmpty()) {
@@ -138,6 +154,8 @@ public final class AuthCredentials {
         this.nativeCredentials = nativeCredentials;
         nativeCredentials = null;
 
+        this.isValid = isValid;
+
         if (backendRoles != null && backendRoles.length > 0) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
         }
@@ -158,6 +176,8 @@ public final class AuthCredentials {
     public String getUsername() {
         return username;
     }
+
+    public boolean getIsValid() {return isValid;}
 
     /**
      *
@@ -188,8 +208,8 @@ public final class AuthCredentials {
         if (getClass() != obj.getClass()) return false;
         AuthCredentials other = (AuthCredentials) obj;
         if (internalPasswordHash == null
-            || other.internalPasswordHash == null
-            || !MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash)) return false;
+                || other.internalPasswordHash == null
+                || !MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash)) return false;
         if (username == null) {
             if (other.username != null) return false;
         } else if (!username.equals(other.username)) return false;
@@ -199,14 +219,14 @@ public final class AuthCredentials {
     @Override
     public String toString() {
         return "AuthCredentials [username="
-            + username
-            + ", password empty="
-            + (password == null)
-            + ", nativeCredentials empty="
-            + (nativeCredentials == null)
-            + ",backendRoles="
-            + backendRoles
-            + "]";
+                + username
+                + ", password empty="
+                + (password == null)
+                + ", nativeCredentials empty="
+                + (nativeCredentials == null)
+                + ",backendRoles="
+                + backendRoles
+                + "]";
     }
 
     /**

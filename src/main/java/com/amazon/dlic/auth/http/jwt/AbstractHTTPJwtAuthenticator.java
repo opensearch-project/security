@@ -22,7 +22,9 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
 import com.google.common.annotations.VisibleForTesting;
+import com.nimbusds.jwt.proc.BadJWTException;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,7 +42,6 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.JwtVerifier;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -62,6 +63,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String jwtUrlParameter;
     private final String subjectKey;
     private final String rolesKey;
+    private final boolean instantiateInvalidCreds;
     private final List<String> requiredAudience;
     private final String requiredIssuer;
 
@@ -70,6 +72,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
+        instantiateInvalidCreds = settings.getAsBoolean("log_oidc_credentials", false);
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
@@ -80,8 +83,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
-                "jwt_header",
-                "The 'jwt_header' setting will be removed in the next major version of OpenSearch.  Consult https://github.com/opensearch-project/security/issues/3886 for more details."
+                    "jwt_header",
+                    "The 'jwt_header' setting will be removed in the next major version of OpenSearch.  Consult https://github.com/opensearch-project/security/issues/3886 for more details."
             );
         }
 
@@ -98,7 +101,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     @Override
     @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
-        throws OpenSearchSecurityException {
+            throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -117,36 +120,78 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     private AuthCredentials extractCredentials0(final SecurityRequest request) throws OpenSearchSecurityException {
 
+        boolean isTokenValid = true;
         String jwtString = getJwtTokenString(request);
 
         if (Strings.isNullOrEmpty(jwtString)) {
             return null;
         }
 
-        SignedJWT jwt;
-        JWTClaimsSet claimsSet;
-
+        SignedJWT parsedJwt;
         try {
-            jwt = jwtVerifier.getVerifiedJwtToken(jwtString);
-            claimsSet = jwt.getJWTClaimsSet();
+            parsedJwt = SignedJWT.parse(jwtString);
+        } catch (ParseException e) {
+            if (log.isTraceEnabled()) {
+                log.trace("Parsing JWT token from {} failed", jwtString, e);
+            }
+            return null;
+        }
+
+        boolean isSignatureValid;
+        try {
+            isSignatureValid = jwtVerifier.validateJwtSignature(parsedJwt, instantiateInvalidCreds);
         } catch (AuthenticatorUnavailableException e) {
             log.info(e.toString());
             throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
-        } catch (BadCredentialsException | ParseException e) {
+        }
+        catch (BadCredentialsException e) {
             if (log.isTraceEnabled()) {
-                log.trace("Extracting JWT token from {} failed", jwtString, e);
+                log.trace("Validating JWT signature from string {} failed", jwtString, e);
             }
             return null;
+        }
+
+        if (!isSignatureValid && !instantiateInvalidCreds) {
+            return null;
+        }
+
+        JWTClaimsSet claimsSet;
+
+        try {
+            claimsSet = parsedJwt.getJWTClaimsSet();
+        } catch (ParseException e) {
+            if (log.isTraceEnabled()) {
+                log.trace("Failed to get JWTClaimsSet for {}", parsedJwt, e);
+            }
+            return null;
+        }
+
+        try {
+            jwtVerifier.validateClaims(claimsSet);
+        } catch (AuthenticatorUnavailableException e) {
+            log.info(e.toString());
+            throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
+        } catch (BadJWTException e) {
+            if (log.isTraceEnabled()) {
+                log.trace("Validating JWT token claims from {} failed", parsedJwt, e);
+            }
+            if (!instantiateInvalidCreds) {
+                return null;
+            }
+            isTokenValid = false;
         }
 
         final String subject = extractSubject(claimsSet);
         if (subject == null) {
             log.error("No subject found in JWT token");
-            return null;
+            if (!instantiateInvalidCreds) {
+                return null;
+            }
+            isTokenValid = false;
         }
 
         final String[] roles = extractRoles(claimsSet);
-        final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
+        final AuthCredentials ac = new AuthCredentials(subject, isTokenValid, roles).markComplete();
 
         for (Entry<String, Object> claim : claimsSet.getClaims().entrySet()) {
             ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
@@ -199,10 +244,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             // warning
             if (!(subjectObject instanceof String)) {
                 log.warn(
-                    "Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
-                    subjectKey,
-                    subjectObject,
-                    subjectObject.getClass()
+                        "Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
+                        subjectKey,
+                        subjectObject,
+                        subjectObject.getClass()
                 );
                 subject = String.valueOf(subjectObject);
             } else {
@@ -223,8 +268,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         if (rolesObject == null) {
             log.warn(
-                "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
-                rolesKey
+                    "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
+                    rolesKey
             );
             return new String[0];
         }
@@ -235,10 +280,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         // String but issue a warning
         if (!(rolesObject instanceof String) && !(rolesObject instanceof Collection<?>)) {
             log.warn(
-                "Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.",
-                rolesKey,
-                rolesObject,
-                rolesObject.getClass()
+                    "Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.",
+                    rolesKey,
+                    rolesObject,
+                    rolesObject.getClass()
             );
         } else if (rolesObject instanceof Collection<?>) {
             roles = ((Collection<String>) rolesObject).toArray(new String[0]);
@@ -252,7 +297,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     @Override
     public Optional<SecurityResponse> reRequestAuthentication(final SecurityRequest request, AuthCredentials authCredentials) {
         return Optional.of(
-            new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
+                new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
         );
     }
 
