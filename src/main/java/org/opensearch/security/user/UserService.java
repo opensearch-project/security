@@ -242,11 +242,8 @@ public class UserService {
         CharacterRule lowercaseCharacterRule = new CharacterRule(EnglishCharacterData.LowerCase, 1);
         CharacterRule uppercaseCharacterRule = new CharacterRule(EnglishCharacterData.UpperCase, 1);
         CharacterRule numericCharacterRule = new CharacterRule(EnglishCharacterData.Digit, 1);
-        // CharacterRule specialCharacterRule = new CharacterRule(EnglishCharacterData.Special, 1);
 
-        List<CharacterRule> rules = Arrays.asList(lowercaseCharacterRule, uppercaseCharacterRule, numericCharacterRule
-        // specialCharacterRule
-        );
+        List<CharacterRule> rules = Arrays.asList(lowercaseCharacterRule, uppercaseCharacterRule, numericCharacterRule);
         PasswordGenerator passwordGenerator = new PasswordGenerator();
 
         Random random = Randomness.get();
