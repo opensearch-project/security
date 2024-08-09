@@ -7,7 +7,7 @@
 ### Issues Resolved
 [List any issues this PR will resolve]
 
-Is this a backport? If so, please add backport PR # and/or commits #
+Is this a backport? If so, please add backport PR # and/or commits #, and remove `backport-failed` label from the original PR.
 
 Do these changes introduce new permission(s) to be displayed in the static dropdown on the front-end? If so, please open a draft PR in the security dashboards plugin and link the draft PR here
 

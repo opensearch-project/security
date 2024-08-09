@@ -16,7 +16,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.16.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.17.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -383,17 +383,8 @@ jacocoTestReport {
 
 checkstyle {
     toolVersion "10.3.3"
-    showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
-
-tasks.withType(Checkstyle) {
-    dependsOn(':precommit')
-    reports {
-        ignoreFailures = false
-    }
-}
-
 
 opensearchplugin {
     name 'opensearch-security'
@@ -447,6 +438,20 @@ repositories {
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
 
+tasks.withType(Checkstyle) {
+    showViolations true
+    reports {
+        ignoreFailures = false
+    }
+}
+
+tasks.withType(JavaCompile) {
+    configure(options) {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-Xlint:removal' << '-Werror'
+    }
+}
+
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
 
 allprojects {
@@ -490,11 +495,14 @@ configurations {
             force "org.eclipse.platform:org.eclipse.equinox.common:3.19.100"
 
             // For integrationTest
+            force "org.apache.httpcomponents:httpclient-cache:4.5.14"
             force "org.apache.httpcomponents:httpclient:4.5.14"
+            force "org.apache.httpcomponents:fluent-hc:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
+            force "org.apache.httpcomponents:httpasyncclient:4.1.5"
+            force 'org.checkerframework:checker-qual:3.46.0'
             force "com.google.errorprone:error_prone_annotations:2.29.2"
-            force "org.checkerframework:checker-qual:3.45.0"
             force "ch.qos.logback:logback-classic:1.5.6"
         }
     }
@@ -644,7 +652,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.45.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.4560'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
@@ -666,7 +674,6 @@ dependencies {
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}"
@@ -734,7 +741,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.22.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.23.0') {
         exclude group: 'com.google.guava'
     }
 }
