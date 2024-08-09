@@ -90,6 +90,17 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
         withUser(REST_API_ADMIN_SSL_INFO, this::verifySSLCertsInfo);
     }
 
+    @Test
+    public void timeoutTest() throws Exception {
+        withUser(REST_ADMIN_USER, this::verifyTimeoutRequest);
+    }
+
+    private void verifyTimeoutRequest(final TestRestClient client) throws Exception {
+        TestRestClient.HttpResponse response = ok(() -> client.get(sslCertsPath() + "?timeout=0"));
+        final var body = response.bodyAsJsonNode();
+        assertThat(body.get("nodes").size(), is(0));
+    }
+
     private void verifySSLCertsInfo(final TestRestClient client) throws Exception {
         assertSSLCertsInfo(
             localCluster.nodes(),
