@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -243,14 +242,8 @@ public class UserService {
         CharacterRule lowercaseCharacterRule = new CharacterRule(EnglishCharacterData.LowerCase, 1);
         CharacterRule uppercaseCharacterRule = new CharacterRule(EnglishCharacterData.UpperCase, 1);
         CharacterRule numericCharacterRule = new CharacterRule(EnglishCharacterData.Digit, 1);
-        CharacterRule specialCharacterRule = new CharacterRule(EnglishCharacterData.Special, 1);
 
-        List<CharacterRule> rules = Arrays.asList(
-            lowercaseCharacterRule,
-            uppercaseCharacterRule,
-            numericCharacterRule,
-            specialCharacterRule
-        );
+        List<CharacterRule> rules = Arrays.asList(lowercaseCharacterRule, uppercaseCharacterRule, numericCharacterRule);
         PasswordGenerator passwordGenerator = new PasswordGenerator();
 
         Random random = Randomness.get();
@@ -275,17 +268,17 @@ public class UserService {
 
         String authToken = null;
         try {
-            final ObjectMapper mapper = DefaultObjectMapper.objectMapper;
-            JsonNode accountDetails = mapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
+            final var accountEntry = DefaultObjectMapper.writeValueAsString(internalUsersConfiguration.getCEntry(accountName), false);
+            JsonNode accountDetails = DefaultObjectMapper.readTree(accountEntry);
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            Optional.ofNullable(securityJsonNode.get("service"))
+            Optional.ofNullable(securityJsonNode.get("attributes").get("service"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
-            Optional.ofNullable(securityJsonNode.get("enabled"))
+            Optional.ofNullable(securityJsonNode.get("attributes").get("enabled"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
@@ -306,7 +299,7 @@ public class UserService {
             saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
             authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
-            return new BasicAuthToken(authToken);
+            return new BasicAuthToken("Basic " + authToken);
 
         } catch (JsonProcessingException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
