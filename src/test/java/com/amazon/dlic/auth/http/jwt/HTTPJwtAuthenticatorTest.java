@@ -552,19 +552,23 @@ public class HTTPJwtAuthenticatorTest {
         String jwsToken2 = Jwts.builder().setSubject("Stephen Crawford").signWith(priv2, SignatureAlgorithm.RS256).compact();
 
         Settings settings = Settings.builder()
-                .put(
-                        "signing_key",
-                        "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub1.getEncoded()) + "-----END PUBLIC KEY-----,-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub2.getEncoded()) + "-----END PUBLIC KEY-----"
-                )
-                .build();
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + "-----END PUBLIC KEY-----"
+            )
+            .build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers1 = new HashMap<String, String>();
         headers1.put("Authorization", "Bearer " + jwsToken1);
 
         AuthCredentials creds1 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds1);
@@ -574,8 +578,8 @@ public class HTTPJwtAuthenticatorTest {
         Map<String, String> headers2 = new HashMap<String, String>();
         headers2.put("Authorization", "Bearer " + jwsToken2);
         AuthCredentials creds2 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds2);
@@ -600,19 +604,23 @@ public class HTTPJwtAuthenticatorTest {
         String jwsToken2 = Jwts.builder().setSubject("Stephen Crawford").signWith(priv2, SignatureAlgorithm.RS256).compact();
 
         Settings settings = Settings.builder()
-                .put(
-                        "signing_key",
-                        "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub1.getEncoded()) + "-----END PUBLIC KEY-----,     -----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub2.getEncoded()) + "-----END PUBLIC KEY-----"
-                )
-                .build();
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,     -----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + "-----END PUBLIC KEY-----"
+            )
+            .build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers1 = new HashMap<String, String>();
         headers1.put("Authorization", "Bearer " + jwsToken1);
 
         AuthCredentials creds1 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds1);
@@ -622,8 +630,8 @@ public class HTTPJwtAuthenticatorTest {
         Map<String, String> headers2 = new HashMap<String, String>();
         headers2.put("Authorization", "Bearer " + jwsToken2);
         AuthCredentials creds2 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds2);
@@ -651,19 +659,22 @@ public class HTTPJwtAuthenticatorTest {
         String jwsToken2 = Jwts.builder().setSubject("Stephen Crawford").signWith(priv2, SignatureAlgorithm.ES512).compact();
 
         Settings settings = Settings.builder()
-                .put(
-                        "signing_key",
-                        "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub1.getEncoded()) + "-----END PUBLIC KEY-----," + BaseEncoding.base64().encode(pub2.getEncoded())
-                )
-                .build();
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+            )
+            .build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers1 = new HashMap<String, String>();
         headers1.put("Authorization", "Bearer " + jwsToken1);
 
         AuthCredentials creds1 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds1);
@@ -673,8 +684,8 @@ public class HTTPJwtAuthenticatorTest {
         Map<String, String> headers2 = new HashMap<String, String>();
         headers2.put("Authorization", "Bearer " + jwsToken2);
         AuthCredentials creds2 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds2);
@@ -715,19 +726,27 @@ public class HTTPJwtAuthenticatorTest {
         String jwsToken4 = Jwts.builder().setSubject("Derek Ho").signWith(priv4, SignatureAlgorithm.ES512).compact();
 
         Settings settings = Settings.builder()
-                .put(
-                        "signing_key",
-                        "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub1.getEncoded()) + "-----END PUBLIC KEY-----," + BaseEncoding.base64().encode(pub2.getEncoded()) + "," + "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub3.getEncoded()) + "-----END PUBLIC KEY-----," + BaseEncoding.base64().encode(pub4.getEncoded())
-                )
-                .build();
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + ","
+                    + "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub3.getEncoded())
+                    + "-----END PUBLIC KEY-----,"
+                    + BaseEncoding.base64().encode(pub4.getEncoded())
+            )
+            .build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers1 = new HashMap<String, String>();
         headers1.put("Authorization", "Bearer " + jwsToken1);
 
         AuthCredentials creds1 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds1);
@@ -737,8 +756,8 @@ public class HTTPJwtAuthenticatorTest {
         Map<String, String> headers2 = new HashMap<String, String>();
         headers2.put("Authorization", "Bearer " + jwsToken2);
         AuthCredentials creds2 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds2);
@@ -749,8 +768,8 @@ public class HTTPJwtAuthenticatorTest {
         headers3.put("Authorization", "Bearer " + jwsToken3);
 
         AuthCredentials creds3 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers3, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers3, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds3);
@@ -760,8 +779,8 @@ public class HTTPJwtAuthenticatorTest {
         Map<String, String> headers4 = new HashMap<String, String>();
         headers4.put("Authorization", "Bearer " + jwsToken4);
         AuthCredentials creds4 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers4, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers4, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNotNull(creds4);
@@ -771,7 +790,6 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testMultipleSigningKeysFailToParseReturnsNull() throws NoSuchAlgorithmException {
-
 
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
@@ -786,19 +804,23 @@ public class HTTPJwtAuthenticatorTest {
         String invalidJwsToken = "123invalidtoken..";
 
         Settings settings = Settings.builder()
-                .put(
-                        "signing_key",
-                        "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub1.getEncoded()) + "-----END PUBLIC KEY-----,     -----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub2.getEncoded()) + "-----END PUBLIC KEY-----"
-                )
-                .build();
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,     -----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + "-----END PUBLIC KEY-----"
+            )
+            .build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers1 = new HashMap<String, String>();
         headers1.put("Authorization", "Bearer " + invalidJwsToken);
 
         AuthCredentials creds1 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNull(creds1);
@@ -806,14 +828,12 @@ public class HTTPJwtAuthenticatorTest {
         Map<String, String> headers2 = new HashMap<String, String>();
         headers2.put("Authorization", "Bearer " + invalidJwsToken);
         AuthCredentials creds2 = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
-                null
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
         );
 
         Assert.assertNull(creds2);
     }
-
-
 
     /** extracts a default user credential from a request header */
     private AuthCredentials extractCredentialsFromJwtHeader(final Settings.Builder settingsBuilder, final JwtBuilder jwtBuilder) {
