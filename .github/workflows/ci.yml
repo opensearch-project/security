@@ -189,9 +189,10 @@ jobs:
         uses: actions/checkout@v4
 
       - id: build-previous
+        name: Run BWC suite
         uses: ./.github/actions/run-bwc-suite
         with:
-          plugin-previous-branch: "2.x"
+          plugin-previous-branch: "2.16"
           plugin-next-branch: "current_branch"
           report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
           username: admin
