@@ -71,6 +71,7 @@ public class CertificatesApiAction extends AbstractApiAction {
     protected void consumeParameters(RestRequest request) {
         request.param("nodeId");
         request.param("cert_type");
+        request.param("timeout");
     }
 
     private void securitySSLCertsRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {

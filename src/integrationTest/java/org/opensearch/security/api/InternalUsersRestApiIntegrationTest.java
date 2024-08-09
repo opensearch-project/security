@@ -441,6 +441,18 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     }
 
     @Test
+    public void verifyPOSTOnlyForAuthTokenEndpoint() throws Exception {
+        withUser(ADMIN_USER_NAME, client -> {
+            badRequest(() -> client.post(apiPath(ADMIN_USER_NAME, "authtoken")));
+            ok(() -> client.post(apiPath(SERVICE_ACCOUNT_USER, "authtoken")));
+            /*
+              should be notImplement but the call doesn't reach {@link org.opensearch.security.dlic.rest.api.InternalUsersApiAction#withAuthTokenPath(RestRequest)}
+             */
+            methodNotAllowed(() -> client.post(apiPath("randomPath")));
+        });
+    }
+
+    @Test
     public void userApiWithDotsInName() throws Exception {
         withUser(ADMIN_USER_NAME, client -> {
             for (final var dottedUserName : List.of(".my.dotuser0", ".my.dot.user0")) {
