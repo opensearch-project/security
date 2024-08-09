@@ -160,10 +160,10 @@ public class InternalUsersApiAction extends AbstractApiAction {
     ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
         return endpointValidator.withRequiredEntityName(nameParam(request)).map(username -> {
             // Handle auth token fetching
-            if (!(request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken"))) {
-                return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
+            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {
+                return ValidationResult.success(username);
             }
-            return ValidationResult.success(username);
+            return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
         });
     }
 
