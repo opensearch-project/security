@@ -29,6 +29,7 @@ package org.opensearch.security.securityconf.impl.v7;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -51,6 +52,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
     private List<String> cluster_permissions = Collections.emptyList();
     private List<Index> index_permissions = Collections.emptyList();
     private List<Tenant> tenant_permissions = Collections.emptyList();
+    private List<Resource> resource_permissions = Collections.emptyList();
 
     public RoleV7() {
 
@@ -63,6 +65,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         this.cluster_permissions = roleV6.getCluster();
         index_permissions = new ArrayList<>();
         tenant_permissions = new ArrayList<>();
+        resource_permissions = new ArrayList<>();
 
         for (Entry<String, RoleV6.Index> v6i : roleV6.getIndices().entrySet()) {
             index_permissions.add(new Index(v6i.getKey(), v6i.getValue()));
@@ -225,6 +228,57 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     }
 
+    public static class Resource {
+
+        private String uniqueId;
+        private List<String> resource_patterns;
+        private Date lastModifiedAt;
+        private List<String> allowed_actions = Collections.emptyList();
+
+        public Resource(String resourceName, List<String> resourcePattern) {
+            super();
+            uniqueId = resourceName;
+            lastModifiedAt = new Date();
+            Set<String> tmpActions = new HashSet<>();
+            resource_patterns = resourcePattern;
+            allowed_actions = new ArrayList<>(tmpActions);
+        }
+
+        public Resource() {
+            super();
+        }
+
+        public List<String> getAllowed_actions() {
+            return allowed_actions;
+        }
+
+        public void setAllowed_actions(List<String> allowed_actions) {
+            lastModifiedAt = new Date();
+            this.allowed_actions = allowed_actions;
+        }
+
+        public List<String> getResource_patterns() {
+            return resource_patterns;
+        }
+
+        public void setResource_patterns(List<String> resource_patterns) {
+            this.resource_patterns = resource_patterns;
+        }
+
+        @Override
+        public String toString() {
+            return "Resource [uniqueId="
+                    + uniqueId
+                    + ", lastModifiedAt="
+                    + lastModifiedAt
+                    + ", resource_patterns="
+                    + resource_patterns
+                    + ", allowed_actions="
+                    + allowed_actions
+                    + "]";
+        }
+    }
+
     public boolean isHidden() {
         return hidden;
     }
@@ -263,6 +317,14 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     public void setTenant_permissions(List<Tenant> tenant_permissions) {
         this.tenant_permissions = tenant_permissions;
+    }
+
+    public List<Resource> getResource_permissions() {
+        return resource_permissions;
+    }
+
+    public void setResource_permissions(List<Resource> resource_permissions) {
+        this.resource_permissions = resource_permissions;
     }
 
     public boolean isReserved() {
