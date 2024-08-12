@@ -98,4 +98,6 @@ public interface SecurityRoles {
     SecurityRoles filter(Set<String> roles);
 
     boolean isPermittedOnSystemIndex(String indexName);
+
+    boolean impliesResourcePermission(String action0);
 }

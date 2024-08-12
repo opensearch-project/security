@@ -167,6 +167,7 @@ import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
+import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.rest.DashboardsInfoAction;
@@ -246,6 +247,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
+    private volatile ResourceAccessEvaluator resourceAccessEvaluator;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
@@ -1138,6 +1140,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool);
+
+        resourceAccessEvaluator = new ResourceAccessEvaluator(clusterService, threadPool);
 
         securityRestHandler = new SecurityRestFilter(
             backendRegistry,
