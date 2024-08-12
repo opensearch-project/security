@@ -506,8 +506,8 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         @Override
-        public boolean impliesResourcePermission(String action0) {
-            return roles.stream().filter(r -> r.impliesClusterPermission(action0)).count() > 0;
+        public boolean impliesResourcePermission(String resource) {
+            return roles.stream().filter(r -> r.impliesClusterPermission(resource)).count() > 0;
         }
     }
 
@@ -515,11 +515,13 @@ public class ConfigModelV7 extends ConfigModel {
         private final String name;
         private final Set<IndexPattern> ipatterns;
         private final WildcardMatcher clusterPerms;
+        private final WildcardMatcher resourcePerms;
 
         public static final class Builder {
             private final String name;
             private final Set<String> clusterPerms = new HashSet<>();
             private final Set<IndexPattern> ipatterns = new HashSet<>();
+            private final Set<String> resourcePerms = new HashSet<>();
 
             public Builder(String name) {
                 this.name = Objects.requireNonNull(name);
@@ -538,19 +540,21 @@ public class ConfigModelV7 extends ConfigModel {
             }
 
             public SecurityRole build() {
-                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms));
+                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms),  WildcardMatcher.from(resourcePerms));
             }
         }
 
-        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
+        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms, WildcardMatcher resourcePerms) {
             this.name = Objects.requireNonNull(name);
             this.ipatterns = ipatterns;
             this.clusterPerms = clusterPerms;
+            this.resourcePerms = resourcePerms;
         }
 
         private boolean impliesClusterPermission(String action) {
             return clusterPerms.test(action);
         }
+
 
         // get indices which are permitted for the given types and actions
         // dnfof + opensearchDashboards special only

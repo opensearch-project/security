@@ -29,6 +29,7 @@ package org.opensearch.security.securityconf;
 
 import java.util.Set;
 
+import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -99,5 +100,5 @@ public interface SecurityRoles {
 
     boolean isPermittedOnSystemIndex(String indexName);
 
-    boolean impliesResourcePermission(String action0);
+    boolean impliesResourcePermission(String resource);
 }
