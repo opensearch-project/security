@@ -482,7 +482,7 @@ configurations {
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.5"
+            force "org.xerial.snappy:snappy-java:1.1.10.6"
             force "com.google.guava:guava:${guava_version}"
 
             // for spotbugs dependency conflict
@@ -639,7 +639,7 @@ dependencies {
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.6'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
