@@ -63,7 +63,6 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7.Index;
-import org.opensearch.security.securityconf.impl.v7.RoleV7.Resource;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -178,16 +177,6 @@ public class ConfigModelV7 extends ConfigModel {
 
                         }
 
-                    }
-
-                    for (final Resource permittedResourceAliases : securityRole.getValue().getResource_permissions()) {
-
-                        for (String resourcePattern : permittedResourceAliases.getResource_patterns()) {
-                            ResourcePattern _resourcePattern = new ResourcePattern(resourcePattern);
-                            _resourcePattern.addPerm(actionGroups.resolve(permittedResourceAliases.getAllowed_actions()));
-
-                            _securityRole.addResourcePattern(_resourcePattern);
-                        }
                     }
 
                     return _securityRole.build();
@@ -514,6 +503,11 @@ public class ConfigModelV7 extends ConfigModel {
                 }
             }
             return isPatternMatched && isPermitted;
+        }
+
+        @Override
+        public boolean impliesResourcePermission(String action0) {
+            return roles.stream().filter(r -> r.impliesClusterPermission(action0)).count() > 0;
         }
     }
 
@@ -922,125 +916,6 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
     }*/
-
-    public static class ResourcePattern {
-        private final String resourcePattern;
-        private final Set<String> perms = new HashSet<>();
-
-        public ResourcePattern(String resourcePattern) {
-            super();
-            this.resourcePattern = Objects.requireNonNull(resourcePattern);
-        }
-
-        public ResourcePattern addPerm(Set<String> perms) {
-            if (perms != null) {
-                this.perms.addAll(perms);
-            }
-            return this;
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((resourcePattern == null) ? 0 : resourcePattern.hashCode());
-            result = prime * result + ((perms == null) ? 0 : perms.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null) return false;
-            if (getClass() != obj.getClass()) return false;
-            ResourcePattern other = (ResourcePattern) obj;
-            if (resourcePattern == null) {
-                if (other.resourcePattern != null) return false;
-            } else if (!resourcePattern.equals(other.resourcePattern)) return false;
-            if (perms == null) {
-                if (other.perms != null) return false;
-            } else if (!perms.equals(other.perms)) return false;
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return System.lineSeparator()
-                    + "        resourcePattern="
-                    + resourcePattern
-                    + System.lineSeparator()
-                    + "          perms="
-                    + perms;
-        }
-
-        public String getUnresolvedResourcePattern(User user) {
-            return UserAttributes.replaceProperties(resourcePattern, user);
-        }
-
-        /** Finds the resources accessible to the user and resolves them to concrete names */
-        public Set<String> concreteResourceNames(final User user, final ResourceNameExpressionResolver resolver, final ClusterService cs) {
-            return getResolvedResourcePattern(user, resolver, cs, false);
-        }
-
-        /** Finds the resources accessible to the user and attempts to resolve them to names, also includes any unresolved names */
-        public Set<String> attemptResolveIndexNames(final User user, final ResourceNameExpressionResolver resolver, final ClusterService cs) {
-            return getResolvedResourcePattern(user, resolver, cs, true);
-        }
-
-
-        public Set<String> getResolvedResourcePattern(
-                final User user,
-                final ResourceNameExpressionResolver resolver,
-                final ClusterService cs,
-                final boolean appendUnresolved
-        ) {
-            final String unresolved = getUnresolvedResourcePattern(user);
-            final ImmutableSet.Builder<String> resolvedResources = new ImmutableSet.Builder<>();
-
-            final WildcardMatcher matcher = WildcardMatcher.from(unresolved);
-            boolean includeDataStreams = true;
-            if (!(matcher instanceof WildcardMatcher.Exact)) {
-                final String[] aliasesAndDataStreamsForPermittedPattern = cs.state()
-                        .getMetadata()
-                        .getResourcesLookup()
-                        .entrySet()
-                        .stream()
-                        .filter(e -> (e.getValue().getType() == ALIAS) || (e.getValue().getType() == DATA_STREAM))
-                        .filter(e -> matcher.test(e.getKey()))
-                        .map(e -> e.getKey())
-                        .toArray(String[]::new);
-                if (aliasesAndDataStreamsForPermittedPattern.length > 0) {
-                    final String[] resolvedAliasesAndDataStreamResources = resolver.concreteResourceNames(
-                            cs.state(),
-                            ResourceOptions.lenientExpandOpen(),
-                            includeDataStreams,
-                            aliasesAndDataStreamsForPermittedPattern
-                    );
-                    resolvedResources.addAll(Arrays.asList(resolvedAliasesAndDataStreamResources));
-                }
-            }
-
-            if (Strings.isNotBlank(unresolved)) {
-                final String[] resolvedResourcesFromPattern = resolver.concreteResourceNames(
-                        cs.state(),
-                        ResourceOptions.lenientExpandOpen(),
-                        includeDataStreams,
-                        unresolved
-                );
-                resolvedResources.addAll(Arrays.asList(resolvedResourcesFromPattern));
-            }
-
-            if (appendUnresolved || resolvedResources.build().isEmpty()) {
-                resolvedResources.add(unresolved);
-            }
-            return resolvedResources.build();
-        }
-
-        public WildcardMatcher getPerms() {
-            return WildcardMatcher.from(perms);
-        }
-
-    }
 
     public static class Tenant {
         private final String tenant;
