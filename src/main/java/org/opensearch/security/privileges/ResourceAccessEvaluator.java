@@ -11,46 +11,29 @@
 
 package org.opensearch.security.privileges;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.greenrobot.eventbus.Subscribe;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.securityconf.SecurityRoles;
+import org.opensearch.security.user.User;
+
 import java.util.List;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.ActionRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.SecurityRoles;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
-import org.opensearch.threadpool.ThreadPool;
-
-import org.greenrobot.eventbus.Subscribe;
-
 public class ResourceAccessEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
-    private final ClusterService clusterService;
-    private ThreadContext threadContext;
     private ConfigModel configModel;
 
-    public ResourceAccessEvaluator(final ClusterService clusterService, final ThreadPool threadPool) {
-        this.clusterService = clusterService;
-        this.threadContext = threadPool.getThreadContext();
-    }
+    public ResourceAccessEvaluator() {}
 
     @Subscribe
     public void onConfigModelChanged(final ConfigModel configModel) {
         this.configModel = configModel;
-    }
-
-    SecurityRoles getSecurityRoles(final Set<String> roles) {
-        return configModel.getSecurityRoles().filter(roles);
     }
 
     boolean isInitialized() {
@@ -68,20 +51,15 @@ public class ResourceAccessEvaluator {
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-
-        final Set<String> mappedRoles = mapRoles(user, caller);
-
-        presponse.resolvedSecurityRoles.addAll(mappedRoles);
-
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
             log.debug("Evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             log.debug("Action: {}", action);
-            log.debug("Mapped roles: {}", mappedRoles.toString());
+            log.debug("Resource: {}", request.getRequestedResources());
+            log.debug("Security roles: {}", securityRoles.toString());
         }
 
-        List<String> resourcesRequested = action.getRequestedResources();
+        List<String> resourcesRequested = request.getRequestedResources();
         if (resourcesRequested == null || resourcesRequested.isEmpty()) {
             presponse.allowed = true;
             return presponse;

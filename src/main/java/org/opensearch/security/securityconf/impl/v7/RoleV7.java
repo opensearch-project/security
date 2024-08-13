@@ -262,6 +262,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         }
 
         public void setResource_patterns(List<String> resource_patterns) {
+            lastModifiedAt = new Date();
             this.resource_patterns = resource_patterns;
         }
 

@@ -63,6 +63,7 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7.Index;
+import org.opensearch.security.securityconf.impl.v7.RoleV7.Resource;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -177,6 +178,10 @@ public class ConfigModelV7 extends ConfigModel {
 
                         }
 
+                    }
+
+                    for (final Resource permittedResources : securityRole.getValue().getResource_permissions()) {
+                        _securityRole.addResourcePerms(permittedResources.getResource_patterns());
                     }
 
                     return _securityRole.build();
@@ -539,6 +544,13 @@ public class ConfigModelV7 extends ConfigModel {
                 return this;
             }
 
+            public Builder addResourcePerms(Collection<String> resourcePerms) {
+                if (resourcePerms != null) {
+                    this.resourcePerms.addAll(resourcePerms);
+                }
+                return this;
+            }
+
             public SecurityRole build() {
                 return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms),  WildcardMatcher.from(resourcePerms));
             }
@@ -554,6 +566,11 @@ public class ConfigModelV7 extends ConfigModel {
         private boolean impliesClusterPermission(String action) {
             return clusterPerms.test(action);
         }
+
+        private boolean impliesResourcePermission(String action) {
+            return resourcePerms.test(action);
+        }
+
 
 
         // get indices which are permitted for the given types and actions
