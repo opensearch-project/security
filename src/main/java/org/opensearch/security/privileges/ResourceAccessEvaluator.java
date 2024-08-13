@@ -55,11 +55,11 @@ public class ResourceAccessEvaluator {
         if (isDebugEnabled) {
             log.debug("Evaluate permissions for {} on {}", user, clusterService.localNode().getName());
             log.debug("Action: {}", action);
-            log.debug("Resource: {}", request.getRequestedResources());
+            log.debug("Resource: {}", request.getResources());
             log.debug("Security roles: {}", securityRoles.toString());
         }
 
-        List<String> resourcesRequested = request.getRequestedResources();
+        List<String> resourcesRequested = request.getResources();
         if (resourcesRequested == null || resourcesRequested.isEmpty()) {
             presponse.allowed = true;
             return presponse;
