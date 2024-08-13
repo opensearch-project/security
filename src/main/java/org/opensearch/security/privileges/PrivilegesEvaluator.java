@@ -138,6 +138,7 @@ public class PrivilegesEvaluator {
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
     private final SystemIndexAccessEvaluator systemIndexAccessEvaluator;
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
+    private final ResourceAccessEvaluator resourceAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
@@ -174,6 +175,7 @@ public class PrivilegesEvaluator {
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
         systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
+        resourceAccessEvaluator = new ResourceAccessEvaluator();
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
@@ -344,6 +346,10 @@ public class PrivilegesEvaluator {
 
         // Protected index access
         if (protectedIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, mappedRoles).isComplete()) {
+            return presponse;
+        }
+
+        if (resourceAccessEvaluator.evaluate(request, action0, securityRoles, user, clusterService).isComplete()) {
             return presponse;
         }
 
