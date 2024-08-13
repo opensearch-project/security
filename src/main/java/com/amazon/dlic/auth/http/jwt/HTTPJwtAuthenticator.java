@@ -11,24 +11,14 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
-import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import com.nimbusds.jwt.proc.BadJWTException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
+import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.logging.DeprecationLogger;
@@ -40,11 +30,18 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
-import com.nimbusds.jwt.proc.BadJWTException;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.security.WeakKeyException;
+import java.nio.file.Path;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
@@ -69,8 +66,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
 
-        String signingKey = settings.get("signing_key");
-        List<String> signingKeysSplit = new ArrayList<>();
+        List<String> signingKeys = settings.getAsList("signing_key");
+
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
@@ -86,15 +83,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             );
         }
 
-        boolean multipleKeys = signingKey != null && signingKey.contains(",");
-        if (multipleKeys) {
-            String[] keyArray = signingKey.replace(",\\s+", ",").split(","); // Remove spaces
-            signingKeysSplit.addAll(Arrays.asList(keyArray));
-        } else {
-            signingKeysSplit.add(signingKey);
-        }
 
-        for (String key : signingKeysSplit) {
+        for (String key : signingKeys) {
             JwtParser jwtParser;
             final JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(key, log);
             if (jwtParserBuilder == null) {
