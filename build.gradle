@@ -496,13 +496,13 @@ configurations {
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient-cache:4.5.14"
-            force "org.apache.httpcomponents:httpclient:4.5.13"
-            force "org.apache.httpcomponents:fluent-hc:4.5.13"
+            force "org.apache.httpcomponents:httpclient:4.5.14"
+            force "org.apache.httpcomponents:fluent-hc:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
             force 'org.checkerframework:checker-qual:3.46.0'
-            force "com.google.errorprone:error_prone_annotations:2.28.0"
+            force "com.google.errorprone:error_prone_annotations:2.29.2"
             force "ch.qos.logback:logback-classic:1.5.6"
         }
     }
@@ -552,6 +552,21 @@ task integrationTest(type: Test) {
     classpath = sourceSets.integrationTest.runtimeClasspath
     //run the integrationTest task after the test task
     shouldRunAfter test
+    jacoco {
+        excludes = [
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
+        ]
+    }
 }
 
 tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
@@ -569,7 +584,7 @@ dependencies {
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.8.0'
-    implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
+    implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
     implementation 'com.rfksystems:blake2b:2.0.0'
@@ -587,16 +602,16 @@ dependencies {
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.5.0'
+    runtimeOnly 'net.minidev:accessors-smart:2.5.1'
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.17.1'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.28.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.29.2'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
-    runtimeOnly 'org.ow2.asm:asm:9.6'
+    runtimeOnly 'org.ow2.asm:asm:9.7'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.2'
 
@@ -623,7 +638,7 @@ dependencies {
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.2'
-    runtimeOnly 'org.apache.commons:commons-text:1.11.0'
+    runtimeOnly 'org.apache.commons:commons-text:1.12.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -637,8 +652,8 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.46.0'
-    runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
+    runtimeOnly 'org.checkerframework:checker-qual:3.4560'
+    runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
@@ -652,13 +667,13 @@ dependencies {
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:search-pipeline-common:${opensearch_version}"
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}"
@@ -687,12 +702,12 @@ dependencies {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.14'
-    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
+    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
@@ -712,8 +727,8 @@ dependencies {
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-    integrationTestImplementation "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
-    integrationTestImplementation "org.bouncycastle:bcutil-jdk15to18:${versions.bouncycastle}"
+    integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+    integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
     integrationTestImplementation('org.awaitility:awaitility:4.2.1') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
