@@ -248,6 +248,24 @@ public class ConfigV7 {
             this.max_tracked_clients = v6.max_tracked_clients;
         }
 
+        public AuthFailureListener(
+            String type,
+            String authentication_backend,
+            int allowed_tries,
+            int time_window_seconds,
+            int block_expiry_seconds,
+            int max_blocked_clients,
+            int max_tracked_clients
+        ) {
+            this.type = type;
+            this.authentication_backend = authentication_backend;
+            this.allowed_tries = allowed_tries;
+            this.time_window_seconds = time_window_seconds;
+            this.block_expiry_seconds = block_expiry_seconds;
+            this.max_blocked_clients = max_blocked_clients;
+            this.max_tracked_clients = max_tracked_clients;
+        }
+
         @JsonIgnore
         public String asJson() {
             try {
