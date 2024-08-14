@@ -17,6 +17,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
@@ -27,22 +28,25 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.api.Responses.*;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthFailureListenersApiAction extends AbstractApiAction {
 
     private static final List<Route> ROUTES = addRoutesPrefix(
-            ImmutableList.of(new Route(GET, "/authfailurelisteners"))
+        ImmutableList.of(new Route(GET, "/authfailurelisteners"), new Route(DELETE, "/authfailurelisteners/{name}"))
 
     );
 
-
-    protected AuthFailureListenersApiAction(ClusterService clusterService, ThreadPool threadPool, SecurityApiDependencies securityApiDependencies) {
+    protected AuthFailureListenersApiAction(
+        ClusterService clusterService,
+        ThreadPool threadPool,
+        SecurityApiDependencies securityApiDependencies
+    ) {
         super(Endpoint.AUTHFAILURELISTENERS, clusterService, threadPool, securityApiDependencies);
-        this.requestHandlersBuilder.configureRequestHandlers(this::multiTenancyConfigApiRequestHandlers);
+        this.requestHandlersBuilder.configureRequestHandlers(this::authFailureConfigApiRequestHandlers);
     }
 
     @Override
@@ -54,7 +58,6 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
     public List<Route> routes() {
         return ROUTES;
     }
-
 
     @Override
     protected CType getConfigType() {
@@ -90,16 +93,6 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
 
                     @Override
                     public Map<String, DataType> allowedKeys() {
-//                        return ImmutableMap.of(
-//                                DEFAULT_TENANT_JSON_PROPERTY,
-//                                DataType.STRING,
-//                                PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
-//                                DataType.BOOLEAN,
-//                                MULTITENANCY_ENABLED_JSON_PROPERTY,
-//                                DataType.BOOLEAN,
-//                                SIGN_IN_OPTIONS,
-//                                DataType.ARRAY
-//                        );
                         return ImmutableMap.of("test", DataType.OBJECT);
                     }
                 });
@@ -107,7 +100,7 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
         };
     }
 
-    private ToXContent multitenancyContent(final ConfigV7 config) {
+    private ToXContent authFailureContent(final ConfigV7 config) {
         return (builder, params) -> {
             builder.startObject();
 
@@ -136,12 +129,35 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
         };
     }
 
+    private void authFailureConfigApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
 
-    private void multiTenancyConfigApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented()
-                .override(GET, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
-                    final var config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
-                    ok(channel, multitenancyContent(config));
-                }).error((status, toXContent) -> response(channel, status, toXContent)));
+        requestHandlersBuilder.override(
+            GET,
+            (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
+                final var config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
+                ok(channel, authFailureContent(config));
+            }).error((status, toXContent) -> response(channel, status, toXContent))
+        ).override(DELETE, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
+            ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
+
+            String listenerName = request.param("name");
+            if (listenerName == null) {
+                badRequest(channel, "name is required");
+                return;
+            }
+
+            // Try to remove the listener by name
+            if (config.dynamic.auth_failure_listeners.getListeners().remove(listenerName) == null) {
+                badRequest(channel, "listener not found");
+                return;
+            }
+            saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
+                @Override
+                public void onResponse(IndexResponse indexResponse) {
+                    ok(channel, authFailureContent(config));
+                }
+            });
+        }).error((status, toXContent) -> response(channel, status, toXContent)));
+
     }
 }
