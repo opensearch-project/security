@@ -14,7 +14,6 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.logging.log4j.util.Strings;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -31,7 +30,7 @@ import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;
 class TestJwts {
     static final String ROLES_CLAIM = "roles";
     static final Set<String> TEST_ROLES = ImmutableSet.of("role1", "role2");
-    static final String TEST_ROLES_STRING = Strings.join(TEST_ROLES, ',');
+    static final String TEST_ROLES_STRING = String.join(",", TEST_ROLES);
 
     static final String TEST_AUDIENCE = "TestAudience";
 
