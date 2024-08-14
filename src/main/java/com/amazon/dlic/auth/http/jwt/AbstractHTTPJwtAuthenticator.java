@@ -56,7 +56,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
 
     private KeyProvider keyProvider;
-    private JwtVerifier jwtVerifier;
+    protected JwtVerifier jwtVerifier;
     private final String jwtHeaderName;
     private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;

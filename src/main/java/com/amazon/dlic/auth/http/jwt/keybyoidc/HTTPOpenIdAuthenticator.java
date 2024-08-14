@@ -2,6 +2,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+import com.google.googlejavaformat.Op;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -155,22 +156,12 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
                 }
 
-
                 // TODO: Make this return the formed creds from the response
                 return null;
-
-            } catch (ParseException | BadCredentialsException e) {
-                throw new RuntimeException(e);
             }
         } catch (IOException e) {
             throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": " + e, e);
         }
-
-        return null;
-    }
-
-    private boolean signatureAlgorithmIsValid(JWK key, SignedJWT jwt) throws BadCredentialsException {
-        return false;
     }
 
     private String responseClaimsIncludeRequiredClaims(JWTClaimsSet claims, boolean isSigned) {
@@ -182,7 +173,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         }
 
         if (isSigned) {
-            if (claims.getClaim("iss") == null || claims.getClaim("iss").toString().isBlank() || !claims.getClaim("iss").toString().equals(ISSUER_ID_URL)) {
+            if (claims.getClaim("iss") == null || claims.getClaim("iss").toString().isBlank() || !claims.getClaim("iss").toString().equals(settings.get(ISSUER_ID_URL))) {
                 missing = missing.concat("iss");
             }
             if (claims.getClaim("aud") == null || claims.getClaim("aud").toString().isBlank() || !claims.getClaim("aud").toString().equals(settings.get(CLIENT_ID))) {
@@ -198,7 +189,6 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         public HTTPJwtKeyByOpenIdConnectAuthenticator(Settings settings, Path configPath) {
             super(settings,configPath);
         }
-
 
         protected KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception {
             int idpRequestTimeoutMs = settings.getAsInt("idp_request_timeout_ms", 5000);
@@ -233,6 +223,31 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             selfRefreshingKeySet.setRefreshRateLimitCount(refreshRateLimitCount);
 
             return selfRefreshingKeySet;
+        }
+
+        @Override
+        public AuthCredentials extractCredentials(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
+            String parsedToken = super.getJwtTokenString(request);
+            SignedJWT jwt;
+            boolean isJwtSigned = false;
+            JWTClaimsSet claimsSet;
+
+            try {
+                jwt = super.jwtVerifier.getVerifiedJwtToken(parsedToken);
+                if (jwt.getSignature() != null) {
+                    isJwtSigned = true;
+                }
+                claimsSet = jwt.getJWTClaimsSet();
+            } catch (OpenSearchSecurityException | ParseException | BadCredentialsException e) {
+                throw new RuntimeException(e);
+            }
+
+            String missing = responseClaimsIncludeRequiredClaims(claimsSet, isJwtSigned);
+            if (!missing.isBlank()) {
+                throw new AuthenticatorUnavailableException("Missing expected claims: " + missing);
+            }
+
+            return super.extractCredentials(request, context);
         }
 
         @Override
