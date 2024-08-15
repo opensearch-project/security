@@ -2,15 +2,10 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-import com.google.googlejavaformat.Op;
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import io.jsonwebtoken.Claims;
-import org.apache.hc.client5.http.cache.HttpCacheStorage;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.cache.CachingHttpClients;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -29,7 +24,6 @@ import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Optional;
@@ -39,7 +33,6 @@ import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATIO
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.AUTHORIZATION_HEADER;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.SUB_CLAIM;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.USERINFO_ENCRYPTED_RESPONSE_ALG;
@@ -93,17 +86,10 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         return Optional.empty();
     }
 
-    private CloseableHttpClient createHttpClient(HttpCacheStorage httpCacheStorage) {
+    private CloseableHttpClient createHttpClient() {
         HttpClientBuilder builder;
-
-        if (httpCacheStorage != null) {
-            builder = CachingHttpClients.custom().setCacheConfig(cacheConfig).setHttpCacheStorage(httpCacheStorage);
-        } else {
-            builder = HttpClients.custom();
-        }
-
+        builder = HttpClients.custom();
         builder.useSystemProperties();
-
         if (sslConfig != null) {
             final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
                     .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
@@ -115,11 +101,29 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         return builder.build();
     }
 
+    /**
+     * This method performs the logic required for making use of the userinfo_endpoint OIDC feature.
+     * Per the spec: https://openid.net/specs/openid-connect-core-1_0.html#UserInfo there are 10 verification steps we must perform
+     * 1. Validate the OP is correct via TLS certificate check
+     * 2. Validate response is OK
+     * 3. Validate application type is either JSON or JWT
+     * 4. Validate response is one of: just signed, just encrypted, or signed then encrypted (encryption MUST NOT occur before signing)
+     * 5. If response is signed then validate the signature via JWS and confirm the response has "iss" and "aud" claims
+     * 6. Validate "iss" claim is equal to the issuer ID url
+     * 7. Validate the "aud" claim is equal to the client ID
+     * 8. If the client provides a userinfo_encrypted_response_alg value decrypt the response using the keys from registration
+     * 9. Validate "sub" claim is always present
+     * 10. Validate "sub" claim matches the ID token
+     * @param request The SecurityRequest to perform auth on
+     * @param context The active thread context
+     * @return AuthCredentials formed through querying the userinfo_endpoint
+     * @throws OpenSearchSecurityException On failure to extract credentials from the request
+     */
     public  AuthCredentials extractCredentials0(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
 
         String encryptedResponseAlg = settings.get(USERINFO_ENCRYPTED_RESPONSE_ALG);
 
-        try (CloseableHttpClient httpClient = createHttpClient(null)) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
 
             HttpGet httpGet = new HttpGet(this.userinfo_endpoint);
 
@@ -131,7 +135,10 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             httpGet.setConfig(requestConfig);
             httpGet.addHeader(AUTHORIZATION_HEADER, request.getHeaders().get(AUTHORIZATION_HEADER));
 
+            // HTTPGet should internally verify the appropriate TLS cert.
+
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+
                 if (response.getCode() < 200 || response.getCode() >= 300) {
                     throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": " + response.getReasonPhrase());
                 }
@@ -149,26 +156,38 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 }
 
                 String userinfoContent = httpEntity.getContent().toString();
-
+                JWTClaimsSet claims;
+                boolean isSigned = contentType.equals(APPLICATION_JWT);
                 if (contentType.equals(APPLICATION_JWT)) {
-                    return openIdJwtAuthenticator.extractCredentials(request, context);
+                    claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(userinfoContent);
                 } else {
-
+                    claims = JWTClaimsSet.parse(userinfoContent);
                 }
 
-                // TODO: Make this return the formed creds from the response
+                String id = openIdJwtAuthenticator.getJwtClaimsSet(request).getSubject();
+
+                String missing = validateResponseClaims(claims, id, isSigned);
+                if (!missing.isBlank()) {
+                    throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": Missing or invalid required claims in response: " + missing);
+                }
+
+
+
+                // TODO: Make this return the formed creds from the JSON response
                 return null;
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
             }
         } catch (IOException e) {
             throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": " + e, e);
         }
     }
 
-    private String responseClaimsIncludeRequiredClaims(JWTClaimsSet claims, boolean isSigned) {
+    private String validateResponseClaims(JWTClaimsSet claims, String id, boolean isSigned) {
 
         String missing = "";
 
-        if (claims.getClaim(SUB_CLAIM) == null || claims.getClaim(SUB_CLAIM).toString().isBlank()) {
+        if (claims.getClaim(SUB_CLAIM) == null || claims.getClaim(SUB_CLAIM).toString().isBlank() || !claims.getClaim("sub").equals(id)) {
             missing = missing.concat(SUB_CLAIM);
         }
 
@@ -225,28 +244,25 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             return selfRefreshingKeySet;
         }
 
-        @Override
-        public AuthCredentials extractCredentials(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
+        private JWTClaimsSet  getJwtClaimsSet(SecurityRequest request) throws OpenSearchSecurityException {
             String parsedToken = super.getJwtTokenString(request);
-            SignedJWT jwt;
-            boolean isJwtSigned = false;
-            JWTClaimsSet claimsSet;
+            return getJwtClaimsSetFromInfoContent(parsedToken);
+        }
 
+        private JWTClaimsSet  getJwtClaimsSetFromInfoContent(String userInfoContent) throws OpenSearchSecurityException {
+            SignedJWT jwt;
+            JWTClaimsSet claimsSet;
             try {
-                jwt = super.jwtVerifier.getVerifiedJwtToken(parsedToken);
-                if (jwt.getSignature() != null) {
-                    isJwtSigned = true;
-                }
+                jwt = super.jwtVerifier.getVerifiedJwtToken(userInfoContent);
                 claimsSet = jwt.getJWTClaimsSet();
             } catch (OpenSearchSecurityException | ParseException | BadCredentialsException e) {
                 throw new RuntimeException(e);
             }
+            return claimsSet;
+        }
 
-            String missing = responseClaimsIncludeRequiredClaims(claimsSet, isJwtSigned);
-            if (!missing.isBlank()) {
-                throw new AuthenticatorUnavailableException("Missing expected claims: " + missing);
-            }
-
+        @Override
+        public AuthCredentials extractCredentials(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
             return super.extractCredentials(request, context);
         }
 
