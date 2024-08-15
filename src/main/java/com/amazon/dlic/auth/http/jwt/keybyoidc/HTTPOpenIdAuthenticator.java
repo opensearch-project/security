@@ -1,9 +1,11 @@
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
-import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.text.ParseException;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -15,6 +17,7 @@ import org.apache.hc.client5.http.io.HttpClientConnectionManager;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -23,11 +26,10 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.text.ParseException;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
+import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JSON;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
@@ -49,7 +51,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
     public HTTPOpenIdAuthenticator(Settings settings, Path configPath) throws Exception {
         this.settings = settings;
         this.configPath = configPath;
-        this.sslConfig =  getSSLConfig(settings, configPath);
+        this.sslConfig = getSSLConfig(settings, configPath);
         userinfo_endpoint = settings.get("userinfo_endpoint");
         openIdJwtAuthenticator = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, configPath);
     }
@@ -92,8 +94,8 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         builder.useSystemProperties();
         if (sslConfig != null) {
             final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
-                    .build();
+                .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
+                .build();
 
             builder.setConnectionManager(cm);
         }
@@ -119,16 +121,16 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
      * @return AuthCredentials formed through querying the userinfo_endpoint
      * @throws OpenSearchSecurityException On failure to extract credentials from the request
      */
-    public  AuthCredentials extractCredentials0(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials0(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
 
         try (CloseableHttpClient httpClient = createHttpClient()) {
 
             HttpGet httpGet = new HttpGet(this.userinfo_endpoint);
 
             RequestConfig requestConfig = RequestConfig.custom()
-                    .setConnectionRequestTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                    .setConnectTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                    .build();
+                .setConnectionRequestTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
+                .setConnectTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
+                .build();
 
             httpGet.setConfig(requestConfig);
             httpGet.addHeader(AUTHORIZATION_HEADER, request.getHeaders().get(AUTHORIZATION_HEADER));
@@ -138,25 +140,32 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
 
                 if (response.getCode() < 200 || response.getCode() >= 300) {
-                    throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": " + response.getReasonPhrase());
+                    throw new AuthenticatorUnavailableException(
+                        "Error while getting " + this.userinfo_endpoint + ": " + response.getReasonPhrase()
+                    );
                 }
 
                 HttpEntity httpEntity = response.getEntity();
 
                 if (httpEntity == null) {
-                    throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": Empty response entity");
+                    throw new AuthenticatorUnavailableException(
+                        "Error while getting " + this.userinfo_endpoint + ": Empty response entity"
+                    );
                 }
 
                 String contentType = httpEntity.getContentType();
 
                 if (!contentType.equals(APPLICATION_JSON) && !contentType.equals(APPLICATION_JWT)) {
-                    throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": Invalid content type in response");
+                    throw new AuthenticatorUnavailableException(
+                        "Error while getting " + this.userinfo_endpoint + ": Invalid content type in response"
+                    );
                 }
 
                 String userinfoContent = httpEntity.getContent().toString();
                 JWTClaimsSet claims;
                 boolean isSigned = contentType.equals(APPLICATION_JWT);
-                if (contentType.equals(APPLICATION_JWT)) { // We don't need the userinfo_encrypted_response_alg since the selfRefreshingKeyProvider has access to the keys
+                if (contentType.equals(APPLICATION_JWT)) { // We don't need the userinfo_encrypted_response_alg since the
+                                                           // selfRefreshingKeyProvider has access to the keys
                     claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(userinfoContent);
                 } else {
                     claims = JWTClaimsSet.parse(userinfoContent);
@@ -166,7 +175,9 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
                 String missing = validateResponseClaims(claims, id, isSigned);
                 if (!missing.isBlank()) {
-                    throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": Missing or invalid required claims in response: " + missing);
+                    throw new AuthenticatorUnavailableException(
+                        "Error while getting " + this.userinfo_endpoint + ": Missing or invalid required claims in response: " + missing
+                    );
                 }
 
                 final String subject = openIdJwtAuthenticator.extractSubject(claims);
@@ -194,10 +205,14 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         }
 
         if (isSigned) {
-            if (claims.getClaim("iss") == null || claims.getClaim("iss").toString().isBlank() || !claims.getClaim("iss").toString().equals(settings.get(ISSUER_ID_URL))) {
+            if (claims.getClaim("iss") == null
+                || claims.getClaim("iss").toString().isBlank()
+                || !claims.getClaim("iss").toString().equals(settings.get(ISSUER_ID_URL))) {
                 missing = missing.concat("iss");
             }
-            if (claims.getClaim("aud") == null || claims.getClaim("aud").toString().isBlank() || !claims.getClaim("aud").toString().equals(settings.get(CLIENT_ID))) {
+            if (claims.getClaim("aud") == null
+                || claims.getClaim("aud").toString().isBlank()
+                || !claims.getClaim("aud").toString().equals(settings.get(CLIENT_ID))) {
                 missing = missing.concat("aud");
             }
         }
@@ -208,7 +223,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
     private final class HTTPJwtKeyByOpenIdConnectAuthenticator extends AbstractHTTPJwtAuthenticator {
 
         public HTTPJwtKeyByOpenIdConnectAuthenticator(Settings settings, Path configPath) {
-            super(settings,configPath);
+            super(settings, configPath);
         }
 
         protected KeyProvider initKeyProvider(Settings settings, Path configPath) throws Exception {
@@ -222,15 +237,15 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
             if (jwksUri != null && !jwksUri.isBlank()) {
                 keySetRetriever = new KeySetRetriever(
-                        getSSLConfig(settings, configPath),
-                        settings.getAsBoolean("cache_jwks_endpoint", false),
-                        jwksUri
+                    getSSLConfig(settings, configPath),
+                    settings.getAsBoolean("cache_jwks_endpoint", false),
+                    jwksUri
                 );
             } else {
                 keySetRetriever = new KeySetRetriever(
-                        settings.get("openid_connect_url"),
-                        getSSLConfig(settings, configPath),
-                        settings.getAsBoolean("cache_jwks_endpoint", false)
+                    settings.get("openid_connect_url"),
+                    getSSLConfig(settings, configPath),
+                    settings.getAsBoolean("cache_jwks_endpoint", false)
                 );
             }
 
@@ -246,12 +261,12 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             return selfRefreshingKeySet;
         }
 
-        private JWTClaimsSet  getJwtClaimsSet(SecurityRequest request) throws OpenSearchSecurityException {
+        private JWTClaimsSet getJwtClaimsSet(SecurityRequest request) throws OpenSearchSecurityException {
             String parsedToken = super.getJwtTokenString(request);
             return getJwtClaimsSetFromInfoContent(parsedToken);
         }
 
-        private JWTClaimsSet  getJwtClaimsSetFromInfoContent(String userInfoContent) throws OpenSearchSecurityException {
+        private JWTClaimsSet getJwtClaimsSetFromInfoContent(String userInfoContent) throws OpenSearchSecurityException {
             SignedJWT jwt;
             JWTClaimsSet claimsSet;
             try {
