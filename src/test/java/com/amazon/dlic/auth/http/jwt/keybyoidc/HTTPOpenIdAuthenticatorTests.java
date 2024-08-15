@@ -27,7 +27,7 @@ import org.opensearch.security.util.FakeRestRequest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
+public class HTTPOpenIdAuthenticatorTests {
 
     protected static MockIpdServer mockIdpServer;
 
@@ -46,16 +46,16 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void basicTest() {
+    public void basicTest() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
             null
         );
@@ -68,16 +68,16 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void jwksUriTest() {
+    public void jwksUriTest() throws Exception {
         Settings settings = Settings.builder()
             .put("jwks_uri", mockIdpServer.getJwksUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_2), new HashMap<>()).asSecurityRequest(),
             null
         );
@@ -90,15 +90,15 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void jwksMissingRequiredIssuerInClaimTest() {
+    public void jwksMissingRequiredIssuerInClaimTest() throws Exception {
         Settings settings = Settings.builder()
             .put("jwks_uri", mockIdpServer.getJwksUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NO_ISSUER_OCT_1), new HashMap<>())
                 .asSecurityRequest(),
             null
@@ -108,12 +108,12 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void jwksNotMatchingRequiredIssuerInClaimTest() {
+    public void jwksNotMatchingRequiredIssuerInClaimTest() throws Exception {
         Settings settings = Settings.builder().put("jwks_uri", mockIdpServer.getJwksUri()).put("required_issuer", "Wrong Issuer").build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_2), new HashMap<>()).asSecurityRequest(),
             null
         );
@@ -122,16 +122,16 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void jwksMatchAtLeastOneRequiredAudienceInClaimTest() {
+    public void jwksMatchAtLeastOneRequiredAudienceInClaimTest() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
             null
         );
@@ -144,15 +144,15 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void jwksMissingRequiredAudienceInClaimTest() {
+    public void jwksMissingRequiredAudienceInClaimTest() throws Exception {
         Settings settings = Settings.builder()
             .put("jwks_uri", mockIdpServer.getJwksUri())
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_NO_AUDIENCE_OCT_1), new HashMap<>())
                 .asSecurityRequest(),
             null
@@ -162,15 +162,15 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void jwksNotMatchingRequiredAudienceInClaimTest() {
+    public void jwksNotMatchingRequiredAudienceInClaimTest() throws Exception {
         Settings settings = Settings.builder()
             .put("jwks_uri", mockIdpServer.getJwksUri())
             .put("required_audience", "Wrong Audience")
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_2), new HashMap<>()).asSecurityRequest(),
             null
         );
@@ -181,7 +181,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     @Test
     public void jwksUriMissingTest() {
         var exception = Assert.assertThrows(Exception.class, () -> {
-            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(Settings.builder().build(), null);
+            HTTPOpenIdAuthenticator jwtAuth = new HTTPOpenIdAuthenticator(Settings.builder().build(), null);
             jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
                 null
@@ -193,16 +193,16 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testEscapeKid() {
+    public void testEscapeKid() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
                 ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1_INVALID_KID),
                 new HashMap<String, String>()
@@ -218,16 +218,16 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void bearerTest() {
+    public void bearerTest() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>())
                 .asSecurityRequest(),
             null
@@ -241,7 +241,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testRoles() {
+    public void testRoles() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("roles_key", TestJwts.ROLES_CLAIM)
@@ -249,9 +249,9 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<String, String>())
                 .asSecurityRequest(),
             null
@@ -263,12 +263,12 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testExp() {
+    public void testExp() throws Exception {
         Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_EXPIRED_SIGNED_OCT_1), new HashMap<>())
                 .asSecurityRequest(),
             null
@@ -278,7 +278,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testExpInSkew() {
+    public void testExpInSkew() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("jwt_clock_skew_tolerance_seconds", "10")
@@ -286,12 +286,12 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
         long expiringDate = System.currentTimeMillis() / 1000 - 5;
         long notBeforeDate = System.currentTimeMillis() / 1000 - 25;
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
                 ImmutableMap.of("Authorization", "Bearer " + TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
                 new HashMap<>()
@@ -303,7 +303,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testNbf() {
+    public void testNbf() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("jwt_clock_skew_tolerance_seconds", "0")
@@ -311,12 +311,12 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
         long expiringDate = 20 + System.currentTimeMillis() / 1000;
         long notBeforeDate = 5 + System.currentTimeMillis() / 1000;
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
                 ImmutableMap.of("Authorization", "Bearer " + TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
                 new HashMap<>()
@@ -328,7 +328,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testNbfInSkew() {
+    public void testNbfInSkew() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("jwt_clock_skew_tolerance_seconds", "10")
@@ -336,12 +336,12 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
         long expiringDate = 20 + System.currentTimeMillis() / 1000;
         long notBeforeDate = 5 + System.currentTimeMillis() / 1000;
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
                 ImmutableMap.of("Authorization", "Bearer " + TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
                 new HashMap<>()
@@ -353,7 +353,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testRS256() {
+    public void testRS256() throws Exception {
 
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
@@ -361,9 +361,9 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<>()).asSecurityRequest(),
             null
         );
@@ -376,13 +376,13 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testBadSignature() {
+    public void testBadSignature() throws Exception {
 
         Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_X), new HashMap<>()).asSecurityRequest(),
             null
         );
@@ -391,16 +391,16 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testPeculiarJsonEscaping() {
+    public void testPeculiarJsonEscaping() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE)
             .build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.PeculiarEscaping.MC_COY_SIGNED_RSA_1), new HashMap<>())
                 .asSecurityRequest(),
             null

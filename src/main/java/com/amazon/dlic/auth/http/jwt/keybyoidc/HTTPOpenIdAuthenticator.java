@@ -35,7 +35,6 @@ import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.AUTHORIZAT
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.SUB_CLAIM;
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.USERINFO_ENCRYPTED_RESPONSE_ALG;
 
 public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
@@ -69,6 +68,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
     public String getType() {
         return null;
     }
+
     private static SettingsBasedSSLConfigurator.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
         return new SettingsBasedSSLConfigurator(settings, configPath, "openid_connect_idp").buildSSLConfig();
     }
@@ -121,8 +121,6 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
      */
     public  AuthCredentials extractCredentials0(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
 
-        String encryptedResponseAlg = settings.get(USERINFO_ENCRYPTED_RESPONSE_ALG);
-
         try (CloseableHttpClient httpClient = createHttpClient()) {
 
             HttpGet httpGet = new HttpGet(this.userinfo_endpoint);
@@ -158,7 +156,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 String userinfoContent = httpEntity.getContent().toString();
                 JWTClaimsSet claims;
                 boolean isSigned = contentType.equals(APPLICATION_JWT);
-                if (contentType.equals(APPLICATION_JWT)) {
+                if (contentType.equals(APPLICATION_JWT)) { // We don't need the userinfo_encrypted_response_alg since the selfRefreshingKeyProvider has access to the keys
                     claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(userinfoContent);
                 } else {
                     claims = JWTClaimsSet.parse(userinfoContent);
@@ -171,10 +169,14 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                     throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": Missing or invalid required claims in response: " + missing);
                 }
 
+                final String subject = openIdJwtAuthenticator.extractSubject(claims);
+                if (subject == null) {
+                    log.error("No subject found in JWT token");
+                    return null;
+                }
 
-
-                // TODO: Make this return the formed creds from the JSON response
-                return null;
+                final String[] roles = openIdJwtAuthenticator.extractRoles(claims);
+                return new AuthCredentials(subject, roles).markComplete();
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
