@@ -28,6 +28,7 @@ import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.spy;
 
 public class HTTPOpenIdAuthenticatorTests {
 
@@ -426,12 +427,13 @@ public class HTTPOpenIdAuthenticatorTests {
                 .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
                 .build();
 
-        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator openIdAuthenticator = spy(new HTTPOpenIdAuthenticator(settings, null));
 
         AuthCredentials creds = openIdAuthenticator.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
                 null
         );
+
 
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
