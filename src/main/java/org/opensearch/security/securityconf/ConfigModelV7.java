@@ -45,7 +45,6 @@ import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.util.Strings;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.support.IndicesOptions;
@@ -801,7 +800,7 @@ public class ConfigModelV7 extends ConfigModel {
                 }
             }
 
-            if (Strings.isNotBlank(unresolved)) {
+            if (!(unresolved == null || unresolved.isBlank())) {
                 final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(
                     cs.state(),
                     IndicesOptions.lenientExpandOpen(),
