@@ -96,7 +96,6 @@ public class JwtAuthenticationTests {
     private static final KeyPair KEY_PAIR2 = Keys.keyPairFor(SignatureAlgorithm.RS256);
     private static final String PUBLIC_KEY2 = new String(Base64.getEncoder().encode(KEY_PAIR2.getPublic().getEncoded()), US_ASCII);
 
-
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     private static final String JWT_AUTH_HEADER = "jwt-auth";
@@ -109,17 +108,20 @@ public class JwtAuthenticationTests {
     );
 
     private static final JwtAuthorizationHeaderFactory tokenFactory2 = new JwtAuthorizationHeaderFactory(
-            KEY_PAIR2.getPrivate(),
-            CLAIM_USERNAME,
-            CLAIM_ROLES,
-            JWT_AUTH_HEADER
+        KEY_PAIR2.getPrivate(),
+        CLAIM_USERNAME,
+        CLAIM_ROLES,
+        JWT_AUTH_HEADER
     );
 
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY1, PUBLIC_KEY2)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER)
+            .signingKey(List.of(PUBLIC_KEY1, PUBLIC_KEY2))
+            .subjectKey(CLAIM_USERNAME)
+            .rolesKey(CLAIM_ROLES)
     ).backend("noop");
     public static final String SONG_ID_1 = "song-id-01";
 
@@ -279,7 +281,6 @@ public class JwtAuthenticationTests {
             assertThatThrownBy(() -> client.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
         }
     }
-
 
     @Test
     public void secondKeypairShouldAuthenticateWithJwtToken_positive() {
