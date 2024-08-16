@@ -83,7 +83,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
     private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
     private static final AllowlistingSettings defaultAllowlistingSettings = new AllowlistingSettings();
-    private static final AuditConfig defaultAuditConfig = new AuditConfig();
+    private static final AuditConfig defaultAuditConfig = AuditConfig.from(Settings.EMPTY);
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty();
