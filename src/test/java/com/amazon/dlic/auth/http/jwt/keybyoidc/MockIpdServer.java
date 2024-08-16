@@ -44,6 +44,7 @@ import com.nimbusds.jose.jwk.JWKSet;
 
 class MockIpdServer implements Closeable {
     final static String CTX_DISCOVER = "/discover";
+    final static String CTX_USERINFO = "/api/oauth/userinfo";
     final static String CTX_KEYS = "/api/oauth/keys";
 
     private final HttpServer httpServer;
@@ -117,6 +118,10 @@ class MockIpdServer implements Closeable {
 
     public String getDiscoverUri() {
         return uri + CTX_DISCOVER;
+    }
+
+    public String getUserinfoUri() {
+        return uri + CTX_USERINFO;
     }
 
     public String getJwksUri() {

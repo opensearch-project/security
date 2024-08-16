@@ -24,6 +24,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -404,6 +406,223 @@ public class HTTPOpenIdAuthenticatorTests {
             new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.PeculiarEscaping.MC_COY_SIGNED_RSA_1), new HashMap<>())
                 .asSecurityRequest(),
             null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsJwtWithAllRequirementsTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put(CLIENT_ID, "testClient")
+                .put(ISSUER_ID_URL, "http://www.example.com")
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsJwtMissingIssuerTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put(CLIENT_ID, "testClient")
+                .put(ISSUER_ID_URL, "http://www.example.com")
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsJwtMissingAudienceTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put(CLIENT_ID, "testClient")
+                .put(ISSUER_ID_URL, "http://www.example.com")
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsJwtMismatchedSubTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put(CLIENT_ID, "testClient")
+                .put(ISSUER_ID_URL, "http://www.example.com")
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsJwtInvalidAlgTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put(CLIENT_ID, "testClient")
+                .put(ISSUER_ID_URL, "http://www.example.com")
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsJsonWithAllRequirementsTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsJsonMismatchedSubTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsResponseNot2xxTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+        assertThat(creds.getBackendRoles().size(), is(0));
+        assertThat(creds.getAttributes().size(), is(4));
+    }
+
+    @Test
+    public void userinfoEndpointReturnsRequestNot2xxTest() throws Exception {
+        Settings settings = Settings.builder()
+                .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+                .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
+                .build();
+
+        HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
+
+        AuthCredentials creds = openIdAuthenticator.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+                null
         );
 
         Assert.assertNotNull(creds);
