@@ -601,7 +601,7 @@ dependencies {
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.17.1'
-    runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
+    runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
     compileOnly 'com.google.errorprone:error_prone_annotations:2.30.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
