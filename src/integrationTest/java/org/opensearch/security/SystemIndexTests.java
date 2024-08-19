@@ -13,12 +13,14 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.http.ExampleSystemIndexPlugin;
+import org.opensearch.security.plugin.SystemIndexPlugin1;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -26,7 +28,9 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.plugin.SystemIndexPlugin1.SYSTEM_INDEX_1;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -43,9 +47,11 @@ public class SystemIndexTests {
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
-        .plugin(ExampleSystemIndexPlugin.class)
+        .plugin(SystemIndexPlugin1.class)
         .nodeSettings(
             Map.of(
+                FeatureFlags.IDENTITY,
+                true,
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
                 SECURITY_SYSTEM_INDICES_ENABLED_KEY,
@@ -53,6 +59,13 @@ public class SystemIndexTests {
             )
         )
         .build();
+
+    @Before
+    public void wipeAllIndices() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse response = client.delete(".system-index1");
+        }
+    }
 
     @Test
     public void adminShouldNotBeAbleToDeleteSecurityIndex() {
@@ -78,6 +91,16 @@ public class SystemIndexTests {
             HttpResponse response4 = client.delete(".system-index1");
 
             assertThat(response4.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldBeAbleToIndexDocumentIntoItsSystemIndex() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("_plugins/system-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response.getBody(), containsString(SystemIndexPlugin1.class.getCanonicalName()));
         }
     }
 }

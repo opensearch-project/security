@@ -41,6 +41,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.identity.PluginSubject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.security.DefaultObjectMapper;
@@ -69,6 +70,7 @@ public class UserService {
     private final PasswordHasher passwordHasher;
     String securityIndex;
     Client client;
+    PluginSubject pluginSystemSubject;
 
     User tokenUser;
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
@@ -109,6 +111,14 @@ public class UserService {
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.client = client;
+    }
+
+    void setPluginSystemSubject(PluginSubject pluginSystemSubject) {
+        this.pluginSystemSubject = pluginSystemSubject;
+    }
+
+    public PluginSubject getPluginSystemSubject() {
+        return pluginSystemSubject;
     }
 
     /**
