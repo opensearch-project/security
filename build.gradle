@@ -577,7 +577,7 @@ dependencies {
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
-    implementation 'commons-cli:commons-cli:1.8.0'
+    implementation 'commons-cli:commons-cli:1.9.0'
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
