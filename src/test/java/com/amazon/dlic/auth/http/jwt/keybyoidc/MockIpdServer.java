@@ -18,14 +18,17 @@ import java.io.InputStream;
 import java.net.Socket;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.text.ParseException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
 
+import com.nimbusds.jwt.JWTClaimsSet;
 import org.apache.hc.core5.function.Callback;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpException;
@@ -157,8 +160,8 @@ class MockIpdServer implements Closeable {
         );
     }
 
-    protected void handleUserinfoRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-        IOException {
+    protected void handleUserinfoRequestUnencrypted(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+            IOException, ParseException {
 
         Header[] headers = request.getHeaders("Authorization");
         String requestToken;
@@ -169,11 +172,20 @@ class MockIpdServer implements Closeable {
             if (authHeaderValue.startsWith("Bearer")) {
                 requestToken = authHeaderValue.substring(7).trim();
             }
+            else {
+                response.setCode(401);
+                return;
+            }
         } else {
-            response.setCode(401);
-            return;
+           response.setCode(401);
+           return;
         }
+
+        JWTClaimsSet claims = JWTClaimsSet.parse(requestToken);
         response.setCode(200);
+        response.setHeader("content-type", ContentType.APPLICATION_JSON);
+        response.setEntity(new StringEntity());
+
     }
 
     protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
