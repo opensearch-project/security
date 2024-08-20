@@ -273,6 +273,7 @@ public class SystemIndexAccessEvaluator {
                     log.debug("Service account cannot access regular indices: {}", regularIndices);
                 }
                 presponse.allowed = false;
+                presponse.missingPrivileges.add(action);
                 presponse.markComplete();
                 return;
             }

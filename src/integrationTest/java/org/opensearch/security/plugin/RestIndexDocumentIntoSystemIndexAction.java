@@ -31,7 +31,7 @@ public class RestIndexDocumentIntoSystemIndexAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(PUT, "/_plugins/system-index/{index}"));
+        return singletonList(new Route(PUT, "/try-create-and-index/{index}"));
     }
 
     @Override

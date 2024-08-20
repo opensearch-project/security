@@ -89,7 +89,7 @@ public class SystemIndexTests {
     @Test
     public void testPluginShouldBeAbleToIndexDocumentIntoItsSystemIndex() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse response = client.put("_plugins/system-index/" + SYSTEM_INDEX_1);
+            HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1);
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
             assertThat(response.getBody(), containsString(SystemIndexPlugin1.class.getCanonicalName()));
@@ -99,12 +99,27 @@ public class SystemIndexTests {
     @Test
     public void testPluginShouldNotBeAbleToIndexDocumentIntoSystemIndexRegisteredByOtherPlugin() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse response = client.put("_plugins/system-index/" + SYSTEM_INDEX_2);
+            HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_2);
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
                 response.getBody(),
                 containsString("no permissions for [indices:admin/create] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1")
+            );
+        }
+    }
+
+    @Test
+    public void testPluginShouldNotBeAbleToRunClusterActions() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.get("try-cluster-health/");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(
+                response.getBody(),
+                containsString(
+                    "no permissions for [cluster:monitor/health] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
+                )
             );
         }
     }

@@ -84,8 +84,10 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        TransportActionDependencies deps = new TransportActionDependencies();
-        return List.of(new RestIndexDocumentIntoSystemIndexAction(client));
+        return List.of(
+            new RestIndexDocumentIntoSystemIndexAction(client),
+            new RestRunClusterHealthAction(client, SECURITY_TRANSPORT_ACTION_DEPENDENCIES.getPluginSystemSubject())
+        );
     }
 
     @Override
