@@ -68,7 +68,8 @@ public class SystemIndexTests {
     @Before
     public void wipeAllIndices() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse response = client.delete(".system-index1");
+            client.delete(".system-index1");
+            client.delete(".system-index2");
         }
     }
 
@@ -138,6 +139,25 @@ public class SystemIndexTests {
             HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldNotBeAbleToBulkIndexDocumentIntoMixOfSystemIndexWhereAtLeastOneDoesNotBelongToPlugin() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.put(".system-index1");
+            client.put(".system-index2");
+        }
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-mixed-index");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(
+                response.getBody(),
+                containsString(
+                    "no permissions for [indices:data/write/bulk] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
+                )
+            );
         }
     }
 }
