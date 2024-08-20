@@ -86,7 +86,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
     ) {
         return List.of(
             new RestIndexDocumentIntoSystemIndexAction(client),
-            new RestRunClusterHealthAction(client, SECURITY_TRANSPORT_ACTION_DEPENDENCIES.getPluginSystemSubject())
+            new RestRunClusterHealthAction(client, SECURITY_TRANSPORT_ACTION_DEPENDENCIES.getPluginSystemSubject()),
+            new RestBulkIndexDocumentIntoSystemIndexAction(client, SECURITY_TRANSPORT_ACTION_DEPENDENCIES.getPluginSystemSubject())
         );
     }
 

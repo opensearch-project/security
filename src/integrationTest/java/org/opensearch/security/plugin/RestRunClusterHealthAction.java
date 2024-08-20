@@ -59,7 +59,7 @@ public class RestRunClusterHealthAction extends BaseRestHandler {
                         channel.sendResponse(
                             new BytesRestResponse(RestStatus.OK, r.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS))
                         );
-                    }, fr -> { channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, String.valueOf(fr))); });
+                    }, fr -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, String.valueOf(fr))));
                     client.admin().cluster().health(new ClusterHealthRequest(), chr);
                     return null;
                 });

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,6 +64,13 @@ public class SystemIndexTests {
             )
         )
         .build();
+
+    @Before
+    public void wipeAllIndices() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse response = client.delete(".system-index1");
+        }
+    }
 
     @Test
     public void adminShouldNotBeAbleToDeleteSecurityIndex() {
@@ -121,6 +129,15 @@ public class SystemIndexTests {
                     "no permissions for [cluster:monitor/health] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
                 )
             );
+        }
+    }
+
+    @Test
+    public void testPluginShouldBeAbleToBulkIndexDocumentIntoItsSystemIndex() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
         }
     }
 }
