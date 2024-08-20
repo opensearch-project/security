@@ -26,6 +26,8 @@ import javax.net.ssl.TrustManagerFactory;
 import org.apache.hc.core5.function.Callback;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.config.Http1Config;
@@ -41,6 +43,10 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
 import com.nimbusds.jose.jwk.JWKSet;
+
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.MCCOY_SUBJECT;
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.TEST_ROLES_STRING;
+import static org.mockito.Mockito.when;
 
 class MockIpdServer implements Closeable {
     final static String CTX_DISCOVER = "/discover";
@@ -79,6 +85,14 @@ class MockIpdServer implements Closeable {
                 public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                     IOException {
                     handleKeysRequest(request, response, context);
+                }
+            })
+            .register(CTX_USERINFO, new HttpRequestHandler() {
+
+                @Override
+                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                    handleUserinfoRequest(request, response, context);
                 }
             });
 
@@ -141,6 +155,25 @@ class MockIpdServer implements Closeable {
                 "{\"jwks_uri\": \"" + uri + CTX_KEYS + "\",\n" + "\"issuer\": \"" + uri + "\", \"unknownPropertyToBeIgnored\": 42}"
             )
         );
+    }
+
+    protected void handleUserinfoRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+        IOException {
+
+        Header[] headers = request.getHeaders("Authorization");
+        String requestToken;
+        // Check if the "Authorization" header is present
+        if (headers.length > 0) {
+            // Parse the "Authorization" header value
+            String authHeaderValue = headers[0].getValue();
+            if (authHeaderValue.startsWith("Bearer")) {
+                requestToken = authHeaderValue.substring(7).trim();
+            }
+        } else {
+            response.setCode(401);
+            return;
+        }
+        response.setCode(200);
     }
 
     protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,

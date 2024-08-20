@@ -608,7 +608,8 @@ dependencies {
     runtimeOnly 'org.ow2.asm:asm:9.7'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.2'
-
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
+    //testImplementation 'org.mockito:mockito-inline:2.13.0'
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.2'
     runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.27"

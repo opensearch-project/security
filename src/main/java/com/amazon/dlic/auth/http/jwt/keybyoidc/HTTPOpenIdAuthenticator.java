@@ -99,7 +99,8 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         return Optional.empty();
     }
 
-    private CloseableHttpClient createHttpClient() {
+    // Public for testing
+    public CloseableHttpClient createHttpClient() {
         HttpClientBuilder builder;
         builder = HttpClients.custom();
         builder.useSystemProperties();
