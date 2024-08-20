@@ -113,14 +113,6 @@ public class UserService {
         this.client = client;
     }
 
-    void setPluginSystemSubject(PluginSubject pluginSystemSubject) {
-        this.pluginSystemSubject = pluginSystemSubject;
-    }
-
-    public PluginSubject getPluginSystemSubject() {
-        return pluginSystemSubject;
-    }
-
     /**
      * Load data for a given CType
      * @param config CType whose data is to be loaded in-memory
