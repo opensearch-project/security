@@ -379,10 +379,19 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
 
         /**
-        * Adds additional plugins to the cluster
+        * Adds additional plugin to the cluster
         */
         public Builder plugin(Class<? extends Plugin> plugin) {
             this.plugins.add(plugin);
+
+            return this;
+        }
+
+        /**
+         * Adds additional plugins to the cluster
+         */
+        public Builder plugin(List<Class<? extends Plugin>> plugins) {
+            this.plugins.addAll(plugins);
 
             return this;
         }

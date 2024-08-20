@@ -255,9 +255,10 @@ public class SystemIndexAccessEvaluator {
         boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
         boolean containsRegularIndex = requestContainsAnyRegularIndices(requestedResolved);
         boolean serviceAccountUser = user.isServiceAccount();
+        boolean pluginUser = user.isPluginUser();
 
         if (isSystemIndexPermissionEnabled) {
-            if (serviceAccountUser && containsRegularIndex) {
+            if ((serviceAccountUser || pluginUser) && containsRegularIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (!containsSystemIndex && log.isInfoEnabled()) {
                     log.info("{} not permitted for a service account {} on non-system indices.", action, securityRoles);
@@ -287,6 +288,22 @@ public class SystemIndexAccessEvaluator {
                     );
                 }
                 presponse.allowed = false;
+                presponse.markComplete();
+                return;
+            } else if (containsSystemIndex && pluginUser) {
+                boolean requestContainsOnlyPluginsRegisteredSystemIndices = requestedResolved.getAllIndices()
+                    .equals(SystemIndexRegistry.matchesPluginSystemIndexPattern(user.getName(), requestedResolved.getAllIndices()));
+                if (requestContainsOnlyPluginsRegisteredSystemIndices) {
+                    // allow all action types, but ensure that request only contains registered system indices for this plugin
+                    presponse.allowed = true;
+                } else {
+                    auditLog.logSecurityIndexAttempt(request, action, task);
+                    if (log.isInfoEnabled()) {
+                        log.info("{} can only interact with its own system indices", user.getName());
+                    }
+                    presponse.missingPrivileges.add(action);
+                    presponse.allowed = false;
+                }
                 presponse.markComplete();
                 return;
             } else if (containsSystemIndex

@@ -202,6 +202,8 @@ public class SecurityFilter implements ActionFilter {
                 // However, if another plugin injected a user in the ThreadContext, we still need
                 // to perform privileges checks.
                 enforcePrivilegesEvaluation = true;
+            } else if (user != null && user.isPluginUser()) {
+                enforcePrivilegesEvaluation = true;
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.plugin.SystemIndexPlugin1;
+import org.opensearch.security.plugin.SystemIndexPlugin2;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -31,8 +31,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.plugin.SystemIndexPlugin1.SYSTEM_INDEX_1;
+import static org.opensearch.security.plugin.SystemIndexPlugin2.SYSTEM_INDEX_2;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
@@ -47,10 +49,12 @@ public class SystemIndexTests {
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
-        .plugin(SystemIndexPlugin1.class)
+        .plugin(List.of(SystemIndexPlugin1.class, SystemIndexPlugin2.class))
         .nodeSettings(
             Map.of(
                 FeatureFlags.IDENTITY,
+                true,
+                SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY,
                 true,
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
@@ -59,13 +63,6 @@ public class SystemIndexTests {
             )
         )
         .build();
-
-    @Before
-    public void wipeAllIndices() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse response = client.delete(".system-index1");
-        }
-    }
 
     @Test
     public void adminShouldNotBeAbleToDeleteSecurityIndex() {
@@ -82,15 +79,10 @@ public class SystemIndexTests {
 
             assertThat(response2.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
 
-            // regular use can create system index
+            // regular use cannot create system index when system index protection is enforced
             HttpResponse response3 = client.put(".system-index1");
 
-            assertThat(response3.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
-
-            // regular user cannot delete system index
-            HttpResponse response4 = client.delete(".system-index1");
-
-            assertThat(response4.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(response3.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
         }
     }
 
@@ -101,6 +93,19 @@ public class SystemIndexTests {
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
             assertThat(response.getBody(), containsString(SystemIndexPlugin1.class.getCanonicalName()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldNotBeAbleToIndexDocumentIntoSystemIndexRegisteredByOtherPlugin() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("_plugins/system-index/" + SYSTEM_INDEX_2);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(
+                response.getBody(),
+                containsString("no permissions for [indices:admin/create] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1")
+            );
         }
     }
 }

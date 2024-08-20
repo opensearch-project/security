@@ -1,3 +1,13 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ */
+
 package org.opensearch.security.plugin;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -10,9 +20,11 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.identity.PluginSubject;
-import org.opensearch.security.identity.ContextProvidingPluginSubject;
 import org.opensearch.security.identity.TransportActionDependencies;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 
 public class TransportIndexDocumentIntoSystemIndexAction extends HandledTransportAction<
@@ -20,6 +32,7 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
     IndexDocumentIntoSystemIndexResponse> {
 
     private final Client client;
+    private final ThreadPool threadPool;
     private final PluginSubject pluginSystemSubject;
 
     @Inject
@@ -27,10 +40,12 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
         final TransportService transportService,
         final ActionFilters actionFilters,
         final Client client,
+        final ThreadPool threadPool,
         final TransportActionDependencies deps
     ) {
         super(IndexDocumentIntoSystemIndexAction.NAME, transportService, actionFilters, IndexDocumentIntoSystemIndexRequest::new);
         this.client = client;
+        this.threadPool = threadPool;
         this.pluginSystemSubject = deps.getPluginSystemSubject();
     }
 
@@ -48,10 +63,8 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
                         new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                             .source("{\"content\":1}", XContentType.JSON),
                         ActionListener.wrap(r2 -> {
-                            String subjectHeader = client.threadPool()
-                                .getThreadContext()
-                                .getHeader(ContextProvidingPluginSubject.SUBJECT_HEADER);
-                            actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, subjectHeader));
+                            User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                            actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
                         }, actionListener::onFailure)
                     );
                 }, actionListener::onFailure));

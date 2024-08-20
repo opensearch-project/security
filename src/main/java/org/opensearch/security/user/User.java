@@ -290,10 +290,20 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     /**
      * Check the custom attributes associated with this user
      *
-     * @return true if it has a service account attributes. otherwise false
+     * @return true if it has a service account attributes, otherwise false
      */
     public boolean isServiceAccount() {
         Map<String, String> userAttributesMap = this.getCustomAttributesMap();
         return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
+    }
+
+    /**
+     * Check the custom attributes associated with this user
+     *
+     * @return true if it has a plugin attribute, otherwise false
+     */
+    public boolean isPluginUser() {
+        Map<String, String> userAttributesMap = this.getCustomAttributesMap();
+        return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.plugin"));
     }
 }

@@ -292,7 +292,7 @@ public class PrivilegesEvaluator {
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
+        if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant())) && !user.isPluginUser()) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
             // indices:data/write/bulk[s]).
             // This shortcut is only possible if the default tenant is selected, as we might need to rewrite the request for non-default
@@ -327,7 +327,7 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
-        // Security index access
+        // System index access
         if (systemIndexAccessEvaluator.evaluate(
             request,
             task,
