@@ -54,8 +54,8 @@ public class KeyUtils {
                         PublicKey key = null;
 
                         final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
-                            .replace("-----END PUBLIC KEY-----", "");
-
+                            .replace("-----END PUBLIC KEY-----", "")
+                            .trim();
                         final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
 
                         try {

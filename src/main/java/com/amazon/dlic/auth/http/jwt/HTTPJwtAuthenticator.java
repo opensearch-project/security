@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.http.jwt;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -54,7 +55,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER = "bearer ";
 
-    private final JwtParser jwtParser;
+    private final List<JwtParser> jwtParsers = new ArrayList<>();
     private final String jwtHeaderName;
     private final boolean isDefaultAuthHeader;
     private final String jwtUrlParameter;
@@ -67,7 +68,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
 
-        String signingKey = settings.get("signing_key");
+        List<String> signingKeys = settings.getAsList("signing_key");
+
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
         isDefaultAuthHeader = AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
@@ -83,19 +85,23 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             );
         }
 
-        final JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
-        if (jwtParserBuilder == null) {
-            jwtParser = null;
-        } else {
-            if (requireIssuer != null) {
-                jwtParserBuilder.requireIssuer(requireIssuer);
-            }
+        for (String key : signingKeys) {
+            JwtParser jwtParser;
+            final JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(key, log);
+            if (jwtParserBuilder == null) {
+                jwtParser = null;
+            } else {
+                if (requireIssuer != null) {
+                    jwtParserBuilder.requireIssuer(requireIssuer);
+                }
 
-            final SecurityManager sm = System.getSecurityManager();
-            if (sm != null) {
-                sm.checkPermission(new SpecialPermission());
+                final SecurityManager sm = System.getSecurityManager();
+                if (sm != null) {
+                    sm.checkPermission(new SpecialPermission());
+                }
+                jwtParser = AccessController.doPrivileged((PrivilegedAction<JwtParser>) jwtParserBuilder::build);
             }
-            jwtParser = AccessController.doPrivileged((PrivilegedAction<JwtParser>) jwtParserBuilder::build);
+            jwtParsers.add(jwtParser);
         }
     }
 
@@ -120,7 +126,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     private AuthCredentials extractCredentials0(final SecurityRequest request) {
-        if (jwtParser == null) {
+
+        if (jwtParsers.isEmpty() || jwtParsers.getFirst() == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
         }
@@ -157,39 +164,43 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             }
         }
 
-        try {
-            final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
+        for (JwtParser jwtParser : jwtParsers) {
+            try {
 
-            if (!requiredAudience.isEmpty()) {
-                assertValidAudienceClaim(claims);
-            }
+                final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
-            final String subject = extractSubject(claims, request);
+                if (!requiredAudience.isEmpty()) {
+                    assertValidAudienceClaim(claims);
+                }
 
-            if (subject == null) {
-                log.error("No subject found in JWT token");
+                final String subject = extractSubject(claims, request);
+
+                if (subject == null) {
+                    log.error("No subject found in JWT token");
+                    return null;
+                }
+
+                final String[] roles = extractRoles(claims, request);
+
+                final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
+
+                for (Entry<String, Object> claim : claims.entrySet()) {
+                    ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
+                }
+
+                return ac;
+
+            } catch (WeakKeyException e) {
+                log.error("Cannot authenticate user with JWT because of ", e);
                 return null;
+            } catch (Exception e) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Invalid or expired JWT token.", e);
+                }
             }
-
-            final String[] roles = extractRoles(claims, request);
-
-            final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
-
-            for (Entry<String, Object> claim : claims.entrySet()) {
-                ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
-            }
-
-            return ac;
-
-        } catch (WeakKeyException e) {
-            log.error("Cannot authenticate user with JWT because of ", e);
-            return null;
-        } catch (Exception e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Invalid or expired JWT token.", e);
-            }
-            return null;
         }
+        log.error("Failed to parse JWT token using any of the available parsers");
+        return null;
     }
 
     private void assertValidAudienceClaim(Claims claims) throws BadJWTException {
