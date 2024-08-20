@@ -25,11 +25,12 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
     public TransportIndexDocumentIntoSystemIndexAction(
         final TransportService transportService,
         final ActionFilters actionFilters,
-        final Client client
+        final Client client,
+        final TransportActionDependencies deps
     ) {
         super(IndexDocumentIntoSystemIndexAction.NAME, transportService, actionFilters, IndexDocumentIntoSystemIndexRequest::new);
         this.client = client;
-        this.pluginSystemSubject = PluginSubjectHolder.getInstance().getPluginSystemSubject();
+        this.pluginSystemSubject = deps.getPluginSystemSubject();
     }
 
     @Override

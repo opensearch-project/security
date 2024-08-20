@@ -35,6 +35,8 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, IdentityAwarePlugin {
     public static final String SYSTEM_INDEX_1 = ".system-index1";
 
+    private static final TransportActionDependencies SECURITY_TRANSPORT_ACTION_DEPENDENCIES = new TransportActionDependencies();
+
     private Client client;
 
     @Override
@@ -52,7 +54,7 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.client = client;
-        return List.of();
+        return List.of(SECURITY_TRANSPORT_ACTION_DEPENDENCIES);
     }
 
     @Override
@@ -71,6 +73,7 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
+        TransportActionDependencies deps = new TransportActionDependencies();
         return List.of(new RestIndexDocumentIntoSystemIndexAction(client));
     }
 
@@ -83,6 +86,6 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
 
     @Override
     public void assignSubject(PluginSubject pluginSystemSubject) {
-        PluginSubjectHolder.getInstance().initialize(pluginSystemSubject);
+        SECURITY_TRANSPORT_ACTION_DEPENDENCIES.setPluginSystemSubject(pluginSystemSubject);
     }
 }
