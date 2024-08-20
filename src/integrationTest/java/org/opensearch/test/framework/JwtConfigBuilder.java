@@ -9,6 +9,7 @@
 */
 package org.opensearch.test.framework;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -19,7 +20,7 @@ import static org.apache.commons.lang3.StringUtils.isNoneBlank;
 public class JwtConfigBuilder {
     private String jwtHeader;
     private String jwtUrlParameter;
-    private String signingKey;
+    private List<String> signingKeys;
     private String subjectKey;
     private String rolesKey;
 
@@ -33,8 +34,8 @@ public class JwtConfigBuilder {
         return this;
     }
 
-    public JwtConfigBuilder signingKey(String signingKey) {
-        this.signingKey = signingKey;
+    public JwtConfigBuilder signingKey(List<String> signingKeys) {
+        this.signingKeys = signingKeys;
         return this;
     }
 
@@ -50,10 +51,10 @@ public class JwtConfigBuilder {
 
     public Map<String, Object> build() {
         Builder<String, Object> builder = new Builder<>();
-        if (Objects.isNull(signingKey)) {
+        if (Objects.isNull(signingKeys)) {
             throw new IllegalStateException("Signing key is required.");
         }
-        builder.put("signing_key", signingKey);
+        builder.put("signing_key", signingKeys);
         if (isNoneBlank(jwtHeader)) {
             builder.put("jwt_header", jwtHeader);
         }
