@@ -24,6 +24,7 @@ public class ContextProvidingPluginSubject implements PluginSubject {
         this.threadPool = threadPool;
         this.pluginPrincipal = new NamedPrincipal(plugin.getClass().getCanonicalName());
         this.pluginUser = new User(pluginPrincipal.getName());
+        this.pluginUser.addAttributes(Map.of("attr.internal.plugin", "true"));
     }
 
     @Override
@@ -35,7 +36,6 @@ public class ContextProvidingPluginSubject implements PluginSubject {
     public <T> T runAs(Callable<T> callable) throws Exception {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, pluginUser);
-            pluginUser.addAttributes(Map.of("attr.internal.plugin", "true"));
             return callable.call();
         }
     }
