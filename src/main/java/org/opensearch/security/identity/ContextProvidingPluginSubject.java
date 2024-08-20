@@ -13,8 +13,6 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class ContextProvidingPluginSubject implements PluginSubject {
-    public static final String SUBJECT_HEADER = "_security_subject";
-
     private final ThreadPool threadPool;
     private final NamedPrincipal pluginPrincipal;
     private final User pluginUser;
