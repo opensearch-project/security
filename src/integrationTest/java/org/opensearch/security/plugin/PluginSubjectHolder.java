@@ -10,9 +10,6 @@ public class PluginSubjectHolder {
     private PluginSubjectHolder() {}
 
     public void initialize(PluginSubject pluginSystemSubject) {
-        // if (pluginSystemSubject != null) {
-        // throw new OpenSearchSecurityException("pluginSystemSubjectHolder can only be initialized once");
-        // }
         this.pluginSystemSubject = pluginSystemSubject;
     }
 

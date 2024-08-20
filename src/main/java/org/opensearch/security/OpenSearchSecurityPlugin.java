@@ -2121,15 +2121,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public UnaryOperator<RestHandler> authenticate(ThreadContext threadContext) {
-        if (client || disabled || SSLConfig.isSslOnlyMode()) {
-            return (rh) -> rh;
-        }
-
-        return (rh) -> securityRestHandler.wrap(rh, adminDns);
-    }
-
-    @Override
     public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
         return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, sslExceptionHandler, securityRestHandler));
     }
