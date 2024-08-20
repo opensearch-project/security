@@ -129,7 +129,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     }
 
     private AuthCredentials extractCredentials0(final SecurityRequest request) {
-        if (jwtParsers.isEmpty() || jwtParsers.getFirst() == null) {
+        if (jwtParsers.isEmpty() || jwtParsers.get(0) == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;
         }
