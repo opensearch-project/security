@@ -1,4 +1,4 @@
-package org.opensearch.security.plugin;
+package org.opensearch.security.identity;
 
 import org.opensearch.identity.PluginSubject;
 

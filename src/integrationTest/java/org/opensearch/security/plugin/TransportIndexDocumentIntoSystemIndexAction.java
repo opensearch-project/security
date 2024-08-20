@@ -11,6 +11,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.identity.PluginSubject;
 import org.opensearch.security.identity.ContextProvidingPluginSubject;
+import org.opensearch.security.identity.TransportActionDependencies;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
