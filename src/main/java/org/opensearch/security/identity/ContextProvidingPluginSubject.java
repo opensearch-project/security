@@ -13,23 +13,23 @@ public class ContextProvidingPluginSubject implements PluginSubject {
     public static final String SUBJECT_HEADER = "_security_subject";
 
     private final ThreadPool threadPool;
-    private final String pluginCanonicalClassName;
+    private final NamedPrincipal pluginPrincipal;
 
     public ContextProvidingPluginSubject(ThreadPool threadPool, Plugin plugin) {
         super();
         this.threadPool = threadPool;
-        this.pluginCanonicalClassName = plugin.getClass().getCanonicalName();
+        this.pluginPrincipal = new NamedPrincipal(plugin.getClass().getCanonicalName());
     }
 
     @Override
     public Principal getPrincipal() {
-        return NamedPrincipal.UNAUTHENTICATED;
+        return pluginPrincipal;
     }
 
     @Override
     public <T> T runAs(Callable<T> callable) throws Exception {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-            threadPool.getThreadContext().putHeader(SUBJECT_HEADER, pluginCanonicalClassName);
+            threadPool.getThreadContext().putHeader(SUBJECT_HEADER, pluginPrincipal.getName());
             return callable.call();
         }
     }
