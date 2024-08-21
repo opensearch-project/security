@@ -18,19 +18,15 @@ import java.io.InputStream;
 import java.net.Socket;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.text.ParseException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
 
-import com.nimbusds.jwt.JWTClaimsSet;
 import org.apache.hc.core5.function.Callback;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.config.Http1Config;
@@ -46,13 +42,17 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
 import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jwt.JWTClaimsSet;
 
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JSON;
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.MCCOY_SUBJECT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.TEST_ROLES_STRING;
-import static org.mockito.Mockito.when;
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.createSigned;
 
 class MockIpdServer implements Closeable {
     final static String CTX_DISCOVER = "/discover";
+    final static String CTX_USERINFO_SIGNED = "/api/oauth/userinfo/signed";
     final static String CTX_USERINFO = "/api/oauth/userinfo";
     final static String CTX_KEYS = "/api/oauth/keys";
 
@@ -94,8 +94,16 @@ class MockIpdServer implements Closeable {
 
                 @Override
                 public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                        IOException {
+                    IOException {
                     handleUserinfoRequest(request, response, context);
+                }
+            })
+            .register(CTX_USERINFO_SIGNED, new HttpRequestHandler() {
+
+                @Override
+                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                    IOException {
+                    handleUserinfoRequestSigned(request, response, context);
                 }
             });
 
@@ -141,6 +149,10 @@ class MockIpdServer implements Closeable {
         return uri + CTX_USERINFO;
     }
 
+    public String getUserinfoSignedUri() {
+        return uri + CTX_USERINFO_SIGNED;
+    }
+
     public String getJwksUri() {
         return uri + CTX_KEYS;
     }
@@ -160,32 +172,53 @@ class MockIpdServer implements Closeable {
         );
     }
 
-    protected void handleUserinfoRequestUnencrypted(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-            IOException, ParseException {
+    protected void handleUserinfoRequestSigned(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+        IOException {
 
-        Header[] headers = request.getHeaders("Authorization");
+        Header headers = request.getHeader("Authorization");
         String requestToken;
-        // Check if the "Authorization" header is present
-        if (headers.length > 0) {
-            // Parse the "Authorization" header value
-            String authHeaderValue = headers[0].getValue();
-            if (authHeaderValue.startsWith("Bearer")) {
-                requestToken = authHeaderValue.substring(7).trim();
-            }
-            else {
-                response.setCode(401);
-                return;
-            }
+
+        String authHeaderValue = headers.getValue();
+        if (authHeaderValue.startsWith("[Bearer")) {
+            requestToken = authHeaderValue.substring(7).trim();
         } else {
-           response.setCode(401);
-           return;
+            response.setCode(401);
+            return;
         }
 
-        JWTClaimsSet claims = JWTClaimsSet.parse(requestToken);
         response.setCode(200);
-        response.setHeader("content-type", ContentType.APPLICATION_JSON);
-        response.setEntity(new StringEntity());
+        response.setHeader("content-type", APPLICATION_JWT);
 
+        // We have to manually form the response content since we don't want to need to pass settings info into the test class
+        JWTClaimsSet claims = new JWTClaimsSet.Builder().claim("sub", MCCOY_SUBJECT)
+            .claim("roles", TEST_ROLES_STRING)
+            .claim("iss", "http://www.example.com")
+            .claim("aud", "testClient")
+            .build();
+        String content = createSigned(claims, TestJwk.OCT_1);
+
+        response.setEntity(new StringEntity(content));
+    }
+
+    protected void handleUserinfoRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+        IOException {
+        Header headers = request.getHeader("Authorization");
+        String requestToken;
+
+        String authHeaderValue = headers.getValue();
+        if (authHeaderValue.startsWith("[Bearer")) {
+            requestToken = authHeaderValue.substring(7).trim();
+        } else {
+            response.setCode(401);
+            return;
+        }
+
+        response.setCode(200);
+        response.setHeader("content-type", APPLICATION_JSON);
+
+        // We have to manually form the response content since we don't want to need to pass settings info into the test class
+        JWTClaimsSet claims = new JWTClaimsSet.Builder().claim("sub", MCCOY_SUBJECT).claim("roles", TEST_ROLES_STRING).build();
+        response.setEntity(new StringEntity(claims.toString()));
     }
 
     protected void handleKeysRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,

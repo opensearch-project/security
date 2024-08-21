@@ -11,9 +11,13 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.text.ParseException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -148,7 +152,6 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             httpGet.addHeader(AUTHORIZATION_HEADER, request.getHeaders().get(AUTHORIZATION_HEADER));
 
             // HTTPGet should internally verify the appropriate TLS cert.
-
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
 
                 if (response.getCode() < 200 || response.getCode() >= 300) {
@@ -166,25 +169,41 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 }
 
                 String contentType = httpEntity.getContentType();
-
-                if (!contentType.equals(APPLICATION_JSON) && !contentType.equals(APPLICATION_JWT)) {
+                if (!contentType.contains(APPLICATION_JSON) && !contentType.contains(APPLICATION_JWT)) {
                     throw new AuthenticatorUnavailableException(
                         "Error while getting " + this.userinfo_endpoint + ": Invalid content type in response"
                     );
                 }
 
-                String userinfoContent = httpEntity.getContent().toString();
+                String userinfoContent;
+
+                try (
+                    InputStream inputStream = httpEntity.getContent();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))
+                ) {
+
+                    StringBuilder content = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        content.append(line);
+                    }
+                    userinfoContent = content.toString();
+                } catch (IOException e) {
+                    throw new AuthenticatorUnavailableException(
+                        "Error while getting " + this.userinfo_endpoint + ": Unable to read response content"
+                    );
+                }
+
                 JWTClaimsSet claims;
-                boolean isSigned = contentType.equals(APPLICATION_JWT);
-                if (contentType.equals(APPLICATION_JWT)) { // We don't need the userinfo_encrypted_response_alg since the
-                                                           // selfRefreshingKeyProvider has access to the keys
+                boolean isSigned = contentType.contains(APPLICATION_JWT);
+                if (contentType.contains(APPLICATION_JWT)) { // We don't need the userinfo_encrypted_response_alg since the
+                                                             // selfRefreshingKeyProvider has access to the keys
                     claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(userinfoContent);
                 } else {
                     claims = JWTClaimsSet.parse(userinfoContent);
                 }
 
                 String id = openIdJwtAuthenticator.getJwtClaimsSet(request).getSubject();
-
                 String missing = validateResponseClaims(claims, id, isSigned);
                 if (!missing.isBlank()) {
                     throw new AuthenticatorUnavailableException(
@@ -199,7 +218,14 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 }
 
                 final String[] roles = openIdJwtAuthenticator.extractRoles(claims);
-                return new AuthCredentials(subject, roles).markComplete();
+
+                AuthCredentials ac = new AuthCredentials(subject, roles);
+
+                for (Map.Entry<String, Object> claim : claims.getClaims().entrySet()) {
+                    ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
+                }
+
+                return ac.markComplete();
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
@@ -217,14 +243,12 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         }
 
         if (isSigned) {
-            if (claims.getClaim("iss") == null
-                || claims.getClaim("iss").toString().isBlank()
-                || !claims.getClaim("iss").toString().equals(settings.get(ISSUER_ID_URL))) {
+            if (claims.getIssuer() == null || claims.getIssuer().isBlank() || !claims.getIssuer().equals(settings.get(ISSUER_ID_URL))) {
                 missing = missing.concat("iss");
             }
-            if (claims.getClaim("aud") == null
-                || claims.getClaim("aud").toString().isBlank()
-                || !claims.getClaim("aud").toString().equals(settings.get(CLIENT_ID))) {
+            if (claims.getAudience() == null
+                || claims.getAudience().toString().isBlank()
+                || !claims.getAudience().contains(settings.get(CLIENT_ID))) {
                 missing = missing.concat("aud");
             }
         }
