@@ -46,6 +46,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentHelper;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -603,12 +604,17 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return channel -> threadPool.generic().submit(() -> {
             try {
                 threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
                 requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
                 final var requestHandler = requestHandlers.getOrDefault(request.method(), methodNotImplementedHandler);
                 requestHandler.handle(channel, request, client);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 LOGGER.error("Error processing request {}", request, e);
-                throw ExceptionsHelper.convertToOpenSearchException(e);
+                try {
+                    channel.sendResponse(new BytesRestResponse(channel, e));
+                } catch (IOException ioe) {
+                    throw ExceptionsHelper.convertToOpenSearchException(e);
+                }
             }
         });
     }
