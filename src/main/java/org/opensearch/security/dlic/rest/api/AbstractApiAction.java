@@ -36,7 +36,6 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.CheckedSupplier;
 import org.opensearch.common.action.ActionFuture;
-import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
@@ -47,7 +46,6 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentHelper;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -602,28 +600,15 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             securityApiDependencies.auditLog().logGrantedPrivileges(userName, SecurityRequestFactory.from(request));
         }
 
-        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
-        final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
-
         return channel -> threadPool.generic().submit(() -> {
-            try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
+            try {
                 threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-                threadPool.getThreadContext()
-                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
-                threadPool.getThreadContext()
-                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalUserAndRemoteAddress.getRight());
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
-
                 requestHandlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
                 final var requestHandler = requestHandlers.getOrDefault(request.method(), methodNotImplementedHandler);
                 requestHandler.handle(channel, request, client);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 LOGGER.error("Error processing request {}", request, e);
-                try {
-                    channel.sendResponse(new BytesRestResponse(channel, e));
-                } catch (IOException ioe) {
-                    throw ExceptionsHelper.convertToOpenSearchException(e);
-                }
+                throw ExceptionsHelper.convertToOpenSearchException(e);
             }
         });
     }
