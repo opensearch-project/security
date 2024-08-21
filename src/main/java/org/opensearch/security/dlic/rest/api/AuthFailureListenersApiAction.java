@@ -13,6 +13,7 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,8 +32,12 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.opensearch.rest.RestRequest.Method.*;
-import static org.opensearch.security.dlic.rest.api.Responses.*;
+import static org.opensearch.rest.RestRequest.Method.DELETE;
+import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthFailureListenersApiAction extends AbstractApiAction {
@@ -118,27 +123,19 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
     private ToXContent authFailureContent(final ConfigV7 config) {
         return (builder, params) -> {
             builder.startObject();
-
-            if (config.dynamic.auth_failure_listeners != null) {
-                builder.startArray("auth_failure_listeners");
-
-                for (String name : config.dynamic.auth_failure_listeners.getListeners().keySet()) {
-                    ConfigV7.AuthFailureListener listener = config.dynamic.auth_failure_listeners.getListeners().get(name);
-                    builder.startObject();
-                    builder.field(NAME_JSON_PROPERTY, name);
-                    builder.field(TYPE_JSON_PROPERTY, listener.type);
-                    builder.field(AUTHENTICATION_BACKEND_JSON_PROPERTY, listener.authentication_backend);
-                    builder.field(ALLOWED_TRIES_JSON_PROPERTY, listener.allowed_tries);
-                    builder.field(TIME_WINDOW_SECONDS_JSON_PROPERTY, listener.time_window_seconds);
-                    builder.field(BLOCK_EXPIRY_JSON_PROPERTY, listener.block_expiry_seconds);
-                    builder.field(MAX_BLOCKED_CLIENTS_JSON_PROPERTY, listener.max_blocked_clients);
-                    builder.field(MAX_TRACKED_CLIENTS_JSON_PROPERTY, listener.max_tracked_clients);
-                    builder.endObject();
-                }
-
-                builder.endArray();
+            for (String name : config.dynamic.auth_failure_listeners.getListeners().keySet()) {
+                ConfigV7.AuthFailureListener listener = config.dynamic.auth_failure_listeners.getListeners().get(name);
+                builder.startObject(name);
+                builder.field(NAME_JSON_PROPERTY, name)
+                    .field(TYPE_JSON_PROPERTY, listener.type)
+                    .field(AUTHENTICATION_BACKEND_JSON_PROPERTY, listener.authentication_backend)
+                    .field(ALLOWED_TRIES_JSON_PROPERTY, listener.allowed_tries)
+                    .field(TIME_WINDOW_SECONDS_JSON_PROPERTY, listener.time_window_seconds)
+                    .field(BLOCK_EXPIRY_JSON_PROPERTY, listener.block_expiry_seconds)
+                    .field(MAX_BLOCKED_CLIENTS_JSON_PROPERTY, listener.max_blocked_clients)
+                    .field(MAX_TRACKED_CLIENTS_JSON_PROPERTY, listener.max_tracked_clients);
+                builder.endObject();
             }
-
             builder.endObject();
             return builder;
         };
@@ -156,9 +153,6 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
             ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
 
             String listenerName = request.param("name");
-            if (listenerName == null) {
-                badRequest(channel, "name is required");
-            }
 
             // Try to remove the listener by name
             if (config.dynamic.auth_failure_listeners.getListeners().remove(listenerName) == null) {
@@ -176,29 +170,31 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
 
                 String listenerName = request.param(NAME_JSON_PROPERTY);
 
-                if (listenerName == null) {
-                    badRequest(channel, "name is required");
-                }
-                ObjectNode test = (ObjectNode) DefaultObjectMapper.readTree(request.content().utf8ToString());
-                SecurityJsonNode test2 = new SecurityJsonNode(test);
+                ObjectNode body = (ObjectNode) DefaultObjectMapper.readTree(request.content().utf8ToString());
+                SecurityJsonNode authFailureListener = new SecurityJsonNode(body);
+                String authenticationBackend = authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals("ip")
+                    || authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).isNull()
+                        ? null
+                        : authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).asString();
 
                 // Try to remove the listener by name
                 config.dynamic.auth_failure_listeners.getListeners()
                     .put(
                         listenerName,
                         new ConfigV7.AuthFailureListener(
-                            test2.get(TYPE_JSON_PROPERTY).asString(),
-                            test2.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).asString(),
-                            Integer.parseInt(test2.get(ALLOWED_TRIES_JSON_PROPERTY).asString()),
-                            Integer.parseInt(test2.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).asString()),
-                            Integer.parseInt(test2.get(BLOCK_EXPIRY_JSON_PROPERTY).asString()),
-                            Integer.parseInt(test2.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).asString()),
-                            Integer.parseInt(test2.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).asString())
+                            authFailureListener.get(TYPE_JSON_PROPERTY).asString(),
+                            Optional.ofNullable(authenticationBackend),
+                            Integer.parseInt(authFailureListener.get(ALLOWED_TRIES_JSON_PROPERTY).asString()),
+                            Integer.parseInt(authFailureListener.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).asString()),
+                            Integer.parseInt(authFailureListener.get(BLOCK_EXPIRY_JSON_PROPERTY).asString()),
+                            Integer.parseInt(authFailureListener.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).asString()),
+                            Integer.parseInt(authFailureListener.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).asString())
                         )
                     );
                 saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
                     @Override
                     public void onResponse(IndexResponse indexResponse) {
+
                         ok(channel, authFailureContent(config));
                     }
                 });

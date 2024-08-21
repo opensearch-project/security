@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -250,7 +251,7 @@ public class ConfigV7 {
 
         public AuthFailureListener(
             String type,
-            String authentication_backend,
+            Optional<String> authentication_backend,
             int allowed_tries,
             int time_window_seconds,
             int block_expiry_seconds,
@@ -258,7 +259,7 @@ public class ConfigV7 {
             int max_tracked_clients
         ) {
             this.type = type;
-            this.authentication_backend = authentication_backend;
+            this.authentication_backend = authentication_backend.isPresent() ? authentication_backend.get() : null;
             this.allowed_tries = allowed_tries;
             this.time_window_seconds = time_window_seconds;
             this.block_expiry_seconds = block_expiry_seconds;
