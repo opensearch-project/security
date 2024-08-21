@@ -1,8 +1,7 @@
-## Version 1.3.18.0
+## Version 1.3.19.0
 
-Compatible with OpenSearch 1.3.18
+Compatible with OpenSearch 1.3.19
 
 ### Maintenance
 
-* Bump bouncycastle to 1.78.1 and kafka to 3.7.0 ([#4437](https://github.com/opensearch-project/security/pull/4437))
-* Bump jose to address CVE ([#4549](https://github.com/opensearch-project/security/pull/4549))
+* Bump org.apache.cxf:cxf-rt-rs-security-jose from 3.5.8 to 3.5.9 ([#4579](https://github.com/opensearch-project/security/pull/4579))
