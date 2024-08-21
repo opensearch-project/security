@@ -448,7 +448,7 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJwtWithRequiredAudIssFailsTest() throws Exception { // Setting a required issuer or audience
-                                                                                           // alongside userinfoendpoint settings causes
+                                                                                           // alongside userinfo endpoint settings causes
                                                                                            // failures in signed response cases
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())

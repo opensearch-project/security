@@ -46,9 +46,9 @@ import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JSON;
+import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
+import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.AUTHORIZATION_HEADER;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.SUB_CLAIM;
@@ -60,14 +60,14 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
     private final Path configPath;
     private final int requestTimeoutMs = 10000;
     private final SettingsBasedSSLConfigurator.SSLConfig sslConfig;
-    private final String userinfo_endpoint;
+    private final String userInfoEndpoint;
     private volatile HTTPJwtKeyByOpenIdConnectAuthenticator openIdJwtAuthenticator;
 
     public HTTPOpenIdAuthenticator(Settings settings, Path configPath) throws Exception {
         this.settings = settings;
         this.configPath = configPath;
         this.sslConfig = getSSLConfig(settings, configPath);
-        userinfo_endpoint = settings.get("userinfo_endpoint");
+        userInfoEndpoint = settings.get("userinfo_endpoint");
         openIdJwtAuthenticator = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, configPath);
     }
 
@@ -83,7 +83,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
     }
 
     public String getType() {
-        return null;
+        return "oidc";
     }
 
     private static SettingsBasedSSLConfigurator.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
@@ -92,7 +92,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
     @Override
     public AuthCredentials extractCredentials(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
-        if (this.userinfo_endpoint != null && !this.userinfo_endpoint.isBlank()) {
+        if (this.userInfoEndpoint != null && !this.userInfoEndpoint.isBlank()) {
             return extractCredentials0(request, context);
         }
         return (this.openIdJwtAuthenticator.extractCredentials(request, context));
@@ -141,7 +141,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
         try (CloseableHttpClient httpClient = createHttpClient()) {
 
-            HttpGet httpGet = new HttpGet(this.userinfo_endpoint);
+            HttpGet httpGet = new HttpGet(this.userInfoEndpoint);
 
             RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectionRequestTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
@@ -149,29 +149,27 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 .build();
 
             httpGet.setConfig(requestConfig);
-            httpGet.addHeader(AUTHORIZATION_HEADER, request.getHeaders().get(AUTHORIZATION_HEADER));
+            httpGet.addHeader(AUTHORIZATION, request.getHeaders().get(AUTHORIZATION));
 
             // HTTPGet should internally verify the appropriate TLS cert.
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
 
                 if (response.getCode() < 200 || response.getCode() >= 300) {
                     throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userinfo_endpoint + ": " + response.getReasonPhrase()
+                        "Error while getting " + this.userInfoEndpoint + ": " + response.getReasonPhrase()
                     );
                 }
 
                 HttpEntity httpEntity = response.getEntity();
 
                 if (httpEntity == null) {
-                    throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userinfo_endpoint + ": Empty response entity"
-                    );
+                    throw new AuthenticatorUnavailableException("Error while getting " + this.userInfoEndpoint + ": Empty response entity");
                 }
 
                 String contentType = httpEntity.getContentType();
-                if (!contentType.contains(APPLICATION_JSON) && !contentType.contains(APPLICATION_JWT)) {
+                if (!contentType.contains(APPLICATION_JSON.getMimeType()) && !contentType.contains(APPLICATION_JWT)) {
                     throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userinfo_endpoint + ": Invalid content type in response"
+                        "Error while getting " + this.userInfoEndpoint + ": Invalid content type in response"
                     );
                 }
 
@@ -191,7 +189,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                     userinfoContent = content.toString();
                 } catch (IOException e) {
                     throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userinfo_endpoint + ": Unable to read response content"
+                        "Error while getting " + this.userInfoEndpoint + ": Unable to read response content"
                     );
                 }
 
@@ -208,7 +206,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 String missing = validateResponseClaims(claims, id, isSigned);
                 if (!missing.isBlank()) {
                     throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userinfo_endpoint + ": Missing or invalid required claims in response: " + missing
+                        "Error while getting " + this.userInfoEndpoint + ": Missing or invalid required claims in response: " + missing
                     );
                 }
 
@@ -231,7 +229,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 throw new RuntimeException(e);
             }
         } catch (IOException e) {
-            throw new AuthenticatorUnavailableException("Error while getting " + this.userinfo_endpoint + ": " + e, e);
+            throw new AuthenticatorUnavailableException("Error while getting " + this.userInfoEndpoint + ": " + e, e);
         }
     }
 
