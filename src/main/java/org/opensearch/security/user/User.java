@@ -298,12 +298,9 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     /**
-     * Check the custom attributes associated with this user
-     *
-     * @return true if it has a plugin attribute, otherwise false
+     * @return true if this instance is of the type PluginUser
      */
     public boolean isPluginUser() {
-        Map<String, String> userAttributesMap = this.getCustomAttributesMap();
-        return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.plugin"));
+        return this instanceof PluginUser;
     }
 }
