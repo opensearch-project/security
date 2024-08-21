@@ -39,14 +39,14 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
-import org.opensearch.security.identity.TransportActionDependencies;
+import org.opensearch.security.identity.PluginContextSwitcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, IdentityAwarePlugin {
     public static final String SYSTEM_INDEX_1 = ".system-index1";
 
-    private static final TransportActionDependencies SECURITY_TRANSPORT_ACTION_DEPENDENCIES = new TransportActionDependencies();
+    private PluginContextSwitcher contextSwitcher;
 
     private Client client;
 
@@ -65,7 +65,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.client = client;
-        return List.of(SECURITY_TRANSPORT_ACTION_DEPENDENCIES);
+        this.contextSwitcher = new PluginContextSwitcher();
+        return List.of(contextSwitcher);
     }
 
     @Override
@@ -86,9 +87,9 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
     ) {
         return List.of(
             new RestIndexDocumentIntoSystemIndexAction(client),
-            new RestRunClusterHealthAction(client, SECURITY_TRANSPORT_ACTION_DEPENDENCIES.getPluginSystemSubject()),
-            new RestBulkIndexDocumentIntoSystemIndexAction(client, SECURITY_TRANSPORT_ACTION_DEPENDENCIES.getPluginSystemSubject()),
-            new RestBulkIndexDocumentIntoMixOfSystemIndexAction(client, SECURITY_TRANSPORT_ACTION_DEPENDENCIES.getPluginSystemSubject())
+            new RestRunClusterHealthAction(client, contextSwitcher),
+            new RestBulkIndexDocumentIntoSystemIndexAction(client, contextSwitcher),
+            new RestBulkIndexDocumentIntoMixOfSystemIndexAction(client, contextSwitcher)
         );
     }
 
@@ -101,6 +102,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
 
     @Override
     public void assignSubject(PluginSubject pluginSystemSubject) {
-        SECURITY_TRANSPORT_ACTION_DEPENDENCIES.setPluginSystemSubject(pluginSystemSubject);
+        if (contextSwitcher != null) {
+            this.contextSwitcher.initialize(pluginSystemSubject);
+        }
     }
 }

@@ -13,11 +13,11 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.identity.PluginSubject;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.identity.PluginContextSwitcher;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -25,11 +25,11 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestBulkIndexDocumentIntoSystemIndexAction extends BaseRestHandler {
 
     private final Client client;
-    private final PluginSubject pluginSubject;
+    private final PluginContextSwitcher contextSwitcher;
 
-    public RestBulkIndexDocumentIntoSystemIndexAction(Client client, PluginSubject pluginSubject) {
+    public RestBulkIndexDocumentIntoSystemIndexAction(Client client, PluginContextSwitcher contextSwitcher) {
         this.client = client;
-        this.pluginSubject = pluginSubject;
+        this.contextSwitcher = contextSwitcher;
     }
 
     @Override
@@ -49,7 +49,7 @@ public class RestBulkIndexDocumentIntoSystemIndexAction extends BaseRestHandler 
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                pluginSubject.runAs(() -> {
+                contextSwitcher.runAs(() -> {
                     client.admin().indices().create(new CreateIndexRequest(indexName), ActionListener.wrap(r -> {
                         BulkRequestBuilder builder = client.prepareBulk();
                         builder.add(new IndexRequest(indexName).source("{\"content\":1}", XContentType.JSON));

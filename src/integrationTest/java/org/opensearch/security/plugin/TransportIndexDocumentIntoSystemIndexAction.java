@@ -19,8 +19,7 @@ import org.opensearch.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.identity.PluginSubject;
-import org.opensearch.security.identity.TransportActionDependencies;
+import org.opensearch.security.identity.PluginContextSwitcher;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -33,7 +32,7 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
 
     private final Client client;
     private final ThreadPool threadPool;
-    private final PluginSubject pluginSystemSubject;
+    private final PluginContextSwitcher contextSwitcher;
 
     @Inject
     public TransportIndexDocumentIntoSystemIndexAction(
@@ -41,12 +40,12 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
         final ActionFilters actionFilters,
         final Client client,
         final ThreadPool threadPool,
-        final TransportActionDependencies deps
+        final PluginContextSwitcher contextSwitcher
     ) {
         super(IndexDocumentIntoSystemIndexAction.NAME, transportService, actionFilters, IndexDocumentIntoSystemIndexRequest::new);
         this.client = client;
         this.threadPool = threadPool;
-        this.pluginSystemSubject = deps.getPluginSystemSubject();
+        this.contextSwitcher = contextSwitcher;
     }
 
     @Override
@@ -57,7 +56,7 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
     ) {
         String indexName = request.getIndexName();
         try {
-            pluginSystemSubject.runAs(() -> {
+            contextSwitcher.runAs(() -> {
                 client.admin().indices().create(new CreateIndexRequest(indexName), ActionListener.wrap(r -> {
                     client.index(
                         new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)

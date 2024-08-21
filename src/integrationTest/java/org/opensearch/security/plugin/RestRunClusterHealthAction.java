@@ -19,11 +19,11 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.identity.PluginSubject;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.identity.PluginContextSwitcher;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -31,11 +31,11 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 public class RestRunClusterHealthAction extends BaseRestHandler {
 
     private final Client client;
-    private final PluginSubject pluginSubject;
+    private final PluginContextSwitcher contextSwitcher;
 
-    public RestRunClusterHealthAction(Client client, PluginSubject pluginSubject) {
+    public RestRunClusterHealthAction(Client client, PluginContextSwitcher contextSwitcher) {
         this.client = client;
-        this.pluginSubject = pluginSubject;
+        this.contextSwitcher = contextSwitcher;
     }
 
     @Override
@@ -54,7 +54,7 @@ public class RestRunClusterHealthAction extends BaseRestHandler {
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                pluginSubject.runAs(() -> {
+                contextSwitcher.runAs(() -> {
                     ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(r -> {
                         channel.sendResponse(
                             new BytesRestResponse(RestStatus.OK, r.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS))
