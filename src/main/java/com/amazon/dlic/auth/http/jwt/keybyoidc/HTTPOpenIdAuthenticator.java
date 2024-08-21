@@ -11,10 +11,10 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Map;
@@ -178,14 +178,15 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 String userinfoContent;
 
                 try (
+                    // got this from ChatGpt & Amazon Q
                     InputStream inputStream = httpEntity.getContent();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))
+                    InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)
                 ) {
-
                     StringBuilder content = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        content.append(line);
+                    char[] buffer = new char[8192];
+                    int bytesRead;
+                    while ((bytesRead = reader.read(buffer)) != -1) {
+                        content.append(buffer, 0, bytesRead);
                     }
                     userinfoContent = content.toString();
                 } catch (IOException e) {
