@@ -59,7 +59,7 @@ public enum ModuleType implements Serializable {
     JWT_AUTHENTICATION_BACKEND("JWT authentication backend", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator", Boolean.TRUE),
     OPENID_AUTHENTICATION_BACKEND(
         "OpenID authentication backend",
-        "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator",
+        "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPOpenIdAuthenticator",
         Boolean.TRUE
     ),
     SAML_AUTHENTICATION_BACKEND("SAML authentication backend", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator", Boolean.TRUE),
