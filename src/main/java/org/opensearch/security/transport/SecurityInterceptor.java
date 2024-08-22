@@ -39,6 +39,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.get.GetRequest;
@@ -128,6 +129,15 @@ public class SecurityInterceptor {
         );
     }
 
+    private User determineUser(Connection connection) {
+        User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        // pluginUser did not exist prior to 2.17.0
+        if (user0 != null && user0.isPluginUser() && connection.getVersion().before(Version.V_2_17_0)) {
+            user0 = null;
+        }
+        return user0;
+    }
+
     public <T extends TransportResponse> void sendRequestDecorate(
         AsyncSender sender,
         Connection connection,
@@ -138,7 +148,7 @@ public class SecurityInterceptor {
         DiscoveryNode localNode
     ) {
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
-        final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user0 = determineUser(connection);
         final String injectedUserString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
         final String injectedRolesString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
         final String injectedRolesValidationString = getThreadContext().getTransient(
@@ -310,7 +320,7 @@ public class SecurityInterceptor {
 
             if (origUser != null) {
                 // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be
-                // stah.
+                // stashed.
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
             } else if (StringUtils.isNotEmpty(injectedRolesString)) {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesString);
