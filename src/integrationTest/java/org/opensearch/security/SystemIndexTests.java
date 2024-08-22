@@ -151,11 +151,10 @@ public class SystemIndexTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-bulk-mixed-index");
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
                 response.getBody(),
                 containsString(
-                    "no permissions for [indices:data/write/bulk] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
+                    "no permissions for [indices:data/write/bulk[s]] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
                 )
             );
         }

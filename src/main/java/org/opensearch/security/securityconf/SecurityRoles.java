@@ -97,5 +97,13 @@ public interface SecurityRoles {
 
     SecurityRoles filter(Set<String> roles);
 
+    SecurityRoles createSecurityRole(
+        String roleName,
+        Set<String> clusterPerms,
+        Set<String> indexPatterns,
+        Set<String> allowedActions,
+        Set<String> systemIndexPatterns
+    );
+
     boolean isPermittedOnSystemIndex(String indexName);
 }

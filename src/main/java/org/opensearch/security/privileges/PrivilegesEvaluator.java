@@ -29,6 +29,7 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -85,6 +86,7 @@ import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.identity.SystemIndexRegistry;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -142,6 +144,8 @@ public class PrivilegesEvaluator {
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
+    private final SystemIndexRegistry systemIndexRegistry;
+    private final Map<String, SecurityRoles> pluginRoles;
 
     public PrivilegesEvaluator(
         final ClusterService clusterService,
@@ -153,7 +157,8 @@ public class PrivilegesEvaluator {
         final PrivilegesInterceptor privilegesInterceptor,
         final ClusterInfoHolder clusterInfoHolder,
         final IndexResolverReplacer irr,
-        NamedXContentRegistry namedXContentRegistry
+        NamedXContentRegistry namedXContentRegistry,
+        final SystemIndexRegistry systemIndexRegistry
     ) {
 
         super();
@@ -163,6 +168,8 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadPool.getThreadContext();
         this.privilegesInterceptor = privilegesInterceptor;
+        this.systemIndexRegistry = systemIndexRegistry;
+        this.pluginRoles = new HashMap<>();
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
             ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
@@ -191,6 +198,17 @@ public class PrivilegesEvaluator {
 
     public SecurityRoles getSecurityRoles(Set<String> roles) {
         return configModel.getSecurityRoles().filter(roles);
+    }
+
+    public SecurityRoles getSecurityRoleForPlugin(String pluginIdentifier) {
+        SecurityRoles pluginRole = pluginRoles.get(pluginIdentifier);
+        if (pluginRole == null) {
+            Set<String> systemIndexPatterns = systemIndexRegistry.getSystemIndexPatterns(pluginIdentifier);
+            pluginRole = configModel.getSecurityRoles()
+                .createSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Set.of(), Set.of(), systemIndexPatterns);
+            pluginRoles.put(pluginIdentifier, pluginRole);
+        }
+        return pluginRole;
     }
 
     public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress, final String permissions) {
@@ -279,7 +297,12 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
-        final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
+        final SecurityRoles securityRoles;
+        if (user.isPluginUser()) {
+            securityRoles = getSecurityRoleForPlugin(user.getName());
+        } else {
+            securityRoles = getSecurityRoles(mappedRoles);
+        }
 
         // Add the security roles for this user so that they can be used for DLS parameter substitution.
         user.addSecurityRoles(mappedRoles);
@@ -292,7 +315,7 @@ public class PrivilegesEvaluator {
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant())) && !user.isPluginUser()) {
+        if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
             // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
             // indices:data/write/bulk[s]).
             // This shortcut is only possible if the default tenant is selected, as we might need to rewrite the request for non-default

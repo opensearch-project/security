@@ -274,6 +274,31 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         @Override
+        public SecurityRoles createSecurityRole(
+            String roleName,
+            Set<String> clusterPerms,
+            Set<String> indexPatterns,
+            Set<String> allowedActions,
+            Set<String> systemIndexPatterns
+        ) {
+            Set<IndexPattern> ipatterns = new HashSet<>();
+            for (String ip : indexPatterns) {
+                IndexPattern idxPattern = new IndexPattern(ip);
+                idxPattern.addPerm(allowedActions);
+                ipatterns.add(idxPattern);
+            }
+            for (String ip : systemIndexPatterns) {
+                IndexPattern idxPattern = new IndexPattern(ip);
+                idxPattern.addPerm(Set.of("*", ConfigConstants.SYSTEM_INDEX_PERMISSION));
+                ipatterns.add(idxPattern);
+            }
+            SecurityRole role = new SecurityRole(roleName, ipatterns, WildcardMatcher.from(clusterPerms));
+            SecurityRoles roles = new SecurityRoles(1);
+            roles.addSecurityRole(role);
+            return roles;
+        }
+
+        @Override
         public EvaluatedDlsFlsConfig getDlsFls(
             User user,
             boolean dfmEmptyOverwritesAll,
@@ -439,6 +464,7 @@ public class ConfigModelV7 extends ConfigModel {
         ) {
 
             final Set<String> indicesForRequest = new HashSet<>(resolved.getAllIndicesResolved(cs, resolver));
+            System.out.println("indicesForRequest: " + indicesForRequest);
             if (indicesForRequest.isEmpty()) {
                 // If no indices could be found on the request there is no way to check for the explicit permissions
                 return false;
@@ -448,6 +474,8 @@ public class ConfigModelV7 extends ConfigModel {
                 .map(role -> role.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, SecurityRoles::matchExplicitly))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
+
+            System.out.println("explicitlyAllowedIndices: " + explicitlyAllowedIndices);
 
             if (log.isDebugEnabled()) {
                 log.debug(
