@@ -55,6 +55,7 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.fail;
 
+@SuppressWarnings("removal")
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 public class SecuritySettingsConfigurerTests {
 

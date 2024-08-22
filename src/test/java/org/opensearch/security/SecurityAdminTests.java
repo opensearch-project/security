@@ -40,6 +40,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.tools.SecurityAdmin;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.Assert.assertThrows;
 
@@ -73,11 +74,11 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         RestHelper rh = restHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -159,7 +160,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
     }
 
     @Test
@@ -190,11 +191,11 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         RestHelper rh = restHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
@@ -214,9 +215,9 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(-1, returnCode);
+        assertThat(returnCode, is(-1));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
@@ -235,9 +236,9 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(-1, returnCode);
+        assertThat(returnCode, is(-1));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode());
+        assertThat((rh.executeGetRequest("_plugins/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
     }
 
     @Test
@@ -272,7 +273,7 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         RestHelper rh = restHelper();
 
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executeGetRequest("_opendistro/_security/health?pretty").getStatusCode());
+        assertThat(rh.executeGetRequest("_opendistro/_security/health?pretty").getStatusCode(), is(HttpStatus.SC_SERVICE_UNAVAILABLE));
     }
 
     @Test
@@ -303,12 +304,12 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         RestHelper rh = restHelper();
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -345,7 +346,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
@@ -367,7 +368,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
@@ -389,12 +390,12 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         RestHelper rh = restHelper();
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -436,7 +437,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = restHelper();
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -482,7 +483,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         RestHelper rh = restHelper();
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -505,10 +506,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         rh.keystore = "kirk-keystore.jks";
 
         rh.executePutRequest(".opendistro_security/_doc/roles", FileHelper.loadFile("roles_invalidxcontent.yml"));
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executePutRequest(".opendistro_security/_doc/roles", "{\"roles\":\"dummy\"}").getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executePutRequest(".opendistro_security/_doc/roles", "{\"roles\":\"dummy\"}").getStatusCode()));
 
         final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
@@ -533,7 +531,7 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        assertThat((res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode(), is(HttpStatus.SC_OK));
         assertContains(res, "*UP*");
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
@@ -546,7 +544,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-vc");
 
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
@@ -554,7 +552,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-vc");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
@@ -562,7 +560,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-vc");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
@@ -572,7 +570,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-vc");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
@@ -580,7 +578,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-vc");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
@@ -613,7 +611,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("6");
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         argsAsList = new ArrayList<>();
         addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
@@ -653,7 +651,7 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         // Execute first time to create the index
         int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
@@ -661,7 +659,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         System.setOut(ps);
 
         returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        assertThat(returnCode, is(0));
 
         System.out.flush();
         System.setOut(old);

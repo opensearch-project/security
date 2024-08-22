@@ -38,7 +38,8 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.impl.CType;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -85,14 +86,14 @@ public class AuditMessageTest {
     public void testAuthorizationRestHeadersAreFiltered() {
         when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(false);
         message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
-        assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), ImmutableMap.of("test-header", ImmutableList.of("test-4")));
+        assertThat(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), is(ImmutableMap.of("test-header", ImmutableList.of("test-4"))));
     }
 
     @Test
     public void testCustomRestHeadersAreFiltered() {
         when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(true);
         message.addRestHeaders(TEST_REST_HEADERS, true, auditConfig.getFilter());
-        assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), Map.of());
+        assertThat(Map.of(), is(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS)));
     }
 
     @Test
@@ -107,7 +108,7 @@ public class AuditMessageTest {
     public void testRestHeadersAreNotFiltered() {
         when(auditConfig.getFilter().shouldExcludeHeader("test-header")).thenReturn(false);
         message.addRestHeaders(TEST_REST_HEADERS, false, null);
-        assertEquals(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS), TEST_REST_HEADERS);
+        assertThat(TEST_REST_HEADERS, is(message.getAsMap().get(AuditMessage.REST_REQUEST_HEADERS)));
     }
 
     @Test
@@ -121,13 +122,13 @@ public class AuditMessageTest {
     @Test
     public void testTransportHeadersAreFiltered() {
         message.addTransportHeaders(TEST_TRANSPORT_HEADERS, true);
-        assertEquals(message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS), ImmutableMap.of("test-header", "test-4"));
+        assertThat(message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS), is(ImmutableMap.of("test-header", "test-4")));
     }
 
     @Test
     public void testTransportHeadersAreNotFiltered() {
         message.addTransportHeaders(TEST_TRANSPORT_HEADERS, false);
-        assertEquals(message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS), TEST_TRANSPORT_HEADERS);
+        assertThat(TEST_TRANSPORT_HEADERS, is(message.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_HEADERS)));
     }
 
     @Test
@@ -138,29 +139,29 @@ public class AuditMessageTest {
 
         // does not perform redaction for non-internal user doc
         message.addSecurityConfigContentToRequestBody(hash1, "test-doc");
-        assertEquals(hash1, message.getAsMap().get(AuditMessage.REQUEST_BODY));
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is(hash1));
 
         // test hash redaction
         message.addSecurityConfigContentToRequestBody(hash1, internalUsersDocId);
-        assertEquals("__HASH__", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("__HASH__"));
 
         // test hash redaction in string
         message.addSecurityConfigContentToRequestBody("Hash " + hash2 + " is redacted", internalUsersDocId);
-        assertEquals("Hash __HASH__ is redacted", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("Hash __HASH__ is redacted"));
 
         // test hash redaction inline without spaces
         message.addSecurityConfigContentToRequestBody("Inline hash" + hash2 + "is redacted", internalUsersDocId);
-        assertEquals("Inline hash__HASH__is redacted", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("Inline hash__HASH__is redacted"));
 
         // test map redaction
         message.addSecurityConfigWriteDiffSource("Diff is " + hash2, internalUsersDocId);
-        assertEquals("Diff is __HASH__", message.getAsMap().get(AuditMessage.COMPLIANCE_DIFF_CONTENT));
+        assertThat(message.getAsMap().get(AuditMessage.COMPLIANCE_DIFF_CONTENT), is("Diff is __HASH__"));
 
         // test tuple redaction
         final ByteBuffer[] byteBuffers = new ByteBuffer[] { ByteBuffer.wrap(("Hash in tuple is " + hash1).getBytes()) };
         BytesReference ref = BytesReference.fromByteBuffers(byteBuffers);
         message.addSecurityConfigTupleToRequestBody(new Tuple<>(XContentType.JSON, ref), internalUsersDocId);
-        assertEquals("Hash in tuple is __HASH__", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("Hash in tuple is __HASH__"));
     }
 
     @Test
@@ -187,7 +188,7 @@ public class AuditMessageTest {
         request = SecurityRequestFactory.from(restRequest);
 
         message.addRestRequestInfo(request, auditConfig.getFilter());
-        assertEquals("ERROR: Unable to generate request body", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("ERROR: Unable to generate request body"));
 
         // No content, source parameter present but Invalid source-content-type parameter
         when(httpRequest.uri()).thenReturn("/aaaa?source=request_body");
@@ -197,6 +198,6 @@ public class AuditMessageTest {
         request = SecurityRequestFactory.from(restRequest);
 
         message.addRestRequestInfo(request, auditConfig.getFilter());
-        assertEquals("ERROR: Unable to generate request body", message.getAsMap().get(AuditMessage.REQUEST_BODY));
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("ERROR: Unable to generate request body"));
     }
 }

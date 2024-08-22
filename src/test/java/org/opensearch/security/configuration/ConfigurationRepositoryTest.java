@@ -53,7 +53,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
@@ -282,7 +281,7 @@ public class ConfigurationRepositoryTest {
 
     void assertClusterState(final ArgumentCaptor<ClusterStateUpdateTask> clusterStateUpdateTaskCaptor) throws Exception {
         final var initializedStateUpdate = clusterStateUpdateTaskCaptor.getValue();
-        assertEquals(Priority.IMMEDIATE, initializedStateUpdate.priority());
+        assertThat(initializedStateUpdate.priority(), is(Priority.IMMEDIATE));
         var clusterState = initializedStateUpdate.execute(ClusterState.EMPTY_STATE);
         SecurityMetadata securityMetadata = clusterState.custom(SecurityMetadata.TYPE);
         assertNotNull(securityMetadata.created());

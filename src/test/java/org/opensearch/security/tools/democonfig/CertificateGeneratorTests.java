@@ -42,6 +42,7 @@ import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.fail;
 
+@SuppressWarnings("removal")
 public class CertificateGeneratorTests {
 
     private static Installer installer;
@@ -164,7 +165,7 @@ public class CertificateGeneratorTests {
         try (BufferedReader reader = new BufferedReader(new FileReader(pemFilePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                pemContent.append(line).append("\n");
+                pemContent.append(line);
             }
         }
         return pemContent.toString();

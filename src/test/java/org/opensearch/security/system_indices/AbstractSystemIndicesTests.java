@@ -37,7 +37,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 /**
  *  Test for opendistro system indices, to restrict configured indices access to adminDn
@@ -54,6 +55,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS,
         ACCESSIBLE_ONLY_BY_SUPER_ADMIN
     );
+    static final List<String> NO_SYSTEM_INDICES = List.of(".no_system_index_1", ".no_system_index_2");
 
     static final List<String> INDICES_FOR_CREATE_REQUEST = List.of(".system_index_2");
     static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
@@ -117,6 +119,14 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
                         .source("{ \"foo\": \"bar\" }", XContentType.JSON)
                 ).actionGet();
             }
+
+            for (String index : NO_SYSTEM_INDICES) {
+                tc.index(
+                    new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .id("document1")
+                        .source("{ \"foo\": \"bar\" }", XContentType.JSON)
+                ).actionGet();
+            }
         }
     }
 
@@ -156,15 +166,15 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     }
 
     void validateSearchResponse(RestHelper.HttpResponse response, int expectedHits) throws IOException {
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+        assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
 
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
-        assertEquals(RestStatus.OK, searchResponse.status());
-        assertEquals(expectedHits, searchResponse.getHits().getHits().length);
-        assertEquals(0, searchResponse.getFailedShards());
-        assertEquals(5, searchResponse.getSuccessfulShards());
+        assertThat(searchResponse.status(), is(RestStatus.OK));
+        assertThat(searchResponse.getHits().getHits().length, is(expectedHits));
+        assertThat(searchResponse.getFailedShards(), is(0));
+        assertThat(searchResponse.getSuccessfulShards(), is(5));
     }
 
     String permissionExceptionMessage(String action, String username) {
@@ -176,7 +186,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     }
 
     void validateForbiddenResponse(RestHelper.HttpResponse response, String action, String user) {
-        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        assertThat(response.getStatusCode(), is(RestStatus.FORBIDDEN.getStatus()));
         MatcherAssert.assertThat(response.getBody(), Matchers.containsStringIgnoringCase(permissionExceptionMessage(action, user)));
     }
 
@@ -187,7 +197,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         if (isSecurityIndexRequest || isRequestingAccessToNonAuthorizedSystemIndex) {
             validateForbiddenResponse(response, isSecurityIndexRequest ? "" : action, user);
         } else {
-            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
         }
     }
 

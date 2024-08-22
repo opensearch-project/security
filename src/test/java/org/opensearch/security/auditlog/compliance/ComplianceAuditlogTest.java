@@ -44,6 +44,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -89,7 +90,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             final HttpResponse response = rh.executePostRequest("_search?pretty", search, encodeBasicHeader("admin", "admin"));
-            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         });
 
         assertThat(message.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
@@ -229,7 +230,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             HttpResponse response = rh.executePostRequest("_msearch?pretty", search, encodeBasicHeader("admin", "admin"));
             assertNotContains(response, "*exception*");
-            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         }, 2);
 
         final AuditMessage desginationMsg = messages.stream()
@@ -333,7 +334,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             }
 
             final HttpResponse response = rh.executeGetRequest("_search?pretty", encodeBasicHeader("admin", "admin"));
-            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         }, 4);
 
         // Record the updated config, and then for each node record that the config was updated
@@ -380,7 +381,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                     body,
                     encodeBasicHeader("admin", "admin")
                 );
-                Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+                assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
             });
         });
         assertThat(ex1.getMissingCount(), equalTo(1));
@@ -393,7 +394,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                     body,
                     encodeBasicHeader("admin", "admin")
                 );
-                Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+                assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
             });
         });
         assertThat(ex2.getMissingCount(), equalTo(1));
@@ -427,7 +428,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 body,
                 encodeBasicHeader("admin", "admin")
             );
-            Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
         });
         Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 1);
 
@@ -438,7 +439,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 body,
                 encodeBasicHeader("admin", "admin")
             );
-            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         });
         Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 1);
     }

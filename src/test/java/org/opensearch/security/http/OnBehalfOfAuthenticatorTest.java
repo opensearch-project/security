@@ -49,14 +49,14 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.mockito.ArgumentCaptor;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -67,6 +67,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("removal")
 public class OnBehalfOfAuthenticatorTest {
     final static String clusterName = "cluster_0";
     final static String enableOBO = "true";
@@ -93,7 +94,7 @@ public class OnBehalfOfAuthenticatorTest {
     public void testGetTypeReturnsExpectedType() {
         OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
         String type = authenticator.getType();
-        assertEquals("onbehalfof_jwt", type);
+        assertThat(type, is("onbehalfof_jwt"));
     }
 
     @Test
@@ -285,9 +286,9 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNotNull(credentials);
-        assertEquals("Leonard McCoy", credentials.getUsername());
-        assertEquals(0, credentials.getSecurityRoles().size());
-        assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getSecurityRoles().size(), is(0));
+        assertThat(credentials.getBackendRoles().size(), is(0));
         assertThat(credentials.getAttributes(), equalTo(expectedAttributes));
     }
 
@@ -413,9 +414,9 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNotNull(credentials);
-        assertEquals("Leonard McCoy", credentials.getUsername());
-        assertEquals(2, credentials.getSecurityRoles().size());
-        assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getSecurityRoles().size(), is(2));
+        assertThat(credentials.getBackendRoles().size(), is(0));
     }
 
     @Test
@@ -465,8 +466,8 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNotNull(credentials);
-        assertEquals("Leonard McCoy", credentials.getUsername());
-        assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getBackendRoles().size(), is(0));
     }
 
     @Test
@@ -480,8 +481,8 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNotNull(credentials);
-        assertEquals("Leonard McCoy", credentials.getUsername());
-        assertEquals(1, credentials.getSecurityRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getSecurityRoles().size(), is(1));
         assertTrue(credentials.getSecurityRoles().contains("123"));
     }
 
@@ -496,9 +497,9 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNotNull(credentials);
-        assertEquals("Leonard McCoy", credentials.getUsername());
-        assertEquals(0, credentials.getSecurityRoles().size());
-        assertEquals(0, credentials.getBackendRoles().size());
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getSecurityRoles().size(), is(0));
+        assertThat(credentials.getBackendRoles().size(), is(0));
     }
 
     @Test
@@ -570,8 +571,8 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(signingKeyB64Encoded, claimsEncryptionKey, builder, true);
 
         assertNotNull(credentials);
-        assertEquals("Cluster_0", credentials.getUsername());
-        assertEquals(3, credentials.getSecurityRoles().size());
+        assertThat(credentials.getUsername(), is("Cluster_0"));
+        assertThat(credentials.getSecurityRoles().size(), is(3));
         assertTrue(credentials.getSecurityRoles().contains("a"));
         assertTrue(credentials.getSecurityRoles().contains("b"));
         assertTrue(credentials.getSecurityRoles().contains("3rd"));

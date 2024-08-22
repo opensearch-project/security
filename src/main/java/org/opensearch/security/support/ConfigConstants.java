@@ -38,6 +38,8 @@ import com.google.common.collect.ImmutableSet;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 
+import com.password4j.types.Hmac;
+
 public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
@@ -143,6 +145,23 @@ public class ConfigConstants {
     public static final String SECURITY_CONFIG_INDEX_NAME = "plugins.security.config_index_name";
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = "plugins.security.authcz.impersonation_dn";
     public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = "plugins.security.authcz.rest_impersonation_user";
+
+    public static final String BCRYPT = "bcrypt";
+    public static final String PBKDF2 = "pbkdf2";
+
+    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS = "plugins.security.password.hashing.bcrypt.rounds";
+    public static final int SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT = 12;
+    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR = "plugins.security.password.hashing.bcrypt.minor";
+    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT = "Y";
+
+    public static final String SECURITY_PASSWORD_HASHING_ALGORITHM = "plugins.security.password.hashing.algorithm";
+    public static final String SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT = BCRYPT;
+    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS = "plugins.security.password.hashing.pbkdf2.iterations";
+    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT = 600_000;
+    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH = "plugins.security.password.hashing.pbkdf2.length";
+    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT = 256;
+    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION = "plugins.security.password.hashing.pbkdf2.function";
+    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT = Hmac.SHA256.name();
 
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = "plugins.security.audit.type";
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT = "plugins.security.audit.config";

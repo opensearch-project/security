@@ -11,8 +11,8 @@
 
 package org.opensearch.security.api;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -60,7 +60,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
 
             @Override
             public ToXContentObject jsonPropertyPayload() {
-                return allowedActionsArray("a", "b", "c");
+                return configJsonArray("a", "b", "c");
             }
 
             @Override
@@ -87,17 +87,10 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         return (builder, params) -> {
             builder.startObject();
             // TODO exclude in checking null value for the type
-            final var possibleTypes = new ArrayList<String>();
-            possibleTypes.add(TestSecurityConfig.ActionGroup.Type.INDEX.type());
-            possibleTypes.add(TestSecurityConfig.ActionGroup.Type.CLUSTER.type());
-            possibleTypes.add(null);
-            final var actionGroupType = randomFrom(possibleTypes);
-            if (actionGroupType != null) {
-                builder.field("type", actionGroupType);
-            }
+            builder.field("type", randomType());
             if (allowedActions != null) {
                 builder.field("allowed_actions");
-                allowedActionsArray(allowedActions).toXContent(builder, params);
+                configJsonArray(allowedActions).toXContent(builder, params);
             } else {
                 builder.startArray("allowed_actions").endArray();
             }
@@ -114,18 +107,8 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         };
     }
 
-    static ToXContentObject allowedActionsArray(final String... allowedActions) {
-        return (builder, params) -> {
-            builder.startArray();
-            for (final var allowedAction : allowedActions) {
-                if (allowedAction == null) {
-                    builder.nullValue();
-                } else {
-                    builder.value(allowedAction);
-                }
-            }
-            return builder.endArray();
-        };
+    static String randomType() {
+        return randomFrom(List.of(TestSecurityConfig.ActionGroup.Type.CLUSTER.type(), TestSecurityConfig.ActionGroup.Type.INDEX.type()));
     }
 
     @Override
@@ -140,10 +123,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         forbidden(() -> client.putJson(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), actionGroup()));
         forbidden(() -> client.patch(apiPath(), patch(replaceOp(REST_ADMIN_PERMISSION_ACTION_GROUP, actionGroup("a", "b")))));
         forbidden(
-            () -> client.patch(
-                apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP),
-                patch(replaceOp("allowed_actions", allowedActionsArray("c", "d")))
-            )
+            () -> client.patch(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), patch(replaceOp("allowed_actions", configJsonArray("c", "d"))))
         );
         // remove
         forbidden(() -> client.patch(apiPath(), patch(removeOp(REST_ADMIN_PERMISSION_ACTION_GROUP))));
@@ -165,7 +145,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         ok(() -> client.patch(apiPath(), patch(addOp("new_action_group_for_patch", actionGroup(hidden, reserved, "e", "f")))));
         assertActionGroup(ok(() -> client.get(apiPath("new_action_group_for_patch"))), "new_action_group_for_patch", List.of("e", "f"));
 
-        ok(() -> client.patch(apiPath("new_action_group_for_patch"), patch(replaceOp("allowed_actions", allowedActionsArray("g", "h")))));
+        ok(() -> client.patch(apiPath("new_action_group_for_patch"), patch(replaceOp("allowed_actions", configJsonArray("g", "h")))));
         assertActionGroup(ok(() -> client.get(apiPath("new_action_group_for_patch"))), "new_action_group_for_patch", List.of("g", "h"));
 
         ok(() -> client.patch(apiPath(), patch(removeOp("new_action_group_for_patch"))));
@@ -185,23 +165,41 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
             "reference_itself cannot be an allowed_action of itself"
         );
 
+        badRequestWithMessage(() -> client.putJson(apiPath("some_action_group"), (builder, params) -> {
+            builder.startObject().field("type", "asdasdsad").field("allowed_actions");
+            configJsonArray("g", "f").toXContent(builder, params);
+            return builder.endObject();
+        }), "Invalid action group type: asdasdsad. Supported types are: cluster, index.");
+
         assertMissingMandatoryKeys(
-            badRequest(() -> client.putJson(apiPath("some_action_group"), allowedActionsArray("a", "b", "c"))),
+            badRequest(() -> client.putJson(apiPath("some_action_group"), configJsonArray("a", "b", "c"))),
+            "allowed_actions"
+        );
+
+        assertMissingMandatoryKeys(
+            badRequest(() -> client.putJson(apiPath("some_action_group"), configJsonArray("a", "b", "c"))),
             "allowed_actions"
         );
 
         final ToXContentObject unknownJsonFields = (builder, params) -> {
             builder.startObject().field("a", "b").field("c", "d").field("allowed_actions");
-            allowedActionsArray("g", "h").toXContent(builder, params);
+            configJsonArray("g", "h").toXContent(builder, params);
             return builder.endObject();
         };
         assertInvalidKeys(badRequest(() -> client.putJson(apiPath("some_action_group"), unknownJsonFields)), "a,c");
 
         assertNullValuesInArray(badRequest(() -> client.putJson(apiPath("some_action_group"), (builder, params) -> {
-            builder.startObject().field("allowed_actions");
-            allowedActionsArray("g", null, "f").toXContent(builder, params);
+            builder.startObject().field("type", randomType()).field("allowed_actions");
+            configJsonArray("g", null, "f").toXContent(builder, params);
             return builder.endObject();
         })));
+        assertWrongDataType(
+            client.putJson(
+                apiPath("some_action_group"),
+                (builder, params) -> builder.startObject().field("allowed_actions", "a").endObject()
+            ),
+            Map.of("allowed_actions", "Array expected")
+        );
         // patch
         badRequest(() -> client.patch(apiPath("some_action_group"), EMPTY_BODY));
         badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", EMPTY_BODY))));
@@ -217,9 +215,14 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         );
 
         assertMissingMandatoryKeys(
-            badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", allowedActionsArray("a", "b", "c"))))),
+            badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", configJsonArray("a", "b", "c"))))),
             "allowed_actions"
         );
+        badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, params) -> {
+            builder.startObject().field("type", "aaaa").field("allowed_actions");
+            configJsonArray("g", "f").toXContent(builder, params);
+            return builder.endObject();
+        }))));
 
         badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, parameter) -> {
             builder.startObject();
@@ -228,10 +231,22 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         }))));
         assertNullValuesInArray(
             badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, params) -> {
-                builder.startObject().field("allowed_actions");
-                allowedActionsArray("g", null, "f").toXContent(builder, params);
+                builder.startObject().field("type", randomType()).field("allowed_actions");
+                configJsonArray("g", null, "f").toXContent(builder, params);
                 return builder.endObject();
             }))))
+        );
+        assertWrongDataType(
+            client.patch(
+                apiPath(),
+                patch(
+                    addOp(
+                        "some_action_group",
+                        (ToXContentObject) (builder, params) -> builder.startObject().field("allowed_actions", "a").endObject()
+                    )
+                )
+            ),
+            Map.of("allowed_actions", "Array expected")
         );
     }
 
@@ -242,7 +257,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         assertThat(
             response.getBody(),
             response.getTextFromJsonBody("/" + actionGroupName + "/type"),
-            oneOf(TestSecurityConfig.ActionGroup.Type.INDEX.type(), TestSecurityConfig.ActionGroup.Type.CLUSTER.type(), "")
+            oneOf(TestSecurityConfig.ActionGroup.Type.INDEX.type(), TestSecurityConfig.ActionGroup.Type.CLUSTER.type())
         );
         assertThat(response.getBody(), response.getTextArrayFromJsonBody("/" + actionGroupName + "/allowed_actions"), is(allowedActions));
     }

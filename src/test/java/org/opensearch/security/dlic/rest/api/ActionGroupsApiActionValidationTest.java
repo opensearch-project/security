@@ -18,8 +18,10 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -44,7 +46,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
             SecurityConfiguration.of("ag", configuration)
         );
         assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -61,7 +63,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
             SecurityConfiguration.of("ag", configuration)
         );
         assertFalse(result.isValid());
-        assertEquals(RestStatus.FORBIDDEN, result.status());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
@@ -70,18 +72,55 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         final var ag = objectMapper.createObjectNode()
+                .put("type", ActionGroupsApiAction.CLUSTER_TYPE)
                 .set("allowed_actions", objectMapper.createArrayNode().add("indices:*"));
         final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
                 .createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of(ag,"kibana_read_only", configuration));
         assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
-        assertEquals("kibana_read_only is an existing role. A action group cannot be named with an existing role name.", xContentToJsonNode(result.errorMessage()).get("message").asText());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
+        assertThat(xContentToJsonNode(result.errorMessage()).get("message").asText(), is("kibana_read_only is an existing role. A action group cannot be named with an existing role name."));
     }
 
     @Test
     public void onConfigChangeActionGroupHasSelfReference() throws Exception {
+        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        when(configuration.getVersion()).thenReturn(2);
+        when(configuration.getImplementingClass()).thenCallRealMethod();
+        final var ag = objectMapper.createObjectNode()
+                .put("type", ActionGroupsApiAction.INDEX_TYPE)
+                .set("allowed_actions", objectMapper.createArrayNode().add("ag"));
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
+                .createEndpointValidator();
+
+        final var result = actionGroupsApiActionEndpointValidator
+                .onConfigChange(SecurityConfiguration.of(ag,"ag", configuration));
+        assertFalse(result.isValid());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
+        assertThat(xContentToJsonNode(result.errorMessage()).get("message").asText(), is("ag cannot be an allowed_action of itself"));
+    }
+
+    @Test
+    public void validateInvalidType() throws Exception {
+        when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
+        when(configuration.getVersion()).thenReturn(2);
+        when(configuration.getImplementingClass()).thenCallRealMethod();
+        final var ag = objectMapper.createObjectNode()
+                .put("type", "some_type_we_know_nothing_about")
+                .set("allowed_actions", objectMapper.createArrayNode().add("ag"));
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
+                .createEndpointValidator();
+
+        final var result = actionGroupsApiActionEndpointValidator
+                .onConfigChange(SecurityConfiguration.of(ag,"ag", configuration));
+        assertFalse(result.isValid());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
+        assertThat(xContentToJsonNode(result.errorMessage()).get("message").asText(), is("Invalid action group type: some_type_we_know_nothing_about. Supported types are: cluster, index."));
+    }
+
+    @Test
+    public void passActionGroupWithoutType() throws Exception {
         when(configuration.getCType()).thenReturn(CType.ACTIONGROUPS);
         when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
@@ -91,10 +130,8 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
                 .createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator
-                .onConfigChange(SecurityConfiguration.of(ag,"ag", configuration));
-        assertFalse(result.isValid());
-        assertEquals(RestStatus.BAD_REQUEST, result.status());
-        assertEquals("ag cannot be an allowed_action of itself", xContentToJsonNode(result.errorMessage()).get("message").asText());
+                .onConfigChange(SecurityConfiguration.of(ag,"some_ag", configuration));
+        assertTrue(result.isValid());
     }
 
 }

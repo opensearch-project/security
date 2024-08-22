@@ -30,7 +30,8 @@ import org.opensearch.transport.TransportRequest;
 
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
@@ -60,8 +61,60 @@ public class UserInjectorTest {
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2");
         User injectedUser = userInjector.getInjectedUser();
-        assertEquals(injectedUser.getName(), "user");
-        assertEquals(injectedUser.getRoles(), roles);
+        assertThat("user", is(injectedUser.getName()));
+        assertThat(roles, is(injectedUser.getRoles()));
+    }
+
+    @Test
+    public void testValidInjectUserIpV6() {
+        HashSet<String> roles = new HashSet<>();
+        roles.addAll(Arrays.asList("role1", "role2"));
+        threadContext.putTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+            "user|role1,role2|2001:db8:3333:4444:5555:6666:7777:8888:9200"
+        );
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        assertThat(injectedUser.getName(), is("user"));
+        assertThat(injectedUser.getTransportAddress().getPort(), is(9200));
+        assertThat(injectedUser.getTransportAddress().getAddress(), is("2001:db8:3333:4444:5555:6666:7777:8888"));
+    }
+
+    @Test
+    public void testValidInjectUserIpV6ShortFormat() {
+        HashSet<String> roles = new HashSet<>();
+        roles.addAll(Arrays.asList("role1", "role2"));
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2|2001:db8::1:9200");
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        assertThat(injectedUser.getName(), is("user"));
+        assertThat(injectedUser.getTransportAddress().getPort(), is(9200));
+        assertThat(injectedUser.getTransportAddress().getAddress(), is("2001:db8::1"));
+    }
+
+    @Test
+    public void testInvalidInjectUserIpV6() {
+        HashSet<String> roles = new HashSet<>();
+        roles.addAll(Arrays.asList("role1", "role2"));
+        threadContext.putTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+            "user|role1,role2|2001:db8:3333:5555:6666:7777:8888:9200"
+        );
+        User injectedUser = userInjector.getInjectedUser();
+        assertNull(injectedUser);
+    }
+
+    @Test
+    public void testValidInjectUserBracketsIpV6() {
+        HashSet<String> roles = new HashSet<>();
+        roles.addAll(Arrays.asList("role1", "role2"));
+        threadContext.putTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+            "user|role1,role2|[2001:db8:3333:4444:5555:6666:7777:8888]:9200"
+        );
+        UserInjector.InjectedUser injectedUser = userInjector.getInjectedUser();
+        assertThat(injectedUser.getName(), is("user"));
+        assertThat(injectedUser.getRoles(), is(roles));
+        assertThat(injectedUser.getTransportAddress().getPort(), is(9200));
+        assertThat(injectedUser.getTransportAddress().getAddress(), is("2001:db8:3333:4444:5555:6666:7777:8888"));
     }
 
     @Test
@@ -92,19 +145,19 @@ public class UserInjectorTest {
 
         map = userInjector.mapFromArray("key", "value");
         assertNotNull(map);
-        assertEquals(1, map.size());
-        assertEquals("value", map.get("key"));
+        assertThat(map.size(), is(1));
+        assertThat(map.get("key"), is("value"));
 
         map = userInjector.mapFromArray("key", "value", "key", "value");
         assertNotNull(map);
-        assertEquals(1, map.size());
-        assertEquals("value", map.get("key"));
+        assertThat(map.size(), is(1));
+        assertThat(map.get("key"), is("value"));
 
         map = userInjector.mapFromArray("key1", "value1", "key2", "value2");
         assertNotNull(map);
-        assertEquals(2, map.size());
-        assertEquals("value1", map.get("key1"));
-        assertEquals("value2", map.get("key2"));
+        assertThat(map.size(), is(2));
+        assertThat(map.get("key1"), is("value1"));
+        assertThat(map.get("key2"), is("value2"));
 
     }
 

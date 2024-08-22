@@ -66,6 +66,7 @@ public class ConfigHelper {
         uploadFile(tc, filepath, index, cType, configVersion, false);
     }
 
+    @SuppressWarnings("removal")
     public static void uploadFile(
         Client tc,
         String filepath,

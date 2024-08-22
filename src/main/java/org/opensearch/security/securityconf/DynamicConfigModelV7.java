@@ -425,6 +425,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         }
     }
 
+    @SuppressWarnings("removal")
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
         final String clazz = authImplMap.computeIfAbsent(clazzOrShortcut + "_" + type, k -> clazzOrShortcut);
         return AccessController.doPrivileged((PrivilegedAction<T>) () -> {

@@ -45,6 +45,9 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.test.SingleClusterTest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class ConfigTests {
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
@@ -104,7 +107,7 @@ public class ConfigTests {
         JsonNode jsonNode = YAML.readTree(Files.readString(new File(adjustedFilePath).toPath(), StandardCharsets.UTF_8));
         int configVersion = 1;
         if (jsonNode.get("_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
 
@@ -123,7 +126,7 @@ public class ConfigTests {
         int configVersion = 1;
 
         if (jsonNode.get("_meta") != null) {
-            Assert.assertEquals(jsonNode.get("_meta").get("type").asText(), cType.toLCString());
+            assertThat(cType.toLCString(), is(jsonNode.get("_meta").get("type").asText()));
             configVersion = jsonNode.get("_meta").get("config_version").asInt();
         }
         return SecurityDynamicConfiguration.fromNode(jsonNode, cType, configVersion, 0, 0);

@@ -66,6 +66,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private final EncryptionDecryptionUtil encryptionUtil;
 
+    @SuppressWarnings("removal")
     public OnBehalfOfAuthenticator(Settings settings, String clusterName) {
         String oboEnabledSetting = settings.get("enabled", "true");
         oboEnabled = Boolean.parseBoolean(oboEnabledSetting);

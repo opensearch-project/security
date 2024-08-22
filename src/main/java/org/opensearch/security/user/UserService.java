@@ -12,6 +12,7 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +27,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +45,7 @@ import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
@@ -57,8 +58,6 @@ import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
 
-import static org.opensearch.security.dlic.rest.support.Utils.hash;
-
 /**
  * This class handles user registration and operations on behalf of the Security Plugin.
  */
@@ -67,6 +66,7 @@ public class UserService {
     protected final Logger log = LogManager.getLogger(this.getClass());
     ClusterService clusterService;
     private final ConfigurationRepository configurationRepository;
+    private final PasswordHasher passwordHasher;
     String securityIndex;
     Client client;
 
@@ -94,9 +94,16 @@ public class UserService {
     );
 
     @Inject
-    public UserService(ClusterService clusterService, ConfigurationRepository configurationRepository, Settings settings, Client client) {
+    public UserService(
+        ClusterService clusterService,
+        ConfigurationRepository configurationRepository,
+        PasswordHasher passwordHasher,
+        Settings settings,
+        Client client
+    ) {
         this.clusterService = clusterService;
         this.configurationRepository = configurationRepository;
+        this.passwordHasher = passwordHasher;
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
@@ -115,6 +122,18 @@ public class UserService {
             logComplianceEvent
         ).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
+    }
+
+    public static Optional<String> restrictedFromUsername(final String accountName) {
+        final var foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
+            .filter(r -> URLDecoder.decode(accountName, StandardCharsets.UTF_8).contains(r))
+            .collect(Collectors.toList());
+        if (!foundRestrictedContents.isEmpty()) {
+            return Optional.of(
+                RESTRICTED_CHARACTER_USE_MESSAGE + foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","))
+            );
+        }
+        return Optional.empty();
     }
 
     /**
@@ -142,19 +161,16 @@ public class UserService {
                                                                                                                           // service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
-            contentAsNode.put("hash", hash(password.toCharArray()));
+            contentAsNode.put("hash", passwordHasher.hash(password.toCharArray()));
             contentAsNode.put("service", "true");
         } else {
             contentAsNode.put("service", "false");
         }
 
         securityJsonNode = new SecurityJsonNode(contentAsNode);
-        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
-            .filter(accountName::contains)
-            .collect(Collectors.toList());
-        if (!foundRestrictedContents.isEmpty()) {
-            final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
-            throw new UserServiceException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
+        final var foundRestrictedContents = restrictedFromUsername(accountName);
+        if (foundRestrictedContents.isPresent()) {
+            throw new UserServiceException(foundRestrictedContents.get());
         }
 
         // if password is set, it takes precedence over hash
@@ -162,7 +178,7 @@ public class UserService {
         final String origHash = securityJsonNode.get("hash").asString();
         if (plainTextPassword != null && plainTextPassword.length() > 0) {
             contentAsNode.remove("password");
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
         } else if (origHash != null && origHash.length() > 0) {
             contentAsNode.remove("password");
         } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
@@ -226,14 +242,8 @@ public class UserService {
         CharacterRule lowercaseCharacterRule = new CharacterRule(EnglishCharacterData.LowerCase, 1);
         CharacterRule uppercaseCharacterRule = new CharacterRule(EnglishCharacterData.UpperCase, 1);
         CharacterRule numericCharacterRule = new CharacterRule(EnglishCharacterData.Digit, 1);
-        CharacterRule specialCharacterRule = new CharacterRule(EnglishCharacterData.Special, 1);
 
-        List<CharacterRule> rules = Arrays.asList(
-            lowercaseCharacterRule,
-            uppercaseCharacterRule,
-            numericCharacterRule,
-            specialCharacterRule
-        );
+        List<CharacterRule> rules = Arrays.asList(lowercaseCharacterRule, uppercaseCharacterRule, numericCharacterRule);
         PasswordGenerator passwordGenerator = new PasswordGenerator();
 
         Random random = Randomness.get();
@@ -258,24 +268,24 @@ public class UserService {
 
         String authToken = null;
         try {
-            final ObjectMapper mapper = DefaultObjectMapper.objectMapper;
-            JsonNode accountDetails = mapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
+            final var accountEntry = DefaultObjectMapper.writeValueAsString(internalUsersConfiguration.getCEntry(accountName), false);
+            JsonNode accountDetails = DefaultObjectMapper.readTree(accountEntry);
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            Optional.ofNullable(securityJsonNode.get("service"))
+            Optional.ofNullable(securityJsonNode.get("attributes").get("service"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
-            Optional.ofNullable(securityJsonNode.get("enabled"))
+            Optional.ofNullable(securityJsonNode.get("attributes").get("enabled"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
             // Generate a new password for the account and store the hash of it
             String plainTextPassword = generatePassword();
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
             contentAsNode.put("enabled", "true");
             contentAsNode.put("service", "true");
 
@@ -289,7 +299,7 @@ public class UserService {
             saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
             authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
-            return new BasicAuthToken(authToken);
+            return new BasicAuthToken("Basic " + authToken);
 
         } catch (JsonProcessingException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);

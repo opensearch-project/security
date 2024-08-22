@@ -24,21 +24,19 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.tools.Hasher;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
 
 /**
  * This class updates the security related configuration, as needed.
@@ -83,10 +81,14 @@ public class SecuritySettingsConfigurer {
     static String ADMIN_USERNAME = "admin";
 
     private final Installer installer;
+    private final PasswordHasher passwordHasher;
     static final String DEFAULT_ADMIN_PASSWORD = "admin";
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
+        this.passwordHasher = PasswordHasherFactory.createPasswordHasher(
+            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        );
     }
 
     /**
@@ -142,8 +144,11 @@ public class SecuritySettingsConfigurer {
         try {
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
-                    .put(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
-                    .put(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, DEFAULT_PASSWORD_MIN_LENGTH)
+                    .put(
+                        ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
+                        "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}"
+                    )
+                    .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, DEFAULT_PASSWORD_MIN_LENGTH)
                     .build()
             );
 
@@ -200,7 +205,7 @@ public class SecuritySettingsConfigurer {
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = YAML_MAPPER.readTree(new FileInputStream(internalUsersFile));
         return internalUsers.has("admin")
-            && OpenBSDBCrypt.checkPassword(internalUsers.get("admin").get("hash").asText(), DEFAULT_ADMIN_PASSWORD.toCharArray());
+            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asText());
     }
 
     /**
@@ -210,7 +215,7 @@ public class SecuritySettingsConfigurer {
      * @throws IOException while reading, writing to files
      */
     void writePasswordToInternalUsersFile(String adminPassword, String internalUsersFile) throws IOException {
-        String hashedAdminPassword = Hasher.hash(adminPassword.toCharArray());
+        String hashedAdminPassword = passwordHasher.hash(adminPassword.toCharArray());
 
         if (hashedAdminPassword.isEmpty()) {
             System.out.println("Failure while hashing the admin password, see console for details.");

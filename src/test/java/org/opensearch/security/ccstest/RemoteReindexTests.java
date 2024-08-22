@@ -44,6 +44,9 @@ import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class RemoteReindexTests extends AbstractSecurityUnitTest {
 
     private final ClusterHelper cl1 = new ClusterHelper(
@@ -134,7 +137,7 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
             reindex,
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
+        assertThat(ccs.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(ccs.getBody().contains("created\" : 1"));
     }
 }

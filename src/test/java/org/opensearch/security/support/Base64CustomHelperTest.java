@@ -31,6 +31,8 @@ import org.opensearch.security.user.User;
 import com.amazon.dlic.auth.ldap.LdapUser;
 import org.ldaptive.LdapEntry;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.Base64CustomHelper.deserializeObject;
 import static org.opensearch.security.support.Base64CustomHelper.serializeObject;
 
@@ -54,37 +56,37 @@ public class Base64CustomHelperTest {
     @Test
     public void testString() {
         String string = "string";
-        Assert.assertEquals(string, ds(string));
+        assertThat(ds(string), is(string));
     }
 
     @Test
     public void testInteger() {
         Integer integer = 0;
-        Assert.assertEquals(integer, ds(integer));
+        assertThat(ds(integer), is(integer));
     }
 
     @Test
     public void testDouble() {
         Double number = 0.;
-        Assert.assertEquals(number, ds(number));
+        assertThat(ds(number), is(number));
     }
 
     @Test
     public void testInetSocketAddress() {
         InetSocketAddress inetSocketAddress = new InetSocketAddress(0);
-        Assert.assertEquals(inetSocketAddress, ds(inetSocketAddress));
+        assertThat(ds(inetSocketAddress), is(inetSocketAddress));
     }
 
     @Test
     public void testUser() {
         User user = new User("user");
-        Assert.assertEquals(user, ds(user));
+        assertThat(ds(user), is(user));
     }
 
     @Test
     public void testSourceFieldsContext() {
         SourceFieldsContext sourceFieldsContext = new SourceFieldsContext(new SearchRequest(""));
-        Assert.assertEquals(sourceFieldsContext.toString(), ds(sourceFieldsContext).toString());
+        assertThat(ds(sourceFieldsContext).toString(), is(sourceFieldsContext.toString()));
     }
 
     @Test
@@ -94,7 +96,7 @@ public class Base64CustomHelperTest {
                 put("key", "value");
             }
         };
-        Assert.assertEquals(map, ds(map));
+        assertThat(ds(map), is(map));
     }
 
     @Test
@@ -104,7 +106,7 @@ public class Base64CustomHelperTest {
                 add("value");
             }
         };
-        Assert.assertEquals(list, ds(list));
+        assertThat(ds(list), is(list));
     }
 
     @Test
@@ -117,17 +119,17 @@ public class Base64CustomHelperTest {
             34,
             WildcardMatcher.ANY
         );
-        Assert.assertEquals(ldapUser, ds(ldapUser));
+        assertThat(ds(ldapUser), is(ldapUser));
     }
 
     @Test
     public void testGetWriteableClassID() {
         // a need to make a change in this test signifies a breaking change in security plugin's custom serialization
         // format
-        Assert.assertEquals(Integer.valueOf(1), Base64CustomHelper.getWriteableClassID(User.class));
-        Assert.assertEquals(Integer.valueOf(2), Base64CustomHelper.getWriteableClassID(LdapUser.class));
-        Assert.assertEquals(Integer.valueOf(3), Base64CustomHelper.getWriteableClassID(UserInjector.InjectedUser.class));
-        Assert.assertEquals(Integer.valueOf(4), Base64CustomHelper.getWriteableClassID(SourceFieldsContext.class));
+        assertThat(Base64CustomHelper.getWriteableClassID(User.class), is(Integer.valueOf(1)));
+        assertThat(Base64CustomHelper.getWriteableClassID(LdapUser.class), is(Integer.valueOf(2)));
+        assertThat(Base64CustomHelper.getWriteableClassID(UserInjector.InjectedUser.class), is(Integer.valueOf(3)));
+        assertThat(Base64CustomHelper.getWriteableClassID(SourceFieldsContext.class), is(Integer.valueOf(4)));
     }
 
     @Test
@@ -136,7 +138,7 @@ public class Base64CustomHelperTest {
 
         // for custom serialization, we expect InjectedUser to be returned on deserialization
         UserInjector.InjectedUser deserializedInjecteduser = (UserInjector.InjectedUser) ds(injectedUser);
-        Assert.assertEquals(injectedUser, deserializedInjecteduser);
+        assertThat(deserializedInjecteduser, is(injectedUser));
         Assert.assertTrue(deserializedInjecteduser.isInjected());
     }
 

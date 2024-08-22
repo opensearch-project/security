@@ -58,9 +58,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.configuration.ConfigurationRepository.DEFAULT_CONFIG_VERSION;
 import static org.opensearch.security.support.YamlConfigReader.emptyYamlConfigFor;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -172,19 +172,19 @@ public class SecurityIndexHandlerTest {
         verify(indicesAdminClient).create(requestCaptor.capture(), any());
 
         final var createRequest = requestCaptor.getValue();
-        assertEquals(INDEX_NAME, createRequest.index());
+        assertThat(createRequest.index(), is(INDEX_NAME));
         for (final var setting : SecurityIndexHandler.INDEX_SETTINGS.entrySet())
-            assertEquals(setting.getValue().toString(), createRequest.settings().get(setting.getKey()));
+            assertThat(createRequest.settings().get(setting.getKey()), is(setting.getValue().toString()));
 
-        assertEquals(ActiveShardCount.ONE, createRequest.waitForActiveShards());
+        assertThat(createRequest.waitForActiveShards(), is(ActiveShardCount.ONE));
     }
 
     @Test
     public void testCreateIndex_shouldReturnSecurityExceptionIfItCanNotCreateIndex() {
 
         final var listener = spy(ActionListener.<Boolean>wrap(r -> fail("Unexpected behave"), e -> {
-            assertEquals(SecurityException.class, e.getClass());
-            assertEquals("Couldn't create security index " + INDEX_NAME, e.getMessage());
+            assertThat(e.getClass(), is(SecurityException.class));
+            assertThat(e.getMessage(), is("Couldn't create security index " + INDEX_NAME));
         }));
 
         doAnswer(invocation -> {
@@ -202,7 +202,7 @@ public class SecurityIndexHandlerTest {
     @Test
     public void testUploadDefaultConfiguration_shouldFailIfRequiredConfigFilesAreMissing() {
         final var listener = spy(ActionListener.<Set<SecurityConfig>>wrap(r -> fail("Unexpected behave"), e -> {
-            assertEquals(SecurityException.class, e.getClass());
+            assertThat(e.getClass(), is(SecurityException.class));
             assertThat(e.getMessage(), containsString("Couldn't find configuration file"));
         }));
         securityIndexHandler.uploadDefaultConfiguration(configFolder, listener);
@@ -218,8 +218,8 @@ public class SecurityIndexHandlerTest {
             100L
         );
         final var listener = spy(ActionListener.<Set<SecurityConfig>>wrap(r -> fail("Unexpected behave"), e -> {
-            assertEquals(SecurityException.class, e.getClass());
-            assertEquals(e.getMessage(), failedBulkResponse.buildFailureMessage());
+            assertThat(e.getClass(), is(SecurityException.class));
+            assertThat(failedBulkResponse.buildFailureMessage(), is(e.getMessage()));
         }));
         doAnswer(invocation -> {
             ActionListener<BulkResponse> actionListener = invocation.getArgument(1);
@@ -268,8 +268,8 @@ public class SecurityIndexHandlerTest {
         final var bulkRequest = bulkRequestCaptor.getValue();
         for (final var r : bulkRequest.requests()) {
             final var indexRequest = (IndexRequest) r;
-            assertEquals(INDEX_NAME, r.index());
-            assertEquals(DocWriteRequest.OpType.INDEX, indexRequest.opType());
+            assertThat(r.index(), is(INDEX_NAME));
+            assertThat(indexRequest.opType(), is(DocWriteRequest.OpType.INDEX));
         }
         verify(listener).onResponse(any());
     }
@@ -337,7 +337,7 @@ public class SecurityIndexHandlerTest {
         final var listener = spy(
             ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
                 r -> fail("Unexpected behave"),
-                e -> assertEquals(SecurityException.class, e.getClass())
+                e -> assertThat(e.getClass(), is(SecurityException.class))
             )
         );
 
@@ -361,7 +361,7 @@ public class SecurityIndexHandlerTest {
         final var listener = spy(
             ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
                 r -> fail("Unexpected behave"),
-                e -> assertEquals("Missing required configuration for type: CONFIG", e.getMessage())
+                e -> assertThat(e.getMessage(), is("Missing required configuration for type: CONFIG"))
             )
         );
         doAnswer(invocation -> {
@@ -384,7 +384,7 @@ public class SecurityIndexHandlerTest {
         final var listener = spy(
             ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
                 r -> fail("Unexpected behave"),
-                e -> assertEquals("Version 1 is not supported for CONFIG", e.getMessage())
+                e -> assertThat(e.getMessage(), is("Version 1 is not supported for CONFIG"))
             )
         );
         doAnswer(invocation -> {
@@ -417,7 +417,7 @@ public class SecurityIndexHandlerTest {
         final var listener = spy(
             ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(
                 r -> fail("Unexpected behave"),
-                e -> assertEquals("Couldn't parse content for CONFIG", e.getMessage())
+                e -> assertThat(e.getMessage(), is("Couldn't parse content for CONFIG"))
             )
         );
         doAnswer(invocation -> {
@@ -451,7 +451,7 @@ public class SecurityIndexHandlerTest {
     @Test
     public void testLoadConfiguration_shouldBuildSecurityConfig() {
         final var listener = spy(ActionListener.<Map<CType, SecurityDynamicConfiguration<?>>>wrap(config -> {
-            assertEquals(CType.values().length, config.keySet().size());
+            assertThat(config.keySet().size(), is(CType.values().length));
             for (final var c : CType.values()) {
                 assertTrue(c.toLCString(), config.containsKey(c));
             }

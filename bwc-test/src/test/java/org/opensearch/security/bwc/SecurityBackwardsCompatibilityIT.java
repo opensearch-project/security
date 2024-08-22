@@ -32,7 +32,6 @@ import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 
@@ -48,10 +47,12 @@ import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.is;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -199,7 +200,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     public void testNodeStats() throws IOException {
         List<Response> responses = RestHelper.requestAgainstAllNodes(client(), "GET", "_nodes/stats", null);
-        responses.forEach(r -> Assert.assertEquals(200, r.getStatusLine().getStatusCode()));
+        responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
     }
 
     @SuppressWarnings("unchecked")
@@ -229,7 +230,8 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         ObjectMapper objectMapper = new ObjectMapper();
         int numberOfRequests = Randomness.get().nextInt(10);
         while (numberOfRequests-- > 0) {
-            for (int i = 0; i < Randomness.get().nextInt(100); i++) {
+            int numberOfDocuments = Randomness.get().nextInt(100) + 1;
+            for (int i = 0; i < numberOfDocuments; i++) {
                 Map<String, Map<String, String>> indexRequest = new HashMap<>();
                 indexRequest.put("index", new HashMap<>() {
                     {
@@ -245,7 +247,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 "_bulk?refresh=wait_for",
                 RestHelper.toHttpEntity(bulkRequestBody.toString())
             );
-            responses.forEach(r -> assertEquals(200, r.getStatusLine().getStatusCode()));
+            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
         }
     }
 
@@ -263,7 +265,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 index + "/_search",
                 RestHelper.toHttpEntity(matchAllQuery)
             );
-            responses.forEach(r -> assertEquals(200, r.getStatusLine().getStatusCode()));
+            responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
         }
     }
 

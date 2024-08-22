@@ -72,7 +72,10 @@ public class JwtAuthenticationWithUrlParamTests {
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtUrlParameter(TOKEN_URL_PARAM).signingKey(PUBLIC_KEY).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtUrlParameter(TOKEN_URL_PARAM)
+            .signingKey(List.of(PUBLIC_KEY))
+            .subjectKey(CLAIM_USERNAME)
+            .rolesKey(CLAIM_ROLES)
     ).backend("noop");
 
     @Rule

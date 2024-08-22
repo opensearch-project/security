@@ -26,14 +26,13 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
 
-        kafka_version  = '3.7.0'
-        apache_cxf_version = '4.0.4'
+        kafka_version  = '3.7.1'
         open_saml_version = '4.3.2'
         one_login_java_saml = '2.9.0'
-        jjwt_version = '0.12.5'
+        jjwt_version = '0.12.6'
         guava_version = '32.1.3-jre'
         jaxb_version = '2.3.9'
-        spring_version = '5.3.36'
+        spring_version = '5.3.39'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -66,7 +65,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.9.1"
-    id "org.gradle.test-retry" version "1.5.9"
+    id "org.gradle.test-retry" version "1.5.10"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
@@ -94,8 +93,8 @@ spotbugsTest {
     enabled = false
 }
 
-java.sourceCompatibility = JavaVersion.VERSION_11
-java.targetCompatibility = JavaVersion.VERSION_11
+java.sourceCompatibility = JavaVersion.VERSION_21
+java.targetCompatibility = JavaVersion.VERSION_21
 
 
 compileJava {
@@ -470,7 +469,7 @@ bundlePlugin {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.17.0'
+            force 'commons-codec:commons-codec:1.17.1'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.14'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
@@ -483,20 +482,21 @@ configurations {
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.5"
+            force "org.xerial.snappy:snappy-java:1.1.10.6"
             force "com.google.guava:guava:${guava_version}"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.31.0"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.31.100"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.19.100"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.28.0"
-            force "org.checkerframework:checker-qual:3.43.0"
+            force "com.google.errorprone:error_prone_annotations:2.30.0"
+            force "org.checkerframework:checker-qual:3.46.0"
             force "ch.qos.logback:logback-classic:1.5.6"
         }
     }
@@ -577,12 +577,12 @@ dependencies {
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
-    implementation 'commons-cli:commons-cli:1.8.0'
+    implementation 'commons-cli:commons-cli:1.9.0'
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.39.3'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
     implementation 'com.rfksystems:blake2b:2.0.0'
-
+    implementation 'com.password4j:password4j:1.8.2'
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
@@ -598,15 +598,11 @@ dependencies {
 
     runtimeOnly 'net.minidev:accessors-smart:2.5.1'
 
-    runtimeOnly "org.apache.cxf:cxf-core:${apache_cxf_version}"
-    implementation "org.apache.cxf:cxf-rt-rs-json-basic:${apache_cxf_version}"
-    runtimeOnly "org.apache.cxf:cxf-rt-security:${apache_cxf_version}"
-
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.17.0'
-    runtimeOnly 'org.cryptacular:cryptacular:1.2.6'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.28.0'
+    runtimeOnly 'commons-codec:commons-codec:1.17.1'
+    runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.30.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7'
@@ -615,7 +611,7 @@ dependencies {
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.2'
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.25"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.27"
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     implementation "org.opensaml:opensaml-core:${open_saml_version}"
@@ -643,14 +639,14 @@ dependencies {
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.5'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.6'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
-    runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.6.2'
+    runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.43.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.46.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
@@ -683,9 +679,9 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.9.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
-    testImplementation('org.awaitility:awaitility:4.2.1') {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
+    testImplementation('org.awaitility:awaitility:4.2.2') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
@@ -728,10 +724,11 @@ dependencies {
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
     integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
-    integrationTestImplementation('org.awaitility:awaitility:4.2.1') {
+    integrationTestImplementation('org.awaitility:awaitility:4.2.2') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
+    integrationTestImplementation "org.opensearch.plugin:mapper-size:${opensearch_version}"
     integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
@@ -739,7 +736,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.22.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.23.0') {
         exclude group: 'com.google.guava'
     }
 }

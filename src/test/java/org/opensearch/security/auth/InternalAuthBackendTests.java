@@ -21,8 +21,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.InternalUsersModel;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
 import org.mockito.Mockito;
@@ -42,7 +45,13 @@ public class InternalAuthBackendTests {
 
     @Before
     public void internalAuthBackendTestsSetup() {
-        internalAuthenticationBackend = spy(new InternalAuthenticationBackend());
+        internalAuthenticationBackend = spy(
+            new InternalAuthenticationBackend(
+                PasswordHasherFactory.createPasswordHasher(
+                    Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+                )
+            )
+        );
         internalUsersModel = mock(InternalUsersModel.class);
         internalAuthenticationBackend.onInternalUsersModelChanged(internalUsersModel);
     }

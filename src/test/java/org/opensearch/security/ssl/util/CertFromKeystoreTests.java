@@ -22,6 +22,9 @@ import org.junit.Test;
 
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class CertFromKeystoreTests {
 
     @Test
@@ -36,7 +39,7 @@ public class CertFromKeystoreTests {
         CertFromKeystore cert = new CertFromKeystore(props, "node-0", "changeit");
 
         // second cert is Signing cert
-        Assert.assertEquals(2, cert.getCerts().length);
+        assertThat(cert.getCerts().length, is(2));
         Assert.assertTrue(cert.getCerts()[0].getSubjectDN().getName().contains("node-0"));
 
         Assert.assertNotNull(cert.getServerKey());
@@ -55,7 +58,7 @@ public class CertFromKeystoreTests {
         CertFromKeystore cert = new CertFromKeystore(props, null, "changeit");
 
         // second cert is Signing cert
-        Assert.assertEquals(2, cert.getCerts().length);
+        assertThat(cert.getCerts().length, is(2));
         Assert.assertTrue(cert.getCerts()[0].getSubjectDN().getName().contains("node-0"));
     }
 
@@ -70,7 +73,7 @@ public class CertFromKeystoreTests {
 
         CertFromKeystore cert = new CertFromKeystore(props, "node-0-server", "node-0-client", "changeit", "changeit");
 
-        Assert.assertEquals(4, cert.getCerts().length);
+        assertThat(cert.getCerts().length, is(4));
 
         Assert.assertTrue(cert.getClientCert()[0].getSubjectDN().getName().contains("node-client"));
         Assert.assertTrue(cert.getServerCert()[0].getSubjectDN().getName().contains("node-server"));

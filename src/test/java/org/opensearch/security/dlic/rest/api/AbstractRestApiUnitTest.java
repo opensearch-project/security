@@ -32,6 +32,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
 
 public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
@@ -115,7 +117,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         boolean sendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/" + username, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
 
@@ -131,7 +133,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
             "{\"password\": \"" + password + "\"}",
             new Header[0]
         );
-        Assert.assertEquals(status, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
         if (Objects.nonNull(message)) {
             Assert.assertTrue(response.getBody().contains(message));
@@ -150,7 +152,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         }
         payload += "]}";
         HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
-        Assert.assertEquals(status, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
 
@@ -166,7 +168,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         }
         payload += "]}";
         HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
-        Assert.assertEquals(status, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
 
@@ -182,7 +184,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
             "{\"hash\": \"" + hash + "\"}",
             new Header[0]
         );
-        Assert.assertEquals(status, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
 
@@ -194,14 +196,14 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
             "{\"hash\": \"" + hash + "\", \"password\": \"" + password + "\"}",
             new Header[0]
         );
-        Assert.assertEquals(status, response.getStatusCode());
+        assertThat(response.getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
 
     protected void checkGeneralAccess(int status, String username, String password) throws Exception {
         boolean sendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = false;
-        Assert.assertEquals(status, rh.executeGetRequest("", encodeBasicHeader(username, password)).getStatusCode());
+        assertThat(rh.executeGetRequest("", encodeBasicHeader(username, password)).getStatusCode(), is(status));
         rh.sendAdminCertificate = sendAdminCertificate;
     }
 
@@ -211,7 +213,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         String action = indexName + "/" + actionType + "/" + id;
         HttpResponse response = rh.executeGetRequest(action, encodeBasicHeader(username, password));
         int returnedStatus = response.getStatusCode();
-        Assert.assertEquals(status, returnedStatus);
+        assertThat(returnedStatus, is(status));
         return response.getBody();
 
     }
@@ -223,7 +225,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         String payload = "{\"value\" : \"true\"}";
         HttpResponse response = rh.executePutRequest(action, payload, encodeBasicHeader(username, password));
         int returnedStatus = response.getStatusCode();
-        Assert.assertEquals(response.getBody(), status, returnedStatus);
+        assertThat(response.getBody(), returnedStatus, is(status));
         return response.getBody();
     }
 
@@ -237,15 +239,12 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
     }
 
     protected void assertHealthy() throws Exception {
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_opendistro/_security/health?pretty").getStatusCode());
-        Assert.assertEquals(
+        assertThat(rh.executeGetRequest("_opendistro/_security/health?pretty").getStatusCode(), is(HttpStatus.SC_OK));
+        assertThat(
             HttpStatus.SC_OK,
-            rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()
+            is(rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("admin", "admin")).getStatusCode())
         );
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()
-        );
+        assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()));
     }
 
     String createRestAdminPermissionsPayload(String... additionPerms) throws JsonProcessingException {

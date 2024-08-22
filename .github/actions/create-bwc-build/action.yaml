@@ -32,6 +32,12 @@ runs:
         ref: ${{ inputs.plugin-branch }}
         path: ${{ inputs.plugin-branch }}
 
+    - uses: actions/setup-java@v4
+      if: ${{ inputs.plugin-branch == 'current_branch' }}
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: 21
+
     - name: Build
       uses: gradle/gradle-build-action@v2
       with:
