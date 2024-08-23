@@ -17,6 +17,7 @@
 | Stephen Crawford | [scrawfor99](https://github.com/scrawfor99)           | Amazon      |
 | Andriy Redko     | [reta](https://github.com/reta)                       | Aiven       |
 | Andrey Pleskach  | [willyborankin](https://github.com/willyborankin)     | Aiven       |
+| Nils Bandener    | [nibix](https://github.com/nibix)                     | Eliatra     |
 
 ## Practices
 
