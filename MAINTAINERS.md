@@ -21,6 +21,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Stephen Crawford | [scrawfor99](https://github.com/stephen-crawford)     | Amazon      |
 | Andriy Redko     | [reta](https://github.com/reta)                       | Aiven       |
 | Andrey Pleskach  | [willyborankin](https://github.com/willyborankin)     | Aiven       |
+| Nils Bandener    | [nibix](https://github.com/nibix)                     | Eliatra     |
 
 ## Emeritus
 
