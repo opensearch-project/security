@@ -41,11 +41,10 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
+import com.nimbusds.common.contenttype.ContentType;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 
-import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.MCCOY_SUBJECT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.TEST_ROLES_STRING;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.createSigned;
@@ -54,6 +53,7 @@ class MockIpdServer implements Closeable {
     final static String CTX_DISCOVER = "/discover";
     final static String CTX_USERINFO_SIGNED = "/api/oauth/userinfo/signed";
     final static String CTX_USERINFO = "/api/oauth/userinfo";
+    final static String CTX_BADUSERINFO = "/api/oauth/userinfo/bad";
     final static String CTX_KEYS = "/api/oauth/keys";
 
     private final HttpServer httpServer;
@@ -105,6 +105,14 @@ class MockIpdServer implements Closeable {
                     IOException {
                     handleUserinfoRequestSigned(request, response, context);
                 }
+            })
+            .register(CTX_BADUSERINFO, new HttpRequestHandler() {
+
+                @Override
+                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                    IOException {
+                    handleBadUserInfoRequest(request, response, context);
+                }
             });
 
         if (ssl) {
@@ -153,6 +161,10 @@ class MockIpdServer implements Closeable {
         return uri + CTX_USERINFO_SIGNED;
     }
 
+    public String getBadUserInfoUri() {
+        return uri + CTX_BADUSERINFO;
+    }
+
     public String getJwksUri() {
         return uri + CTX_KEYS;
     }
@@ -179,7 +191,7 @@ class MockIpdServer implements Closeable {
         String requestToken;
 
         String authHeaderValue = headers.getValue();
-        if (authHeaderValue.startsWith("[Bearer")) {
+        if (authHeaderValue.startsWith("Bearer")) {
             requestToken = authHeaderValue.substring(7).trim();
         } else {
             response.setCode(401);
@@ -187,9 +199,10 @@ class MockIpdServer implements Closeable {
         }
 
         response.setCode(200);
-        response.setHeader("content-type", APPLICATION_JWT);
+        response.setHeader("content-type", ContentType.APPLICATION_JWT);
 
         // We have to manually form the response content since we don't want to need to pass settings info into the test class
+
         JWTClaimsSet claims = new JWTClaimsSet.Builder().claim("sub", MCCOY_SUBJECT)
             .claim("roles", TEST_ROLES_STRING)
             .claim("iss", "http://www.example.com")
@@ -206,15 +219,14 @@ class MockIpdServer implements Closeable {
         String requestToken;
 
         String authHeaderValue = headers.getValue();
-        if (authHeaderValue.startsWith("[Bearer")) {
+        if (authHeaderValue.startsWith("Bearer")) {
             requestToken = authHeaderValue.substring(7).trim();
         } else {
             response.setCode(401);
             return;
         }
-
         response.setCode(200);
-        response.setHeader("content-type", APPLICATION_JSON);
+        response.setHeader("content-type", ContentType.APPLICATION_JSON);
 
         // We have to manually form the response content since we don't want to need to pass settings info into the test class
         JWTClaimsSet claims = new JWTClaimsSet.Builder().claim("sub", MCCOY_SUBJECT).claim("roles", TEST_ROLES_STRING).build();
@@ -225,6 +237,11 @@ class MockIpdServer implements Closeable {
         IOException {
         response.setCode(200);
         response.setEntity(new StringEntity(jwks.toString(false)));
+    }
+
+    protected void handleBadUserInfoRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+        IOException {
+        response.setCode(401);
     }
 
     private SSLContext createSSLContext() {

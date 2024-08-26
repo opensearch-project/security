@@ -12,24 +12,18 @@
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
-import org.apache.hc.core5.http.HttpEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -43,12 +37,18 @@ import org.opensearch.security.user.AuthCredentials;
 
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+import com.nimbusds.common.contenttype.ContentType;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.oauth2.sdk.http.HTTPRequest;
+import com.nimbusds.oauth2.sdk.http.HTTPResponse;
+import com.nimbusds.oauth2.sdk.token.AccessToken;
+import com.nimbusds.oauth2.sdk.token.AccessTokenType;
+import com.nimbusds.oauth2.sdk.util.StringUtils;
+import com.nimbusds.openid.connect.sdk.UserInfoRequest;
+import com.nimbusds.openid.connect.sdk.UserInfoResponse;
 
-import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.SUB_CLAIM;
@@ -139,67 +139,58 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
      */
     public AuthCredentials extractCredentials0(SecurityRequest request, ThreadContext context) throws OpenSearchSecurityException {
 
-        try (CloseableHttpClient httpClient = createHttpClient()) {
+        try {
 
-            HttpGet httpGet = new HttpGet(this.userInfoEndpoint);
+            URI userInfoEndpointURI = new URI(this.userInfoEndpoint);
 
-            RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectionRequestTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                .setConnectTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS)
-                .build();
+            String bearerHeader = request.getHeaders().get(AUTHORIZATION).getFirst();
+            if (!StringUtils.isBlank(bearerHeader)) {
+                if (bearerHeader.contains("Bearer ")) {
+                    bearerHeader = bearerHeader.substring(7);
+                }
+            }
 
-            httpGet.setConfig(requestConfig);
-            httpGet.addHeader(AUTHORIZATION, request.getHeaders().get(AUTHORIZATION));
+            String finalBearerHeader = bearerHeader;
 
-            // HTTPGet should internally verify the appropriate TLS cert.
-            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+            AccessToken accessToken = new AccessToken(AccessTokenType.BEARER, finalBearerHeader) {
+                @Override
+                public String toAuthorizationHeader() {
+                    return "Bearer " + finalBearerHeader;
+                }
+            };
 
-                if (response.getCode() < 200 || response.getCode() >= 300) {
+            UserInfoRequest userInfoRequest = new UserInfoRequest(userInfoEndpointURI, accessToken);
+
+            HTTPRequest httpRequest = userInfoRequest.toHTTPRequest();
+
+            HTTPResponse httpResponse = httpRequest.send();
+            if (httpResponse.getStatusCode() < 200 || httpResponse.getStatusCode() >= 300) {
+                throw new AuthenticatorUnavailableException(
+                    "Error while getting " + this.userInfoEndpoint + ": " + httpResponse.getStatusMessage()
+                );
+            }
+
+            try {
+
+                UserInfoResponse userInfoResponse = UserInfoResponse.parse(httpResponse);
+
+                if (!userInfoResponse.indicatesSuccess()) {
                     throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userInfoEndpoint + ": " + response.getReasonPhrase()
+                        "Error while getting " + this.userInfoEndpoint + ": " + userInfoResponse.toErrorResponse()
                     );
                 }
 
-                HttpEntity httpEntity = response.getEntity();
-
-                if (httpEntity == null) {
-                    throw new AuthenticatorUnavailableException("Error while getting " + this.userInfoEndpoint + ": Empty response entity");
-                }
-
-                String contentType = httpEntity.getContentType();
-                if (!contentType.contains(APPLICATION_JSON.getMimeType()) && !contentType.contains(APPLICATION_JWT)) {
-                    throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userInfoEndpoint + ": Invalid content type in response"
-                    );
-                }
-
-                String userinfoContent;
-
-                try (
-                    // got this from ChatGpt & Amazon Q
-                    InputStream inputStream = httpEntity.getContent();
-                    InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)
-                ) {
-                    StringBuilder content = new StringBuilder();
-                    char[] buffer = new char[8192];
-                    int bytesRead;
-                    while ((bytesRead = reader.read(buffer)) != -1) {
-                        content.append(buffer, 0, bytesRead);
-                    }
-                    userinfoContent = content.toString();
-                } catch (IOException e) {
-                    throw new AuthenticatorUnavailableException(
-                        "Error while getting " + this.userInfoEndpoint + ": Unable to read response content"
-                    );
-                }
+                String contentType = String.valueOf(httpResponse.getHeaderValues("content-type"));
 
                 JWTClaimsSet claims;
-                boolean isSigned = contentType.contains(APPLICATION_JWT);
-                if (contentType.contains(APPLICATION_JWT)) { // We don't need the userinfo_encrypted_response_alg since the
-                                                             // selfRefreshingKeyProvider has access to the keys
-                    claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(userinfoContent);
+                boolean isSigned = contentType.contains(ContentType.APPLICATION_JWT.toString());
+                if (isSigned) { // We don't need the userinfo_encrypted_response_alg since the
+                    // selfRefreshingKeyProvider has access to the keys
+                    claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(
+                        userInfoResponse.toSuccessResponse().getUserInfoJWT().getParsedString()
+                    );
                 } else {
-                    claims = JWTClaimsSet.parse(userinfoContent);
+                    claims = JWTClaimsSet.parse(userInfoResponse.toSuccessResponse().getUserInfo().toString());
                 }
 
                 String id = openIdJwtAuthenticator.getJwtClaimsSet(request).getSubject();
@@ -228,7 +219,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException | com.nimbusds.oauth2.sdk.ParseException e) {
             throw new AuthenticatorUnavailableException("Error while getting " + this.userInfoEndpoint + ": " + e, e);
         }
     }

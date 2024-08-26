@@ -24,15 +24,17 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
+import com.nimbusds.common.contenttype.ContentType;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.MCCOY_SUBJECT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.OIDC_TEST_AUD;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.OIDC_TEST_ISS;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.ROLES_CLAIM;
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.TestJwts.STEPHEN_SUBJECT;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.spy;
 
@@ -435,7 +437,12 @@ public class HTTPOpenIdAuthenticatorTests {
 
         AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
-                ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1, "Content-Type", APPLICATION_JWT),
+                ImmutableMap.of(
+                    "Authorization",
+                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
+                    "Content-Type",
+                    ContentType.APPLICATION_JWT.toString()
+                ),
                 new HashMap<>()
             ).asSecurityRequest(),
             null
@@ -448,8 +455,8 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJwtWithRequiredAudIssFailsTest() throws Exception { // Setting a required issuer or audience
-                                                                                           // alongside userinfo endpoint settings causes
-                                                                                           // failures in signed response cases
+        // alongside userinfo endpoint settings causes
+        // failures in signed response cases
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("userinfo_endpoint", mockIdpServer.getUserinfoSignedUri())
@@ -466,7 +473,12 @@ public class HTTPOpenIdAuthenticatorTests {
         try {
             creds = openIdAuthenticator.extractCredentials(
                 new FakeRestRequest(
-                    ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1, "Content-Type", APPLICATION_JWT),
+                    ImmutableMap.of(
+                        "Authorization",
+                        "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
+                        "Content-Type",
+                        ContentType.APPLICATION_JWT.toString()
+                    ),
                     new HashMap<>()
                 ).asSecurityRequest(),
                 null
@@ -493,7 +505,12 @@ public class HTTPOpenIdAuthenticatorTests {
 
         AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
-                ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1_OIDC, "Content-Type", APPLICATION_JWT),
+                ImmutableMap.of(
+                    "Authorization",
+                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1_OIDC,
+                    "Content-Type",
+                    ContentType.APPLICATION_JWT.toString()
+                ),
                 new HashMap<>()
             ).asSecurityRequest(),
             null
@@ -520,7 +537,12 @@ public class HTTPOpenIdAuthenticatorTests {
         try {
             creds = openIdAuthenticator.extractCredentials(
                 new FakeRestRequest(
-                    ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1, "Content-Type", APPLICATION_JWT),
+                    ImmutableMap.of(
+                        "Authorization",
+                        "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
+                        "Content-Type",
+                        ContentType.APPLICATION_JWT.toString()
+                    ),
                     new HashMap<>()
                 ).asSecurityRequest(),
                 null
@@ -548,7 +570,12 @@ public class HTTPOpenIdAuthenticatorTests {
         try {
             creds = openIdAuthenticator.extractCredentials(
                 new FakeRestRequest(
-                    ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1, "Content-Type", APPLICATION_JWT),
+                    ImmutableMap.of(
+                        "Authorization",
+                        "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
+                        "Content-Type",
+                        ContentType.APPLICATION_JWT.toString()
+                    ),
                     new HashMap<>()
                 ).asSecurityRequest(),
                 null
@@ -575,7 +602,12 @@ public class HTTPOpenIdAuthenticatorTests {
         try {
             creds = openIdAuthenticator.extractCredentials(
                 new FakeRestRequest(
-                    ImmutableMap.of("Authorization", "Bearer " + TestJwts.STEPHEN_RSA_1, "Content-Type", APPLICATION_JWT),
+                    ImmutableMap.of(
+                        "Authorization",
+                        "Bearer " + TestJwts.STEPHEN_RSA_1,
+                        "Content-Type",
+                        ContentType.APPLICATION_JWT.toString()
+                    ),
                     new HashMap<>()
                 ).asSecurityRequest(),
                 null
@@ -600,7 +632,12 @@ public class HTTPOpenIdAuthenticatorTests {
 
         AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
-                ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1, "Content-Type", APPLICATION_JWT),
+                ImmutableMap.of(
+                    "Authorization",
+                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
+                    "Content-Type",
+                    ContentType.APPLICATION_JWT.toString()
+                ),
                 new HashMap<>()
             ).asSecurityRequest(),
             null
@@ -626,7 +663,12 @@ public class HTTPOpenIdAuthenticatorTests {
         try {
             creds = openIdAuthenticator.extractCredentials(
                 new FakeRestRequest(
-                    ImmutableMap.of("Authorization", "Bearer " + TestJwts.STEPHEN_RSA_1, "Content-Type", APPLICATION_JWT),
+                    ImmutableMap.of(
+                        "Authorization",
+                        "Bearer " + TestJwts.STEPHEN_RSA_1,
+                        "Content-Type",
+                        ContentType.APPLICATION_JWT.toString()
+                    ),
                     new HashMap<>()
                 ).asSecurityRequest(),
                 null
@@ -642,7 +684,7 @@ public class HTTPOpenIdAuthenticatorTests {
     public void userinfoEndpointReturnsResponseNot2xxTest() throws Exception {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
+            .put("userinfo_endpoint", mockIdpServer.getBadUserInfoUri())
             .put("required_issuer", TestJwts.TEST_ISSUER)
             .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
             .build();
@@ -653,7 +695,7 @@ public class HTTPOpenIdAuthenticatorTests {
         try {
             creds = openIdAuthenticator.extractCredentials(
                 new FakeRestRequest(
-                    ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1, "Content-Type", APPLICATION_JWT),
+                    ImmutableMap.of("Authorization", STEPHEN_SUBJECT, "Content-Type", ContentType.APPLICATION_JWT.toString()),
                     new HashMap<>()
                 ).asSecurityRequest(),
                 null
@@ -680,7 +722,12 @@ public class HTTPOpenIdAuthenticatorTests {
 
         AuthCredentials creds = openIdAuthenticator.extractCredentials(
             new FakeRestRequest(
-                ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1, "Content-Type", APPLICATION_JWT),
+                ImmutableMap.of(
+                    "Authorization",
+                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
+                    "Content-Type",
+                    ContentType.APPLICATION_JWT.toString()
+                ),
                 new HashMap<>()
             ).asSecurityRequest(),
             null
