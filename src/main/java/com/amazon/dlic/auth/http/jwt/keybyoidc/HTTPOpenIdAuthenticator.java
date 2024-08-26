@@ -72,13 +72,6 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
     }
 
     public HTTPJwtKeyByOpenIdConnectAuthenticator getOpenIdJwtAuthenticator() {
-        if (openIdJwtAuthenticator == null) {
-            synchronized (this) {
-                if (openIdJwtAuthenticator == null) {
-                    openIdJwtAuthenticator = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, configPath);
-                }
-            }
-        }
         return openIdJwtAuthenticator;
     }
 

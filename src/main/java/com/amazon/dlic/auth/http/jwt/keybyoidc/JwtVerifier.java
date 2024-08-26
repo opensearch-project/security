@@ -115,7 +115,6 @@ public class JwtVerifier {
 
     private void validateClaims(SignedJWT jwt) throws ParseException, BadJWTException {
         JWTClaimsSet claims = jwt.getJWTClaimsSet();
-
         if (claims != null) {
             DefaultJWTClaimsVerifier<SimpleSecurityContext> claimsVerifier = new DefaultJWTClaimsVerifier<>(
                 requiredAudience.isEmpty() ? null : new HashSet<>(requiredAudience),

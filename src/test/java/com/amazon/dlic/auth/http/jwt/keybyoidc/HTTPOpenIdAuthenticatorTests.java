@@ -25,6 +25,7 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 import com.nimbusds.common.contenttype.ContentType;
+import com.nimbusds.oauth2.sdk.util.StringUtils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -426,27 +427,12 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJwtWithAllRequirementsTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoSignedUri())
-            .put(CLIENT_ID, OIDC_TEST_AUD)
-            .put(ISSUER_ID_URL, OIDC_TEST_ISS)
-            .build();
+        Settings settings = userInfoSettingsBuilder(mockIdpServer.getUserinfoSignedUri(), OIDC_TEST_AUD, OIDC_TEST_ISS, null, null);
 
         HTTPOpenIdAuthenticator openIdAuthenticator = spy(new HTTPOpenIdAuthenticator(settings, null));
 
-        AuthCredentials creds = openIdAuthenticator.extractCredentials(
-            new FakeRestRequest(
-                ImmutableMap.of(
-                    "Authorization",
-                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
-                    "Content-Type",
-                    ContentType.APPLICATION_JWT.toString()
-                ),
-                new HashMap<>()
-            ).asSecurityRequest(),
-            null
-        );
+        AuthCredentials creds = fetchCreds(openIdAuthenticator, TestJwts.MC_COY_SIGNED_OCT_1, ContentType.APPLICATION_JWT.toString());
+
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is(MCCOY_SUBJECT));
         assertThat(creds.getBackendRoles().size(), is(0));
@@ -457,32 +443,20 @@ public class HTTPOpenIdAuthenticatorTests {
     public void userinfoEndpointReturnsJwtWithRequiredAudIssFailsTest() throws Exception { // Setting a required issuer or audience
         // alongside userinfo endpoint settings causes
         // failures in signed response cases
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoSignedUri())
-            .put(CLIENT_ID, OIDC_TEST_AUD)
-            .put(ISSUER_ID_URL, OIDC_TEST_ISS)
-            .put("required_issuer", TestJwts.TEST_ISSUER)
-            .put("required_audience", TestJwts.TEST_AUDIENCE)
-            .build();
+        Settings settings = userInfoSettingsBuilder(
+            mockIdpServer.getUserinfoSignedUri(),
+            OIDC_TEST_AUD,
+            OIDC_TEST_ISS,
+            TestJwts.TEST_ISSUER,
+            TestJwts.TEST_AUDIENCE
+        );
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
         AuthCredentials creds = null;
         String message = "";
         try {
-            creds = openIdAuthenticator.extractCredentials(
-                new FakeRestRequest(
-                    ImmutableMap.of(
-                        "Authorization",
-                        "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
-                        "Content-Type",
-                        ContentType.APPLICATION_JWT.toString()
-                    ),
-                    new HashMap<>()
-                ).asSecurityRequest(),
-                null
-            );
+            creds = fetchCreds(openIdAuthenticator, TestJwts.MC_COY_SIGNED_OCT_1, ContentType.APPLICATION_JWT.toString());
         } catch (RuntimeException e) {
             message = e.getMessage();
         }
@@ -492,29 +466,19 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJwtWithMatchingRequiredAudIssPassesTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoSignedUri())
-            .put(CLIENT_ID, OIDC_TEST_AUD)
-            .put(ISSUER_ID_URL, OIDC_TEST_ISS)
-            .put("required_issuer", OIDC_TEST_ISS)
-            .put("required_audience", OIDC_TEST_AUD)
-            .build();
+
+        Settings settings = userInfoSettingsBuilder(
+            mockIdpServer.getUserinfoSignedUri(),
+            OIDC_TEST_AUD,
+            OIDC_TEST_ISS,
+            OIDC_TEST_AUD,
+            OIDC_TEST_ISS
+        );
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = openIdAuthenticator.extractCredentials(
-            new FakeRestRequest(
-                ImmutableMap.of(
-                    "Authorization",
-                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1_OIDC,
-                    "Content-Type",
-                    ContentType.APPLICATION_JWT.toString()
-                ),
-                new HashMap<>()
-            ).asSecurityRequest(),
-            null
-        );
+        AuthCredentials creds = fetchCreds(openIdAuthenticator, TestJwts.MC_COY_SIGNED_OCT_1_OIDC, ContentType.APPLICATION_JWT.toString());
+
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is(MCCOY_SUBJECT));
         assertThat(creds.getBackendRoles().size(), is(0));
@@ -523,30 +487,20 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJwtMissingIssuerTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoSignedUri())
-            .put(CLIENT_ID, OIDC_TEST_AUD)
-            .put(ISSUER_ID_URL, "http://www.differentexample.com")
-            .build();
+        Settings settings = userInfoSettingsBuilder(
+            mockIdpServer.getUserinfoSignedUri(),
+            OIDC_TEST_AUD,
+            "http://www.differentexample.com",
+            null,
+            null
+        );
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
         AuthCredentials creds = null;
         String message = "";
         try {
-            creds = openIdAuthenticator.extractCredentials(
-                new FakeRestRequest(
-                    ImmutableMap.of(
-                        "Authorization",
-                        "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
-                        "Content-Type",
-                        ContentType.APPLICATION_JWT.toString()
-                    ),
-                    new HashMap<>()
-                ).asSecurityRequest(),
-                null
-            );
+            creds = fetchCreds(openIdAuthenticator, TestJwts.MC_COY_SIGNED_OCT_1, ContentType.APPLICATION_JWT.toString());
         } catch (AuthenticatorUnavailableException e) {
             message = e.getMessage();
         }
@@ -556,30 +510,20 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJwtMissingAudienceTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoSignedUri())
-            .put(CLIENT_ID, "aDifferentTestClient")
-            .put(ISSUER_ID_URL, "http://www.example.com")
-            .build();
+        Settings settings = userInfoSettingsBuilder(
+            mockIdpServer.getUserinfoSignedUri(),
+            "aDifferentTestClient",
+            OIDC_TEST_ISS,
+            null,
+            null
+        );
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
         AuthCredentials creds = null;
         String message = "";
         try {
-            creds = openIdAuthenticator.extractCredentials(
-                new FakeRestRequest(
-                    ImmutableMap.of(
-                        "Authorization",
-                        "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
-                        "Content-Type",
-                        ContentType.APPLICATION_JWT.toString()
-                    ),
-                    new HashMap<>()
-                ).asSecurityRequest(),
-                null
-            );
+            creds = fetchCreds(openIdAuthenticator, TestJwts.MC_COY_SIGNED_OCT_1, ContentType.APPLICATION_JWT.toString());
         } catch (AuthenticatorUnavailableException e) {
             message = e.getMessage();
         }
@@ -589,29 +533,14 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJwtMismatchedSubTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoSignedUri())
-            .put(CLIENT_ID, "testClient")
-            .put(ISSUER_ID_URL, "http://www.example.com")
-            .build();
+
+        Settings settings = userInfoSettingsBuilder(mockIdpServer.getUserinfoSignedUri(), OIDC_TEST_AUD, OIDC_TEST_ISS, null, null);
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
         AuthCredentials creds = null;
         String message = "";
         try {
-            creds = openIdAuthenticator.extractCredentials(
-                new FakeRestRequest(
-                    ImmutableMap.of(
-                        "Authorization",
-                        "Bearer " + TestJwts.STEPHEN_RSA_1,
-                        "Content-Type",
-                        ContentType.APPLICATION_JWT.toString()
-                    ),
-                    new HashMap<>()
-                ).asSecurityRequest(),
-                null
-            );
+            creds = fetchCreds(openIdAuthenticator, TestJwts.STEPHEN_RSA_1, ContentType.APPLICATION_JWT.toString());
         } catch (AuthenticatorUnavailableException e) {
             message = e.getMessage();
         }
@@ -621,27 +550,13 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJsonWithAllRequirementsTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
-            .put(CLIENT_ID, "testClient")
-            .put(ISSUER_ID_URL, "http://www.example.com")
-            .build();
+
+        Settings settings = userInfoSettingsBuilder(mockIdpServer.getUserinfoUri(), OIDC_TEST_AUD, OIDC_TEST_ISS, null, null);
 
         HTTPOpenIdAuthenticator openIdAuthenticator = spy(new HTTPOpenIdAuthenticator(settings, null));
 
-        AuthCredentials creds = openIdAuthenticator.extractCredentials(
-            new FakeRestRequest(
-                ImmutableMap.of(
-                    "Authorization",
-                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
-                    "Content-Type",
-                    ContentType.APPLICATION_JWT.toString()
-                ),
-                new HashMap<>()
-            ).asSecurityRequest(),
-            null
-        );
+        AuthCredentials creds = fetchCreds(openIdAuthenticator, TestJwts.MC_COY_SIGNED_OCT_1, ContentType.APPLICATION_JWT.toString());
+
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is(MCCOY_SUBJECT));
         assertThat(creds.getBackendRoles().size(), is(0));
@@ -650,29 +565,13 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJsonMismatchedSubTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
-            .put(CLIENT_ID, "testClient")
-            .put(ISSUER_ID_URL, "http://www.example.com")
-            .build();
+        Settings settings = userInfoSettingsBuilder(mockIdpServer.getUserinfoUri(), OIDC_TEST_AUD, OIDC_TEST_ISS, null, null);
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
         AuthCredentials creds = null;
         String message = "";
         try {
-            creds = openIdAuthenticator.extractCredentials(
-                new FakeRestRequest(
-                    ImmutableMap.of(
-                        "Authorization",
-                        "Bearer " + TestJwts.STEPHEN_RSA_1,
-                        "Content-Type",
-                        ContentType.APPLICATION_JWT.toString()
-                    ),
-                    new HashMap<>()
-                ).asSecurityRequest(),
-                null
-            );
+            creds = fetchCreds(openIdAuthenticator, TestJwts.STEPHEN_RSA_1, ContentType.APPLICATION_JWT.toString());
         } catch (AuthenticatorUnavailableException e) {
             message = e.getMessage();
         }
@@ -682,24 +581,19 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsResponseNot2xxTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getBadUserInfoUri())
-            .put("required_issuer", TestJwts.TEST_ISSUER)
-            .put("required_audience", TestJwts.TEST_AUDIENCE + ",another_audience")
-            .build();
+        Settings settings = userInfoSettingsBuilder(
+            mockIdpServer.getBadUserInfoUri(),
+            "",
+            "",
+            TestJwts.TEST_ISSUER,
+            TestJwts.TEST_AUDIENCE + ",another_audience"
+        );
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
         AuthCredentials creds = null;
         String message = "";
         try {
-            creds = openIdAuthenticator.extractCredentials(
-                new FakeRestRequest(
-                    ImmutableMap.of("Authorization", STEPHEN_SUBJECT, "Content-Type", ContentType.APPLICATION_JWT.toString()),
-                    new HashMap<>()
-                ).asSecurityRequest(),
-                null
-            );
+            creds = fetchCreds(openIdAuthenticator, STEPHEN_SUBJECT, ContentType.APPLICATION_JWT.toString());
         } catch (AuthenticatorUnavailableException e) {
             message = e.getMessage();
         }
@@ -709,32 +603,48 @@ public class HTTPOpenIdAuthenticatorTests {
 
     @Test
     public void userinfoEndpointReturnsJsonWithRequiredAudIssPassesTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("userinfo_endpoint", mockIdpServer.getUserinfoUri())
-            .put(CLIENT_ID, "testClient")
-            .put(ISSUER_ID_URL, "http://www.example.com")
-            .put("required_issuer", TestJwts.TEST_ISSUER)
-            .put("required_audience", TestJwts.TEST_AUDIENCE)
-            .build();
+        Settings settings = userInfoSettingsBuilder(
+            mockIdpServer.getUserinfoUri(),
+            OIDC_TEST_AUD,
+            OIDC_TEST_ISS,
+            TestJwts.TEST_AUDIENCE,
+            TestJwts.TEST_ISSUER
+        );
 
         HTTPOpenIdAuthenticator openIdAuthenticator = new HTTPOpenIdAuthenticator(settings, null);
 
-        AuthCredentials creds = openIdAuthenticator.extractCredentials(
-            new FakeRestRequest(
-                ImmutableMap.of(
-                    "Authorization",
-                    "Bearer " + TestJwts.MC_COY_SIGNED_OCT_1,
-                    "Content-Type",
-                    ContentType.APPLICATION_JWT.toString()
-                ),
-                new HashMap<>()
-            ).asSecurityRequest(),
-            null
-        );
+        AuthCredentials creds = fetchCreds(openIdAuthenticator, TestJwts.MC_COY_SIGNED_OCT_1, ContentType.APPLICATION_JWT.toString());
+
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is(MCCOY_SUBJECT));
         assertThat(creds.getBackendRoles().size(), is(0));
         assertThat(creds.getAttributes().size(), is(2));
+    }
+
+    AuthCredentials fetchCreds(HTTPOpenIdAuthenticator openIdAuthenticator, String bearer, String contentType) {
+        return openIdAuthenticator.extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer " + bearer, "Content-Type", contentType), new HashMap<>())
+                .asSecurityRequest(),
+            null
+        );
+    }
+
+    Settings userInfoSettingsBuilder(String userInfoEndpoint, String client, String issuer, String requiredAud, String requiredIss) {
+
+        Settings.Builder settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .put("userinfo_endpoint", userInfoEndpoint)
+            .put(CLIENT_ID, client)
+            .put(ISSUER_ID_URL, issuer);
+
+        if (StringUtils.isNotBlank(requiredAud)) {
+            settings.put("required_audience", requiredAud);
+        }
+
+        if (StringUtils.isNotBlank(requiredIss)) {
+            settings.put("required_issuer", requiredIss);
+        }
+
+        return settings.build();
     }
 }
