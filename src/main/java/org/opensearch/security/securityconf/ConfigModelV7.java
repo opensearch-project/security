@@ -792,7 +792,7 @@ public class ConfigModelV7 extends ConfigModel {
                 if (aliasesAndDataStreamsForPermittedPattern.length > 0) {
                     final String[] resolvedAliasesAndDataStreamIndices = resolver.concreteIndexNames(
                         cs.state(),
-                        IndicesOptions.lenientExpandOpen(),
+                        IndicesOptions.lenientExpand(),
                         includeDataStreams,
                         aliasesAndDataStreamsForPermittedPattern
                     );
@@ -803,7 +803,7 @@ public class ConfigModelV7 extends ConfigModel {
             if (!(unresolved == null || unresolved.isBlank())) {
                 final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(
                     cs.state(),
-                    IndicesOptions.lenientExpandOpen(),
+                    IndicesOptions.lenientExpand(),
                     includeDataStreams,
                     unresolved
                 );

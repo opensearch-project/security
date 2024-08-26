@@ -829,12 +829,12 @@ public class ConfigModelV6 extends ConfigModel {
                     .toArray(String[]::new);
 
                 if (aliasesForPermittedPattern.length > 0) {
-                    resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), aliasesForPermittedPattern);
+                    resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpand(), aliasesForPermittedPattern);
                 }
             }
 
             if (resolved == null && !unresolved.isEmpty()) {
-                resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
+                resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpand(), unresolved);
             }
             if (resolved == null || resolved.length == 0) {
                 return ImmutableSet.of(unresolved);
