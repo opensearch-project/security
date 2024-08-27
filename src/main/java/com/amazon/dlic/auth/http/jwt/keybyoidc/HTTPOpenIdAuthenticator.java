@@ -37,11 +37,10 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
-import com.nimbusds.oauth2.sdk.token.AccessToken;
-import com.nimbusds.oauth2.sdk.token.AccessTokenType;
-import com.nimbusds.oauth2.sdk.util.StringUtils;
+import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.openid.connect.sdk.UserInfoRequest;
 import com.nimbusds.openid.connect.sdk.UserInfoResponse;
+import com.nimbusds.openid.connect.sdk.UserInfoSuccessResponse;
 
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
@@ -115,32 +114,9 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
             URI userInfoEndpointURI = new URI(this.userInfoEndpoint);
 
-            String bearerHeader = request.getHeaders().get(AUTHORIZATION).getFirst();
-            if (!StringUtils.isBlank(bearerHeader)) {
-                if (bearerHeader.contains("Bearer ")) {
-                    bearerHeader = bearerHeader.substring(7);
-                }
-            }
+            String bearerHeader = AbstractHTTPJwtAuthenticator.getJwtTokenString(request, AUTHORIZATION, null, false);
 
-            String finalBearerHeader = bearerHeader;
-
-            AccessToken accessToken = new AccessToken(AccessTokenType.BEARER, finalBearerHeader) {
-                @Override
-                public String toAuthorizationHeader() {
-                    return "Bearer " + finalBearerHeader;
-                }
-            };
-
-            UserInfoRequest userInfoRequest = new UserInfoRequest(userInfoEndpointURI, accessToken);
-
-            HTTPRequest httpRequest = userInfoRequest.toHTTPRequest();
-
-            HTTPResponse httpResponse = httpRequest.send();
-            if (httpResponse.getStatusCode() < 200 || httpResponse.getStatusCode() >= 300) {
-                throw new AuthenticatorUnavailableException(
-                    "Error while getting " + this.userInfoEndpoint + ": " + httpResponse.getStatusMessage()
-                );
-            }
+            HTTPResponse httpResponse = getHttpResponse(bearerHeader, userInfoEndpointURI);
 
             try {
 
@@ -152,17 +128,19 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                     );
                 }
 
-                String contentType = String.valueOf(httpResponse.getHeaderValues("content-type"));
+                UserInfoSuccessResponse userInfoSuccessResponse = userInfoResponse.toSuccessResponse();
+
+                String contentType = userInfoSuccessResponse.getEntityContentType().getType();
 
                 JWTClaimsSet claims;
-                boolean isSigned = contentType.contains(ContentType.APPLICATION_JWT.toString());
+                boolean isSigned = contentType.contains(ContentType.APPLICATION_JWT.getType());
                 if (isSigned) { // We don't need the userinfo_encrypted_response_alg since the
                     // selfRefreshingKeyProvider has access to the keys
                     claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(
-                        userInfoResponse.toSuccessResponse().getUserInfoJWT().getParsedString()
+                        userInfoSuccessResponse.getUserInfoJWT().getParsedString()
                     );
                 } else {
-                    claims = JWTClaimsSet.parse(userInfoResponse.toSuccessResponse().getUserInfo().toString());
+                    claims = JWTClaimsSet.parse(userInfoSuccessResponse.getUserInfo().toString());
                 }
 
                 String id = openIdJwtAuthenticator.getJwtClaimsSet(request).getSubject();
@@ -196,26 +174,42 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         }
     }
 
+    private HTTPResponse getHttpResponse(String bearerHeader, URI userInfoEndpointURI) throws IOException {
+        BearerAccessToken accessToken = new BearerAccessToken(bearerHeader);
+
+        UserInfoRequest userInfoRequest = new UserInfoRequest(userInfoEndpointURI, accessToken);
+
+        HTTPRequest httpRequest = userInfoRequest.toHTTPRequest();
+
+        HTTPResponse httpResponse = httpRequest.send();
+        if (httpResponse.getStatusCode() < 200 || httpResponse.getStatusCode() >= 300) {
+            throw new AuthenticatorUnavailableException(
+                "Error while getting " + this.userInfoEndpoint + ": " + httpResponse.getStatusMessage()
+            );
+        }
+        return httpResponse;
+    }
+
     private String validateResponseClaims(JWTClaimsSet claims, String id, boolean isSigned) {
 
-        String missing = "";
+        StringBuilder missing = new StringBuilder();
 
         if (claims.getClaim(SUB_CLAIM) == null || claims.getClaim(SUB_CLAIM).toString().isBlank() || !claims.getClaim("sub").equals(id)) {
-            missing = missing.concat(SUB_CLAIM);
+            missing = missing.append(SUB_CLAIM);
         }
 
         if (isSigned) {
             if (claims.getIssuer() == null || claims.getIssuer().isBlank() || !claims.getIssuer().equals(settings.get(ISSUER_ID_URL))) {
-                missing = missing.concat("iss");
+                missing = missing.append("iss");
             }
             if (claims.getAudience() == null
                 || claims.getAudience().toString().isBlank()
                 || !claims.getAudience().contains(settings.get(CLIENT_ID))) {
-                missing = missing.concat("aud");
+                missing = missing.append("aud");
             }
         }
 
-        return missing;
+        return missing.toString();
     }
 
     private final class HTTPJwtKeyByOpenIdConnectAuthenticator extends AbstractHTTPJwtAuthenticator {
@@ -260,7 +254,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         }
 
         private JWTClaimsSet getJwtClaimsSet(SecurityRequest request) throws OpenSearchSecurityException {
-            String parsedToken = super.getJwtTokenString(request);
+            String parsedToken = getJwtTokenString(request, jwtHeaderName, jwtUrlParameter, isDefaultAuthHeader);
             return getJwtClaimsSetFromInfoContent(parsedToken);
         }
 

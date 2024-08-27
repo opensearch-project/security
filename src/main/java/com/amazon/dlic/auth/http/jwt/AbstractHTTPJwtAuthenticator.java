@@ -57,9 +57,9 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     private KeyProvider keyProvider;
     protected JwtVerifier jwtVerifier;
-    private final String jwtHeaderName;
-    private final boolean isDefaultAuthHeader;
-    private final String jwtUrlParameter;
+    protected final String jwtHeaderName;
+    protected final boolean isDefaultAuthHeader;
+    protected final String jwtUrlParameter;
     private final String subjectKey;
     private final String rolesKey;
     private final List<String> requiredAudience;
@@ -117,7 +117,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     private AuthCredentials extractCredentials0(final SecurityRequest request) throws OpenSearchSecurityException {
 
-        String jwtString = getJwtTokenString(request);
+        String jwtString = getJwtTokenString(request, jwtHeaderName, jwtUrlParameter, isDefaultAuthHeader);
 
         if (Strings.isNullOrEmpty(jwtString)) {
             return null;
@@ -153,34 +153,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         }
 
         return ac;
-    }
-
-    protected String getJwtTokenString(SecurityRequest request) {
-        String jwtToken = request.header(jwtHeaderName);
-        if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
-            jwtToken = null;
-        }
-
-        if (jwtUrlParameter != null) {
-            if (jwtToken == null || jwtToken.isEmpty()) {
-                jwtToken = request.params().get(jwtUrlParameter);
-            } else {
-                // just consume to avoid "contains unrecognized parameter"
-                request.params().get(jwtUrlParameter);
-            }
-        }
-
-        if (jwtToken == null) {
-            return null;
-        }
-
-        int index;
-
-        if ((index = jwtToken.toLowerCase().indexOf(BEARER)) > -1) { // detect Bearer
-            jwtToken = jwtToken.substring(index + BEARER.length());
-        }
-
-        return jwtToken;
     }
 
     @VisibleForTesting
@@ -254,6 +226,39 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         return Optional.of(
             new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, Map.of("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\""), "")
         );
+    }
+
+    public static String getJwtTokenString(
+        SecurityRequest request,
+        String jwtHeaderName,
+        String jwtUrlParameter,
+        boolean isDefaultAuthHeader
+    ) {
+        String jwtToken = request.header(jwtHeaderName);
+        if (isDefaultAuthHeader && jwtToken != null && BASIC.matcher(jwtToken).matches()) {
+            jwtToken = null;
+        }
+
+        if (jwtUrlParameter != null) {
+            if (jwtToken == null || jwtToken.isEmpty()) {
+                jwtToken = request.params().get(jwtUrlParameter);
+            } else {
+                // just consume to avoid "contains unrecognized parameter"
+                request.params().get(jwtUrlParameter);
+            }
+        }
+
+        if (jwtToken == null) {
+            return null;
+        }
+
+        int index;
+
+        if ((index = jwtToken.toLowerCase().indexOf(BEARER)) > -1) { // detect Bearer
+            jwtToken = jwtToken.substring(index + BEARER.length());
+        }
+
+        return jwtToken;
     }
 
     public List<String> getRequiredAudience() {
