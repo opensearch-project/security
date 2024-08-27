@@ -96,22 +96,6 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
         return Optional.empty();
     }
 
-    // Public for testing
-    public CloseableHttpClient createHttpClient() {
-        HttpClientBuilder builder;
-        builder = HttpClients.custom();
-        builder.useSystemProperties();
-        if (sslConfig != null) {
-            final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
-                .build();
-
-            builder.setConnectionManager(cm);
-        }
-
-        return builder.build();
-    }
-
     /**
      * This method performs the logic required for making use of the userinfo_endpoint OIDC feature.
      * Per the spec: https://openid.net/specs/openid-connect-core-1_0.html#UserInfo there are 10 verification steps we must perform
