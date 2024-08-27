@@ -19,6 +19,8 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.identity.IdentityService;
+import org.opensearch.identity.Subject;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
@@ -40,7 +42,7 @@ public class RestRunClusterHealthAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(GET, "/try-cluster-health"));
+        return singletonList(new Route(GET, "/try-cluster-health/{runAs}"));
     }
 
     @Override
@@ -50,19 +52,35 @@ public class RestRunClusterHealthAction extends BaseRestHandler {
 
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        String runAs = request.param("runAs");
+
         return new RestChannelConsumer() {
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                contextSwitcher.runAs(() -> {
-                    ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(r -> {
-                        channel.sendResponse(
-                            new BytesRestResponse(RestStatus.OK, r.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS))
-                        );
-                    }, fr -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, String.valueOf(fr))));
-                    client.admin().cluster().health(new ClusterHealthRequest(), chr);
-                    return null;
-                });
+                if ("user".equalsIgnoreCase(runAs)) {
+                    IdentityService identityService = SystemIndexPlugin1.GuiceHolder.getIdentityService();
+                    Subject user = identityService.getCurrentSubject();
+                    user.runAs(() -> {
+                        ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(r -> {
+                            channel.sendResponse(
+                                new BytesRestResponse(RestStatus.OK, r.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS))
+                            );
+                        }, fr -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, String.valueOf(fr))));
+                        client.admin().cluster().health(new ClusterHealthRequest(), chr);
+                        return null;
+                    });
+                } else {
+                    contextSwitcher.runAs(() -> {
+                        ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(r -> {
+                            channel.sendResponse(
+                                new BytesRestResponse(RestStatus.OK, r.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS))
+                            );
+                        }, fr -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, String.valueOf(fr))));
+                        client.admin().cluster().health(new ClusterHealthRequest(), chr);
+                        return null;
+                    });
+                }
             }
         };
     }

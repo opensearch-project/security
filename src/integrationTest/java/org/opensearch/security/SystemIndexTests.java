@@ -45,8 +45,9 @@ public class SystemIndexTests {
 
     public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0).httpAuthenticatorWithChallenge("basic").backend("internal");
 
+    // TODO Change this from SINGLENODE to default to test with multiple nodes
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
@@ -121,7 +122,7 @@ public class SystemIndexTests {
     @Test
     public void testPluginShouldNotBeAbleToRunClusterActions() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse response = client.get("try-cluster-health/");
+            HttpResponse response = client.get("try-cluster-health/plugin");
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
@@ -130,6 +131,15 @@ public class SystemIndexTests {
                     "no permissions for [cluster:monitor/health] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
                 )
             );
+        }
+    }
+
+    @Test
+    public void testAdminUserShouldBeAbleToRunClusterActions() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.get("try-cluster-health/user");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
         }
     }
 
