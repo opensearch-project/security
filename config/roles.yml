@@ -365,6 +365,7 @@ security_analytics_read_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/get'
+    - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/get'
     - 'cluster:admin/opensearch/securityanalytics/correlations/findings'
     - 'cluster:admin/opensearch/securityanalytics/correlations/list'
     - 'cluster:admin/opensearch/securityanalytics/detector/get'
@@ -388,6 +389,7 @@ security_analytics_full_access:
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
     - 'cluster:admin/opensearch/securityanalytics/connections/*'
+    - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/*'
     - 'cluster:admin/opensearch/securityanalytics/correlations/*'
     - 'cluster:admin/opensearch/securityanalytics/detector/*'
     - 'cluster:admin/opensearch/securityanalytics/findings/*'
@@ -407,6 +409,7 @@ security_analytics_ack_alerts:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
+    - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/ack'
     - 'cluster:admin/opensearch/securityanalytics/threatintel/alerts/*'
 
 # Allows users to use all Flow Framework functionality
