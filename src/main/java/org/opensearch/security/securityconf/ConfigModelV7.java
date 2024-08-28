@@ -464,7 +464,6 @@ public class ConfigModelV7 extends ConfigModel {
         ) {
 
             final Set<String> indicesForRequest = new HashSet<>(resolved.getAllIndicesResolved(cs, resolver));
-            System.out.println("indicesForRequest: " + indicesForRequest);
             if (indicesForRequest.isEmpty()) {
                 // If no indices could be found on the request there is no way to check for the explicit permissions
                 return false;
@@ -474,8 +473,6 @@ public class ConfigModelV7 extends ConfigModel {
                 .map(role -> role.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs, SecurityRoles::matchExplicitly))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
-
-            System.out.println("explicitlyAllowedIndices: " + explicitlyAllowedIndices);
 
             if (log.isDebugEnabled()) {
                 log.debug(
