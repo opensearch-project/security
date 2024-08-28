@@ -39,14 +39,14 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
-import org.opensearch.security.identity.PluginSubjectHolder;
+import org.opensearch.security.identity.PluginContextSwitcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, IdentityAwarePlugin {
     public static final String SYSTEM_INDEX_1 = ".system-index1";
 
-    private PluginSubjectHolder pluginSubjectHolder;
+    private PluginContextSwitcher contextSwitcher;
 
     private Client client;
 
@@ -65,8 +65,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.client = client;
-        this.pluginSubjectHolder = new PluginSubjectHolder();
-        return List.of(pluginSubjectHolder);
+        this.contextSwitcher = new PluginContextSwitcher();
+        return List.of(contextSwitcher);
     }
 
     @Override
@@ -87,9 +87,9 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
     ) {
         return List.of(
             new RestIndexDocumentIntoSystemIndexAction(client),
-            new RestRunClusterHealthAction(client, pluginSubjectHolder),
-            new RestBulkIndexDocumentIntoSystemIndexAction(client, pluginSubjectHolder),
-            new RestBulkIndexDocumentIntoMixOfSystemIndexAction(client, pluginSubjectHolder)
+            new RestRunClusterHealthAction(client, contextSwitcher),
+            new RestBulkIndexDocumentIntoSystemIndexAction(client, contextSwitcher),
+            new RestBulkIndexDocumentIntoMixOfSystemIndexAction(client, contextSwitcher)
         );
     }
 
@@ -103,8 +103,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
 
     @Override
     public void assignSubject(PluginSubject pluginSystemSubject) {
-        if (pluginSubjectHolder != null) {
-            this.pluginSubjectHolder.initialize(pluginSystemSubject);
+        if (contextSwitcher != null) {
+            this.contextSwitcher.initialize(pluginSystemSubject);
         }
     }
 }

@@ -18,15 +18,15 @@ import org.opensearch.core.common.io.stream.StreamInput;
 
 public class RunClusterHealthRequest extends ActionRequest {
 
-    private final String runActionAs;
+    private final String runAs;
 
-    public RunClusterHealthRequest(String runActionAs) {
-        this.runActionAs = runActionAs;
+    public RunClusterHealthRequest(String runAs) {
+        this.runAs = runAs;
     }
 
     public RunClusterHealthRequest(StreamInput in) throws IOException {
         super(in);
-        this.runActionAs = in.readString();
+        this.runAs = in.readString();
     }
 
     @Override
@@ -34,7 +34,7 @@ public class RunClusterHealthRequest extends ActionRequest {
         return null;
     }
 
-    public String getRunActionAs() {
-        return runActionAs;
+    public String getRunAs() {
+        return this.runAs;
     }
 }

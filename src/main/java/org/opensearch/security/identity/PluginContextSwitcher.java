@@ -14,10 +14,10 @@ import java.util.concurrent.Callable;
 
 import org.opensearch.identity.PluginSubject;
 
-public class PluginSubjectHolder {
+public class PluginContextSwitcher {
     private PluginSubject pluginSubject;
 
-    public PluginSubjectHolder() {}
+    public PluginContextSwitcher() {}
 
     public void initialize(PluginSubject pluginSubject) {
         this.pluginSubject = pluginSubject;
@@ -32,9 +32,5 @@ public class PluginSubjectHolder {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public PluginSubject getPluginSubject() {
-        return this.pluginSubject;
     }
 }
