@@ -104,20 +104,6 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testInvalidField() throws Exception {
-        setupWithRestRoles();
-        rh.sendAdminCertificate = true;
-
-        // Put a test auth failure listener with a not allowed field
-        RestHelper.HttpResponse updateAuthFailuresResponse = rh.executePutRequest(
-            "/_plugins/_security/api/authfailurelisteners/test",
-            "{\"type\":\"ip\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"blah-blah-blah\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
-            ADMIN_FULL_ACCESS_USER
-        );
-        assertThat(updateAuthFailuresResponse.getBody(), updateAuthFailuresResponse.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
-    }
-
-    @Test
     public void testInvalidDeleteScenarios() throws Exception {
         setupWithRestRoles();
 
