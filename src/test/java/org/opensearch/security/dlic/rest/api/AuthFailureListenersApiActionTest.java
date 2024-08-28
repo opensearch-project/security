@@ -79,7 +79,7 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
             getAuthFailuresResponseAfterPut.getBody(),
             getAuthFailuresResponseAfterPut.getBody(),
             equalTo(
-                "{\"test\":{\"name\":\"test\",\"type\":\"ip\",\"authentication_backend\":null,\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}}"
+                "{\"test\":{\"name\":\"test\",\"type\":\"ip\",\"ignore_hosts\":[],\"authentication_backend\":null,\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}}"
             )
         );
 
@@ -118,6 +118,35 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
             equalTo(HttpStatus.SC_NOT_FOUND)
         );
         assertThat(deleteAuthFailuresResponseNoExist.getBody(), containsString("listener not found"));
+
+    }
+
+    @Test
+    public void testInvalidPutScenarios() throws Exception {
+        setupWithRestRoles();
+
+        // rh.sendAdminCertificate = true;
+        // RestHelper.HttpResponse updateAuthFailuresResponseNoBackend = rh.executePutRequest(
+        // "/_plugins/_security/api/authfailurelisteners/test",
+        // "{\"type\":\"username\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
+        // ADMIN_FULL_ACCESS_USER
+        // );
+        // assertThat(
+        // updateAuthFailuresResponseNoBackend.getBody(),
+        // updateAuthFailuresResponseNoBackend.getStatusCode(),
+        // equalTo(HttpStatus.SC_BAD_REQUEST)
+        // );
+
+        RestHelper.HttpResponse updateAuthFailuresResponseNoType = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseNoType.getBody(),
+            updateAuthFailuresResponseNoType.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
 
     }
 

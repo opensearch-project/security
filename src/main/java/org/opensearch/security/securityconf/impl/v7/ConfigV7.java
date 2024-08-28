@@ -252,6 +252,7 @@ public class ConfigV7 {
         public AuthFailureListener(
             String type,
             Optional<String> authentication_backend,
+            List<String> ignore_hosts,
             int allowed_tries,
             int time_window_seconds,
             int block_expiry_seconds,
@@ -260,6 +261,7 @@ public class ConfigV7 {
         ) {
             this.type = type;
             this.authentication_backend = authentication_backend.isPresent() ? authentication_backend.get() : null;
+            this.ignore_hosts = ignore_hosts;
             this.allowed_tries = allowed_tries;
             this.time_window_seconds = time_window_seconds;
             this.block_expiry_seconds = block_expiry_seconds;
