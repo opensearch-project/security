@@ -27,7 +27,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.identity.PluginContextSwitcher;
+import org.opensearch.security.identity.PluginSubjectHolder;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -35,11 +35,11 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestBulkIndexDocumentIntoSystemIndexAction extends BaseRestHandler {
 
     private final Client client;
-    private final PluginContextSwitcher contextSwitcher;
+    private final PluginSubjectHolder pluginSubjectHolder;
 
-    public RestBulkIndexDocumentIntoSystemIndexAction(Client client, PluginContextSwitcher contextSwitcher) {
+    public RestBulkIndexDocumentIntoSystemIndexAction(Client client, PluginSubjectHolder pluginSubjectHolder) {
         this.client = client;
-        this.contextSwitcher = contextSwitcher;
+        this.pluginSubjectHolder = pluginSubjectHolder;
     }
 
     @Override
@@ -59,7 +59,7 @@ public class RestBulkIndexDocumentIntoSystemIndexAction extends BaseRestHandler 
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                contextSwitcher.runAs(() -> {
+                pluginSubjectHolder.runAs(() -> {
                     client.admin().indices().create(new CreateIndexRequest(indexName), ActionListener.wrap(r -> {
                         BulkRequestBuilder builder = client.prepareBulk();
                         builder.add(new IndexRequest(indexName).source("{\"content\":1}", XContentType.JSON));

@@ -21,7 +21,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.identity.IdentityService;
 import org.opensearch.identity.Subject;
-import org.opensearch.security.identity.PluginContextSwitcher;
+import org.opensearch.security.identity.PluginSubjectHolder;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -34,7 +34,7 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
 
     private final Client client;
     private final ThreadPool threadPool;
-    private final PluginContextSwitcher contextSwitcher;
+    private final PluginSubjectHolder pluginSubjectHolder;
     private final IdentityService identityService;
 
     @Inject
@@ -43,13 +43,13 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
         final ActionFilters actionFilters,
         final Client client,
         final ThreadPool threadPool,
-        final PluginContextSwitcher contextSwitcher,
+        final PluginSubjectHolder pluginSubjectHolder,
         final IdentityService identityService
     ) {
         super(IndexDocumentIntoSystemIndexAction.NAME, transportService, actionFilters, IndexDocumentIntoSystemIndexRequest::new);
         this.client = client;
         this.threadPool = threadPool;
-        this.contextSwitcher = contextSwitcher;
+        this.pluginSubjectHolder = pluginSubjectHolder;
         this.identityService = identityService;
     }
 
@@ -60,36 +60,30 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
         ActionListener<IndexDocumentIntoSystemIndexResponse> actionListener
     ) {
         String indexName = request.getIndexName();
-        String runAs = request.getRunAs();
+        String runAs = request.getRunActionAs();
         Subject userSubject = identityService.getCurrentSubject();
         try {
-            contextSwitcher.runAs(() -> {
-                client.admin().indices().create(new CreateIndexRequest(indexName), ActionListener.wrap(r -> {
-                    if ("user".equalsIgnoreCase(runAs)) {
-                        userSubject.runAs(() -> {
-                            client.index(
-                                new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                                    .source("{\"content\":1}", XContentType.JSON),
-                                ActionListener.wrap(r2 -> {
-                                    User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                                    actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
-                                }, actionListener::onFailure)
-                            );
-                            return null;
-                        });
-                    } else {
-                        client.index(
-                            new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                                .source("{\"content\":1}", XContentType.JSON),
-                            ActionListener.wrap(r2 -> {
-                                User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                                actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
-                            }, actionListener::onFailure)
-                        );
-                    }
-                }, actionListener::onFailure));
-                return null;
-            });
+            CreateIndexRequest cir = new CreateIndexRequest(indexName);
+            cir.runAs(pluginSubjectHolder.getPluginSubject());
+            client.admin().indices().create(cir, ActionListener.wrap(r -> {
+                if ("user".equalsIgnoreCase(runAs)) {
+                    IndexRequest ir = new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .source("{\"content\":1}", XContentType.JSON);
+                    ir.runAs(userSubject);
+                    client.index(ir, ActionListener.wrap(r2 -> {
+                        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                        actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
+                    }, actionListener::onFailure));
+                } else {
+                    IndexRequest ir = new IndexRequest(indexName).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .source("{\"content\":1}", XContentType.JSON);
+                    ir.runAs(pluginSubjectHolder.getPluginSubject());
+                    client.index(ir, ActionListener.wrap(r2 -> {
+                        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                        actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
+                    }, actionListener::onFailure));
+                }
+            }, actionListener::onFailure));
         } catch (Exception ex) {
             throw new RuntimeException("Unexpected error: " + ex.getMessage());
         }

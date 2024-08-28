@@ -17,7 +17,7 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
-import org.opensearch.security.identity.PluginContextSwitcher;
+import org.opensearch.security.identity.PluginSubjectHolder;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -25,11 +25,11 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 public class RestRunClusterHealthAction extends BaseRestHandler {
 
     private final Client client;
-    private final PluginContextSwitcher contextSwitcher;
+    private final PluginSubjectHolder pluginSubjectHolder;
 
-    public RestRunClusterHealthAction(Client client, PluginContextSwitcher contextSwitcher) {
+    public RestRunClusterHealthAction(Client client, PluginSubjectHolder pluginSubjectHolder) {
         this.client = client;
-        this.contextSwitcher = contextSwitcher;
+        this.pluginSubjectHolder = pluginSubjectHolder;
     }
 
     @Override

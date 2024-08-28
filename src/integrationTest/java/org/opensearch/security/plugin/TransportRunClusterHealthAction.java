@@ -19,7 +19,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.identity.IdentityService;
 import org.opensearch.identity.Subject;
-import org.opensearch.security.identity.PluginContextSwitcher;
+import org.opensearch.security.identity.PluginSubjectHolder;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
@@ -28,7 +28,7 @@ public class TransportRunClusterHealthAction extends HandledTransportAction<RunC
 
     private final Client client;
     private final ThreadPool threadPool;
-    private final PluginContextSwitcher contextSwitcher;
+    private final PluginSubjectHolder pluginSubjectHolder;
     private final IdentityService identityService;
 
     @Inject
@@ -37,19 +37,19 @@ public class TransportRunClusterHealthAction extends HandledTransportAction<RunC
         final ActionFilters actionFilters,
         final Client client,
         final ThreadPool threadPool,
-        final PluginContextSwitcher contextSwitcher,
+        final PluginSubjectHolder pluginSubjectHolder,
         final IdentityService identityService
     ) {
         super(RunClusterHealthAction.NAME, transportService, actionFilters, RunClusterHealthRequest::new);
         this.client = client;
         this.threadPool = threadPool;
-        this.contextSwitcher = contextSwitcher;
+        this.pluginSubjectHolder = pluginSubjectHolder;
         this.identityService = identityService;
     }
 
     @Override
     protected void doExecute(Task task, RunClusterHealthRequest request, ActionListener<RunClusterHealthResponse> actionListener) {
-        String runAs = request.getRunAs();
+        String runAs = request.getRunActionAs();
         if ("user".equalsIgnoreCase(runAs)) {
             Subject user = identityService.getCurrentSubject();
             try {
@@ -65,7 +65,7 @@ public class TransportRunClusterHealthAction extends HandledTransportAction<RunC
                 throw new RuntimeException(e);
             }
         } else if ("plugin".equalsIgnoreCase(runAs)) {
-            contextSwitcher.runAs(() -> {
+            pluginSubjectHolder.runAs(() -> {
                 ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(
                     r -> { actionListener.onResponse(new RunClusterHealthResponse(true)); },
                     actionListener::onFailure
