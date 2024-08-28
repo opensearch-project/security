@@ -11,6 +11,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.SecurityJsonNode;
@@ -35,12 +37,14 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.api.Responses.*;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthFailureListenersApiAction extends AbstractApiAction {
+
+    public static final String IP_TYPE = "ip";
+
+    public static final String USERNAME_TYPE = "username";
 
     public static final String NAME_JSON_PROPERTY = "name";
 
@@ -113,7 +117,16 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
 
                     @Override
                     public Map<String, DataType> allowedKeys() {
-                        return ImmutableMap.of("test", DataType.OBJECT);
+                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+
+                        return allowedKeys.put(TYPE_JSON_PROPERTY, DataType.STRING)
+                                .put(AUTHENTICATION_BACKEND_JSON_PROPERTY, DataType.STRING)
+                                .put(ALLOWED_TRIES_JSON_PROPERTY, DataType.INTEGER)
+                                .put(TIME_WINDOW_SECONDS_JSON_PROPERTY, DataType.INTEGER)
+                                .put(BLOCK_EXPIRY_JSON_PROPERTY, DataType.INTEGER)
+                                .put(MAX_BLOCKED_CLIENTS_JSON_PROPERTY, DataType.INTEGER)
+                                .put(MAX_TRACKED_CLIENTS_JSON_PROPERTY, DataType.INTEGER)
+                                .build();
                     }
                 });
             }
@@ -156,7 +169,7 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
 
             // Try to remove the listener by name
             if (config.dynamic.auth_failure_listeners.getListeners().remove(listenerName) == null) {
-                badRequest(channel, "listener not found");
+                notFound(channel, "listener not found");
             }
             saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
                 @Override
@@ -172,7 +185,7 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
 
                 ObjectNode body = (ObjectNode) DefaultObjectMapper.readTree(request.content().utf8ToString());
                 SecurityJsonNode authFailureListener = new SecurityJsonNode(body);
-                String authenticationBackend = authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals("ip")
+                String authenticationBackend = authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals(IP_TYPE)
                     || authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).isNull()
                         ? null
                         : authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).asString();
