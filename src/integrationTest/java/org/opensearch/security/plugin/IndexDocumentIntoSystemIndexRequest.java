@@ -20,13 +20,17 @@ public class IndexDocumentIntoSystemIndexRequest extends ActionRequest {
 
     private final String indexName;
 
-    public IndexDocumentIntoSystemIndexRequest(String indexName) {
+    private final String runAs;
+
+    public IndexDocumentIntoSystemIndexRequest(String indexName, String runAs) {
         this.indexName = indexName;
+        this.runAs = runAs;
     }
 
     public IndexDocumentIntoSystemIndexRequest(StreamInput in) throws IOException {
         super(in);
         this.indexName = in.readString();
+        this.runAs = in.readOptionalString();
     }
 
     @Override
@@ -36,5 +40,9 @@ public class IndexDocumentIntoSystemIndexRequest extends ActionRequest {
 
     public String getIndexName() {
         return this.indexName;
+    }
+
+    public String getRunAs() {
+        return this.runAs;
     }
 }

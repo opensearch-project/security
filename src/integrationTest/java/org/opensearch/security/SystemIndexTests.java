@@ -119,6 +119,16 @@ public class SystemIndexTests {
     }
 
     @Test
+    public void testPluginShouldBeAbleToCreateSystemIndexButUserShouldNotBeAbleToIndex() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1 + "?runAs=user");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(response.getBody(), containsString("no permissions for [indices:data/write/index] and User [name=admin"));
+        }
+    }
+
+    @Test
     public void testPluginShouldNotBeAbleToRunClusterActions() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.get("try-cluster-health/plugin");

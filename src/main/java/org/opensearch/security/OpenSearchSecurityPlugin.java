@@ -1053,7 +1053,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         this.threadPool = threadPool;
-        System.out.println("ThreadPool createComponents: " + threadPool);
         this.cs = clusterService;
         this.localClient = localClient;
 

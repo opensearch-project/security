@@ -35,6 +35,7 @@ public class SecurityUserSubject implements UserSubject {
     @Override
     public <T> T runAs(Callable<T> callable) throws Exception {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            System.out.println("Switching to user: " + user);
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
             return callable.call();
         }
