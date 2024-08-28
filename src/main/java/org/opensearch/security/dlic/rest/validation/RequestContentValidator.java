@@ -180,7 +180,6 @@ public class RequestContentValidator implements ToXContent {
         final Set<String> allowed = new HashSet<>(validationContext.allowedKeys().keySet());
         requestedKeys.removeAll(allowed);
         invalidKeys.addAll(requestedKeys);
-        System.out.println(validationContext.allowedKeys());
 
         if (!missingMandatoryKeys.isEmpty() || !invalidKeys.isEmpty() || !missingMandatoryOrKeys.isEmpty()) {
             this.validationError = ValidationError.INVALID_CONFIGURATION;

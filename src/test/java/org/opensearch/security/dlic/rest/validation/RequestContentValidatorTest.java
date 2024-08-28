@@ -144,13 +144,17 @@ public class RequestContentValidatorTest {
                     RequestContentValidator.DataType.OBJECT,
                     "c",
                     RequestContentValidator.DataType.ARRAY,
-                        "d",
-                        RequestContentValidator.DataType.INTEGER
+                    "d",
+                    RequestContentValidator.DataType.INTEGER
                 );
             }
         });
 
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", 1).put("b", "[]").put("c", "{}").put("d", "1");
+        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode()
+            .put("a", 1)
+            .put("b", "[]")
+            .put("c", "{}")
+            .put("d", "1");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
 
@@ -288,8 +292,8 @@ public class RequestContentValidatorTest {
                     RequestContentValidator.DataType.STRING,
                     "e",
                     RequestContentValidator.DataType.BOOLEAN,
-                        "f",
-                        RequestContentValidator.DataType.INTEGER
+                    "f",
+                    RequestContentValidator.DataType.INTEGER
                 );
             }
         });

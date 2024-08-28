@@ -37,14 +37,14 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
         );
         assertThat(getSettingResponse.getBody(), getSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         RestHelper.HttpResponse updateSettingResponse = rh.executePutRequest(
-                "/_plugins/_security/api/authfailurelisteners/test",
-                "{\"type\":\"ip\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
-                USER_NO_REST_API_ACCESS
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
+            USER_NO_REST_API_ACCESS
         );
         assertThat(getSettingResponse.getBody(), updateSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         RestHelper.HttpResponse deleteSettingResponse = rh.executeDeleteRequest(
-                "/_plugins/_security/api/authfailurelisteners/test",
-                USER_NO_REST_API_ACCESS
+            "/_plugins/_security/api/authfailurelisteners/test",
+            USER_NO_REST_API_ACCESS
         );
         assertThat(getSettingResponse.getBody(), updateSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
     }
@@ -75,7 +75,13 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
             ADMIN_FULL_ACCESS_USER
         );
         assertThat(getAuthFailuresResponseAfterPut.getBody(), getAuthFailuresResponseAfterPut.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        assertThat(getAuthFailuresResponseAfterPut.getBody(), getAuthFailuresResponseAfterPut.getBody(), equalTo("{\"test\":{\"name\":\"test\",\"type\":\"ip\",\"authentication_backend\":null,\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}}"));
+        assertThat(
+            getAuthFailuresResponseAfterPut.getBody(),
+            getAuthFailuresResponseAfterPut.getBody(),
+            equalTo(
+                "{\"test\":{\"name\":\"test\",\"type\":\"ip\",\"authentication_backend\":null,\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}}"
+            )
+        );
 
         // Delete the test auth failure listener
         RestHelper.HttpResponse deleteAuthFailuresResponse = rh.executeDeleteRequest(
@@ -104,9 +110,9 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
 
         // Put a test auth failure listener with a not allowed field
         RestHelper.HttpResponse updateAuthFailuresResponse = rh.executePutRequest(
-                "/_plugins/_security/api/authfailurelisteners/test",
-                "{\"type\":\"ip\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"blah-blah-blah\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
-                ADMIN_FULL_ACCESS_USER
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"blah-blah-blah\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
+            ADMIN_FULL_ACCESS_USER
         );
         assertThat(updateAuthFailuresResponse.getBody(), updateAuthFailuresResponse.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
     }
