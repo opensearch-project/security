@@ -143,6 +143,15 @@ public class SystemIndexTests {
     }
 
     @Test
+    public void testAuthenticatedUserShouldBeAbleToRunClusterActions() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.get("try-cluster-health/default");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+        }
+    }
+
+    @Test
     public void testPluginShouldBeAbleToBulkIndexDocumentIntoItsSystemIndex() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);

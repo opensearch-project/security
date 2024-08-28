@@ -64,7 +64,7 @@ public class TransportRunClusterHealthAction extends HandledTransportAction<RunC
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        } else {
+        } else if ("plugin".equalsIgnoreCase(runAs)) {
             contextSwitcher.runAs(() -> {
                 ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(
                     r -> { actionListener.onResponse(new RunClusterHealthResponse(true)); },
@@ -73,6 +73,12 @@ public class TransportRunClusterHealthAction extends HandledTransportAction<RunC
                 client.admin().cluster().health(new ClusterHealthRequest(), chr);
                 return null;
             });
+        } else {
+            ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(
+                r -> { actionListener.onResponse(new RunClusterHealthResponse(true)); },
+                actionListener::onFailure
+            );
+            client.admin().cluster().health(new ClusterHealthRequest(), chr);
         }
     }
 }
