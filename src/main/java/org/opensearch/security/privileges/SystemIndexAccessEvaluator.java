@@ -333,7 +333,7 @@ public class SystemIndexAccessEvaluator {
                         );
                     }
                     presponse.allowed = false;
-                    presponse.missingPrivileges.add(action);
+                    presponse.addMissingPrivileges(action);
                     presponse.markComplete();
                     return;
                 }
