@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.http.jwt;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -532,6 +533,306 @@ public class HTTPJwtAuthenticatorTest {
         );
 
         Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testMultipleSigningKeysParseSuccessfully() throws NoSuchAlgorithmException {
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair pair1 = keyGen.generateKeyPair();
+        PrivateKey priv1 = pair1.getPrivate();
+        PublicKey pub1 = pair1.getPublic();
+
+        KeyPair pair2 = keyGen.generateKeyPair();
+        PrivateKey priv2 = pair2.getPrivate();
+        PublicKey pub2 = pair2.getPublic();
+
+        String jwsToken1 = Jwts.builder().setSubject("Leonard McCoy").signWith(priv1, SignatureAlgorithm.RS256).compact();
+        String jwsToken2 = Jwts.builder().setSubject("Stephen Crawford").signWith(priv2, SignatureAlgorithm.RS256).compact();
+
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + "-----END PUBLIC KEY-----"
+            )
+            .build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers1 = new HashMap<String, String>();
+        headers1.put("Authorization", "Bearer " + jwsToken1);
+
+        AuthCredentials creds1 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds1);
+        assertThat(creds1.getUsername(), is("Leonard McCoy"));
+        assertThat(creds1.getBackendRoles().size(), is(0));
+
+        Map<String, String> headers2 = new HashMap<String, String>();
+        headers2.put("Authorization", "Bearer " + jwsToken2);
+        AuthCredentials creds2 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds2);
+        assertThat(creds2.getUsername(), is("Stephen Crawford"));
+        assertThat(creds2.getBackendRoles().size(), is(0));
+    }
+
+    @Test
+    public void testMultipleSigningKeysParseWithSpacesSuccessfully() throws NoSuchAlgorithmException {
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair pair1 = keyGen.generateKeyPair();
+        PrivateKey priv1 = pair1.getPrivate();
+        PublicKey pub1 = pair1.getPublic();
+
+        KeyPair pair2 = keyGen.generateKeyPair();
+        PrivateKey priv2 = pair2.getPrivate();
+        PublicKey pub2 = pair2.getPublic();
+
+        String jwsToken1 = Jwts.builder().setSubject("Leonard McCoy").signWith(priv1, SignatureAlgorithm.RS256).compact();
+        String jwsToken2 = Jwts.builder().setSubject("Stephen Crawford").signWith(priv2, SignatureAlgorithm.RS256).compact();
+
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,     -----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + "-----END PUBLIC KEY-----"
+            )
+            .build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers1 = new HashMap<String, String>();
+        headers1.put("Authorization", "Bearer " + jwsToken1);
+
+        AuthCredentials creds1 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds1);
+        assertThat(creds1.getUsername(), is("Leonard McCoy"));
+        assertThat(creds1.getBackendRoles().size(), is(0));
+
+        Map<String, String> headers2 = new HashMap<String, String>();
+        headers2.put("Authorization", "Bearer " + jwsToken2);
+        AuthCredentials creds2 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds2);
+        assertThat(creds2.getUsername(), is("Stephen Crawford"));
+        assertThat(creds2.getBackendRoles().size(), is(0));
+    }
+
+    @Test
+    public void testMultipleSigningKeysMixedAlgsParseSuccessfully() throws NoSuchAlgorithmException {
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair pair1 = keyGen.generateKeyPair();
+        PrivateKey priv1 = pair1.getPrivate();
+        PublicKey pub1 = pair1.getPublic();
+
+        KeyPairGenerator keyGen2 = KeyPairGenerator.getInstance("EC");
+        keyGen2.initialize(521);
+        KeyPair pair = keyGen2.generateKeyPair();
+        PrivateKey priv2 = pair.getPrivate();
+        PublicKey pub2 = pair.getPublic();
+
+        String jwsToken1 = Jwts.builder().setSubject("Leonard McCoy").signWith(priv1, SignatureAlgorithm.RS256).compact();
+
+        String jwsToken2 = Jwts.builder().setSubject("Stephen Crawford").signWith(priv2, SignatureAlgorithm.ES512).compact();
+
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+            )
+            .build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers1 = new HashMap<String, String>();
+        headers1.put("Authorization", "Bearer " + jwsToken1);
+
+        AuthCredentials creds1 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds1);
+        assertThat(creds1.getUsername(), is("Leonard McCoy"));
+        assertThat(creds1.getBackendRoles().size(), is(0));
+
+        Map<String, String> headers2 = new HashMap<String, String>();
+        headers2.put("Authorization", "Bearer " + jwsToken2);
+        AuthCredentials creds2 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds2);
+        assertThat(creds2.getUsername(), is("Stephen Crawford"));
+        assertThat(creds2.getBackendRoles().size(), is(0));
+    }
+
+    @Test
+    public void testManyMultipleSigningKeysMixedAlgsParseSuccessfully() throws NoSuchAlgorithmException {
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair pair1 = keyGen.generateKeyPair();
+        PrivateKey priv1 = pair1.getPrivate();
+        PublicKey pub1 = pair1.getPublic();
+
+        KeyPairGenerator keyGen2 = KeyPairGenerator.getInstance("EC");
+        keyGen2.initialize(521);
+        KeyPair pair = keyGen2.generateKeyPair();
+        PrivateKey priv2 = pair.getPrivate();
+        PublicKey pub2 = pair.getPublic();
+
+        KeyPairGenerator keyGen3 = KeyPairGenerator.getInstance("RSA");
+        keyGen3.initialize(2048);
+        KeyPair pair3 = keyGen3.generateKeyPair();
+        PrivateKey priv3 = pair3.getPrivate();
+        PublicKey pub3 = pair3.getPublic();
+
+        KeyPairGenerator keyGen4 = KeyPairGenerator.getInstance("EC");
+        keyGen4.initialize(521);
+        KeyPair pair4 = keyGen4.generateKeyPair();
+        PrivateKey priv4 = pair4.getPrivate();
+        PublicKey pub4 = pair4.getPublic();
+
+        String jwsToken1 = Jwts.builder().setSubject("Stephen Crawford").signWith(priv1, SignatureAlgorithm.RS256).compact();
+        String jwsToken2 = Jwts.builder().setSubject("Craig Perkins").signWith(priv2, SignatureAlgorithm.ES512).compact();
+        String jwsToken3 = Jwts.builder().setSubject("Darshit Chanpura").signWith(priv3, SignatureAlgorithm.RS256).compact();
+        String jwsToken4 = Jwts.builder().setSubject("Derek Ho").signWith(priv4, SignatureAlgorithm.ES512).compact();
+
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + ","
+                    + "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub3.getEncoded())
+                    + "-----END PUBLIC KEY-----,"
+                    + BaseEncoding.base64().encode(pub4.getEncoded())
+            )
+            .build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers1 = new HashMap<String, String>();
+        headers1.put("Authorization", "Bearer " + jwsToken1);
+
+        AuthCredentials creds1 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds1);
+        assertThat(creds1.getUsername(), is("Stephen Crawford"));
+        assertThat(creds1.getBackendRoles().size(), is(0));
+
+        Map<String, String> headers2 = new HashMap<String, String>();
+        headers2.put("Authorization", "Bearer " + jwsToken2);
+        AuthCredentials creds2 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds2);
+        assertThat(creds2.getUsername(), is("Craig Perkins"));
+        assertThat(creds2.getBackendRoles().size(), is(0));
+
+        Map<String, String> headers3 = new HashMap<String, String>();
+        headers3.put("Authorization", "Bearer " + jwsToken3);
+
+        AuthCredentials creds3 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers3, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds3);
+        assertThat(creds3.getUsername(), is("Darshit Chanpura"));
+        assertThat(creds3.getBackendRoles().size(), is(0));
+
+        Map<String, String> headers4 = new HashMap<String, String>();
+        headers4.put("Authorization", "Bearer " + jwsToken4);
+        AuthCredentials creds4 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers4, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds4);
+        assertThat(creds4.getUsername(), is("Derek Ho"));
+        assertThat(creds4.getBackendRoles().size(), is(0));
+    }
+
+    @Test
+    public void testMultipleSigningKeysFailToParseReturnsNull() throws NoSuchAlgorithmException {
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair pair1 = keyGen.generateKeyPair();
+        PrivateKey priv1 = pair1.getPrivate();
+        PublicKey pub1 = pair1.getPublic();
+
+        KeyPair pair2 = keyGen.generateKeyPair();
+        PrivateKey priv2 = pair2.getPrivate();
+        PublicKey pub2 = pair2.getPublic();
+
+        String invalidJwsToken = "123invalidtoken..";
+
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub1.getEncoded())
+                    + "-----END PUBLIC KEY-----,     -----BEGIN PUBLIC KEY-----\n"
+                    + BaseEncoding.base64().encode(pub2.getEncoded())
+                    + "-----END PUBLIC KEY-----"
+            )
+            .build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers1 = new HashMap<String, String>();
+        headers1.put("Authorization", "Bearer " + invalidJwsToken);
+
+        AuthCredentials creds1 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers1, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(creds1);
+
+        Map<String, String> headers2 = new HashMap<String, String>();
+        headers2.put("Authorization", "Bearer " + invalidJwsToken);
+        AuthCredentials creds2 = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers2, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(creds2);
     }
 
     /** extracts a default user credential from a request header */

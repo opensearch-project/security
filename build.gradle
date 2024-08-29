@@ -64,7 +64,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.9.1"
+    id 'com.netflix.nebula.ospackage' version "11.10.0"
     id "org.gradle.test-retry" version "1.5.10"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
@@ -497,7 +497,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.30.0"
             force "org.checkerframework:checker-qual:3.46.0"
-            force "ch.qos.logback:logback-classic:1.5.6"
+            force "ch.qos.logback:logback-classic:1.5.7"
         }
     }
 
@@ -592,7 +592,7 @@ dependencies {
     implementation 'org.apache.commons:commons-collections4:4.4'
 
     //Password generation
-    implementation 'org.passay:passay:1.6.4'
+    implementation 'org.passay:passay:1.6.5'
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 

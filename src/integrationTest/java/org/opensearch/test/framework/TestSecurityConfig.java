@@ -815,7 +815,7 @@ public class TestSecurityConfig {
         ).httpAuthenticator("basic").backend("internal");
 
         public final static AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain("jwt", 1).jwtHttpAuthenticator(
-            new JwtConfigBuilder().jwtHeader(AUTHORIZATION).signingKey(PUBLIC_KEY)
+            new JwtConfigBuilder().jwtHeader(AUTHORIZATION).signingKey(List.of(PUBLIC_KEY))
         ).backend("noop");
 
         private final String id;
