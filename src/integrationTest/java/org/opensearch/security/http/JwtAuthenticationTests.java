@@ -90,15 +90,25 @@ public class JwtAuthenticationTests {
 
     public static final String QA_SONG_INDEX_NAME = String.format("song_lyrics_%s", QA_DEPARTMENT);
 
-    private static final KeyPair KEY_PAIR = Keys.keyPairFor(SignatureAlgorithm.RS256);
-    private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
+    private static final KeyPair KEY_PAIR1 = Keys.keyPairFor(SignatureAlgorithm.RS256);
+    private static final String PUBLIC_KEY1 = new String(Base64.getEncoder().encode(KEY_PAIR1.getPublic().getEncoded()), US_ASCII);
+
+    private static final KeyPair KEY_PAIR2 = Keys.keyPairFor(SignatureAlgorithm.RS256);
+    private static final String PUBLIC_KEY2 = new String(Base64.getEncoder().encode(KEY_PAIR2.getPublic().getEncoded()), US_ASCII);
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     private static final String JWT_AUTH_HEADER = "jwt-auth";
 
-    private static final JwtAuthorizationHeaderFactory tokenFactory = new JwtAuthorizationHeaderFactory(
-        KEY_PAIR.getPrivate(),
+    private static final JwtAuthorizationHeaderFactory tokenFactory1 = new JwtAuthorizationHeaderFactory(
+        KEY_PAIR1.getPrivate(),
+        CLAIM_USERNAME,
+        CLAIM_ROLES,
+        JWT_AUTH_HEADER
+    );
+
+    private static final JwtAuthorizationHeaderFactory tokenFactory2 = new JwtAuthorizationHeaderFactory(
+        KEY_PAIR2.getPrivate(),
         CLAIM_USERNAME,
         CLAIM_ROLES,
         JWT_AUTH_HEADER
@@ -108,7 +118,10 @@ public class JwtAuthenticationTests {
         "jwt",
         BASIC_AUTH_DOMAIN_ORDER - 1
     ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(PUBLIC_KEY).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER)
+            .signingKey(List.of(PUBLIC_KEY1, PUBLIC_KEY2))
+            .subjectKey(CLAIM_USERNAME)
+            .rolesKey(CLAIM_ROLES)
     ).backend("noop");
     public static final String SONG_ID_1 = "song-id-01";
 
@@ -143,7 +156,7 @@ public class JwtAuthenticationTests {
 
     @Test
     public void shouldAuthenticateWithJwtToken_positive() {
-        try (TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken(USER_SUPERHERO))) {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(USER_SUPERHERO))) {
 
             HttpResponse response = client.getAuthInfo();
 
@@ -155,7 +168,7 @@ public class JwtAuthenticationTests {
 
     @Test
     public void shouldAuthenticateWithJwtToken_positiveWithAnotherUsername() {
-        try (TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken(USERNAME_ROOT))) {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(USERNAME_ROOT))) {
 
             HttpResponse response = client.getAuthInfo();
 
@@ -167,7 +180,7 @@ public class JwtAuthenticationTests {
 
     @Test
     public void shouldAuthenticateWithJwtToken_failureLackingUserName() {
-        try (TestRestClient client = cluster.getRestClient(tokenFactory.generateTokenWithoutPreferredUsername(USER_SUPERHERO))) {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateTokenWithoutPreferredUsername(USER_SUPERHERO))) {
 
             HttpResponse response = client.getAuthInfo();
 
@@ -178,7 +191,7 @@ public class JwtAuthenticationTests {
 
     @Test
     public void shouldAuthenticateWithJwtToken_failureExpiredToken() {
-        try (TestRestClient client = cluster.getRestClient(tokenFactory.generateExpiredToken(USER_SUPERHERO))) {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateExpiredToken(USER_SUPERHERO))) {
 
             HttpResponse response = client.getAuthInfo();
 
@@ -202,7 +215,7 @@ public class JwtAuthenticationTests {
     @Test
     public void shouldAuthenticateWithJwtToken_failureIncorrectSignature() {
         KeyPair incorrectKeyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
-        Header header = tokenFactory.generateTokenSignedWithKey(incorrectKeyPair.getPrivate(), USER_SUPERHERO);
+        Header header = tokenFactory1.generateTokenSignedWithKey(incorrectKeyPair.getPrivate(), USER_SUPERHERO);
         try (TestRestClient client = cluster.getRestClient(header)) {
 
             HttpResponse response = client.getAuthInfo();
@@ -214,7 +227,7 @@ public class JwtAuthenticationTests {
 
     @Test
     public void shouldReadRolesFromToken_positiveFirstRoleSet() {
-        Header header = tokenFactory.generateValidToken(USER_SUPERHERO, ROLE_ADMIN, ROLE_DEVELOPER, ROLE_QA);
+        Header header = tokenFactory1.generateValidToken(USER_SUPERHERO, ROLE_ADMIN, ROLE_DEVELOPER, ROLE_QA);
         try (TestRestClient client = cluster.getRestClient(header)) {
 
             HttpResponse response = client.getAuthInfo();
@@ -228,7 +241,7 @@ public class JwtAuthenticationTests {
 
     @Test
     public void shouldReadRolesFromToken_positiveSecondRoleSet() {
-        Header header = tokenFactory.generateValidToken(USER_SUPERHERO, ROLE_CTO, ROLE_CEO, ROLE_VP);
+        Header header = tokenFactory1.generateValidToken(USER_SUPERHERO, ROLE_CTO, ROLE_CEO, ROLE_VP);
         try (TestRestClient client = cluster.getRestClient(header)) {
 
             HttpResponse response = client.getAuthInfo();
@@ -244,7 +257,7 @@ public class JwtAuthenticationTests {
     public void shouldExposeTokenClaimsAsUserAttributes_positive() throws IOException {
         String[] roles = { ROLE_VP };
         Map<String, Object> additionalClaims = Map.of(CLAIM_DEPARTMENT, QA_DEPARTMENT);
-        Header header = tokenFactory.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
+        Header header = tokenFactory1.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
         try (RestHighLevelClient client = cluster.getRestHighLevelClient(List.of(header))) {
             SearchRequest searchRequest = queryStringQueryRequest(QA_SONG_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS);
 
@@ -261,11 +274,36 @@ public class JwtAuthenticationTests {
     public void shouldExposeTokenClaimsAsUserAttributes_negative() throws IOException {
         String[] roles = { ROLE_VP };
         Map<String, Object> additionalClaims = Map.of(CLAIM_DEPARTMENT, "department-without-access-to-qa-song-index");
-        Header header = tokenFactory.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
+        Header header = tokenFactory1.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
         try (RestHighLevelClient client = cluster.getRestHighLevelClient(List.of(header))) {
             SearchRequest searchRequest = queryStringQueryRequest(QA_SONG_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS);
 
             assertThatThrownBy(() -> client.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
         }
     }
+
+    @Test
+    public void secondKeypairShouldAuthenticateWithJwtToken_positive() {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory2.generateValidToken(USER_SUPERHERO))) {
+
+            HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(200);
+            String username = response.getTextFromJsonBody(POINTER_USERNAME);
+            assertThat(username, equalTo(USER_SUPERHERO));
+        }
+    }
+
+    @Test
+    public void secondKeypairShouldAuthenticateWithJwtToken_positiveWithAnotherUsername() {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory2.generateValidToken(USERNAME_ROOT))) {
+
+            HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(200);
+            String username = response.getTextFromJsonBody(POINTER_USERNAME);
+            assertThat(username, equalTo(USERNAME_ROOT));
+        }
+    }
+
 }

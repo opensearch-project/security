@@ -83,6 +83,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
     private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
     private static final AllowlistingSettings defaultAllowlistingSettings = new AllowlistingSettings();
+    private static final AuditConfig defaultAuditConfig = AuditConfig.from(Settings.EMPTY);
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty();
@@ -314,7 +315,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(whitelist == null ? defaultWhitelistingSettings : whitelist);
         eventBus.post(allowlist == null ? defaultAllowlistingSettings : allowlist);
         if (cr.isAuditHotReloadingEnabled()) {
-            eventBus.post(audit);
+            eventBus.post(audit == null ? defaultAuditConfig : audit);
         }
 
         initialized.set(true);
