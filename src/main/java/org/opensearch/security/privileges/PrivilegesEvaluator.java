@@ -86,7 +86,6 @@ import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.identity.SystemIndexRegistry;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -144,7 +143,6 @@ public class PrivilegesEvaluator {
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
-    private final SystemIndexRegistry systemIndexRegistry;
     private final Map<String, SecurityRoles> pluginRoles;
 
     public PrivilegesEvaluator(
@@ -157,8 +155,7 @@ public class PrivilegesEvaluator {
         final PrivilegesInterceptor privilegesInterceptor,
         final ClusterInfoHolder clusterInfoHolder,
         final IndexResolverReplacer irr,
-        NamedXContentRegistry namedXContentRegistry,
-        final SystemIndexRegistry systemIndexRegistry
+        NamedXContentRegistry namedXContentRegistry
     ) {
 
         super();
@@ -168,7 +165,6 @@ public class PrivilegesEvaluator {
 
         this.threadContext = threadPool.getThreadContext();
         this.privilegesInterceptor = privilegesInterceptor;
-        this.systemIndexRegistry = systemIndexRegistry;
         this.pluginRoles = new HashMap<>();
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
@@ -203,9 +199,7 @@ public class PrivilegesEvaluator {
     public SecurityRoles getSecurityRoleForPlugin(String pluginIdentifier) {
         SecurityRoles pluginRole = pluginRoles.get(pluginIdentifier);
         if (pluginRole == null) {
-            Set<String> systemIndexPatterns = systemIndexRegistry.getSystemIndexPatterns(pluginIdentifier);
-            pluginRole = configModel.getSecurityRoles()
-                .createSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Set.of(), Set.of(), systemIndexPatterns);
+            pluginRole = configModel.getSecurityRoles().createSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Set.of(), Set.of());
             pluginRoles.put(pluginIdentifier, pluginRole);
         }
         return pluginRole;

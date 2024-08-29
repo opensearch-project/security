@@ -364,8 +364,7 @@ public class ConfigModelV6 extends ConfigModel {
             String roleName,
             Set<String> clusterPerms,
             Set<String> indexPatterns,
-            Set<String> allowedActions,
-            Set<String> systemIndexPatterns
+            Set<String> allowedActions
         ) {
             SecurityRole role = new SecurityRole(roleName);
             role.addClusterPerms(clusterPerms);
@@ -373,12 +372,6 @@ public class ConfigModelV6 extends ConfigModel {
                 IndexPattern idxPattern = new IndexPattern(ip);
                 TypePerm perms = new TypePerm("");
                 perms.addPerms(allowedActions);
-                idxPattern.addTypePerms(perms);
-            }
-            for (String ip : systemIndexPatterns) {
-                IndexPattern idxPattern = new IndexPattern(ip);
-                TypePerm perms = new TypePerm("");
-                perms.addPerms(Set.of("*", ConfigConstants.SYSTEM_INDEX_PERMISSION));
                 idxPattern.addTypePerms(perms);
             }
             SecurityRoles roles = new SecurityRoles(1);

@@ -123,7 +123,6 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
-import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -168,7 +167,6 @@ import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.ContextProvidingPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
-import org.opensearch.security.identity.SystemIndexRegistry;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
@@ -270,7 +268,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
-    private volatile SystemIndexRegistry systemIndexRegistry;
 
     public static boolean isActionTraceEnabled() {
 
@@ -1120,8 +1117,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
-        systemIndexRegistry = new SystemIndexRegistry();
-
         evaluator = new PrivilegesEvaluator(
             clusterService,
             threadPool,
@@ -1132,8 +1127,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             privilegesInterceptor,
             cih,
             irr,
-            namedXContentRegistry.get(),
-            systemIndexRegistry
+            namedXContentRegistry.get()
         );
 
         sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
@@ -1212,7 +1206,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
-        components.add(systemIndexRegistry);
 
         if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
             components.add(sks);
@@ -2123,13 +2116,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        if (systemIndexRegistry != null) {
-            Collection<SystemIndexDescriptor> systemIndexDescriptors = ((SystemIndexPlugin) plugin).getSystemIndexDescriptors(settings);
-            Set<String> systemIndexPatterns = systemIndexDescriptors.stream()
-                .map(SystemIndexDescriptor::getIndexPattern)
-                .collect(Collectors.toSet());
-            systemIndexRegistry.addSystemIntexPatterns(plugin.getClass().getCanonicalName(), systemIndexPatterns);
-        }
         return new ContextProvidingPluginSubject(threadPool, settings, plugin);
     }
 

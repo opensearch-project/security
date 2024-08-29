@@ -277,6 +277,31 @@ public class SystemIndexAccessEvaluator {
                 return;
             }
             boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
+            if (user.isPluginUser()) {
+                Set<String> matchingSystemIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
+                    user.getName(),
+                    requestedResolved.getAllIndices()
+                );
+                if (requestedResolved.getAllIndices().equals(matchingSystemIndices)) {
+                    // plugin is authorized to perform any actions on its own registered system indices
+                    presponse.allowed = true;
+                    presponse.markComplete();
+                } else {
+                    if (log.isInfoEnabled()) {
+                        log.info(
+                            "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
+                            user.getName(),
+                            action,
+                            matchingSystemIndices
+                        );
+                    }
+                    presponse.allowed = false;
+                    presponse.missingPrivileges.add(action);
+                    presponse.markComplete();
+                }
+                return;
+            }
+
             if (containsProtectedIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (log.isInfoEnabled()) {
@@ -307,7 +332,6 @@ public class SystemIndexAccessEvaluator {
                             String.join(", ", getAllSystemIndices(requestedResolved))
                         );
                     }
-                    System.out.println("Not authorized");
                     presponse.allowed = false;
                     presponse.missingPrivileges.add(action);
                     presponse.markComplete();
