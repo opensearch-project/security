@@ -383,7 +383,7 @@ public class ConfigModelV6 extends ConfigModel {
                     if ((dls != null && dls.length() > 0)
                         || (fls != null && fls.size() > 0)
                         || (maskedFields != null && maskedFields.size() > 0)) {
-                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs, true);
                     }
 
                     if (dls != null && dls.length() > 0) {
@@ -607,8 +607,9 @@ public class ConfigModelV6 extends ConfigModel {
                 }
                 if (patternMatch) {
                     // resolved but can contain patterns for nonexistent indices
-                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs)); // maybe they do
-                                                                                                                           // not exist
+                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs, false)); // maybe
+                                                                                                                                  // they do
+                    // not exist
                     final Set<String> res = new HashSet<>();
                     if (!resolved.isLocalAll() && !resolved.getAllIndices().contains("*") && !resolved.getAllIndices().contains("_all")) {
                         // resolved but can contain patterns for nonexistent indices
@@ -813,9 +814,15 @@ public class ConfigModelV6 extends ConfigModel {
             return replaceProperties(indexPattern, user);
         }
 
-        private Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+        private Set<String> getResolvedIndexPattern(
+            User user,
+            IndexNameExpressionResolver resolver,
+            ClusterService cs,
+            boolean includeClosed
+        ) {
             String unresolved = getUnresolvedIndexPattern(user);
             WildcardMatcher matcher = WildcardMatcher.from(unresolved);
+            IndicesOptions expansionMode = includeClosed ? IndicesOptions.lenientExpand() : IndicesOptions.lenientExpandOpen();
             String[] resolved = null;
             if (!(matcher instanceof WildcardMatcher.Exact)) {
                 final String[] aliasesForPermittedPattern = cs.state()
@@ -829,12 +836,12 @@ public class ConfigModelV6 extends ConfigModel {
                     .toArray(String[]::new);
 
                 if (aliasesForPermittedPattern.length > 0) {
-                    resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpand(), aliasesForPermittedPattern);
+                    resolved = resolver.concreteIndexNames(cs.state(), expansionMode, aliasesForPermittedPattern);
                 }
             }
 
             if (resolved == null && !unresolved.isEmpty()) {
-                resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpand(), unresolved);
+                resolved = resolver.concreteIndexNames(cs.state(), expansionMode, unresolved);
             }
             if (resolved == null || resolved.length == 0) {
                 return ImmutableSet.of(unresolved);
@@ -1058,11 +1065,11 @@ public class ConfigModelV6 extends ConfigModel {
             // Only let localAll pass if there is an explicit privilege for a * index pattern
             indexMatcherAndTypePermissions = ipatterns.stream()
                 .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
-                .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
+                .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs, false), p.getTypePerms()))
                 .toArray(IndexMatcherAndTypePermissions[]::new);
         } else {
             indexMatcherAndTypePermissions = ipatterns.stream()
-                .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
+                .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs, false), p.getTypePerms()))
                 .toArray(IndexMatcherAndTypePermissions[]::new);
         }
 
