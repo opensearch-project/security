@@ -14,7 +14,7 @@ package org.opensearch.security.dlic.rest.api;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +44,11 @@ import static org.opensearch.security.dlic.rest.api.Responses.notFound;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.securityconf.impl.v7.ConfigV7.ALLOWED_TRIES_DEFAULT;
+import static org.opensearch.security.securityconf.impl.v7.ConfigV7.BLOCK_EXPIRY_SECONDS_DEFAULT;
+import static org.opensearch.security.securityconf.impl.v7.ConfigV7.MAX_BLOCKED_CLIENTS_DEFAULT;
+import static org.opensearch.security.securityconf.impl.v7.ConfigV7.MAX_TRACKED_CLIENTS_DEFAULT;
+import static org.opensearch.security.securityconf.impl.v7.ConfigV7.TIME_WINDOW_SECONDS_DEFAULT;
 
 public class AuthFailureListenersApiAction extends AbstractApiAction {
 
@@ -173,7 +178,7 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
         ).override(DELETE, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
             ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
 
-            String listenerName = request.param("name");
+            String listenerName = request.param(NAME_JSON_PROPERTY);
 
             // Try to remove the listener by name
             if (config.dynamic.auth_failure_listeners.getListeners().remove(listenerName) == null) {
@@ -199,29 +204,10 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
                     badRequest(channel, validationResult.toString());
                     return;
                 }
-                String authenticationBackend = authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals(IP_TYPE)
-                    || authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).isNull()
-                        ? null
-                        : authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).asString();
-                List<String> ignoreHosts = authFailureListener.get(IGNORE_HOSTS_JSON_PROPERTY).isNull()
-                    ? Collections.emptyList()
-                    : authFailureListener.get(IGNORE_HOSTS_JSON_PROPERTY).asList();
 
                 // Try to put the listener by name
                 config.dynamic.auth_failure_listeners.getListeners()
-                    .put(
-                        listenerName,
-                        new ConfigV7.AuthFailureListener(
-                            authFailureListener.get(TYPE_JSON_PROPERTY).asString(),
-                            Optional.ofNullable(authenticationBackend),
-                            ignoreHosts,
-                            authFailureListener.get(ALLOWED_TRIES_JSON_PROPERTY).asInt(),
-                            authFailureListener.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).asInt(),
-                            authFailureListener.get(BLOCK_EXPIRY_JSON_PROPERTY).asInt(),
-                            authFailureListener.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).asInt(),
-                            authFailureListener.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).asInt()
-                        )
-                    );
+                    .put(listenerName, createAuthFailureListenerWithDefaults(authFailureListener));
                 saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
                     @Override
                     public void onResponse(IndexResponse indexResponse) {
@@ -233,6 +219,44 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
 
     }
 
+    private ConfigV7.AuthFailureListener createAuthFailureListenerWithDefaults(SecurityJsonNode authFailureListener) {
+        List<String> ignoreHosts = authFailureListener.get(IGNORE_HOSTS_JSON_PROPERTY).isNull()
+            ? Collections.emptyList()
+            : authFailureListener.get(IGNORE_HOSTS_JSON_PROPERTY).asList();
+
+        int allowedTries = authFailureListener.get(ALLOWED_TRIES_JSON_PROPERTY).isNull()
+            ? ALLOWED_TRIES_DEFAULT
+            : authFailureListener.get(ALLOWED_TRIES_JSON_PROPERTY).asInt();
+
+        int timeWindowSeconds = authFailureListener.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).isNull()
+            ? TIME_WINDOW_SECONDS_DEFAULT
+            : authFailureListener.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).asInt();
+
+        int blockExpirySeconds = authFailureListener.get(BLOCK_EXPIRY_JSON_PROPERTY).isNull()
+            ? BLOCK_EXPIRY_SECONDS_DEFAULT
+            : authFailureListener.get(BLOCK_EXPIRY_JSON_PROPERTY).asInt();
+
+        int maxBlockedClients = authFailureListener.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).isNull()
+            ? MAX_BLOCKED_CLIENTS_DEFAULT
+            : authFailureListener.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).asInt();
+
+        int maxTrackedClients = authFailureListener.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).isNull()
+            ? MAX_TRACKED_CLIENTS_DEFAULT
+            : authFailureListener.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).asInt();
+
+        return new ConfigV7.AuthFailureListener(
+            authFailureListener.get(TYPE_JSON_PROPERTY).asString(),
+            authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).asString(),
+            ignoreHosts,
+            allowedTries,
+            timeWindowSeconds,
+            blockExpirySeconds,
+            maxBlockedClients,
+            maxTrackedClients
+        );
+
+    }
+
     private ValidationResult<SecurityJsonNode> validateAuthFailureListener(SecurityJsonNode authFailureListener, String name) {
         if (name == null) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name is required"));
@@ -240,8 +264,7 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
         if (authFailureListener.get(TYPE_JSON_PROPERTY).isNull()) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("type is required"));
         }
-        if (!(authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals(IP_TYPE)
-            || authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals(USERNAME_TYPE))) {
+        if (!(Set.of(IP_TYPE, USERNAME_TYPE).contains(authFailureListener.get(TYPE_JSON_PROPERTY).asString()))) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("type must be username or ip"));
         }
         if (authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals(USERNAME_TYPE)
@@ -249,14 +272,14 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
                 || !authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).asString().equals("internal"))) {
             return ValidationResult.error(
                 RestStatus.BAD_REQUEST,
-                badRequestMessage("ip auth failure listeners must have 'internal' authentication backend")
+                badRequestMessage("username auth failure listeners must have 'internal' authentication backend")
             );
         }
         if (authFailureListener.get(TYPE_JSON_PROPERTY).asString().equals(IP_TYPE)
             && !authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).isNull()) {
             return ValidationResult.error(
                 RestStatus.BAD_REQUEST,
-                badRequestMessage("username auth failure listeners should not have an authentication backend")
+                badRequestMessage("ip auth failure listeners should not have an authentication backend")
             );
         }
 

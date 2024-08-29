@@ -125,17 +125,17 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
     public void testInvalidPutScenarios() throws Exception {
         setupWithRestRoles();
 
-        // rh.sendAdminCertificate = true;
-        // RestHelper.HttpResponse updateAuthFailuresResponseNoBackend = rh.executePutRequest(
-        // "/_plugins/_security/api/authfailurelisteners/test",
-        // "{\"type\":\"username\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
-        // ADMIN_FULL_ACCESS_USER
-        // );
-        // assertThat(
-        // updateAuthFailuresResponseNoBackend.getBody(),
-        // updateAuthFailuresResponseNoBackend.getStatusCode(),
-        // equalTo(HttpStatus.SC_BAD_REQUEST)
-        // );
+        rh.sendAdminCertificate = true;
+        RestHelper.HttpResponse updateAuthFailuresResponseNoBackend = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"username\",\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseNoBackend.getBody(),
+            updateAuthFailuresResponseNoBackend.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
 
         RestHelper.HttpResponse updateAuthFailuresResponseNoType = rh.executePutRequest(
             "/_plugins/_security/api/authfailurelisteners/test",
@@ -148,6 +148,84 @@ public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
             equalTo(HttpStatus.SC_BAD_REQUEST)
         );
 
+    }
+
+    @Test
+    public void testPutWithAllDefaults() throws Exception {
+        setupWithRestRoles();
+        rh.sendAdminCertificate = true;
+
+        // Put a test auth failure listener
+        RestHelper.HttpResponse updateAuthFailuresResponse = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\"}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(updateAuthFailuresResponse.getBody(), updateAuthFailuresResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        // Get after put returns the test auth failure listener with proper defaults set
+        RestHelper.HttpResponse getAuthFailuresResponseAfterPut = rh.executeGetRequest(
+            "/_plugins/_security/api/authfailurelisteners",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(getAuthFailuresResponseAfterPut.getBody(), getAuthFailuresResponseAfterPut.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(
+            getAuthFailuresResponseAfterPut.getBody(),
+            getAuthFailuresResponseAfterPut.getBody(),
+            equalTo(
+                "{\"test\":{\"name\":\"test\",\"type\":\"ip\",\"ignore_hosts\":[],\"authentication_backend\":null,\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}}"
+            )
+        );
+
+        // Put another test auth failure listener with some fields provided
+        RestHelper.HttpResponse updateAuthFailuresResponseWithSomeFields = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/secondtest",
+            "{\"type\":\"ip\",\"allowed_tries\":88,\"time_window_seconds\":12345,}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(updateAuthFailuresResponse.getBody(), updateAuthFailuresResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        // Get after put returns the test auth failure listener with proper defaults set
+        RestHelper.HttpResponse getAuthFailuresResponseAfterPutWithSomeFields = rh.executeGetRequest(
+            "/_plugins/_security/api/authfailurelisteners",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(getAuthFailuresResponseAfterPut.getBody(), getAuthFailuresResponseAfterPut.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(
+            getAuthFailuresResponseAfterPut.getBody(),
+            getAuthFailuresResponseAfterPut.getBody(),
+            containsString(
+                "{\"secondtest\":{\"name\":\"test\",\"type\":\"ip\",\"ignore_hosts\":[],\"authentication_backend\":null,\"allowed_tries\":10,\"time_window_seconds\":3600,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}}"
+            )
+        );
+    }
+
+    @Test
+    public void testPutWithSomeDefaults() throws Exception {
+        setupWithRestRoles();
+        rh.sendAdminCertificate = true;
+
+        // Put another test auth failure listener with some fields provided
+        RestHelper.HttpResponse updateAuthFailuresResponse = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"allowed_tries\":88,\"time_window_seconds\":12345}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(updateAuthFailuresResponse.getBody(), updateAuthFailuresResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        // Get after put returns the test auth failure listener with proper defaults set
+        RestHelper.HttpResponse getAuthFailuresResponseAfterPut = rh.executeGetRequest(
+            "/_plugins/_security/api/authfailurelisteners",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(getAuthFailuresResponseAfterPut.getBody(), getAuthFailuresResponseAfterPut.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(
+            getAuthFailuresResponseAfterPut.getBody(),
+            getAuthFailuresResponseAfterPut.getBody(),
+            equalTo(
+                "{\"test\":{\"name\":\"test\",\"type\":\"ip\",\"ignore_hosts\":[],\"authentication_backend\":null,\"allowed_tries\":88,\"time_window_seconds\":12345,\"block_expiry_seconds\":600,\"max_blocked_clients\":100000,\"max_tracked_clients\":100000}}"
+            )
+        );
     }
 
 }
