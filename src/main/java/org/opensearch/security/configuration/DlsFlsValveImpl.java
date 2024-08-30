@@ -165,9 +165,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         EvaluatedDlsFlsConfig filteredDlsFlsConfig = evaluatedDlsFlsConfig.filter(resolved);
 
-        System.out.println("evaluatedDlsFlsConfig: " + evaluatedDlsFlsConfig);
-        System.out.println("filteredDlsFlsConfig: " + filteredDlsFlsConfig);
-
         boolean doFilterLevelDls;
 
         if (mode == Mode.FILTER_LEVEL) {
