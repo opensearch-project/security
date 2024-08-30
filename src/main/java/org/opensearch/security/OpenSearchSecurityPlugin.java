@@ -68,6 +68,8 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
+import org.opensearch.accesscontrol.resources.EntityType;
+import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
@@ -120,6 +122,7 @@ import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ResourceAccessControlPlugin;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
@@ -173,6 +176,7 @@ import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceAccessEvaluator;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -232,7 +236,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         MapperPlugin,
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
         ExtensionAwarePlugin,
-        IdentityPlugin
+        IdentityPlugin,
+        ResourceAccessControlPlugin
 // CS-ENFORCE-SINGLE
 
 {
@@ -268,6 +273,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
+    private ResourceAccessEvaluator resourceAccessEvaluator;
 
     public static boolean isActionTraceEnabled() {
 
@@ -481,6 +487,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
 
         }
+
+        this.resourceAccessEvaluator = new ResourceAccessEvaluator();
     }
 
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
@@ -1367,7 +1375,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN + ".", Property.NodeScope)); // not filtered
-                                                                                                                            // here
+            // here
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
 
@@ -1383,8 +1391,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );// not filtered here
 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope));// not
-                                                                                                                                   // filtered
-                                                                                                                                   // here
+            // filtered
+            // here
 
             settings.add(
                 Setting.boolSetting(
@@ -1428,8 +1436,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Setting.boolSetting(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false, Property.NodeScope, Property.Filtered)
             );
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".", Property.NodeScope)); // not
-                                                                                                                                    // filtered
-                                                                                                                                    // here
+            // filtered
+            // here
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
             settings.add(
@@ -2164,6 +2172,41 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
             return null;
         });
+    }
+
+    @Override
+    public Map<String, List<String>> listAccessibleResources() {
+        return this.resourceAccessEvaluator.listAccessibleResources();
+    }
+
+    @Override
+    public List<String> listAccessibleResourcesForPlugin(String systemIndexName) {
+        return this.resourceAccessEvaluator.listAccessibleResourcesForPlugin(systemIndexName);
+    }
+
+    @Override
+    public boolean hasPermission(String resourceId, String systemIndexName) {
+        return this.resourceAccessEvaluator.hasPermission(resourceId, systemIndexName);
+    }
+
+    @Override
+    public ResourceSharing shareWith(String resourceId, String systemIndexName, Map<EntityType, List<String>> entities) {
+        return this.resourceAccessEvaluator.shareWith(resourceId, systemIndexName, entities);
+    }
+
+    @Override
+    public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> entities) {
+        return this.resourceAccessEvaluator.revokeAccess(resourceId, systemIndexName, entities);
+    }
+
+    @Override
+    public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {
+        return this.resourceAccessEvaluator.deleteResourceSharingRecord(resourceId, systemIndexName);
+    }
+
+    @Override
+    public boolean deleteAllResourceSharingRecordsFor(String entity) {
+        return this.resourceAccessEvaluator.deleteAllResourceSharingRecordsFor(entity);
     }
 
     public static class GuiceHolder implements LifecycleComponent {
