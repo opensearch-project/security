@@ -439,10 +439,11 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
         response = rh.executePostRequest("/my-data-stream11/_search", searchQuery1, encodeBasicHeader("ds_fm1", "nagilum"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(response.getBody().contains("\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"}"));
-        Assert.assertTrue(response.getBody().contains("\"id\":\"8a4f500d\""));
-        Assert.assertTrue(response.getBody().contains("\"name\":\"Dam\""));
-        Assert.assertFalse(response.getBody().contains("\"message\":\"Login successful\""));
-        Assert.assertTrue(response.getBody().contains("\"message\":\""));
+        System.out.println("Response body: " + response.getBody());
+        Assert.assertTrue(response.getBody().matches(".*\"id\"\\s*:\\s*\"8a4f500d\".*"));
+        Assert.assertTrue(response.getBody().matches(".*\"name\"\\s*:\\s*\"Dam\".*"));
+        Assert.assertFalse(response.getBody().matches(".*\"message\"\\s*:\\s*\"Login successful\".*"));
+        Assert.assertTrue(response.getBody().matches(".*\"message\"\\s*:\\s*\".*"));
 
         response = rh.executePostRequest("/.ds-my-data-stream11-000001/_search", searchQuery1, encodeBasicHeader("ds_fm1", "nagilum"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));

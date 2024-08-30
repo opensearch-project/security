@@ -190,7 +190,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         if (!doFilterLevelDls) {
-            setDlsHeaders(filteredDlsFlsConfig, request);
+            setDlsHeaders(evaluatedDlsFlsConfig, request);
         }
 
         setFlsHeaders(filteredDlsFlsConfig, request);
@@ -524,6 +524,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER),
                         threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
                     );
+                    System.out.println("maskedFieldsMap: " + maskedFieldsMap);
+                    System.out.println(
+                        "deserialized: "
+                            + Base64Helper.deserializeObject(
+                                threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER),
+                                threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
+                            )
+                    );
                     if (!isSubMap(maskedFieldsMap, deserializedMap)) {
                         throw new OpenSearchSecurityException(
                             ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match (SG 901D)"
@@ -593,9 +601,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     public static boolean isSubMap(Map<String, Set<String>> subMap, Map<String, Set<String>> superMap) {
-        if (subMap == null || superMap == null) {
-            return false;
-        }
         for (Map.Entry<String, Set<String>> entry : subMap.entrySet()) {
             String key = entry.getKey();
             Set<String> valueSet = entry.getValue();
