@@ -52,9 +52,9 @@ public final class SecurityJsonNode {
         }
     }
 
-    public Integer asInt() {
+    public Integer asInt(Integer defaultValue) {
         if (isNull(node)) {
-            return null;
+            return defaultValue;
         } else {
             return node.asInt(0);
         }

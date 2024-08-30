@@ -224,35 +224,15 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
             ? Collections.emptyList()
             : authFailureListener.get(IGNORE_HOSTS_JSON_PROPERTY).asList();
 
-        int allowedTries = authFailureListener.get(ALLOWED_TRIES_JSON_PROPERTY).isNull()
-            ? ALLOWED_TRIES_DEFAULT
-            : authFailureListener.get(ALLOWED_TRIES_JSON_PROPERTY).asInt();
-
-        int timeWindowSeconds = authFailureListener.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).isNull()
-            ? TIME_WINDOW_SECONDS_DEFAULT
-            : authFailureListener.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).asInt();
-
-        int blockExpirySeconds = authFailureListener.get(BLOCK_EXPIRY_JSON_PROPERTY).isNull()
-            ? BLOCK_EXPIRY_SECONDS_DEFAULT
-            : authFailureListener.get(BLOCK_EXPIRY_JSON_PROPERTY).asInt();
-
-        int maxBlockedClients = authFailureListener.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).isNull()
-            ? MAX_BLOCKED_CLIENTS_DEFAULT
-            : authFailureListener.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).asInt();
-
-        int maxTrackedClients = authFailureListener.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).isNull()
-            ? MAX_TRACKED_CLIENTS_DEFAULT
-            : authFailureListener.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).asInt();
-
         return new ConfigV7.AuthFailureListener(
             authFailureListener.get(TYPE_JSON_PROPERTY).asString(),
             authFailureListener.get(AUTHENTICATION_BACKEND_JSON_PROPERTY).asString(),
             ignoreHosts,
-            allowedTries,
-            timeWindowSeconds,
-            blockExpirySeconds,
-            maxBlockedClients,
-            maxTrackedClients
+            authFailureListener.get(ALLOWED_TRIES_JSON_PROPERTY).asInt(ALLOWED_TRIES_DEFAULT),
+            authFailureListener.get(TIME_WINDOW_SECONDS_JSON_PROPERTY).asInt(TIME_WINDOW_SECONDS_DEFAULT),
+            authFailureListener.get(BLOCK_EXPIRY_JSON_PROPERTY).asInt(BLOCK_EXPIRY_SECONDS_DEFAULT),
+            authFailureListener.get(MAX_BLOCKED_CLIENTS_JSON_PROPERTY).asInt(MAX_BLOCKED_CLIENTS_DEFAULT),
+            authFailureListener.get(MAX_TRACKED_CLIENTS_JSON_PROPERTY).asInt(MAX_TRACKED_CLIENTS_DEFAULT)
         );
 
     }
