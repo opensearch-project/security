@@ -309,7 +309,7 @@ public class IndexResolverReplacer {
                 final boolean isDebugEnabled = log.isDebugEnabled();
                 try {
                     matchingAllIndices = Arrays.asList(
-                        resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0]))
+                        resolver.concreteIndexNames(state, indicesOptions, true, localRequestedPatterns.toArray(new String[0]))
                     );
                     matchingDataStreams = resolver.dataStreamNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0]));
 
