@@ -165,6 +165,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         EvaluatedDlsFlsConfig filteredDlsFlsConfig = evaluatedDlsFlsConfig.filter(resolved);
 
+        System.out.println("evaluatedDlsFlsConfig: " + evaluatedDlsFlsConfig);
+        System.out.println("filteredDlsFlsConfig: " + filteredDlsFlsConfig);
+
         boolean doFilterLevelDls;
 
         if (mode == Mode.FILTER_LEVEL) {
@@ -593,6 +596,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     public static boolean isSubMap(Map<String, Set<String>> subMap, Map<String, Set<String>> superMap) {
+        if (subMap == null || superMap == null) {
+            return false;
+        }
         for (Map.Entry<String, Set<String>> entry : subMap.entrySet()) {
             String key = entry.getKey();
             Set<String> valueSet = entry.getValue();
