@@ -190,10 +190,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         if (!doFilterLevelDls) {
-            setDlsHeaders(evaluatedDlsFlsConfig, request);
+            setDlsHeaders(filteredDlsFlsConfig, request);
         }
 
-        setFlsHeaders(evaluatedDlsFlsConfig, request);
+        setFlsHeaders(filteredDlsFlsConfig, request);
 
         if (filteredDlsFlsConfig.isEmpty()) {
             return true;
@@ -504,6 +504,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void setFlsHeaders(EvaluatedDlsFlsConfig dlsFls, ActionRequest request) {
         if (!dlsFls.getFieldMaskingByIndex().isEmpty()) {
             Map<String, Set<String>> maskedFieldsMap = dlsFls.getFieldMaskingByIndex();
@@ -519,12 +520,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             } else {
 
                 if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER) != null) {
-                    if (!maskedFieldsMap.equals(
-                        Base64Helper.deserializeObject(
-                            threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER),
-                            threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
-                        )
-                    )) {
+                    Map<String, Set<String>> deserializedMap = (Map<String, Set<String>>) Base64Helper.deserializeObject(
+                        threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER),
+                        threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
+                    );
+                    if (!isSubMap(maskedFieldsMap, deserializedMap)) {
                         throw new OpenSearchSecurityException(
                             ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match (SG 901D)"
                         );
@@ -558,12 +558,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 }
             } else {
                 if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) != null) {
-                    if (!flsFields.equals(
-                        Base64Helper.deserializeObject(
-                            threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER),
-                            threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
-                        )
-                    )) {
+                    Map<String, Set<String>> deserializedMap = (Map<String, Set<String>>) Base64Helper.deserializeObject(
+                        threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER),
+                        threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
+                    );
+                    if (!isSubMap(flsFields, deserializedMap)) {
                         throw new OpenSearchSecurityException(
                             ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER
                                 + " does not match (SG 901D) "
@@ -591,6 +590,26 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
         }
+    }
+
+    public static boolean isSubMap(Map<String, Set<String>> subMap, Map<String, Set<String>> superMap) {
+        if (subMap == null || superMap == null) {
+            return false;
+        }
+        for (Map.Entry<String, Set<String>> entry : subMap.entrySet()) {
+            String key = entry.getKey();
+            Set<String> valueSet = entry.getValue();
+
+            if (!superMap.containsKey(key)) {
+                return false;
+            }
+
+            Set<String> otherSet = superMap.get(key);
+            if (!otherSet.containsAll(valueSet)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static class BucketMerger implements Consumer<Bucket> {

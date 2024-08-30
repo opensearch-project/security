@@ -30,11 +30,13 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
@@ -271,5 +273,83 @@ public class UtilTests {
             ),
             is(false)
         );
+    }
+
+    @Test
+    public void testSimpleSubMap() {
+        Map<String, Set<String>> map1 = Map.of("key1", Set.of("a", "b"), "key2", Set.of("c"));
+
+        Map<String, Set<String>> map2 = Map.of("key1", Set.of("a", "b", "c"), "key2", Set.of("c", "d"), "key3", Set.of("e"));
+
+        assertTrue(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testNotSubMap_ExtraKeyInMap1() {
+        Map<String, Set<String>> map1 = Map.of("key1", Set.of("a", "b"), "key2", Set.of("c"), "key3", Set.of("e"));
+
+        Map<String, Set<String>> map2 = Map.of("key1", Set.of("a", "b", "c"), "key2", Set.of("c", "d"));
+
+        assertFalse(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testNotSubMap_SubsetMismatch() {
+        Map<String, Set<String>> map1 = Map.of("key1", Set.of("a", "b"), "key2", Set.of("c"));
+
+        Map<String, Set<String>> map2 = Map.of("key1", Set.of("a"), "key2", Set.of("c", "d"));
+
+        assertFalse(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testIdenticalMaps() {
+        Map<String, Set<String>> map1 = Map.of("key1", Set.of("a", "b"), "key2", Set.of("c", "d"));
+
+        Map<String, Set<String>> map2 = Map.of("key1", Set.of("a", "b"), "key2", Set.of("c", "d"));
+
+        assertTrue(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testEmptyMap1() {
+        Map<String, Set<String>> map1 = Map.of();
+
+        Map<String, Set<String>> map2 = Map.of("key1", Set.of("a", "b"), "key2", Set.of("c", "d"));
+
+        assertTrue(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testEmptyMap2() {
+        Map<String, Set<String>> map1 = Map.of("key1", Set.of("a", "b"));
+
+        Map<String, Set<String>> map2 = Map.of();
+
+        assertFalse(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testBothMapsEmpty() {
+        Map<String, Set<String>> map1 = Map.of();
+        Map<String, Set<String>> map2 = Map.of();
+
+        assertTrue(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testLargerSetsInMap2() {
+        Map<String, Set<String>> map1 = Map.of("key1", Set.of("a"), "key2", Set.of("c"));
+
+        Map<String, Set<String>> map2 = Map.of("key1", Set.of("a", "b", "c"), "key2", Set.of("c", "d", "e"));
+
+        assertTrue(DlsFlsValveImpl.isSubMap(map1, map2));
+    }
+
+    @Test
+    public void testEitherMapNull() {
+        assertFalse(DlsFlsValveImpl.isSubMap(null, Map.of()));
+        assertFalse(DlsFlsValveImpl.isSubMap(Map.of(), null));
+        assertFalse(DlsFlsValveImpl.isSubMap(null, null));
     }
 }
