@@ -304,13 +304,7 @@ public class ConfigModelV7 extends ConfigModel {
 
             for (SecurityRole role : roles) {
                 for (IndexPattern ip : role.getIpatterns()) {
-                    final Set<String> concreteIndices = new HashSet<>(ip.concreteIndexNames(user, resolver, cs));
-                    final List<String> dataStreamNames = resolver.dataStreamNames(
-                        cs.state(),
-                        IndicesOptions.LENIENT_EXPAND_OPEN,
-                        ip.indexPattern
-                    );
-                    concreteIndices.addAll(dataStreamNames);
+                    final Set<String> concreteIndices = ip.concreteIndexNames(user, resolver, cs);
                     String dls = ip.getDlsQuery(user);
 
                     if (dls != null && dls.length() > 0) {
