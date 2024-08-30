@@ -524,14 +524,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER),
                         threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
                     );
-                    System.out.println("maskedFieldsMap: " + maskedFieldsMap);
-                    System.out.println(
-                        "deserialized: "
-                            + Base64Helper.deserializeObject(
-                                threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER),
-                                threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION)
-                            )
-                    );
                     if (!isSubMap(maskedFieldsMap, deserializedMap)) {
                         throw new OpenSearchSecurityException(
                             ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match (SG 901D)"
