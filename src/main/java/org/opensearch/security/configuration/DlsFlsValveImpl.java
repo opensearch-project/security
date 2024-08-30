@@ -190,7 +190,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         if (!doFilterLevelDls) {
-            setDlsHeaders(evaluatedDlsFlsConfig, request);
+            setDlsHeaders(filteredDlsFlsConfig, request);
         }
 
         setFlsHeaders(filteredDlsFlsConfig, request);
