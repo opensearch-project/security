@@ -411,7 +411,7 @@ security_analytics_ack_alerts:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
-    - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/ack'
+    - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/*'
     - 'cluster:admin/opensearch/securityanalytics/threatintel/alerts/*'
 
 # Allows users to use all Flow Framework functionality
