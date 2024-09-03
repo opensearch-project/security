@@ -38,6 +38,8 @@ public class SecurityUserSubjectTests {
 
         SecurityUserSubject subject = new SecurityUserSubject(threadPool, user);
 
+        assertThat(subject.getPrincipal().getName(), equalTo(user.getName()));
+
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
         subject.runAs(() -> {

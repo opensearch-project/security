@@ -40,6 +40,8 @@ public class ContextProvidingPluginSubjectTests {
 
         ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
 
+        assertThat(subject.getPrincipal().getName(), equalTo(testPlugin.getClass().getCanonicalName()));
+
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
         subject.runAs(() -> {
