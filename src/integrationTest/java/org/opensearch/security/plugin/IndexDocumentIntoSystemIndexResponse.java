@@ -10,6 +10,7 @@
 
 package org.opensearch.security.plugin;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
 import java.io.IOException;
 
 import org.opensearch.action.support.master.AcknowledgedResponse;
@@ -18,6 +19,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+// CS-ENFORCE-SINGLE
 
 public class IndexDocumentIntoSystemIndexResponse extends AcknowledgedResponse implements ToXContentObject {
 
