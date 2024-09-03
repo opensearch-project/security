@@ -79,4 +79,25 @@ public class ContextProvidingPluginSubjectTests {
 
         SecurityUserSubjectTests.terminate(threadPool);
     }
+
+    @Test
+    public void testPluginContextSwitcherUninitializedRunAs() throws Exception {
+        final ThreadPool threadPool = new TestThreadPool(getClass().getName());
+
+        final PluginContextSwitcher contextSwitcher = new PluginContextSwitcher();
+
+        threadPool.getThreadContext().putHeader("foo", "bar");
+
+        // should be no noop since contextSwitch is uninitialized
+        Object returnVal = contextSwitcher.runAs(() -> {
+            assertThat(threadPool.getThreadContext().getHeader("foo"), equalTo("bar"));
+            return null;
+        });
+
+        assertThat(threadPool.getThreadContext().getHeader("foo"), equalTo("bar"));
+
+        assertNull(returnVal);
+
+        SecurityUserSubjectTests.terminate(threadPool);
+    }
 }
