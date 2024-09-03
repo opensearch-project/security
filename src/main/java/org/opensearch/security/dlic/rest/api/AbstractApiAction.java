@@ -646,4 +646,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return getClass().getSimpleName();
     }
 
+    @Override
+    public boolean canTripCircuitBreaker() {
+        return false;
+    }
+
 }
