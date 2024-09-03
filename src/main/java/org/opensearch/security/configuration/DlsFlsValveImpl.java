@@ -195,6 +195,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         setFlsHeaders(filteredDlsFlsConfig, request);
 
+        if (log.isDebugEnabled()) {
+            log.debug("Filtered DLS/FLS Config: " + filteredDlsFlsConfig);
+        }
+
         if (filteredDlsFlsConfig.isEmpty()) {
             return true;
         }

@@ -317,7 +317,6 @@ public class FlsAndFieldMaskingTests {
 
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper");
-
     /**
     * Function that returns id assigned to song with title equal to given title or throws {@link RuntimeException}
     * when no song matches.
@@ -560,7 +559,7 @@ public class FlsAndFieldMaskingTests {
         return user;
     }
 
-    private static void assertSearchHitsDoNotContainField(SearchResponse response, String excludedField) {
+    static void assertSearchHitsDoNotContainField(SearchResponse response, String excludedField) {
         assertThat(response, isSuccessfulSearchResponse());
         assertThat(response.getHits().getHits().length, greaterThan(0));
         IntStream.range(0, response.getHits().getHits().length)
