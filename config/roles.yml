@@ -36,6 +36,7 @@ alerting_read_access:
     - 'cluster:admin/opensearch/alerting/remote/indexes/get'
     - 'cluster:admin/opensearch/alerting/workflow/get'
     - 'cluster:admin/opensearch/alerting/workflow_alerts/get'
+    - 'cluster:admin/opensearch/alerting/comments/search'
 
 # Allows users to view and acknowledge alerts
 alerting_ack_alerts:
@@ -44,6 +45,7 @@ alerting_ack_alerts:
     - 'cluster:admin/opendistro/alerting/alerts/*'
     - 'cluster:admin/opendistro/alerting/chained_alerts/*'
     - 'cluster:admin/opendistro/alerting/workflow_alerts/*'
+    - 'cluster:admin/opensearch/alerting/comments/search'
 
 # Allows users to use all alerting functionality
 alerting_full_access:
