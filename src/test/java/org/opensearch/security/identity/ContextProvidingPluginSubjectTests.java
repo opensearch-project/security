@@ -51,4 +51,30 @@ public class ContextProvidingPluginSubjectTests {
 
         SecurityUserSubjectTests.terminate(threadPool);
     }
+
+    @Test
+    public void testPluginContextSwitcherRunAs() throws Exception {
+        final ThreadPool threadPool = new TestThreadPool(getClass().getName());
+
+        final Plugin testPlugin = new TestIdentityAwarePlugin();
+
+        final PluginContextSwitcher contextSwitcher = new PluginContextSwitcher();
+
+        final PluginUser pluginUser = new PluginUser(testPlugin.getClass().getCanonicalName());
+
+        ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
+
+        contextSwitcher.initialize(subject);
+
+        assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
+
+        subject.runAs(() -> {
+            assertThat(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER), equalTo(pluginUser));
+            return null;
+        });
+
+        assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
+
+        SecurityUserSubjectTests.terminate(threadPool);
+    }
 }
