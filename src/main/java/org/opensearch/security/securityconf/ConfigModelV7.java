@@ -277,13 +277,12 @@ public class ConfigModelV7 extends ConfigModel {
         public SecurityRoles createSecurityRole(
             String roleName,
             Set<String> clusterPerms,
-            Set<String> indexPatterns,
-            Set<String> allowedActions
+            Map<String, Set<String>> indexPatternToAllowedActions
         ) {
             Set<IndexPattern> ipatterns = new HashSet<>();
-            for (String ip : indexPatterns) {
-                IndexPattern idxPattern = new IndexPattern(ip);
-                idxPattern.addPerm(allowedActions);
+            for (Map.Entry<String, Set<String>> entry : indexPatternToAllowedActions.entrySet()) {
+                IndexPattern idxPattern = new IndexPattern(entry.getKey());
+                idxPattern.addPerm(entry.getValue());
                 ipatterns.add(idxPattern);
             }
             SecurityRole role = new SecurityRole(roleName, ipatterns, WildcardMatcher.from(clusterPerms));

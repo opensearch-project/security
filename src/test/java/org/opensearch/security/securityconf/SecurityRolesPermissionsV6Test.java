@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableMap;
@@ -41,6 +42,7 @@ import org.opensearch.security.user.User;
 
 import org.mockito.quality.Strictness;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -120,17 +122,25 @@ public class SecurityRolesPermissionsV6Test {
             .filter(ImmutableSet.of("has_system_index_permission"));
         user.addSecurityRoles(List.of("has_system_index_permission"));
 
-        Assert.assertTrue(
+        assertTrue(
             "Should allow system index access with explicit only",
             securityRoleWithExplicitAccess.hasExplicitIndexPermission(resolved, user, new String[] {}, resolver, cs)
         );
     }
 
     @Test
+    public void testCreateSecurityRole() {
+        SecurityRoles securityRoles = configModel.getSecurityRoles()
+            .createSecurityRole("testRole", Set.of("cluster:monitor/health"), Map.of("*", Set.of("indices:data/read/search")));
+        assertTrue(securityRoles.getRoleNames().contains("testRole"));
+        assertTrue(securityRoles.hasExplicitClusterPermissionPermission("cluster:monitor/health"));
+    }
+
+    @Test
     public void isPermittedOnSystemIndex() {
         final SecurityRoles securityRoleWithExplicitAccess = configModel.getSecurityRoles()
             .filter(ImmutableSet.of("has_system_index_permission"));
-        Assert.assertTrue(securityRoleWithExplicitAccess.isPermittedOnSystemIndex(TEST_INDEX));
+        assertTrue(securityRoleWithExplicitAccess.isPermittedOnSystemIndex(TEST_INDEX));
 
         final SecurityRoles securityRoleWithStarAccess = configModel.getSecurityRoles()
             .filter(ImmutableSet.of("all_access_without_system_index_permission"));

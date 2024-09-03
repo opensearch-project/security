@@ -199,7 +199,7 @@ public class PrivilegesEvaluator {
     public SecurityRoles getSecurityRoleForPlugin(String pluginIdentifier) {
         SecurityRoles pluginRole = pluginRoles.get(pluginIdentifier);
         if (pluginRole == null) {
-            pluginRole = configModel.getSecurityRoles().createSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Set.of(), Set.of());
+            pluginRole = configModel.getSecurityRoles().createSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Map.of());
             pluginRoles.put(pluginIdentifier, pluginRole);
         }
         return pluginRole;

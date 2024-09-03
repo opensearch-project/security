@@ -47,7 +47,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
 
     private final String action;
     private final TransportRequestHandler<T> actualHandler;
-    protected final ThreadPool threadPool;
+    private final ThreadPool threadPool;
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
