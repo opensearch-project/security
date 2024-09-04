@@ -5,7 +5,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 2.17.0
 ### Enhancements
 * Add `ignore_hosts` config option for auth failure listener ([#4538](https://github.com/opensearch-project/security/pull/4538))
 * added API roles for correlationAlerts ([#4689](https://github.com/opensearch-project/security/pull/4689))
-* Manually backport #4632 (Allow multiple signing keys to be provided) ([#4666](https://github.com/opensearch-project/security/pull/4666))
+* Allow multiple signing keys to be provided ([#4666](https://github.com/opensearch-project/security/pull/4666))
 * adding alerting comments security actions to roles.yml ([#4700](https://github.com/opensearch-project/security/pull/4700))
 * Permission changes for correlationAlerts ([#4704](https://github.com/opensearch-project/security/pull/4704))
 
@@ -16,8 +16,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 2.17.0
 * Fixes authtoken endpoint ([#4631](https://github.com/opensearch-project/security/pull/4631))
 * Fixed READ_ACTIONS required by TermsAggregationEvaluator ([#4607](https://github.com/opensearch-project/security/pull/4607))
 * Sort the DNS Names in the SANs ([#4640](https://github.com/opensearch-project/security/pull/4640))
-
-
 
 ### Maintenance
 * Bump com.google.errorprone:error_prone_annotations from 2.30.0 to 2.31.0 ([#4696](https://github.com/opensearch-project/security/pull/4696))
