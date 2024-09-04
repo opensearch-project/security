@@ -317,6 +317,7 @@ public class FlsAndFieldMaskingTests {
 
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper");
+
     /**
     * Function that returns id assigned to song with title equal to given title or throws {@link RuntimeException}
     * when no song matches.

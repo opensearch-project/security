@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,7 +33,6 @@ import org.opensearch.plugin.mapper.MapperSizePlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.log.LogsRule;
 
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -48,6 +48,10 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 public class FlsAndFieldMaskingLogsTests {
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
+    static final TestSecurityConfig.Role FLS_ROLE = new TestSecurityConfig.Role("fls_exclude_stars_reader").clusterPermissions(
+        "cluster_composite_ops_ro"
+    ).indexPermissions("read").fls("~".concat(FIELD_STARS)).on("*");
+    static final TestSecurityConfig.User FLS_USER = new TestSecurityConfig.User("fls_user").roles(FLS_ROLE);
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
@@ -57,7 +61,7 @@ public class FlsAndFieldMaskingLogsTests {
         )
         .plugin(MapperSizePlugin.class)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN_USER)
+        .users(ADMIN_USER, FLS_USER)
         .build();
 
     private static List<String> createIndexWithDocs(String indexName, Song... songs) {
@@ -74,31 +78,20 @@ public class FlsAndFieldMaskingLogsTests {
         }
     }
 
-    static TestSecurityConfig.User createUserWithRole(String userName, TestSecurityConfig.Role role) {
-        TestSecurityConfig.User user = new TestSecurityConfig.User(userName);
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
-            client.createRole(role.getName(), role).assertStatusCode(201);
-            client.createUser(user.getName(), user).assertStatusCode(201);
-            client.assignRoleToUser(user.getName(), role.getName()).assertStatusCode(200);
-        }
-        return user;
-    }
-
     @Rule
     public LogsRule valveLogsRule = new LogsRule("org.opensearch.security.configuration.DlsFlsValveImpl");
 
-    @Test
-    public void testFilteredFlsDlsConfig() throws IOException {
-        String indexName = "fls_index";
-        String otherIndexName = "other_fls_index";
-        TestSecurityConfig.Role userRole = new TestSecurityConfig.Role("fls_exclude_stars_reader").clusterPermissions(
-            "cluster_composite_ops_ro"
-        ).indexPermissions("read").fls("~".concat(FIELD_STARS)).on("*");
-        TestSecurityConfig.User user = createUserWithRole("fls_user", userRole);
-        List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
-        createIndexWithDocs(otherIndexName, SONGS[0], SONGS[1]);
+    @BeforeClass
+    public static void createTestData() {
+        createIndexWithDocs("fls_index", SONGS[0], SONGS[1]);
+        createIndexWithDocs("fls_index_2", SONGS[0], SONGS[1]);
+        createIndexWithDocs("other_index", SONGS[0], SONGS[1]);
+    }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
+    @Test
+    public void testFilteredFlsDlsConfigOnConcreteIndex() throws IOException {
+        String indexName = "fls_index";
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(FLS_USER)) {
             // search
             SearchResponse searchResponse = restHighLevelClient.search(new SearchRequest(indexName), DEFAULT);
 
@@ -107,11 +100,20 @@ public class FlsAndFieldMaskingLogsTests {
             );
 
             assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+        }
+    }
 
+    @Test
+    public void testFilteredFlsDlsConfigOnIndexPattern() throws IOException {
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(FLS_USER)) {
             // search with index pattern
-            // searchResponse = restHighLevelClient.search(new SearchRequest("*".concat(indexName)), DEFAULT);
-            //
-            // assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+            SearchResponse searchResponse = restHighLevelClient.search(new SearchRequest("fls_index*"), DEFAULT);
+
+            valveLogsRule.assertThatContainExactly(
+                "Filtered DLS/FLS Config: EvaluatedDlsFlsConfig [dlsQueriesByIndex={}, flsByIndex={fls_index=[~stars], fls_index_2=[~stars]}, fieldMaskingByIndex={}]"
+            );
+
+            assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
         }
     }
 
