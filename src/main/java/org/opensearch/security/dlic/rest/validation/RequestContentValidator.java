@@ -81,6 +81,7 @@ public class RequestContentValidator implements ToXContent {
         STRING,
         ARRAY,
         OBJECT,
+        INTEGER,
         BOOLEAN;
     }
 
@@ -179,6 +180,7 @@ public class RequestContentValidator implements ToXContent {
         final Set<String> allowed = new HashSet<>(validationContext.allowedKeys().keySet());
         requestedKeys.removeAll(allowed);
         invalidKeys.addAll(requestedKeys);
+
         if (!missingMandatoryKeys.isEmpty() || !invalidKeys.isEmpty() || !missingMandatoryOrKeys.isEmpty()) {
             this.validationError = ValidationError.INVALID_CONFIGURATION;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -196,6 +198,11 @@ public class RequestContentValidator implements ToXContent {
                     if (dataType != null) {
                         JsonToken valueToken = parser.nextToken();
                         switch (dataType) {
+                            case INTEGER:
+                                if (valueToken != JsonToken.VALUE_NUMBER_INT) {
+                                    wrongDataTypes.put(currentName, "Integer expected");
+                                }
+                                break;
                             case STRING:
                                 if (valueToken != JsonToken.VALUE_STRING) {
                                     wrongDataTypes.put(currentName, "String expected");

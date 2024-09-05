@@ -52,6 +52,12 @@ import org.opensearch.security.setting.DeprecatedSettings;
 
 public class ConfigV7 {
 
+    public static int ALLOWED_TRIES_DEFAULT = 10;
+    public static int TIME_WINDOW_SECONDS_DEFAULT = 60 * 60;
+    public static int BLOCK_EXPIRY_SECONDS_DEFAULT = 60 * 10;
+    public static int MAX_BLOCKED_CLIENTS_DEFAULT = 100_000;
+    public static int MAX_TRACKED_CLIENTS_DEFAULT = 100_000;
+
     public Dynamic dynamic;
 
     public ConfigV7() {
@@ -227,11 +233,11 @@ public class ConfigV7 {
         public String type;
         public String authentication_backend;
         public List<String> ignore_hosts;
-        public int allowed_tries = 10;
-        public int time_window_seconds = 60 * 60;
-        public int block_expiry_seconds = 60 * 10;
-        public int max_blocked_clients = 100_000;
-        public int max_tracked_clients = 100_000;
+        public int allowed_tries = ALLOWED_TRIES_DEFAULT;
+        public int time_window_seconds = TIME_WINDOW_SECONDS_DEFAULT;
+        public int block_expiry_seconds = BLOCK_EXPIRY_SECONDS_DEFAULT;
+        public int max_blocked_clients = MAX_BLOCKED_CLIENTS_DEFAULT;
+        public int max_tracked_clients = MAX_TRACKED_CLIENTS_DEFAULT;
 
         public AuthFailureListener() {
             super();
@@ -246,6 +252,26 @@ public class ConfigV7 {
             this.block_expiry_seconds = v6.block_expiry_seconds;
             this.max_blocked_clients = v6.max_blocked_clients;
             this.max_tracked_clients = v6.max_tracked_clients;
+        }
+
+        public AuthFailureListener(
+            String type,
+            String authentication_backend,
+            List<String> ignore_hosts,
+            int allowed_tries,
+            int time_window_seconds,
+            int block_expiry_seconds,
+            int max_blocked_clients,
+            int max_tracked_clients
+        ) {
+            this.type = type;
+            this.authentication_backend = authentication_backend;
+            this.ignore_hosts = ignore_hosts;
+            this.allowed_tries = allowed_tries;
+            this.time_window_seconds = time_window_seconds;
+            this.block_expiry_seconds = block_expiry_seconds;
+            this.max_blocked_clients = max_blocked_clients;
+            this.max_tracked_clients = max_tracked_clients;
         }
 
         @JsonIgnore
