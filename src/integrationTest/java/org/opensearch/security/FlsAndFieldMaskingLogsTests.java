@@ -42,6 +42,7 @@ import static org.opensearch.security.Song.FIELD_STARS;
 import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithScroll;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -111,6 +112,21 @@ public class FlsAndFieldMaskingLogsTests {
 
             valveLogsRule.assertThatContainExactly(
                 "Filtered DLS/FLS Config: EvaluatedDlsFlsConfig [dlsQueriesByIndex={}, flsByIndex={fls_index=[~stars], fls_index_2=[~stars]}, fieldMaskingByIndex={}]"
+            );
+
+            assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+        }
+    }
+
+    @Test
+    public void testFilteredFlsDlsConfigWithScroll() throws IOException {
+        String indexName = "fls_index";
+        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(FLS_USER)) {
+            // scroll
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequestWithScroll(indexName, 1), DEFAULT);
+
+            valveLogsRule.assertThatContainExactly(
+                "Filtered DLS/FLS Config: EvaluatedDlsFlsConfig [dlsQueriesByIndex={}, flsByIndex={fls_index=[~stars]}, fieldMaskingByIndex={}]"
             );
 
             assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
