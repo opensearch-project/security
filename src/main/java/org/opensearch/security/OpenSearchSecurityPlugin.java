@@ -64,12 +64,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.Version;
+import org.opensearch.*;
 import org.opensearch.accesscontrol.resources.EntityType;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
+import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
@@ -176,7 +174,9 @@ import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resources.ResourceAccessEvaluator;
+import org.opensearch.security.resources.ResourceAccessHandler;
+import org.opensearch.security.resources.ResourceManagementRepository;
+import org.opensearch.security.resources.ResourceSharingIndexListener;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -274,6 +274,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceAccessEvaluator resourceAccessEvaluator;
+    private ResourceManagementRepository rmr;
+    private ResourceAccessHandler resourceAccessHandler;
+    private final Set<String> indicesToListen = new HashSet<>();
 
     public static boolean isActionTraceEnabled() {
 
@@ -488,7 +491,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         }
 
-        this.resourceAccessEvaluator = new ResourceAccessEvaluator();
+        this.resourceAccessHandler = new ResourceAccessHandler(threadPool);
     }
 
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
@@ -716,6 +719,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     dlsFlsBaseContext
                 )
             );
+
+            if (this.indicesToListen.contains(indexModule.getIndex().getName())) {
+                indexModule.addIndexOperationListener(ResourceSharingIndexListener.getInstance());
+                log.warn("Security plugin started listening to operations on index {}", indexModule.getIndex().getName());
+            }
+
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
 
                 @Override
@@ -1198,6 +1207,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
             e.subscribeForChanges(dcf);
         }
+
+        rmr = ResourceManagementRepository.create(settings, threadPool, localClient);
 
         components.add(adminDns);
         components.add(cr);
@@ -2073,6 +2084,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
         }
+        // create resource sharing index if absent
+        rmr.createResourceSharingIndexIfAbsent();
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -2176,37 +2189,37 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Map<String, List<String>> listAccessibleResources() {
-        return this.resourceAccessEvaluator.listAccessibleResources();
+        return this.resourceAccessHandler.listAccessibleResources();
     }
 
     @Override
     public List<String> listAccessibleResourcesForPlugin(String systemIndexName) {
-        return this.resourceAccessEvaluator.listAccessibleResourcesForPlugin(systemIndexName);
+        return this.resourceAccessHandler.listAccessibleResourcesForPlugin(systemIndexName);
     }
 
     @Override
     public boolean hasPermission(String resourceId, String systemIndexName) {
-        return this.resourceAccessEvaluator.hasPermission(resourceId, systemIndexName);
+        return this.resourceAccessHandler.hasPermission(resourceId, systemIndexName);
     }
 
     @Override
-    public ResourceSharing shareWith(String resourceId, String systemIndexName, Map<EntityType, List<String>> entities) {
-        return this.resourceAccessEvaluator.shareWith(resourceId, systemIndexName, entities);
+    public ResourceSharing shareWith(String resourceId, String systemIndexName, ShareWith shareWith) {
+        return this.resourceAccessHandler.shareWith(resourceId, systemIndexName, shareWith);
     }
 
     @Override
     public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> entities) {
-        return this.resourceAccessEvaluator.revokeAccess(resourceId, systemIndexName, entities);
+        return this.resourceAccessHandler.revokeAccess(resourceId, systemIndexName, entities);
     }
 
     @Override
     public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {
-        return this.resourceAccessEvaluator.deleteResourceSharingRecord(resourceId, systemIndexName);
+        return this.resourceAccessHandler.deleteResourceSharingRecord(resourceId, systemIndexName);
     }
 
     @Override
-    public boolean deleteAllResourceSharingRecordsFor(String entity) {
-        return this.resourceAccessEvaluator.deleteAllResourceSharingRecordsFor(entity);
+    public boolean deleteAllResourceSharingRecordsForCurrentUser() {
+        return this.resourceAccessHandler.deleteAllResourceSharingRecordsForCurrentUser();
     }
 
     public static class GuiceHolder implements LifecycleComponent {
