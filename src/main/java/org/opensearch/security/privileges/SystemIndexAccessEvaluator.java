@@ -288,7 +288,7 @@ public class SystemIndexAccessEvaluator {
                     presponse.markComplete();
                 } else {
                     if (log.isInfoEnabled()) {
-                        log.info(
+                        log.warn(
                             "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
                             user.getName(),
                             action,

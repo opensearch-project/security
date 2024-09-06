@@ -220,7 +220,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_SUBJECT;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
@@ -2106,7 +2106,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Subject getCurrentSubject() {
-        return (Subject) threadPool.getThreadContext().getPersistent(OPENDISTRO_SECURITY_SUBJECT);
+        return (Subject) threadPool.getThreadContext().getPersistent(OPENDISTRO_SECURITY_AUTHENTICATED_USER);
     }
 
     @Override

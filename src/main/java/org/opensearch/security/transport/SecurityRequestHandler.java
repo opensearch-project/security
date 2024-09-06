@@ -182,12 +182,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 } else {
                     User deserializedUser = (User) Base64Helper.deserializeObject(userHeader, useJDKSerialization);
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, deserializedUser);
-                    // if (!deserializedUser.isPluginUser()) {
-                    // getThreadContext().putPersistent(
-                    // ConfigConstants.OPENDISTRO_SECURITY_SUBJECT,
-                    // new SecurityUserSubject(threadPool, deserializedUser)
-                    // );
-                    // }
                 }
 
                 String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);

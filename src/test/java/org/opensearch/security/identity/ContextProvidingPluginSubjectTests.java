@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 public class ContextProvidingPluginSubjectTests {
     static class TestIdentityAwarePlugin extends Plugin implements IdentityAwarePlugin {
@@ -82,22 +83,8 @@ public class ContextProvidingPluginSubjectTests {
 
     @Test
     public void testPluginContextSwitcherUninitializedRunAs() throws Exception {
-        final ThreadPool threadPool = new TestThreadPool(getClass().getName());
-
         final PluginContextSwitcher contextSwitcher = new PluginContextSwitcher();
 
-        threadPool.getThreadContext().putHeader("foo", "bar");
-
-        // should be no noop since contextSwitch is uninitialized
-        Object returnVal = contextSwitcher.runAs(() -> {
-            assertThat(threadPool.getThreadContext().getHeader("foo"), equalTo("bar"));
-            return null;
-        });
-
-        assertThat(threadPool.getThreadContext().getHeader("foo"), equalTo("bar"));
-
-        assertNull(returnVal);
-
-        SecurityUserSubjectTests.terminate(threadPool);
+        assertThrows(NullPointerException.class, () -> contextSwitcher.runAs(() -> null));
     }
 }

@@ -226,7 +226,7 @@ public class BackendRegistry {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
             UserSubject subject = new SecurityUserSubject(threadPool, superuser);
-            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_SUBJECT, subject);
+            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
@@ -391,7 +391,7 @@ public class BackendRegistry {
             threadPool.getThreadContext()
                 .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser == null ? authenticatedUser : impersonatedUser);
             UserSubject subject = new SecurityUserSubject(threadPool, impersonatedUser == null ? authenticatedUser : impersonatedUser);
-            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_SUBJECT, subject);
+            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             auditLog.logSucceededLogin(
                 (impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(),
                 false,
@@ -427,7 +427,7 @@ public class BackendRegistry {
                 UserSubject subject = new SecurityUserSubject(threadPool, anonymousUser);
 
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
-                threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_SUBJECT, subject);
+                threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
                 auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");

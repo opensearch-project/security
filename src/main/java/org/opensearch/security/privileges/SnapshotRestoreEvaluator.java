@@ -109,7 +109,7 @@ public class SnapshotRestoreEvaluator {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} for '{}' as source index is not allowed", action, securityIndex);
             presponse.allowed = false;
-            presponse.missingPrivileges.add(action);
+            presponse.addMissingPrivileges(action);
             return presponse.markComplete();
         }
         return presponse;

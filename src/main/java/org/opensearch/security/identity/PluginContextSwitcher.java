@@ -10,6 +10,7 @@
  */
 package org.opensearch.security.identity;
 
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 import org.opensearch.identity.PluginSubject;
@@ -24,9 +25,7 @@ public class PluginContextSwitcher {
     }
 
     public <T> T runAs(Callable<T> callable) {
-        if (pluginSubject == null) {
-            return null;
-        }
+        Objects.requireNonNull(pluginSubject);
         try {
             return pluginSubject.runAs(callable);
         } catch (Exception e) {
