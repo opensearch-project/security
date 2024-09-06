@@ -50,7 +50,7 @@ import static org.opensearch.security.securityconf.impl.v7.ConfigV7.MAX_BLOCKED_
 import static org.opensearch.security.securityconf.impl.v7.ConfigV7.MAX_TRACKED_CLIENTS_DEFAULT;
 import static org.opensearch.security.securityconf.impl.v7.ConfigV7.TIME_WINDOW_SECONDS_DEFAULT;
 
-public class AuthFailureListenersApiAction extends AbstractApiAction {
+public class RateLimitersApiAction extends AbstractApiAction {
 
     public static final String IP_TYPE = "ip";
 
@@ -75,18 +75,14 @@ public class AuthFailureListenersApiAction extends AbstractApiAction {
         )
     );
 
-    protected AuthFailureListenersApiAction(
-        ClusterService clusterService,
-        ThreadPool threadPool,
-        SecurityApiDependencies securityApiDependencies
-    ) {
-        super(Endpoint.AUTHFAILURELISTENERS, clusterService, threadPool, securityApiDependencies);
+    protected RateLimitersApiAction(ClusterService clusterService, ThreadPool threadPool, SecurityApiDependencies securityApiDependencies) {
+        super(Endpoint.RATELIMITERS, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(this::authFailureConfigApiRequestHandlers);
     }
 
     @Override
     public String getName() {
-        return "Auth failure listener actions to Retrieve / Update configs.";
+        return "Rate limiter actions to retrieve / update configs.";
     }
 
     @Override
