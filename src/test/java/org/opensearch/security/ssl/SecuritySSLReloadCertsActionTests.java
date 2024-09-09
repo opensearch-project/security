@@ -147,9 +147,12 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         assertThat(reloadCertsResponse.getStatusCode(), is(500));
         assertThat(
-            "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
-                + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];",
-            is(DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText())
+            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
+            is(
+                "java.security.cert.CertificateException: "
+                    + "New certificates do not have valid Subject DNs. Current Subject DNs [CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE] "
+                    + "new Subject DNs [CN=node-2.example.com,OU=SSL,O=Test,L=Test,C=DE]"
+            )
         );
     }
 
