@@ -45,7 +45,7 @@ alerting_ack_alerts:
     - 'cluster:admin/opendistro/alerting/alerts/*'
     - 'cluster:admin/opendistro/alerting/chained_alerts/*'
     - 'cluster:admin/opendistro/alerting/workflow_alerts/*'
-    - 'cluster:admin/opensearch/alerting/comments/search'
+    - 'cluster:admin/opensearch/alerting/comments/*'
 
 # Allows users to use all alerting functionality
 alerting_full_access:
