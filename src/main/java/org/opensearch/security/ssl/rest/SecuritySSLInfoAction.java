@@ -35,11 +35,13 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.filter.SecurityRequestFactory;
-import org.opensearch.security.ssl.SecurityKeyStore;
+import org.opensearch.security.ssl.SslConfiguration;
+import org.opensearch.security.ssl.SslSettingsManager;
+import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.ssl.config.SslParameters;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
@@ -50,7 +52,7 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
     private static final List<Route> routes = Collections.singletonList(new Route(Method.GET, "/_opendistro/_security/sslinfo"));
 
     private final Logger log = LogManager.getLogger(this.getClass());
-    private final SecurityKeyStore sks;
+    private final SslSettingsManager sslSettingsManager;
     final PrincipalExtractor principalExtractor;
     private final Path configPath;
     private final Settings settings;
@@ -58,13 +60,12 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
     public SecuritySSLInfoAction(
         final Settings settings,
         final Path configPath,
-        final RestController controller,
-        final SecurityKeyStore sks,
+        final SslSettingsManager sslSettingsManager,
         final PrincipalExtractor principalExtractor
     ) {
         super();
         this.settings = settings;
-        this.sks = sks;
+        this.sslSettingsManager = sslSettingsManager;
         this.principalExtractor = principalExtractor;
         this.configPath = configPath;
     }
@@ -103,13 +104,15 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
                     if (showDn == Boolean.TRUE) {
                         builder.field(
                             "peer_certificates_list",
-                            certs == null ? null : Arrays.stream(certs).map(c -> c.getSubjectDN().getName()).collect(Collectors.toList())
+                            certs == null
+                                ? null
+                                : Arrays.stream(certs).map(c -> c.getSubjectX500Principal().getName()).collect(Collectors.toList())
                         );
                         builder.field(
                             "local_certificates_list",
                             localCerts == null
                                 ? null
-                                : Arrays.stream(localCerts).map(c -> c.getSubjectDN().getName()).collect(Collectors.toList())
+                                : Arrays.stream(localCerts).map(c -> c.getSubjectX500Principal().getName()).collect(Collectors.toList())
                         );
                     }
 
@@ -122,9 +125,27 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
                     builder.field("ssl_openssl_non_available_cause", openSslUnavailCause == null ? "" : openSslUnavailCause.toString());
                     builder.field("ssl_openssl_supports_key_manager_factory", OpenSsl.supportsKeyManagerFactory());
                     builder.field("ssl_openssl_supports_hostname_validation", OpenSsl.supportsHostnameValidation());
-                    builder.field("ssl_provider_http", sks.getHTTPProviderName());
-                    builder.field("ssl_provider_transport_server", sks.getTransportServerProviderName());
-                    builder.field("ssl_provider_transport_client", sks.getTransportClientProviderName());
+                    builder.field(
+                        "ssl_provider_http",
+                        sslSettingsManager.sslConfiguration(CertType.HTTP)
+                            .map(SslConfiguration::sslParameters)
+                            .map(SslParameters::provider)
+                            .orElse(null)
+                    );
+                    builder.field(
+                        "ssl_provider_transport_server",
+                        sslSettingsManager.sslConfiguration(CertType.TRANSPORT)
+                            .map(SslConfiguration::sslParameters)
+                            .map(SslParameters::provider)
+                            .orElse(null)
+                    );
+                    builder.field(
+                        "ssl_provider_transport_client",
+                        sslSettingsManager.sslConfiguration(CertType.TRANSPORT_CLIENT)
+                            .map(SslConfiguration::sslParameters)
+                            .map(SslParameters::provider)
+                            .orElse(null)
+                    );
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
