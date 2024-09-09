@@ -501,9 +501,9 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
-            force 'org.checkerframework:checker-qual:3.46.0'
+            force 'org.checkerframework:checker-qual:3.47.0'
             force "com.google.errorprone:error_prone_annotations:2.31.0"
-            force "ch.qos.logback:logback-classic:1.5.6"
+            force "ch.qos.logback:logback-classic:1.5.8"
         }
     }
 
@@ -652,7 +652,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.4560'
+    runtimeOnly 'org.checkerframework:checker-qual:3.47.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
