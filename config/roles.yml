@@ -86,7 +86,12 @@ anomaly_full_access:
         - '*'
       allowed_actions:
         - 'indices:admin/aliases/get'
+        - 'indices:admin/mappings/fields/get'
+        - 'indices:admin/mappings/fields/get*'
         - 'indices:admin/mappings/get'
+        - 'indices:admin/resolve/index'
+        - 'indices:data/read/field_caps*'
+        - 'indices:data/read/search'
         - 'indices_monitor'
 
 # Allow users to execute read only k-NN actions
