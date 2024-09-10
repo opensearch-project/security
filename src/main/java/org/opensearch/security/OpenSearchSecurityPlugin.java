@@ -2120,7 +2120,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
-        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, sslExceptionHandler, securityRestHandler));
+        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, evaluateSslExceptionHandler(), securityRestHandler));
     }
 
     @SuppressWarnings("removal")
