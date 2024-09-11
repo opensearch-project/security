@@ -143,12 +143,18 @@ public class RequestContentValidatorTest {
                     "b",
                     RequestContentValidator.DataType.OBJECT,
                     "c",
-                    RequestContentValidator.DataType.ARRAY
+                    RequestContentValidator.DataType.ARRAY,
+                    "d",
+                    RequestContentValidator.DataType.INTEGER
                 );
             }
         });
 
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", 1).put("b", "[]").put("c", "{}");
+        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode()
+            .put("a", 1)
+            .put("b", "[]")
+            .put("c", "{}")
+            .put("d", "1");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
 
@@ -159,6 +165,7 @@ public class RequestContentValidatorTest {
         assertThat(errorMessage.get("a").asText(), is("String expected"));
         assertThat(errorMessage.get("b").asText(), is("Object expected"));
         assertThat(errorMessage.get("c").asText(), is("Array expected"));
+        assertThat(errorMessage.get("d").asText(), is("Integer expected"));
     }
 
     @Test
@@ -284,14 +291,16 @@ public class RequestContentValidatorTest {
                     "d",
                     RequestContentValidator.DataType.STRING,
                     "e",
-                    RequestContentValidator.DataType.BOOLEAN
+                    RequestContentValidator.DataType.BOOLEAN,
+                    "f",
+                    RequestContentValidator.DataType.INTEGER
                 );
             }
         });
 
         ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode().putObject("a");
         payload.putArray("a").add("arrray");
-        payload.put("b", true).put("d", "some_string").put("e", "true");
+        payload.put("b", true).put("d", "some_string").put("e", "true").put("f", 1);
         payload.putObject("c");
 
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
