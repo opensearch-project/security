@@ -145,7 +145,8 @@ public abstract class AbstractApiActionValidationTest {
             "restapi:admin/rolesmapping",
             "restapi:admin/ssl/certs/info",
             "restapi:admin/ssl/certs/reload",
-            "restapi:admin/tenants"
+            "restapi:admin/tenants",
+            "restapi:admin/ratelimiters"
         );
     }
 
