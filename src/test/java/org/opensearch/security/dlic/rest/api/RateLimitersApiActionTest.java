@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
 
-public class AuthFailureListenersApiActionTest extends AbstractRestApiUnitTest {
+public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
 
     private static final Header ADMIN_FULL_ACCESS_USER = encodeBasicHeader("admin_all_access", "admin_all_access");
     private static final Header USER_NO_REST_API_ACCESS = encodeBasicHeader("admin", "admin");
