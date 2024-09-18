@@ -231,13 +231,13 @@ public class SecurityInterceptor {
             }
 
             try {
-                if (serializationFormat == SerializationFormat.JDK) {
-                    Map<String, String> jdkSerializedHeaders = new HashMap<>();
+                if (serializationFormat == SerializationFormat.CustomSerializer_2_11) {
+                    Map<String, String> customSerializedHeaders = new HashMap<>();
                     HeaderHelper.getAllSerializedHeaderNames()
                         .stream()
                         .filter(k -> headerMap.get(k) != null)
-                        .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
-                    headerMap.putAll(jdkSerializedHeaders);
+                        .forEach(k -> customSerializedHeaders.put(k, Base64Helper.ensureCustomSerialized(headerMap.get(k))));
+                    headerMap.putAll(customSerializedHeaders);
                 }
                 getThreadContext().putHeader(headerMap);
             } catch (IllegalArgumentException iae) {
