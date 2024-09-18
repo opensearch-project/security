@@ -29,14 +29,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.configuration.MaskedField;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
@@ -92,11 +91,7 @@ public class RolesApiAction extends AbstractApiAction {
 
         private Pair<String, String> validateMaskedFieldSyntax(final JsonNode maskedFieldNode) {
             try {
-                new MaskedField(
-                    maskedFieldNode.asText(),
-                    SALT,
-                    validationContext.settings().get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT)
-                ).isValid();
+                new FieldMasking.FieldMaskingExpression(maskedFieldNode.asText());
             } catch (Exception e) {
                 return Pair.of(maskedFieldNode.asText(), e.getMessage());
             }

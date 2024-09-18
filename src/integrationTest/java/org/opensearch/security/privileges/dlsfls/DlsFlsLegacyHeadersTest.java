@@ -297,7 +297,7 @@ public class DlsFlsLegacyHeadersTest {
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(exampleRolesConfig(), metadata);
 
         Transport.Connection connection = Mockito.mock(Transport.Connection.class);
-        Mockito.when(connection.getVersion()).thenReturn(Version.V_3_0_0);
+        Mockito.when(connection.getVersion()).thenReturn(Version.CURRENT);
 
         // ShardSearchRequest does not extend ActionRequest, thus the headers must be set
         ShardSearchRequest request = Mockito.mock(ShardSearchRequest.class);
