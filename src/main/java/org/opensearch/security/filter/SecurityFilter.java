@@ -185,7 +185,7 @@ public class SecurityFilter implements ActionFilter {
             }
 
             if (threadContext.getTransient(ConfigConstants.USE_JDK_SERIALIZATION) == null) {
-                threadContext.putTransient(ConfigConstants.USE_JDK_SERIALIZATION, false);
+                threadContext.putTransient(ConfigConstants.USE_JDK_SERIALIZATION, true);
             }
 
             final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();
