@@ -35,7 +35,7 @@ public class Base64Helper {
     }
 
     public static String serializeObject(final Serializable object) {
-        return serializeObject(object, false);
+        return serializeObject(object, true);
     }
 
     public static Serializable deserializeObject(final String string) {
