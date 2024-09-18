@@ -39,7 +39,7 @@ public class Base64Helper {
     }
 
     public static Serializable deserializeObject(final String string) {
-        return deserializeObject(string, false);
+        return deserializeObject(string, true);
     }
 
     public static Serializable deserializeObject(final String string, final boolean useJDKDeserialization) {
