@@ -232,7 +232,7 @@ public class SecurityInterceptor {
             }
 
             try {
-                if (clusterInfoHolder.getMinNodeVersion().before(Version.V_2_14_0)) {
+                if (clusterInfoHolder.getMinNodeVersion() == null || clusterInfoHolder.getMinNodeVersion().before(Version.V_2_14_0)) {
                     if (serializationFormat == SerializationFormat.JDK) {
                         Map<String, String> jdkSerializedHeaders = new HashMap<>();
                         HeaderHelper.getAllSerializedHeaderNames()
