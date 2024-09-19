@@ -334,13 +334,13 @@ public class SecurityInterceptorTests {
     public void testSendRequestDecorateRemoteConnectionUsesJDKSerialization() {
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(user, false));
         completableRequestDecorateWithPreviouslyPopulatedHeaders(
-                jdkSerializedSender,
-                connection3,
-                action,
-                request,
-                options,
-                handler,
-                localNode
+            jdkSerializedSender,
+            connection3,
+            action,
+            request,
+            options,
+            handler,
+            localNode
         );
     }
 
