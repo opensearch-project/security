@@ -219,7 +219,6 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 String serializedUserHeader = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                System.out.println("serializedUserHeader: " + serializedUserHeader);
                 assertThat(serializedUserHeader, is(Base64Helper.serializeObject(user, true)));
                 senderLatch.get().countDown();
             }
