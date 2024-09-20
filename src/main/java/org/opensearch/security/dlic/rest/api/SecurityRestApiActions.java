@@ -97,6 +97,7 @@ public class SecurityRestApiActions {
             new AllowlistApiAction(Endpoint.ALLOWLIST, clusterService, threadPool, securityApiDependencies),
             new AuditApiAction(clusterService, threadPool, securityApiDependencies),
             new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),
+            new RateLimitersApiAction(clusterService, threadPool, securityApiDependencies),
             new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies),
             new SecuritySSLCertsApiAction(clusterService, threadPool, securityKeyStore, certificatesReloadEnabled, securityApiDependencies),
             new CertificatesApiAction(clusterService, threadPool, securityApiDependencies)

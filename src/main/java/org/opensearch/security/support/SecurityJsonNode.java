@@ -52,6 +52,14 @@ public final class SecurityJsonNode {
         }
     }
 
+    public Integer asInt(Integer defaultValue) {
+        if (isNull(node)) {
+            return defaultValue;
+        } else {
+            return node.asInt(0);
+        }
+    }
+
     private static boolean isNull(JsonNode node) {
         return node == null || node.isNull();
     }

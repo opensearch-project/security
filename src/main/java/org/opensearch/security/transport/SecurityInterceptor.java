@@ -241,13 +241,22 @@ public class SecurityInterceptor {
             }
 
             try {
-                if (serializationFormat == SerializationFormat.JDK) {
-                    Map<String, String> jdkSerializedHeaders = new HashMap<>();
-                    HeaderHelper.getAllSerializedHeaderNames()
-                        .stream()
-                        .filter(k -> headerMap.get(k) != null)
-                        .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
-                    headerMap.putAll(jdkSerializedHeaders);
+                if (clusterInfoHolder.getMinNodeVersion() == null || clusterInfoHolder.getMinNodeVersion().before(Version.V_2_14_0)) {
+                    if (serializationFormat == SerializationFormat.JDK) {
+                        Map<String, String> jdkSerializedHeaders = new HashMap<>();
+                        HeaderHelper.getAllSerializedHeaderNames()
+                            .stream()
+                            .filter(k -> headerMap.get(k) != null)
+                            .forEach(k -> jdkSerializedHeaders.put(k, Base64Helper.ensureJDKSerialized(headerMap.get(k))));
+                        headerMap.putAll(jdkSerializedHeaders);
+                    } else if (serializationFormat == SerializationFormat.CustomSerializer_2_11) {
+                        Map<String, String> customSerializedHeaders = new HashMap<>();
+                        HeaderHelper.getAllSerializedHeaderNames()
+                            .stream()
+                            .filter(k -> headerMap.get(k) != null)
+                            .forEach(k -> customSerializedHeaders.put(k, Base64Helper.ensureCustomSerialized(headerMap.get(k))));
+                        headerMap.putAll(customSerializedHeaders);
+                    }
                 }
                 getThreadContext().putHeader(headerMap);
             } catch (IllegalArgumentException iae) {
