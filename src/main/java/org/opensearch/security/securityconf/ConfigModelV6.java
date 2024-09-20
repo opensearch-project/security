@@ -360,25 +360,6 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         @Override
-        public SecurityRoles createSecurityRole(
-            String roleName,
-            Set<String> clusterPerms,
-            Map<String, Set<String>> indexPatternToAllowedActions
-        ) {
-            SecurityRole role = new SecurityRole(roleName);
-            role.addClusterPerms(clusterPerms);
-            for (Map.Entry<String, Set<String>> entry : indexPatternToAllowedActions.entrySet()) {
-                IndexPattern idxPattern = new IndexPattern(entry.getKey());
-                TypePerm perms = new TypePerm("");
-                perms.addPerms(entry.getValue());
-                idxPattern.addTypePerms(perms);
-            }
-            SecurityRoles roles = new SecurityRoles(1);
-            roles.addSecurityRole(role);
-            return roles;
-        }
-
-        @Override
         public EvaluatedDlsFlsConfig getDlsFls(
             User user,
             boolean dfmEmptyOverwritesAll,

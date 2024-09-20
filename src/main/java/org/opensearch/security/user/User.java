@@ -296,11 +296,4 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         Map<String, String> userAttributesMap = this.getCustomAttributesMap();
         return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
     }
-
-    /**
-     * @return true if this instance is of the type PluginUser
-     */
-    public boolean isPluginUser() {
-        return this instanceof PluginUser;
-    }
 }

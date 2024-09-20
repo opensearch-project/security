@@ -27,7 +27,6 @@
 
 package org.opensearch.security.securityconf;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -97,8 +96,6 @@ public interface SecurityRoles {
     );
 
     SecurityRoles filter(Set<String> roles);
-
-    SecurityRoles createSecurityRole(String roleName, Set<String> clusterPerms, Map<String, Set<String>> indexPatternToAllowedActions);
 
     boolean isPermittedOnSystemIndex(String indexName);
 }

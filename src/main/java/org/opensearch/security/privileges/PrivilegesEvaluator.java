@@ -90,10 +90,13 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.securityconf.InMemorySecurityRoles;
+import org.opensearch.security.securityconf.InMemorySecurityRolesV7;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.PluginUser;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -143,7 +146,7 @@ public class PrivilegesEvaluator {
     private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
-    private final Map<String, SecurityRoles> pluginRoles;
+    private final Map<String, InMemorySecurityRoles> pluginRoles;
 
     public PrivilegesEvaluator(
         final ClusterService clusterService,
@@ -197,9 +200,10 @@ public class PrivilegesEvaluator {
     }
 
     public SecurityRoles getSecurityRoleForPlugin(String pluginIdentifier) {
-        SecurityRoles pluginRole = pluginRoles.get(pluginIdentifier);
+        InMemorySecurityRoles pluginRole = pluginRoles.get(pluginIdentifier);
         if (pluginRole == null) {
-            pluginRole = configModel.getSecurityRoles().createSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Map.of());
+            pluginRole = new InMemorySecurityRolesV7(1);
+            pluginRole.addSecurityRole(pluginIdentifier, Set.of(BulkAction.NAME), Map.of());
             pluginRoles.put(pluginIdentifier, pluginRole);
         }
         return pluginRole;
@@ -292,7 +296,7 @@ public class PrivilegesEvaluator {
         }
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles;
-        if (user.isPluginUser()) {
+        if (user instanceof PluginUser) {
             securityRoles = getSecurityRoleForPlugin(user.getName());
         } else {
             securityRoles = getSecurityRoles(mappedRoles);

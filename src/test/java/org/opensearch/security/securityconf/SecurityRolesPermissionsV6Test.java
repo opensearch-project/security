@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableMap;
@@ -126,14 +125,6 @@ public class SecurityRolesPermissionsV6Test {
             "Should allow system index access with explicit only",
             securityRoleWithExplicitAccess.hasExplicitIndexPermission(resolved, user, new String[] {}, resolver, cs)
         );
-    }
-
-    @Test
-    public void testCreateSecurityRole() {
-        SecurityRoles securityRoles = configModel.getSecurityRoles()
-            .createSecurityRole("testRole", Set.of("cluster:monitor/health"), Map.of("*", Set.of("indices:data/read/search")));
-        assertTrue(securityRoles.getRoleNames().contains("testRole"));
-        assertTrue(securityRoles.hasExplicitClusterPermissionPermission("cluster:monitor/health"));
     }
 
     @Test

@@ -219,11 +219,11 @@ public class ConfigModelV7 extends ConfigModel {
 
         final Set<SecurityRole> roles;
 
-        private SecurityRoles(int roleCount) {
+        protected SecurityRoles(int roleCount) {
             roles = new HashSet<>(roleCount);
         }
 
-        private SecurityRoles addSecurityRole(SecurityRole securityRole) {
+        protected SecurityRoles addSecurityRole(SecurityRole securityRole) {
             if (securityRole != null) {
                 this.roles.add(securityRole);
             }
@@ -271,24 +271,6 @@ public class ConfigModelV7 extends ConfigModel {
                 }
             }
             return retVal;
-        }
-
-        @Override
-        public SecurityRoles createSecurityRole(
-            String roleName,
-            Set<String> clusterPerms,
-            Map<String, Set<String>> indexPatternToAllowedActions
-        ) {
-            Set<IndexPattern> ipatterns = new HashSet<>();
-            for (Map.Entry<String, Set<String>> entry : indexPatternToAllowedActions.entrySet()) {
-                IndexPattern idxPattern = new IndexPattern(entry.getKey());
-                idxPattern.addPerm(entry.getValue());
-                ipatterns.add(idxPattern);
-            }
-            SecurityRole role = new SecurityRole(roleName, ipatterns, WildcardMatcher.from(clusterPerms));
-            SecurityRoles roles = new SecurityRoles(1);
-            roles.addSecurityRole(role);
-            return roles;
         }
 
         @Override
@@ -554,7 +536,7 @@ public class ConfigModelV7 extends ConfigModel {
             }
         }
 
-        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
+        SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
             this.name = Objects.requireNonNull(name);
             this.ipatterns = ipatterns;
             this.clusterPerms = clusterPerms;

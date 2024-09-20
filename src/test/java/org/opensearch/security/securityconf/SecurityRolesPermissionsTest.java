@@ -221,8 +221,8 @@ public class SecurityRolesPermissionsTest {
 
     @Test
     public void testCreateSecurityRole() {
-        SecurityRoles securityRoles = configModel.getSecurityRoles()
-            .createSecurityRole("testRole", Set.of("cluster:monitor/health"), Map.of("*", Set.of("indices:data/read/search")));
+        InMemorySecurityRoles securityRoles = new InMemorySecurityRolesV7(1);
+        securityRoles.addSecurityRole("testRole", Set.of("cluster:monitor/health"), Map.of("*", Set.of("indices:data/read/search")));
         assertTrue(securityRoles.getRoleNames().contains("testRole"));
         assertTrue(securityRoles.hasExplicitClusterPermissionPermission("cluster:monitor/health"));
     }
