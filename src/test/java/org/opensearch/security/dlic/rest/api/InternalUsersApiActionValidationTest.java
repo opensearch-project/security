@@ -72,13 +72,13 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         config.set("all_access", objectMapper.createObjectNode());
         config.set("regular_role", objectMapper.createObjectNode());
 
-        config.set("some_role_with_static_mapping", objectMapper.createObjectNode().put("static", true));
+        config.set("some_role_with_static_mapping", objectMapper.createObjectNode());
         config.set("some_role_with_reserved_mapping", objectMapper.createObjectNode().put("reserved", true));
         config.set("some_role_with_hidden_mapping", objectMapper.createObjectNode().put("hidden", true));
 
         final var rolesMappingConfiguration = SecurityDynamicConfiguration.fromJson(
             objectMapper.writeValueAsString(config),
-            CType.ROLES,
+            CType.ROLESMAPPING,
             2,
             1,
             1
@@ -191,7 +191,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         userJson = objectMapper.createObjectNode()
             .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_static_mapping"));
         result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
-        assertFalse(result.isValid());
+        assertTrue(result.isValid());
     }
 
     private InternalUsersApiAction createInternalUsersApiAction() {
