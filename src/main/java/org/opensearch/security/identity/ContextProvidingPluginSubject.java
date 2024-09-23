@@ -18,19 +18,21 @@ import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.PluginSubject;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.PluginUser;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class ContextProvidingPluginSubject implements PluginSubject {
     private final ThreadPool threadPool;
     private final NamedPrincipal pluginPrincipal;
-    private final PluginUser pluginUser;
+    private final User pluginUser;
 
     public ContextProvidingPluginSubject(ThreadPool threadPool, Settings settings, Plugin plugin) {
         super();
         this.threadPool = threadPool;
         this.pluginPrincipal = new NamedPrincipal(plugin.getClass().getCanonicalName());
-        this.pluginUser = new PluginUser(pluginPrincipal.getName());
+        // Convention for plugin username. Prefixed with 'plugin:'. ':' is forbidden from usernames, so this
+        // guarantees that a user with this username cannot be created by other means.
+        this.pluginUser = new User("plugin:" + pluginPrincipal.getName());
     }
 
     @Override

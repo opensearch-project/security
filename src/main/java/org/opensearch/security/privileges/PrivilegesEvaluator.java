@@ -96,7 +96,6 @@ import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.PluginUser;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -296,7 +295,7 @@ public class PrivilegesEvaluator {
         }
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles;
-        if (user instanceof PluginUser) {
+        if (user.isPluginUser()) {
             securityRoles = getSecurityRoleForPlugin(user.getName());
         } else {
             securityRoles = getSecurityRoles(mappedRoles);

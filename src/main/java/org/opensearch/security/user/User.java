@@ -296,4 +296,13 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         Map<String, String> userAttributesMap = this.getCustomAttributesMap();
         return userAttributesMap != null && "true".equals(userAttributesMap.get("attr.internal.service"));
     }
+
+    /**
+     * Check the custom attributes associated with this user
+     *
+     * @return true if it has a plugin account attributes, otherwise false
+     */
+    public boolean isPluginUser() {
+        return name != null && name.startsWith("plugin:");
+    }
 }

@@ -48,7 +48,6 @@ import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.PluginUser;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
@@ -317,9 +316,9 @@ public class SystemIndexAccessEvaluator {
                 }
         }
 
-        if (user instanceof PluginUser) {
+        if (user.isPluginUser()) {
             Set<String> matchingSystemIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
-                user.getName(),
+                user.getName().replace("plugin:", ""),
                 requestedResolved.getAllIndices()
             );
             if (requestedResolved.getAllIndices().equals(matchingSystemIndices)) {

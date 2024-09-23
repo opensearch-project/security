@@ -115,7 +115,9 @@ public class SystemIndexTests {
             assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
                 response.getBody(),
-                containsString("no permissions for [indices:admin/create] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1")
+                containsString(
+                    "no permissions for [indices:admin/create] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
+                )
             );
         }
     }
@@ -139,7 +141,7 @@ public class SystemIndexTests {
             assertThat(
                 response.getBody(),
                 containsString(
-                    "no permissions for [cluster:monitor/health] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
+                    "no permissions for [cluster:monitor/health] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
                 )
             );
         }
@@ -184,7 +186,7 @@ public class SystemIndexTests {
             assertThat(
                 response.getBody(),
                 containsString(
-                    "no permissions for [indices:data/write/bulk[s]] and User [name=org.opensearch.security.plugin.SystemIndexPlugin1"
+                    "no permissions for [indices:data/write/bulk[s]] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
                 )
             );
         }

@@ -64,7 +64,6 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SerializationFormat;
-import org.opensearch.security.user.PluginUser;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
@@ -133,7 +132,7 @@ public class SecurityInterceptor {
     private User determineUser(Connection connection) {
         User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         // pluginUser did not exist prior to 2.18.0
-        if (user0 != null && user0 instanceof PluginUser && connection.getVersion().before(Version.V_2_18_0)) {
+        if (user0 != null && user0.isPluginUser() && connection.getVersion().before(Version.V_2_18_0)) {
             user0 = null;
         }
         return user0;

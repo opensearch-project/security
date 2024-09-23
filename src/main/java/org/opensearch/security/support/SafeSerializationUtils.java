@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.user.PluginUser;
 import org.opensearch.security.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
@@ -49,7 +48,6 @@ public final class SafeSerializationUtils {
         InetSocketAddress.class,
         Pattern.class,
         User.class,
-        PluginUser.class,
         UserInjector.InjectedUser.class,
         SourceFieldsContext.class,
         LdapUser.class,
