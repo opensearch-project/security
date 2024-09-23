@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.IdentityAwarePlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.security.user.PluginUser;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -37,7 +37,7 @@ public class ContextProvidingPluginSubjectTests {
 
         final Plugin testPlugin = new TestIdentityAwarePlugin();
 
-        final PluginUser pluginUser = new PluginUser(testPlugin.getClass().getCanonicalName());
+        final User pluginUser = new User(testPlugin.getClass().getCanonicalName());
 
         ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
 
@@ -63,7 +63,7 @@ public class ContextProvidingPluginSubjectTests {
 
         final PluginContextSwitcher contextSwitcher = new PluginContextSwitcher();
 
-        final PluginUser pluginUser = new PluginUser(testPlugin.getClass().getCanonicalName());
+        final User pluginUser = new User(testPlugin.getClass().getCanonicalName());
 
         ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
 
