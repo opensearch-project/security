@@ -635,6 +635,16 @@ public class ConfigurationRepository implements ClusterStateListener {
         return result;
     }
 
+    public SecurityDynamicConfiguration<?> getUnconvertedConfigurationFromIndex(CType<?> configType, boolean logComplianceEvent) {
+        ConfigurationMap map = this.getConfigurationsFromIndex(List.of(configType), logComplianceEvent, this.acceptInvalid);
+        SecurityDynamicConfiguration<?> result = map.get(configType);
+        if (result != null && result.getAutoConvertedFrom() != null) {
+            result = result.getAutoConvertedFrom();
+        }
+
+        return result;
+    }
+
     private ConfigurationMap validate(ConfigurationMap conf, int expectedSize) throws InvalidConfigException {
 
         if (conf == null || conf.size() < expectedSize) {

@@ -11,6 +11,8 @@
 
 package org.opensearch.security.configuration;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
@@ -72,7 +74,7 @@ public class ConfigurationMap {
     }
 
     public static class Builder {
-        private ImmutableMap.Builder<CType<?>, SecurityDynamicConfiguration<?>> map = new ImmutableMap.Builder<>();
+        private Map<CType<?>, SecurityDynamicConfiguration<?>> map = new HashMap<>();
 
         public Builder() {}
 
@@ -86,8 +88,23 @@ public class ConfigurationMap {
             return this;
         }
 
+        public <T> SecurityDynamicConfiguration<T> get(CType<T> ctype) {
+            @SuppressWarnings("unchecked")
+            SecurityDynamicConfiguration<T> config = (SecurityDynamicConfiguration<T>) map.get(ctype);
+
+            if (config == null) {
+                return null;
+            }
+
+            if (!config.getCType().equals(ctype)) {
+                throw new RuntimeException("Stored configuration does not match type: " + ctype + "; " + config);
+            }
+
+            return config;
+        }
+
         public ConfigurationMap build() {
-            return new ConfigurationMap(this.map.build());
+            return new ConfigurationMap(ImmutableMap.copyOf(this.map));
         }
     }
 }

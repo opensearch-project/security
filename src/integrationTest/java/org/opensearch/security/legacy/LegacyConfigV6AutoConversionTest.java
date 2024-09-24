@@ -10,70 +10,98 @@
 package org.opensearch.security.legacy;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.junit.runners.MethodSorters;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import java.util.Map;
+
+@FixMethodOrder( MethodSorters.NAME_ASCENDING )
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class LegacyConfigV6AutoConversionTest {
     static final TestSecurityConfig LEGACY_CONFIG = new TestSecurityConfig()//
-        .rawConfigurationDocumentYaml("config", """
-            opendistro_security:
-              dynamic:
-                authc:
-                  basic_internal_auth_domain:
-                    http_enabled: true
-                    order: 4
-                    http_authenticator:
-                      type: basic
-                      challenge: true
-                    authentication_backend:
-                      type: intern
-                      """)//
-        .rawConfigurationDocumentYaml("internalusers", """
-            admin:
-              readonly: true
-              hash: $2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG
-              roles:
-                - admin
-              attributes:
-                attribute1: value1
-            """)//
-        .rawConfigurationDocumentYaml("roles", """
-            all_access:
-              readonly: true
-              cluster:
-                - UNLIMITED
-              indices:
-                '*':
-                  '*':
-                    - UNLIMITED
-              tenants:
-                admin_tenant: RW
-                """)//
-        .rawConfigurationDocumentYaml("rolesmapping", """
-            all_access:
-              readonly: true
-              backendroles:
-                - admin
-            """);
+        .rawConfigurationDocumentYaml("config", "opendistro_security:\n" +
+                "  dynamic:\n" +
+                "    authc:\n" +
+                "      basic_internal_auth_domain:\n" +
+                "        http_enabled: true\n" +
+                "        order: 4\n" +
+                "        http_authenticator:\n" +
+                "          type: basic\n" +
+                "          challenge: true\n" +
+                "        authentication_backend:\n" +
+                "          type: intern\n")//
+        .rawConfigurationDocumentYaml("internalusers", "admin:\n" +
+                "  readonly: true\n" +
+                "  hash: $2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG\n" +
+                "  roles:\n" +
+                "  - admin\n" +
+                "  attributes:\n" +
+                "    attribute1: value1\n")//
+        .rawConfigurationDocumentYaml("roles", "all_access_role:\n" +
+                "  readonly: true\n" +
+                "  cluster:\n" +
+                "  - UNLIMITED\n" +
+                "  indices:\n" +
+                "    '*':\n" +
+                "      '*':\n" +
+                "      - UNLIMITED\n" +
+                "  tenants:\n" +
+                "    admin_tenant: RW\n")//
+        .rawConfigurationDocumentYaml("rolesmapping", "all_access_role:\n" +
+                "  readonly: true\n" +
+                "  backendroles:\n" +
+                "  - admin")//
+            .rawConfigurationDocumentYaml("actiongroups", "dummy:\n" +
+                    "  permissions: []")
+            ;
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .config(LEGACY_CONFIG)
+            .nodeSettings(Map.of("plugins.security.restapi.roles_enabled.0", "all_access_role"))
         .build();
 
     @Test
-    public void checkAuthc() {
+    public void authc() {
         try (TestRestClient client = cluster.getRestClient("admin", "admin")) {
             TestRestClient.HttpResponse response = client.get("_opendistro/_security/authinfo");
-            System.out.println(response.getBody());
+            Assert.assertEquals(response.getBody(), 200, response.getStatusCode());
+            Assert.assertEquals(response.getBody(), true, response.getBooleanFromJsonBody("/tenants/admin"));
         }
     }
+
+    @Test
+    public void configRestApiReturnsV6Config() {
+        try (TestRestClient client = cluster.getRestClient("admin", "admin")) {
+            TestRestClient.HttpResponse response = client.get("_opendistro/_security/api/roles/all_access_role");
+            Assert.assertEquals(response.getBody(), 200, response.getStatusCode());
+            Assert.assertEquals("Expected v6 format", "{\"all_access_role\":{\"readonly\":true,\"hidden\":false,\"cluster\":[\"UNLIMITED\"],\"tenants\":{\"admin_tenant\":\"RW\"},\"indices\":{\"*\":{\"*\":[\"UNLIMITED\"]}}}}", response.getBody());
+        }
+    }
+
+    /**
+     * This must be the last test executed, as it changes the config index
+     */
+    @Test
+    public void zzz_migrateApi() {
+        try (TestRestClient client = cluster.getRestClient("admin", "admin")) {
+            TestRestClient.HttpResponse response = client.post("_opendistro/_security/api/migrate");
+            Assert.assertEquals(response.getBody(), 200, response.getStatusCode());
+            Assert.assertEquals(response.getBody(), "Migration completed.", response.getTextFromJsonBody("/message"));
+            response = client.get("_opendistro/_security/api/roles/all_access_role");
+            Assert.assertEquals(response.getBody(), 200, response.getStatusCode());
+            Assert.assertEquals("Expected v7 format", "Migrated from v6 (all types mapped)", response.getTextFromJsonBody("/all_access_role/description"));
+        }
+    }
+
 }

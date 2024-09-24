@@ -116,7 +116,7 @@ public class Migration {
             }
         }
 
-        SecurityDynamicConfiguration<TenantV7> tenantConfig = SecurityDynamicConfiguration.empty(CType.TENANTS);
+        SecurityDynamicConfiguration<TenantV7> tenantConfig = SecurityDynamicConfiguration.empty(CType.TENANTS, 2);
         tenantConfig.set_meta(new Meta());
         tenantConfig.get_meta().setConfig_version(2);
         tenantConfig.get_meta().setType("tenants");

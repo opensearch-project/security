@@ -63,7 +63,15 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private final Object modificationLock = new Object();
     private long seqNo = -1;
     private long primaryTerm = -1;
+    /**
+     * CType with a proper generic parameter. Will be null for older config versions. If you need the ctype anyway,
+     * refer to ctypeUnsafe.
+     */
     private CType<T> ctype;
+    /**
+     * CType with a ? generic parameter. Will be not null for older config versions.
+     */
+    private CType<?> ctypeUnsafe;
     private int version = -1;
 
     private SecurityDynamicConfiguration<?> autoConvertedFrom;
@@ -71,6 +79,13 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     public static <T> SecurityDynamicConfiguration<T> empty(CType<T> ctype) {
         return new SecurityDynamicConfiguration<T>(ctype);
     }
+
+    public static <T> SecurityDynamicConfiguration<T> empty(CType<T> ctype, int version) {
+        SecurityDynamicConfiguration<T> result = new SecurityDynamicConfiguration<T>(ctype);
+        result.version = version;
+        return result;
+    }
+
 
     @JsonIgnore
     public boolean notEmpty() {
@@ -105,6 +120,9 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
                     sdc._meta.setConfig_version(CURRENT_VERSION);
                     sdc._meta.setType(ctype.toLCString());
                 }
+                if (sdc.getAutoConvertedFrom() != null) {
+                    sdc.getAutoConvertedFrom().version = version;
+                }
                 version = CURRENT_VERSION;
             } else {
                 sdc = DefaultObjectMapper.readValue(
@@ -120,11 +138,32 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         }
 
         sdc.ctype = ctype;
+        sdc.ctypeUnsafe = ctype;
         sdc.seqNo = seqNo;
         sdc.primaryTerm = primaryTerm;
         sdc.version = version;
 
+        if (sdc.getAutoConvertedFrom() != null) {
+            sdc.getAutoConvertedFrom().seqNo = seqNo;
+            sdc.getAutoConvertedFrom().primaryTerm = primaryTerm;
+            sdc.getAutoConvertedFrom().ctypeUnsafe = ctype;
+        }
+
         return sdc;
+    }
+
+    /**
+     * Creates the SecurityDynamicConfiguration instance from the given JSON . If a config version is found, which
+     * is not the current one, no conversion will be performed. The configuration will be returned as it was found.
+     */
+    public static SecurityDynamicConfiguration<?> fromJsonWithoutAutoConversion(
+            String json,
+            CType<?> ctype,
+            int version,
+            long seqNo,
+            long primaryTerm
+    ) throws IOException {
+        return fromNodeWithoutAutoConversion(DefaultObjectMapper.readTree(json), ctype, version, seqNo, primaryTerm);
     }
 
     /**
@@ -213,6 +252,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private SecurityDynamicConfiguration(CType<T> ctype) {
         super();
         this.ctype = ctype;
+        this.ctypeUnsafe = ctype;
     }
 
     private Meta _meta;
@@ -346,6 +386,12 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     @JsonIgnore
+    public void setSeqNoPrimaryTerm(long seqNo, long primaryTerm) {
+        this.seqNo = seqNo;
+        this.primaryTerm = primaryTerm;
+    }
+
+    @JsonIgnore
     public CType<T> getCType() {
         return ctype;
     }
@@ -374,7 +420,15 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepClone() {
         try {
-            return fromJson(DefaultObjectMapper.writeValueAsString(this, false), ctype, version, seqNo, primaryTerm);
+            if (ctype != null) {
+                SecurityDynamicConfiguration<T> result = fromJson(DefaultObjectMapper.writeValueAsString(this, false), ctype, version, seqNo, primaryTerm);
+                result.autoConvertedFrom = this.autoConvertedFrom;
+                return result;
+            } else {
+                // We are on a pre-v7 config version. This can be only if we skipped auto conversion. So, we do here the same.
+                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(DefaultObjectMapper.writeValueAsString(this, false), ctypeUnsafe, version, seqNo, primaryTerm);
+                return result;
+            }
         } catch (Exception e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
@@ -384,7 +438,15 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepCloneWithRedaction() {
         try {
-            return fromJson(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctype, version, seqNo, primaryTerm);
+            if (ctype != null) {
+                SecurityDynamicConfiguration<T> result = fromJson(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctype, version, seqNo, primaryTerm);
+                result.autoConvertedFrom = this.autoConvertedFrom;
+                return result;
+            } else {
+                // We are on a pre-v7 config version. This can be only if we skipped auto conversion. So, we do here the same.
+                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctypeUnsafe, version, seqNo, primaryTerm);
+                return result;
+            }
         } catch (Exception e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }

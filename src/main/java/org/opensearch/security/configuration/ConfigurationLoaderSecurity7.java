@@ -59,6 +59,7 @@ import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v6.RoleV6;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
@@ -122,17 +123,6 @@ public class ConfigurationLoaderSecurity7 {
 
                 result.with(dConf);
 
-                if (dConf.getCType() == CType.ROLES && dConf.getAutoConvertedFrom() != null) {
-                    // Special case for configuration that was auto-converted from v6:
-                    // We need to generate tenant config from role config.
-                    // Having such a special case here is not optimal, but IMHO acceptable, as this
-                    // should be only a temporary measure until V6 configuration is completely discontinued.
-                    @SuppressWarnings("unchecked")
-                    SecurityDynamicConfiguration<RoleV6> roleV6config = (SecurityDynamicConfiguration<RoleV6>) dConf.getAutoConvertedFrom();
-                    SecurityDynamicConfiguration<TenantV7> tenants = Migration.createTenants(roleV6config);
-                    result.with(tenants);
-                }
-
                 latch.countDown();
                 if (isDebugEnabled) {
                     log.debug(
@@ -158,28 +148,11 @@ public class ConfigurationLoaderSecurity7 {
             public void noData(String id) {
                 CType<?> cType = CType.fromString(id);
 
-                // when index was created with ES 6 there are no separate tenants. So we load just empty ones.
-                // when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
-                if (cs.state().metadata().index(securityIndex).getCreationVersion().before(LegacyESVersion.V_7_0_0)) {
-                    // created with SG 6
-                    // skip tenants
-
-                    if (isDebugEnabled) {
-                        log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6)");
-                    }
-
-                    if (cType == CType.TENANTS) {
-                        rs.put(cType, SecurityDynamicConfiguration.empty());
-                        latch.countDown();
-                        return;
-                    }
-                }
-
                 // Since NODESDN is newly introduced data-type applying for existing clusters as well, we make it backward compatible by
                 // returning valid empty
                 // SecurityDynamicConfiguration.
                 // Same idea for new setting WHITELIST/ALLOWLIST
-                if (cType == CType.NODESDN || cType == CType.WHITELIST || cType == CType.ALLOWLIST) {
+                if (cType == CType.NODESDN || cType == CType.WHITELIST || cType == CType.ALLOWLIST || cType == CType.TENANTS) {
                     try {
                         SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(
                             cType,
@@ -233,6 +206,20 @@ public class ConfigurationLoaderSecurity7 {
                     + securityIndex
                     + ")"
             );
+        }
+
+        SecurityDynamicConfiguration<RoleV7> roleConfig = result.get(CType.ROLES);
+        SecurityDynamicConfiguration<TenantV7> tenantConfig = result.get(CType.TENANTS);
+
+        if (roleConfig != null && roleConfig.getAutoConvertedFrom() != null && (tenantConfig == null || tenantConfig.getCEntries().isEmpty())) {
+            // Special case for configuration that was auto-converted from v6:
+            // We need to generate tenant config from role config.
+            // Having such a special case here is not optimal, but IMHO acceptable, as this
+            // should be only a temporary measure until V6 configuration is completely discontinued.
+            @SuppressWarnings("unchecked")
+            SecurityDynamicConfiguration<RoleV6> roleV6config = (SecurityDynamicConfiguration<RoleV6>) roleConfig.getAutoConvertedFrom();
+            SecurityDynamicConfiguration<TenantV7> tenants = Migration.createTenants(roleV6config);
+            result.with(tenants);
         }
 
         return result.build();

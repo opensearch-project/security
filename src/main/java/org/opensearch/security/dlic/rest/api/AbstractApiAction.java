@@ -455,16 +455,14 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     protected final SecurityDynamicConfiguration<?> load(final CType<?> config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
-            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
-            .get(config)
+            .getUnconvertedConfigurationFromIndex(config, logComplianceEvent)
             .deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
     protected final SecurityDynamicConfiguration<?> loadAndRedact(final CType<?> config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
-            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
-            .get(config)
+            .getUnconvertedConfigurationFromIndex(config, logComplianceEvent)
             .deepCloneWithRedaction();
         return DynamicConfigFactory.addStatics(loaded);
     }
