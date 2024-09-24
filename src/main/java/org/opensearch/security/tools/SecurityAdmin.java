@@ -27,6 +27,7 @@
 package org.opensearch.security.tools;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
+
 import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
@@ -108,7 +109,6 @@ import org.opensearch.client.indices.GetIndexRequest.Feature;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.transport.NoNodeAvailableException;
 import org.opensearch.cluster.health.ClusterHealthStatus;
-import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -125,23 +125,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.securityconf.Migration;
-import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.NodesDn;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.securityconf.impl.v6.ConfigV6;
-import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
-import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
-import org.opensearch.security.securityconf.impl.v6.RoleV6;
-import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
-import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
-import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
@@ -338,10 +322,6 @@ public class SecurityAdmin {
         options.addOption(Option.builder("backup").hasArg().argName("folder").desc("Backup configuration to folder").build());
 
         options.addOption(
-            Option.builder("migrate").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build()
-        );
-
-        options.addOption(
             Option.builder("rev")
                 .longOpt("resolve-env-vars")
                 .desc("Resolve/Substitute env vars in config with their value before uploading")
@@ -355,15 +335,6 @@ public class SecurityAdmin {
                 .argName("version")
                 .longOpt("validate-configs")
                 .desc("Validate config for version 6 or 7 (default 7)")
-                .build()
-        );
-
-        options.addOption(
-            Option.builder("mo")
-                .longOpt("migrate-offline")
-                .hasArg()
-                .argName("folder")
-                .desc("Migrate and use folder to store migrated files")
                 .build()
         );
 
@@ -406,10 +377,8 @@ public class SecurityAdmin {
         final boolean promptForPassword;
         String explicitReplicas = null;
         String backup = null;
-        String migrate = null;
         final boolean resolveEnvVars;
         Integer validateConfig = null;
-        String migrateOffline = null;
 
         InjectableValues.Std injectableValues = new InjectableValues.Std();
         injectableValues.addValue(Settings.class, Settings.builder().build());
@@ -495,8 +464,6 @@ public class SecurityAdmin {
 
             backup = line.getOptionValue("backup");
 
-            migrate = line.getOptionValue("migrate");
-
             resolveEnvVars = line.hasOption("rev");
 
             validateConfig = !line.hasOption("vc") ? null : Integer.parseInt(line.getOptionValue("vc", "7"));
@@ -504,8 +471,6 @@ public class SecurityAdmin {
             if (validateConfig != null && validateConfig.intValue() != 6 && validateConfig.intValue() != 7) {
                 throw new ParseException("version must be 6 or 7");
             }
-
-            migrateOffline = line.getOptionValue("mo");
 
         } catch (ParseException exp) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
@@ -516,12 +481,6 @@ public class SecurityAdmin {
         if (validateConfig != null) {
             System.out.println("Validate configuration for Version " + validateConfig.intValue());
             return validateConfig(cd, file, type, validateConfig.intValue());
-        }
-
-        if (migrateOffline != null) {
-            System.out.println("Migrate " + migrateOffline + " offline");
-            final boolean retVal = Migrater.migrateDirectory(new File(migrateOffline), true);
-            return retVal ? 0 : -1;
         }
 
         System.out.print("Will connect to " + hostname + ":" + port);
@@ -938,14 +897,6 @@ public class SecurityAdmin {
 
             if (backup != null) {
                 return backup(restHighLevelClient, index, new File(backup), legacy);
-            }
-
-            if (migrate != null) {
-                if (!legacy) {
-                    System.out.println("ERR: Seems cluster is already migrated");
-                    return -1;
-                }
-                return migrate(restHighLevelClient, index, new File(migrate), expectedNodeCount, resolveEnvVars);
             }
 
             boolean isCdAbs = new File(cd).isAbsolute();
@@ -1526,99 +1477,6 @@ public class SecurityAdmin {
 
         System.out.println("Done with " + (success ? "success" : "failures"));
         return (success ? 0 : -1);
-    }
-
-    private static int migrate(RestHighLevelClient tc, String index, File backupDir, int expectedNodeCount, boolean resolveEnvVars)
-        throws IOException {
-
-        System.out.println("== Migration started ==");
-        System.out.println("=======================");
-
-        System.out.println("-> Backup current configuration to " + backupDir.getAbsolutePath());
-
-        if (backup(tc, index, backupDir, true) != 0) {
-            return -1;
-        }
-
-        System.out.println("  done");
-
-        File v7Dir = new File(backupDir, "v7");
-        v7Dir.mkdirs();
-
-        try {
-
-            System.out.println("-> Migrate configuration to new format and store it here: " + v7Dir.getAbsolutePath());
-            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "action_groups.yml")),
-                    CType.ACTIONGROUPS,
-                    1,
-                    0,
-                    0
-                )
-            );
-            SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(
-                Migration.readYaml(new File(backupDir, "config.yml"), ConfigV6.class)
-            );
-            SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(
-                Migration.readYaml(new File(backupDir, "internal_users.yml"), InternalUserV6.class)
-            );
-            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = Migration.readYaml(
-                new File(backupDir, "roles_mapping.yml"),
-                RoleMappingsV6.class
-            );
-
-            Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(
-                Migration.readYaml(new File(backupDir, "roles.yml"), RoleV6.class),
-                rolesmappingV6
-            );
-            SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
-            SecurityDynamicConfiguration<NodesDn> nodesDn = Migration.migrateNodesDn(
-                Migration.readYaml(new File(backupDir, "nodes_dn.yml"), NodesDn.class)
-            );
-            SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettings = Migration.migrateWhitelistingSetting(
-                Migration.readYaml(new File(backupDir, "whitelist.yml"), WhitelistingSettings.class)
-            );
-            SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettings = Migration.migrateAllowlistingSetting(
-                Migration.readYaml(new File(backupDir, "allowlist.yml"), AllowlistingSettings.class)
-            );
-            SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(
-                Migration.readYaml(new File(backupDir, "audit.yml"), AuditConfig.class)
-            );
-
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/internal_users.yml"), internalUsersV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles.yml"), rolesTenantsV7.v1());
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/whitelist.yml"), whitelistingSettings);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/allowlist.yml"), allowlistingSettings);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/audit.yml"), audit);
-
-        } catch (Exception e) {
-            System.out.println("ERR: Unable to migrate config files due to " + e);
-            return -1;
-        }
-
-        System.out.println("  done");
-
-        System.out.println("-> Delete old " + index + " index");
-        deleteConfigIndex(tc, index, true);
-        System.out.println("  done");
-
-        System.out.println("-> Upload new configuration into OpenSearch cluster");
-
-        int uploadResult = upload(tc, index, v7Dir.getAbsolutePath() + "/", false, expectedNodeCount, resolveEnvVars);
-
-        if (uploadResult == 0) {
-            System.out.println("  done");
-        } else {
-            System.out.println("  ERR: unable to upload");
-        }
-
-        return uploadResult;
     }
 
     private static String readTypeFromFile(File file) throws IOException {

@@ -32,7 +32,6 @@ import java.util.List;
 
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.RoleMappings;
-import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
 
 public class RoleMappingsV7 extends RoleMappings implements Hideable {
 
@@ -44,17 +43,6 @@ public class RoleMappingsV7 extends RoleMappings implements Hideable {
 
     public RoleMappingsV7() {
         super();
-    }
-
-    public RoleMappingsV7(RoleMappingsV6 roleMappingsV6) {
-        super();
-        this.reserved = roleMappingsV6.isReserved();
-        this.hidden = roleMappingsV6.isHidden();
-        this.backend_roles = roleMappingsV6.getBackendroles();
-        this.and_backend_roles = roleMappingsV6.getAndBackendroles();
-        this.description = "Migrated from v6";
-        setHosts(roleMappingsV6.getHosts());
-        setUsers(roleMappingsV6.getUsers());
     }
 
     public boolean isReserved() {

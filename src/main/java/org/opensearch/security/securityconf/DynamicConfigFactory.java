@@ -29,7 +29,6 @@ package org.opensearch.security.securityconf;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,8 +56,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.securityconf.impl.v6.ConfigV6;
-import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
@@ -290,12 +287,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         initialized.set(true);
     }
 
-    private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {
-        @SuppressWarnings("unchecked")
-        SecurityDynamicConfiguration<ConfigV6> c = (SecurityDynamicConfiguration<ConfigV6>) sdc;
-        return c.getCEntry("opendistro_security");
-    }
-
     private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) sdc;
@@ -383,55 +374,16 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
     }
 
-    private static class InternalUsersModelV6 extends InternalUsersModel {
-
-        SecurityDynamicConfiguration<InternalUserV6> configuration;
-
-        public InternalUsersModelV6(SecurityDynamicConfiguration<InternalUserV6> configuration) {
-            super();
-            this.configuration = configuration;
-        }
-
-        @Override
-        public boolean exists(String user) {
-            return configuration.exists(user);
-        }
-
-        @Override
-        public List<String> getBackenRoles(String user) {
-            InternalUserV6 tmp = configuration.getCEntry(user);
-            return tmp == null ? null : tmp.getRoles();
-        }
-
-        @Override
-        public Map<String, String> getAttributes(String user) {
-            InternalUserV6 tmp = configuration.getCEntry(user);
-            return tmp == null ? null : tmp.getAttributes();
-        }
-
-        @Override
-        public String getDescription(String user) {
-            return null;
-        }
-
-        @Override
-        public String getHash(String user) {
-            InternalUserV6 tmp = configuration.getCEntry(user);
-            return tmp == null ? null : tmp.getHash();
-        }
-
-        public List<String> getSecurityRoles(String user) {
-            return Collections.emptyList();
-        }
-    }
-
     private static class NodesDnModelImpl extends NodesDnModel {
 
         SecurityDynamicConfiguration<NodesDn> configuration;
 
-        public NodesDnModelImpl(SecurityDynamicConfiguration<NodesDn> configuration) {
+        @SuppressWarnings("unchecked")
+        public NodesDnModelImpl(SecurityDynamicConfiguration<?> configuration) {
             super();
-            this.configuration = null == configuration.getCType() ? SecurityDynamicConfiguration.empty(CType.NODESDN) : configuration;
+            this.configuration = null == configuration.getCType()
+                ? SecurityDynamicConfiguration.empty(CType.NODESDN)
+                : (SecurityDynamicConfiguration<NodesDn>) configuration;
         }
 
         @Override

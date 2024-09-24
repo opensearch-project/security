@@ -64,9 +64,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private long seqNo = -1;
     private long primaryTerm = -1;
     private CType<T> ctype;
-    private int version = -1;
-
-    private SecurityDynamicConfiguration<?> autoConvertedFrom;
+    private int version = CURRENT_VERSION;
 
     public static <T> SecurityDynamicConfiguration<T> empty(CType<T> ctype) {
         return new SecurityDynamicConfiguration<T>(ctype);
@@ -96,22 +94,10 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     ) throws IOException {
         SecurityDynamicConfiguration<T> sdc = null;
         if (ctype != null) {
-            CType.OldConfigVersion<?, T> oldConfigVersion = ctype.findOldConfigVersion(version);
-
-            if (oldConfigVersion != null) {
-                sdc = oldConfigVersion.parseJson(ctype, json, acceptInvalid);
-                if (sdc._meta == null) {
-                    sdc._meta = new Meta();
-                    sdc._meta.setConfig_version(CURRENT_VERSION);
-                    sdc._meta.setType(ctype.toLCString());
-                }
-                version = CURRENT_VERSION;
-            } else {
-                sdc = DefaultObjectMapper.readValue(
-                    json,
-                    DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
-                );
-            }
+            sdc = DefaultObjectMapper.readValue(
+                json,
+                DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
+            );
 
             validate(sdc, version, ctype);
 
@@ -120,40 +106,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         }
 
         sdc.ctype = ctype;
-        sdc.seqNo = seqNo;
-        sdc.primaryTerm = primaryTerm;
-        sdc.version = version;
-
-        return sdc;
-    }
-
-    /**
-     * Creates the SecurityDynamicConfiguration instance from the given JsonNode. If a config version is found, which
-     * is not the current one, no conversion will be performed. The configuration will be returned as it was found.
-     */
-    public static SecurityDynamicConfiguration<?> fromNodeWithoutAutoConversion(
-        JsonNode jsonNode,
-        CType<?> ctype,
-        int version,
-        long seqNo,
-        long primaryTerm
-    ) throws IOException {
-        Class<?> configClass;
-        CType.OldConfigVersion<?, ?> oldConfigVersion = ctype.findOldConfigVersion(version);
-
-        if (oldConfigVersion != null) {
-            configClass = oldConfigVersion.getOldType();
-        } else {
-            configClass = ctype.getConfigClass();
-        }
-
-        SecurityDynamicConfiguration<?> sdc = DefaultObjectMapper.convertValue(
-            jsonNode,
-            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, configClass)
-        );
-
-        validate(sdc, version, ctype);
-
         sdc.seqNo = seqNo;
         sdc.primaryTerm = primaryTerm;
         sdc.version = version;
@@ -174,21 +126,15 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     public static void validate(SecurityDynamicConfiguration<?> sdc, int version, CType<?> ctype) throws IOException {
-        if (version < 2 && sdc.get_meta() != null) {
-            throw new IOException("A version of " + version + " can not have a _meta key for " + ctype);
+        if (version < 2) {
+            throw new IOException("Config version " + version + " is not supported");
         }
 
-        if (version >= 2 && sdc.get_meta() == null) {
+        if (sdc.get_meta() == null) {
             throw new IOException("A version of " + version + " must have a _meta key for " + ctype);
         }
 
-        if (version < 2
-            && ctype == CType.CONFIG
-            && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("opendistro_security"))) {
-            throw new IOException("A version of " + version + " must have a single toplevel key named 'opendistro_security' for " + ctype);
-        }
-
-        if (version >= 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("config"))) {
+        if (ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("config"))) {
             throw new IOException("A version of " + version + " must have a single toplevel key named 'config' for " + ctype);
         }
 
@@ -353,16 +299,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public int getVersion() {
         return version;
-    }
-
-    @JsonIgnore
-    public SecurityDynamicConfiguration<?> getAutoConvertedFrom() {
-        return autoConvertedFrom;
-    }
-
-    @JsonIgnore
-    public void setAutoConvertedFrom(SecurityDynamicConfiguration<?> autoConvertedFrom) {
-        this.autoConvertedFrom = autoConvertedFrom;
     }
 
     @JsonIgnore
