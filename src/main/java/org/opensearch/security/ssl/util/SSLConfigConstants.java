@@ -48,6 +48,7 @@ public final class SSLConfigConstants {
         "plugins.security.ssl.transport.enforce_hostname_verification";
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME =
         "plugins.security.ssl.transport.resolve_hostname";
+
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = "plugins.security.ssl.transport.enforce_cert_reload_dn_verification";
     public static final Boolean SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION_DEFAULT = true;
     public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.keystore_alias";

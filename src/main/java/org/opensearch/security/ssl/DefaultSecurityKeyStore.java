@@ -642,7 +642,6 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
      * If the current and new certificates are same, skip remaining checks.
      * For new X509 cert to be valid Issuer, Subject DN must be the same and
      * new certificates should expire after current ones.
-     *
      * @param currentX509Certs Array of current x509 certificates
      * @param newX509Certs     Array of x509 certificates which will replace our current cert
      * @param verifyValidDNs   Whether to verify that new certs have valid IssuerDN, SubjectDN and SAN

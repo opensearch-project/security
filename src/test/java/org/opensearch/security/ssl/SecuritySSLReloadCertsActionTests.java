@@ -386,22 +386,22 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
     /**
      * Helper method to initialize test cluster for SSL Certificate Reload Tests
-     *
-     * @param transportPemCertFilePath        Absolute Path to transport pem cert file
-     * @param transportPemKeyFilePath         Absolute Path to transport pem key file
-     * @param httpPemCertFilePath             Absolute Path to transport pem cert file
-     * @param httpPemKeyFilePath              Absolute Path to transport pem key file
-     * @param sslCertReload                   Sets the ssl cert reload flag
-     * @param httpEnforceReloadDnVerification
+     * @param transportPemCertFilePath             Absolute Path to transport pem cert file
+     * @param transportPemKeyFilePath              Absolute Path to transport pem key file
+     * @param httpPemCertFilePath                  Absolute Path to transport pem cert file
+     * @param httpPemKeyFilePath                   Absolute Path to transport pem key file
+     * @param sslCertReload                        Sets the ssl cert reload flag
+     * @param httpEnforceReloadDnVerification      Sets the http enforce reload dn verification flag
+     * @param transportEnforceReloadDnVerification Sets the transport enforce reload dn verification flag
      */
     private void initTestCluster(
-            final String transportPemCertFilePath,
-            final String transportPemKeyFilePath,
-            final String httpPemCertFilePath,
-            final String httpPemKeyFilePath,
-            final boolean sslCertReload,
-            final boolean httpEnforceReloadDnVerification,
-            final boolean transportEnforceReloadDnVerification
+        final String transportPemCertFilePath,
+        final String transportPemKeyFilePath,
+        final String httpPemCertFilePath,
+        final String httpPemKeyFilePath,
+        final boolean sslCertReload,
+        final boolean httpEnforceReloadDnVerification,
+        final boolean transportEnforceReloadDnVerification
     ) throws Exception {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, "CN=kirk,OU=client,O=client,L=Test,C=DE")
