@@ -68,7 +68,7 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
         
             final String templateName = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NAME, "opensearch-security-auditlog");
             final Integer numberOfReplicas = sinkSettings.getAsInt(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_REPLICAS, 0);
-            final Integer numberOfShards = sinkSettings.getAsInt(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS, 1);
+            final Integer numberOfShards = sinkSettings.getAsInt(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS, 3);
 
             ComposableIndexTemplate template = new ComposableIndexTemplate(
                 List.of(dataStreamName),
