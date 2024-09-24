@@ -79,7 +79,7 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
             );
             final Integer numberOfShards = sinkSettings.getAsInt(
                 ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS,
-                3
+                1
             );
 
             ComposableIndexTemplate template = new ComposableIndexTemplate(

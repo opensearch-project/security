@@ -1620,7 +1620,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Setting.intSetting(
                     ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
                         + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS,
-                    3,
+                    1,
                     Property.NodeScope,
                     Property.Filtered
                 )
