@@ -136,7 +136,15 @@ public class SinkProvider {
                     sink = new InternalOpenSearchSink(name, settings, settingsPrefix, configPath, clientProvider, threadPool, fallbackSink);
                     break;
                 case "internal_opensearch_data_stream":
-                    sink = new InternalOpenSearchDataStreamSink(name, settings, settingsPrefix, configPath, clientProvider, threadPool, fallbackSink);
+                    sink = new InternalOpenSearchDataStreamSink(
+                        name,
+                        settings,
+                        settingsPrefix,
+                        configPath,
+                        clientProvider,
+                        threadPool,
+                        fallbackSink
+                    );
                     break;
                 case "external_opensearch":
                     try {

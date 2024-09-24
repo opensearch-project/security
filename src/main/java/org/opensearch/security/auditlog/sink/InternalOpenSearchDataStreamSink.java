@@ -11,24 +11,24 @@
 
 package org.opensearch.security.auditlog.sink;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.cluster.metadata.ComposableIndexTemplate;
-import org.opensearch.cluster.metadata.Template;
-import org.opensearch.cluster.metadata.DataStream;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.ComposableIndexTemplate;
+import org.opensearch.cluster.metadata.DataStream;
+import org.opensearch.cluster.metadata.Template;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.transport.RemoteTransportException;
 
 public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpenSearchSink {
@@ -61,18 +61,34 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
 
         Settings sinkSettings = getSinkSettings(settingsPrefix);
 
-        final boolean templateManage = sinkSettings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_MANAGE, true);
+        final boolean templateManage = sinkSettings.getAsBoolean(
+            ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_MANAGE,
+            true
+        );
 
         // Create datastream template
         if (templateManage) {
-        
-            final String templateName = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NAME, "opensearch-security-auditlog");
-            final Integer numberOfReplicas = sinkSettings.getAsInt(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_REPLICAS, 0);
-            final Integer numberOfShards = sinkSettings.getAsInt(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS, 3);
+
+            final String templateName = sinkSettings.get(
+                ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NAME,
+                "opensearch-security-auditlog"
+            );
+            final Integer numberOfReplicas = sinkSettings.getAsInt(
+                ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_REPLICAS,
+                0
+            );
+            final Integer numberOfShards = sinkSettings.getAsInt(
+                ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS,
+                3
+            );
 
             ComposableIndexTemplate template = new ComposableIndexTemplate(
                 List.of(dataStreamName),
-                new Template(Settings.builder().put("number_of_shards", numberOfShards).put("number_of_replicas", numberOfReplicas).build(), null, null),
+                new Template(
+                    Settings.builder().put("number_of_shards", numberOfShards).put("number_of_replicas", numberOfReplicas).build(),
+                    null,
+                    null
+                ),
                 null,
                 null,
                 null,
@@ -102,14 +118,11 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
             }
             this.dataStreamInitialized = true;
         } catch (final Exception e) {
-            if ( 
-              e.getCause() instanceof ResourceAlreadyExistsException ||
-              e.getCause() instanceof RemoteTransportException && e.getCause().getCause() instanceof ResourceAlreadyExistsException
-            ) {
+            if (e.getCause() instanceof ResourceAlreadyExistsException
+                || e.getCause() instanceof RemoteTransportException && e.getCause().getCause() instanceof ResourceAlreadyExistsException) {
                 log.trace("Datastream {} already exists", dataStreamName);
                 this.dataStreamInitialized = true;
-            }
-            else {
+            } else {
                 log.error("Cannot create datastream {} due to", dataStreamName, e);
                 return false;
             }
@@ -126,8 +139,8 @@ public final class InternalOpenSearchDataStreamSink extends AbstractInternalOpen
     public boolean doStore(final AuditMessage msg) {
 
         if (!this.initDataStream()) {
-          log.error("Datastream initializaten failed. Cannot write to auditlog");
-          return false;
+            log.error("Datastream initializaten failed. Cannot write to auditlog");
+            return false;
         }
 
         return super.doStore(msg, this.dataStreamName);

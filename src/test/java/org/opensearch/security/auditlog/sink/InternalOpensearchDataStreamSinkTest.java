@@ -14,18 +14,18 @@ package org.opensearch.security.auditlog.sink;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 
+import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 
 public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitTest {
 
@@ -55,12 +55,15 @@ public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitT
 
         // Check audit logs exists in the datastream
         // It may take some milliseconds before the auditlogs are written to the datstream.
-        for (long stop = System.currentTimeMillis()+4000; stop > System.currentTimeMillis();) {
+        for (long stop = System.currentTimeMillis() + 4000; stop > System.currentTimeMillis();) {
 
             res = rh.executePostRequest(testDSName + "/_refresh", "{}", encodeBasicHeader("admin", "admin"));
             assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
-            res = rh.executeGetRequest(testDSName + "/_search?q=audit_rest_request_path%3A%22%2Fsf%22", encodeBasicHeader("admin", "admin"));
+            res = rh.executeGetRequest(
+                testDSName + "/_search?q=audit_rest_request_path%3A%22%2Fsf%22",
+                encodeBasicHeader("admin", "admin")
+            );
             if (Integer.valueOf(res.getTextFromJsonBody("/hits/total/value")) > 0) {
                 break;
             }
@@ -89,12 +92,15 @@ public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitT
 
         // Check audit logs exists in the datastream backend index
         // It may take some milliseconds before the auditlogs are written to the datstream.
-        for (long stop = System.currentTimeMillis()+4000; stop > System.currentTimeMillis();) {
+        for (long stop = System.currentTimeMillis() + 4000; stop > System.currentTimeMillis();) {
             res = rh.executePostRequest(testDSName + "/_refresh", "{}", encodeBasicHeader("admin", "admin"));
             assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
 
             // Check there are audit logs in the rollovered backend index
-            res = rh.executeGetRequest(".ds-" + testDSName + "-000002/_search?q=audit_rest_request_path%3A%22%2Fsf%22", encodeBasicHeader("admin", "admin"));
+            res = rh.executeGetRequest(
+                ".ds-" + testDSName + "-000002/_search?q=audit_rest_request_path%3A%22%2Fsf%22",
+                encodeBasicHeader("admin", "admin")
+            );
             if (Integer.valueOf(res.getTextFromJsonBody("/hits/total/value")) > 0) {
                 break;
             }
@@ -161,7 +167,7 @@ public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitT
     public void testTemplateSettings() throws Exception {
 
         var numberOfShards = "5";
-        var numberOfReplicas  = "3";
+        var numberOfReplicas = "3";
 
         // Set config to use a datastream as auditlog.
         Settings settings = Settings.builder()
@@ -177,9 +183,18 @@ public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitT
         setup(settings);
         setupStarfleetIndex();
 
-        HttpResponse res = restHelper().executeGetRequest("_index_template/opensearch-security-auditlog", encodeBasicHeader("admin", "admin"));
+        HttpResponse res = restHelper().executeGetRequest(
+            "_index_template/opensearch-security-auditlog",
+            encodeBasicHeader("admin", "admin")
+        );
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
-        assertThat(res.getTextFromJsonBody("/index_templates/0/index_template/template/settings/index/number_of_shards"), is(numberOfShards));
-        assertThat(res.getTextFromJsonBody("/index_templates/0/index_template/template/settings/index/number_of_replicas"), is(numberOfReplicas));
+        assertThat(
+            res.getTextFromJsonBody("/index_templates/0/index_template/template/settings/index/number_of_shards"),
+            is(numberOfShards)
+        );
+        assertThat(
+            res.getTextFromJsonBody("/index_templates/0/index_template/template/settings/index/number_of_replicas"),
+            is(numberOfReplicas)
+        );
     }
 }
