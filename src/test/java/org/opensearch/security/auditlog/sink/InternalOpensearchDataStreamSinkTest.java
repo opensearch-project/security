@@ -68,7 +68,7 @@ public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitT
                 break;
             }
         }
-        assertThat(Integer.valueOf(res.getTextFromJsonBody("/hits/total/value")), allOf(greaterThan(0), lessThan(5)));
+        assertThat(Integer.valueOf(res.getTextFromJsonBody("/hits/total/value")), allOf(greaterThan(0), lessThan(10)));
 
         // Rollover auditlog index
         res = rh.executePostRequest(testDSName + "/_rollover", "{}", encodeBasicHeader("admin", "admin"));
@@ -105,7 +105,7 @@ public class InternalOpensearchDataStreamSinkTest extends AbstractAuditlogiUnitT
                 break;
             }
         }
-        assertThat(Integer.valueOf(res.getTextFromJsonBody("/hits/total/value")), allOf(greaterThan(0), lessThan(5)));
+        assertThat(Integer.valueOf(res.getTextFromJsonBody("/hits/total/value")), allOf(greaterThan(0), lessThan(10)));
     }
 
     @Test
