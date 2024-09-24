@@ -1591,6 +1591,46 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
+            // Internal OpenSearch DataStream
+            settings.add(
+                Setting.simpleString(
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.boolSetting(
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_MANAGE,
+                    true,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.simpleString(
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NAME,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS,
+                    1,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_REPLICAS,
+                    0,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+
             // External OpenSearch
             settings.add(
                 Setting.listSetting(
