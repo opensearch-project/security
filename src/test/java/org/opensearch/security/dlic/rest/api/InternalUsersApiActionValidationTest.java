@@ -60,7 +60,6 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         allClusterPermissions.setCluster_permissions(List.of("*"));
         @SuppressWarnings("unchecked")
         final var c = (SecurityDynamicConfiguration<RoleV7>) rolesConfiguration;
-        c.putCEntry("some_role_with_static_mapping", allClusterPermissions);
         c.putCEntry("some_role_with_reserved_mapping", allClusterPermissions);
         c.putCEntry("some_role_with_hidden_mapping", allClusterPermissions);
 
@@ -72,7 +71,6 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         config.set("all_access", objectMapper.createObjectNode());
         config.set("regular_role", objectMapper.createObjectNode());
 
-        config.set("some_role_with_static_mapping", objectMapper.createObjectNode());
         config.set("some_role_with_reserved_mapping", objectMapper.createObjectNode().put("reserved", true));
         config.set("some_role_with_hidden_mapping", objectMapper.createObjectNode().put("hidden", true));
 
@@ -187,11 +185,6 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_reserved_mapping"));
         result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
         assertFalse(result.isValid());
-        // should not be ok to set role with static role mapping
-        userJson = objectMapper.createObjectNode()
-            .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_static_mapping"));
-        result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
-        assertTrue(result.isValid());
     }
 
     private InternalUsersApiAction createInternalUsersApiAction() {
