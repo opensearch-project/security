@@ -67,7 +67,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private int version = CURRENT_VERSION;
 
     public static <T> SecurityDynamicConfiguration<T> empty(CType<T> ctype) {
-        return new SecurityDynamicConfiguration<T>(ctype);
+        SecurityDynamicConfiguration<T> result = new SecurityDynamicConfiguration<T>(ctype);
+        result._meta = new Meta();
+        result._meta.setType(ctype.toLCString());
+        result._meta.setConfig_version(CURRENT_VERSION);
+        return result;
     }
 
     @JsonIgnore
