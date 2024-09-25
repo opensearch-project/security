@@ -127,7 +127,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     public static void validate(SecurityDynamicConfiguration<?> sdc, int version, CType<?> ctype) throws IOException {
         if (version < 2) {
-            throw new IOException("Config version " + version + " is not supported");
+            throw new IOException("Config version " + version + " is not supported; config type: " + ctype);
         }
 
         if (sdc.get_meta() == null) {

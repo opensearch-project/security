@@ -599,21 +599,6 @@ public class SecurityAdminTests extends SingleClusterTest {
         Assert.assertNotEquals(0, returnCode);
 
         argsAsList = new ArrayList<>();
-        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH + "legacy/securityconfig_v6");
-        argsAsList.add("-vc");
-
-        returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertNotEquals(0, returnCode);
-
-        argsAsList = new ArrayList<>();
-        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH + "legacy/securityconfig_v6");
-        argsAsList.add("-vc");
-        argsAsList.add("6");
-
-        returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        assertThat(returnCode, is(0));
-
-        argsAsList = new ArrayList<>();
         addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-vc");
         argsAsList.add("8");

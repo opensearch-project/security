@@ -300,23 +300,6 @@ public class ConfigurationLoaderSecurity7 {
                 log.debug("Load " + id + " with version " + configVersion);
             }
 
-            if (CType.ACTIONGROUPS.toLCString().equals(id)) {
-                try {
-                    return SecurityDynamicConfiguration.fromJson(
-                        jsonAsString,
-                        CType.fromString(id),
-                        configVersion,
-                        seqNo,
-                        primaryTerm,
-                        acceptInvalid
-                    );
-                } catch (Exception e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Unable to load " + id + " with version " + configVersion + " - Try loading legacy format ...");
-                    }
-                    return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), 0, seqNo, primaryTerm, acceptInvalid);
-                }
-            }
             return SecurityDynamicConfiguration.fromJson(
                 jsonAsString,
                 CType.fromString(id),
