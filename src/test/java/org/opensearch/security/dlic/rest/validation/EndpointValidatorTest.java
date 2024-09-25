@@ -353,7 +353,6 @@ public class EndpointValidatorTest {
         restAdminPermissions().forEach(array::add);
 
         doReturn(CType.ROLES).when(configuration).getCType();
-        when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         when(configuration.exists("some_role")).thenReturn(false);
         when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
@@ -380,7 +379,6 @@ public class EndpointValidatorTest {
     @Test
     public void regularUserCanNotChangeObjectWithRestAdminPermissionsForMewActionGroups() throws Exception {
         doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
-        when(configuration.getVersion()).thenReturn(2);
         when(configuration.getImplementingClass()).thenCallRealMethod();
         when(configuration.exists("some_ag")).thenReturn(false);
         when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
