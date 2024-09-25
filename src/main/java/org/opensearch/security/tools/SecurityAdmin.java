@@ -139,7 +139,6 @@ import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
 @SuppressWarnings("deprecation")
 public class SecurityAdmin {
 
-    private static final boolean CREATE_AS_LEGACY = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_CREATE_AS_LEGACY"));
     private static final boolean ALLOW_MIXED = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_ALLOW_MIXED_CLUSTER"));
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
@@ -586,9 +585,7 @@ public class SecurityAdmin {
             if (updateSettings != null) {
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();
                 Response res = restHighLevelClient.getLowLevelClient()
-                    .performRequest(
-                        new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(true)))
-                    );
+                    .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
 
                 if (res.getStatusLine().getStatusCode() != 200) {
                     System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
@@ -609,9 +606,7 @@ public class SecurityAdmin {
 
             if (reload) {
                 Response res = restHighLevelClient.getLowLevelClient()
-                    .performRequest(
-                        new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(false)))
-                    );
+                    .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
 
                 if (res.getStatusLine().getStatusCode() != 200) {
                     System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
@@ -641,9 +636,7 @@ public class SecurityAdmin {
                     .put("index.auto_expand_replicas", replicaAutoExpand ? "0-all" : "false")
                     .build();
                 Response res = restHighLevelClient.getLowLevelClient()
-                    .performRequest(
-                        new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(false)))
-                    );
+                    .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
 
                 if (res.getStatusLine().getStatusCode() != 200) {
                     System.out.println("Unable to reload configuration because return code was " + whoAmIRes.getStatusLine());
@@ -837,66 +830,30 @@ public class SecurityAdmin {
                 }
             }
 
-            final boolean createLegacyMode = !indexExists && CREATE_AS_LEGACY;
-
-            if (createLegacyMode) {
-                System.out.println(
-                    "We forcibly create the new index in legacy mode so that ES 6 config can be uploaded. To move to v7 configs youneed to migrate."
-                );
-            }
-
-            final boolean legacy = createLegacyMode
-                || (indexExists
-                    && securityIndex.getMappings() != null
-                    && securityIndex.getMappings().get(index) != null
-                    && securityIndex.getMappings().get(index).getSourceAsMap().containsKey("security"));
-
-            if (legacy) {
-                System.out.println("Legacy index '" + index + "' (ES 6) detected (or forced). You should migrate the configuration!");
-            }
-
             if (retrieve) {
                 String date = DATE_FORMAT.format(new Date());
 
-                boolean success = retrieveFile(restHighLevelClient, cd + "config_" + date + ".yml", index, "config", legacy);
-                success = retrieveFile(restHighLevelClient, cd + "roles_" + date + ".yml", index, "roles", legacy) && success;
-                success = retrieveFile(restHighLevelClient, cd + "roles_mapping_" + date + ".yml", index, "rolesmapping", legacy)
-                    && success;
-                success = retrieveFile(restHighLevelClient, cd + "internal_users_" + date + ".yml", index, "internalusers", legacy)
-                    && success;
-                success = retrieveFile(restHighLevelClient, cd + "action_groups_" + date + ".yml", index, "actiongroups", legacy)
-                    && success;
-                success = retrieveFile(restHighLevelClient, cd + "audit_" + date + ".yml", index, "audit", legacy) && success;
+                boolean success = retrieveFile(restHighLevelClient, cd + "config_" + date + ".yml", index, "config");
+                success = retrieveFile(restHighLevelClient, cd + "roles_" + date + ".yml", index, "roles") && success;
+                success = retrieveFile(restHighLevelClient, cd + "roles_mapping_" + date + ".yml", index, "rolesmapping") && success;
+                success = retrieveFile(restHighLevelClient, cd + "internal_users_" + date + ".yml", index, "internalusers") && success;
+                success = retrieveFile(restHighLevelClient, cd + "action_groups_" + date + ".yml", index, "actiongroups") && success;
+                success = retrieveFile(restHighLevelClient, cd + "audit_" + date + ".yml", index, "audit") && success;
 
-                if (!legacy) {
-                    success = retrieveFile(restHighLevelClient, cd + "security_tenants_" + date + ".yml", index, "tenants", legacy)
-                        && success;
-                }
+                success = retrieveFile(restHighLevelClient, cd + "security_tenants_" + date + ".yml", index, "tenants") && success;
 
                 final boolean populateFileIfEmpty = true;
-                success = retrieveFile(restHighLevelClient, cd + "nodes_dn_" + date + ".yml", index, "nodesdn", legacy, populateFileIfEmpty)
+                success = retrieveFile(restHighLevelClient, cd + "nodes_dn_" + date + ".yml", index, "nodesdn", populateFileIfEmpty)
                     && success;
-                success = retrieveFile(
-                    restHighLevelClient,
-                    cd + "whitelist_" + date + ".yml",
-                    index,
-                    "whitelist",
-                    legacy,
-                    populateFileIfEmpty
-                ) && success;
-                success = retrieveFile(
-                    restHighLevelClient,
-                    cd + "allowlist_" + date + ".yml",
-                    index,
-                    "allowlist",
-                    legacy,
-                    populateFileIfEmpty
-                ) && success;
+                success = retrieveFile(restHighLevelClient, cd + "whitelist_" + date + ".yml", index, "whitelist", populateFileIfEmpty)
+                    && success;
+                success = retrieveFile(restHighLevelClient, cd + "allowlist_" + date + ".yml", index, "allowlist", populateFileIfEmpty)
+                    && success;
                 return (success ? 0 : -1);
             }
 
             if (backup != null) {
-                return backup(restHighLevelClient, index, new File(backup), legacy);
+                return backup(restHighLevelClient, index, new File(backup));
             }
 
             boolean isCdAbs = new File(cd).isAbsolute();
@@ -919,7 +876,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
 
-                boolean success = uploadFile(restHighLevelClient, file, index, type, legacy, resolveEnvVars);
+                boolean success = uploadFile(restHighLevelClient, file, index, type, resolveEnvVars);
 
                 if (!success) {
                     System.out.println("ERR: cannot upload configuration, see errors above");
@@ -934,7 +891,7 @@ public class SecurityAdmin {
                 return (success ? 0 : -1);
             }
 
-            return upload(restHighLevelClient, index, cd, legacy, expectedNodeCount, resolveEnvVars);
+            return upload(restHighLevelClient, index, cd, expectedNodeCount, resolveEnvVars);
         }
     }
 
@@ -1009,10 +966,9 @@ public class SecurityAdmin {
         final String filepath,
         final String index,
         final String _id,
-        final boolean legacy,
         boolean resolveEnvVars
     ) {
-        return uploadFile(restHighLevelClient, filepath, index, _id, legacy, resolveEnvVars, false);
+        return uploadFile(restHighLevelClient, filepath, index, _id, resolveEnvVars, false);
     }
 
     private static boolean uploadFile(
@@ -1020,37 +976,22 @@ public class SecurityAdmin {
         final String filepath,
         final String index,
         final String _id,
-        final boolean legacy,
         boolean resolveEnvVars,
         final boolean populateEmptyIfMissing
     ) {
 
         String id = _id;
 
-        if (legacy) {
-            id = _id;
-
-            try {
-                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
-            } catch (Exception e) {
-                System.out.println("ERR: Seems " + filepath + " is not in legacy format: " + e);
-                return false;
-            }
-
-        } else {
-            try {
-                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
-            } catch (Exception e) {
-                System.out.println("ERR: Seems " + filepath + " is not in OpenSearch Security 7 format: " + e);
-                return false;
-            }
+        try {
+            ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
+        } catch (Exception e) {
+            System.out.println("ERR: Seems " + filepath + " is not in OpenSearch Security 7 format: " + e);
+            return false;
         }
 
-        System.out.println("Will update '" + "/" + id + "' with " + filepath + " " + (legacy ? "(legacy mode)" : ""));
+        System.out.println("Will update '" + "/" + id + "' with " + filepath);
 
-        try (
-            Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)
-        ) {
+        try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), 2, filepath, populateEmptyIfMissing)) {
             final String content = CharStreams.toString(reader);
             final String res = restHighLevelClient.index(
                 new IndexRequest(index).id(id)
@@ -1078,10 +1019,9 @@ public class SecurityAdmin {
         final RestHighLevelClient restHighLevelClient,
         final String filepath,
         final String index,
-        final String _id,
-        final boolean legacy
+        final String _id
     ) {
-        return retrieveFile(restHighLevelClient, filepath, index, _id, legacy, false);
+        return retrieveFile(restHighLevelClient, filepath, index, _id, false);
     }
 
     private static boolean retrieveFile(
@@ -1089,17 +1029,11 @@ public class SecurityAdmin {
         final String filepath,
         final String index,
         final String _id,
-        final boolean legacy,
         final boolean populateFileIfEmpty
     ) {
         String id = _id;
 
-        if (legacy) {
-            id = _id;
-
-        }
-
-        System.out.println("Will retrieve '" + "/" + id + "' into " + filepath + " " + (legacy ? "(legacy mode)" : ""));
+        System.out.println("Will retrieve '" + "/" + id + "' into " + filepath);
         try (Writer writer = new FileWriter(filepath, StandardCharsets.UTF_8)) {
 
             final GetResponse response = restHighLevelClient.get(
@@ -1111,7 +1045,7 @@ public class SecurityAdmin {
             String yaml;
             if (isEmpty) {
                 if (populateFileIfEmpty) {
-                    yaml = ConfigHelper.createEmptySdcYaml(CType.fromString(_id), legacy ? 1 : 2);
+                    yaml = ConfigHelper.createEmptySdcYaml(CType.fromString(_id), 2);
                 } else {
                     System.out.println("   FAIL: Configuration for '" + _id + "' failed because of empty source");
                     return false;
@@ -1125,21 +1059,13 @@ public class SecurityAdmin {
 
                 }
 
-                if (legacy) {
-                    try {
-                        ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 1, 0, 0);
-                    } catch (Exception e) {
-                        System.out.println("ERR: Seems " + _id + " from cluster is not in legacy format: " + e);
-                        return false;
-                    }
-                } else {
-                    try {
-                        ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 2, 0, 0);
-                    } catch (Exception e) {
-                        System.out.println("ERR: Seems " + _id + " from cluster is not in 7 format: " + e);
-                        return false;
-                    }
+                try {
+                    ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 2, 0, 0);
+                } catch (Exception e) {
+                    System.out.println("ERR: Seems " + _id + " from cluster is not in 7 format: " + e);
+                    return false;
                 }
+
             }
 
             writer.write(yaml);
@@ -1417,53 +1343,43 @@ public class SecurityAdmin {
         }
     }
 
-    private static int backup(RestHighLevelClient tc, String index, File backupDir, boolean legacy) {
+    private static int backup(RestHighLevelClient tc, String index, File backupDir) {
         backupDir.mkdirs();
 
-        boolean success = retrieveFile(tc, backupDir.getAbsolutePath() + "/config.yml", index, "config", legacy);
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles.yml", index, "roles", legacy) && success;
+        boolean success = retrieveFile(tc, backupDir.getAbsolutePath() + "/config.yml", index, "config");
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles.yml", index, "roles") && success;
 
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles_mapping.yml", index, "rolesmapping", legacy) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/internal_users.yml", index, "internalusers", legacy) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/action_groups.yml", index, "actiongroups", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles_mapping.yml", index, "rolesmapping") && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/internal_users.yml", index, "internalusers") && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/action_groups.yml", index, "actiongroups") && success;
 
-        if (!legacy) {
-            success = retrieveFile(tc, backupDir.getAbsolutePath() + "/tenants.yml", index, "tenants", legacy) && success;
-        }
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/whitelist.yml", index, "whitelist", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/allowlist.yml", index, "allowlist", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/tenants.yml", index, "tenants") && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/nodes_dn.yml", index, "nodesdn", true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/whitelist.yml", index, "whitelist", true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/allowlist.yml", index, "allowlist", true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit") && success;
 
         return success ? 0 : -1;
     }
 
-    private static int upload(
-        RestHighLevelClient tc,
-        String index,
-        String cd,
-        boolean legacy,
-        int expectedNodeCount,
-        boolean resolveEnvVars
-    ) throws IOException {
-        boolean success = uploadFile(tc, cd + "config.yml", index, "config", legacy, resolveEnvVars);
-        success = uploadFile(tc, cd + "roles.yml", index, "roles", legacy, resolveEnvVars) && success;
-        success = uploadFile(tc, cd + "roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
+    private static int upload(RestHighLevelClient tc, String index, String cd, int expectedNodeCount, boolean resolveEnvVars)
+        throws IOException {
+        boolean success = uploadFile(tc, cd + "config.yml", index, "config", resolveEnvVars);
+        success = uploadFile(tc, cd + "roles.yml", index, "roles", resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "roles_mapping.yml", index, "rolesmapping", resolveEnvVars) && success;
 
-        success = uploadFile(tc, cd + "internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
-        success = uploadFile(tc, cd + "action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "internal_users.yml", index, "internalusers", resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "action_groups.yml", index, "actiongroups", resolveEnvVars) && success;
 
-        if (!legacy) {
-            success = uploadFile(tc, cd + "tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
-        }
+        success = uploadFile(tc, cd + "tenants.yml", index, "tenants", resolveEnvVars) && success;
 
-        success = uploadFile(tc, cd + "nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
-        success = uploadFile(tc, cd + "whitelist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "nodes_dn.yml", index, "nodesdn", resolveEnvVars, true) && success;
+        success = uploadFile(tc, cd + "whitelist.yml", index, "whitelist", resolveEnvVars) && success;
         if (new File(cd + "audit.yml").exists()) {
-            success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd + "audit.yml", index, "audit", resolveEnvVars) && success;
         }
         if (new File(cd + "allowlist.yml").exists()) {
-            success = uploadFile(tc, cd + "allowlist.yml", index, "allowlist", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd + "allowlist.yml", index, "allowlist", resolveEnvVars) && success;
         }
 
         if (!success) {
@@ -1472,8 +1388,8 @@ public class SecurityAdmin {
         }
 
         Response cur = tc.getLowLevelClient()
-            .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes((legacy)))));
-        success = checkConfigUpdateResponse(cur, expectedNodeCount, getTypes(legacy).length) && success;
+            .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
+        success = checkConfigUpdateResponse(cur, expectedNodeCount, getTypes().length) && success;
 
         System.out.println("Done with " + (success ? "success" : "failures"));
         return (success ? 0 : -1);
@@ -1539,10 +1455,7 @@ public class SecurityAdmin {
         }
     }
 
-    private static String[] getTypes(boolean legacy) {
-        if (legacy) {
-            return new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups", "nodesdn", "audit" };
-        }
+    private static String[] getTypes() {
         return CType.lcStringValues().toArray(new String[0]);
     }
 
