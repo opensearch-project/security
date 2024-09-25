@@ -86,7 +86,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return result;
     }
 
-
     @JsonIgnore
     public boolean notEmpty() {
         return !centries.isEmpty();
@@ -157,11 +156,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
      * is not the current one, no conversion will be performed. The configuration will be returned as it was found.
      */
     public static SecurityDynamicConfiguration<?> fromJsonWithoutAutoConversion(
-            String json,
-            CType<?> ctype,
-            int version,
-            long seqNo,
-            long primaryTerm
+        String json,
+        CType<?> ctype,
+        int version,
+        long seqNo,
+        long primaryTerm
     ) throws IOException {
         return fromNodeWithoutAutoConversion(DefaultObjectMapper.readTree(json), ctype, version, seqNo, primaryTerm);
     }
@@ -421,12 +420,24 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     public SecurityDynamicConfiguration<T> deepClone() {
         try {
             if (ctype != null) {
-                SecurityDynamicConfiguration<T> result = fromJson(DefaultObjectMapper.writeValueAsString(this, false), ctype, version, seqNo, primaryTerm);
+                SecurityDynamicConfiguration<T> result = fromJson(
+                    DefaultObjectMapper.writeValueAsString(this, false),
+                    ctype,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
                 result.autoConvertedFrom = this.autoConvertedFrom;
                 return result;
             } else {
                 // We are on a pre-v7 config version. This can be only if we skipped auto conversion. So, we do here the same.
-                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(DefaultObjectMapper.writeValueAsString(this, false), ctypeUnsafe, version, seqNo, primaryTerm);
+                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(
+                    DefaultObjectMapper.writeValueAsString(this, false),
+                    ctypeUnsafe,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
                 return result;
             }
         } catch (Exception e) {
@@ -439,12 +450,24 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     public SecurityDynamicConfiguration<T> deepCloneWithRedaction() {
         try {
             if (ctype != null) {
-                SecurityDynamicConfiguration<T> result = fromJson(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctype, version, seqNo, primaryTerm);
+                SecurityDynamicConfiguration<T> result = fromJson(
+                    DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this),
+                    ctype,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
                 result.autoConvertedFrom = this.autoConvertedFrom;
                 return result;
             } else {
                 // We are on a pre-v7 config version. This can be only if we skipped auto conversion. So, we do here the same.
-                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctypeUnsafe, version, seqNo, primaryTerm);
+                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(
+                    DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this),
+                    ctypeUnsafe,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
                 return result;
             }
         } catch (Exception e) {

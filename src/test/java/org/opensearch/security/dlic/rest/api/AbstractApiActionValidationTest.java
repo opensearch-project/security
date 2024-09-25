@@ -26,7 +26,6 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
@@ -41,7 +40,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @RunWith(MockitoJUnitRunner.class)
 public abstract class AbstractApiActionValidationTest {
@@ -101,9 +100,7 @@ public abstract class AbstractApiActionValidationTest {
         config.set("regular_role", objectMapper.createObjectNode().set("cluster_permissions", objectMapper.createArrayNode().add("*")));
 
         rolesConfiguration = SecurityDynamicConfiguration.fromJson(objectMapper.writeValueAsString(config), CType.ROLES, 2, 1, 1);
-        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false)).thenReturn(
-            ConfigurationMap.of(rolesConfiguration)
-        );
+        doReturn(rolesConfiguration).when(configurationRepository).getUnconvertedConfigurationFromIndex(CType.ROLES, false);
     }
 
     @Test

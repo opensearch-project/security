@@ -22,7 +22,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -43,6 +42,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 public class InternalUsersApiActionValidationTest extends AbstractApiActionValidationTest {
@@ -81,9 +81,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             1,
             1
         );
-        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLESMAPPING), false)).thenReturn(
-            ConfigurationMap.of(rolesMappingConfiguration)
-        );
+        doReturn(rolesMappingConfiguration).when(configurationRepository).getUnconvertedConfigurationFromIndex(CType.ROLESMAPPING, false);
     }
 
     @Test

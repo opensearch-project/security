@@ -38,7 +38,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.LegacyESVersion;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
 import org.opensearch.action.get.MultiGetRequest;
@@ -211,7 +210,9 @@ public class ConfigurationLoaderSecurity7 {
         SecurityDynamicConfiguration<RoleV7> roleConfig = result.get(CType.ROLES);
         SecurityDynamicConfiguration<TenantV7> tenantConfig = result.get(CType.TENANTS);
 
-        if (roleConfig != null && roleConfig.getAutoConvertedFrom() != null && (tenantConfig == null || tenantConfig.getCEntries().isEmpty())) {
+        if (roleConfig != null
+            && roleConfig.getAutoConvertedFrom() != null
+            && (tenantConfig == null || tenantConfig.getCEntries().isEmpty())) {
             // Special case for configuration that was auto-converted from v6:
             // We need to generate tenant config from role config.
             // Having such a special case here is not optimal, but IMHO acceptable, as this
