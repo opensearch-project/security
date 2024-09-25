@@ -201,7 +201,6 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         assertReloadCertificateSuccess(rh, "http", getInitCertDetailsExpectedResponse());
     }
 
-
     @Test
     public void testReloadHttpCertDifferentTrustChain_skipDnValidationPass() throws Exception {
         updateFiles(defaultCertFilePath, pemCertFilePath);
@@ -239,9 +238,11 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         assertThat(reloadCertsResponse.getStatusCode(), is(500));
         assertThat(
-                DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
-                is("OpenSearchSecurityException[Error while initializing http SSL layer from PEM: java.lang.Exception: "
-                        + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];")
+            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
+            is(
+                "OpenSearchSecurityException[Error while initializing http SSL layer from PEM: java.lang.Exception: "
+                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+            )
         );
     }
 
@@ -264,7 +265,10 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         assertThat(reloadCertsResponse.getBody(), is(expectedJsonResponse.toString()));
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        assertThat(DefaultObjectMapper.readTree(certDetailsResponse), is(getNewCertAuthorityUpdatedCertDetailsExpectedResponse("transport")));
+        assertThat(
+            DefaultObjectMapper.readTree(certDetailsResponse),
+            is(getNewCertAuthorityUpdatedCertDetailsExpectedResponse("transport"))
+        );
     }
 
     @Test
@@ -282,9 +286,11 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         assertThat(reloadCertsResponse.getStatusCode(), is(500));
         assertThat(
-                DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
-                is("OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
-                        + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];")
+            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
+            is(
+                "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
+                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+            )
         );
     }
 

@@ -647,7 +647,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
      * @param verifyValidDNs   Whether to verify that new certs have valid IssuerDN, SubjectDN and SAN
      * @throws Exception if certificate is invalid
      */
-    private void validateNewCerts(final X509Certificate[] currentX509Certs, final X509Certificate[] newX509Certs, final boolean verifyValidDNs) throws Exception {
+    private void validateNewCerts(
+        final X509Certificate[] currentX509Certs,
+        final X509Certificate[] newX509Certs,
+        final boolean verifyValidDNs
+    ) throws Exception {
 
         // First time we init certs ignore validity check
         if (currentX509Certs == null) {
