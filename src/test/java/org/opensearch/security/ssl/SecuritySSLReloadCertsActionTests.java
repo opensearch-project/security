@@ -247,6 +247,29 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
     }
 
     @Test
+    public void testReloadHttpCertDifferentTrustChain_defaultSettingValidationFail() throws Exception {
+        updateFiles(defaultCertFilePath, pemCertFilePath);
+        updateFiles(defaultKeyFilePath, pemKeyFilePath);
+        initTestCluster(pemCertFilePath, pemKeyFilePath, pemCertFilePath, pemKeyFilePath, true, null, true);
+
+        RestHelper rh = getRestHelperAdminUser();
+        // Change http certs to one signed by a different CA than the previous one
+        updateFiles("ssl/reload/node-new-ca.crt.pem", pemCertFilePath);
+        updateFiles("ssl/reload/node-new-ca.key.pem", pemKeyFilePath);
+
+        RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_HTTP_CERTS_ENDPOINT, null);
+
+        assertThat(reloadCertsResponse.getStatusCode(), is(500));
+        assertThat(
+            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
+            is(
+                "OpenSearchSecurityException[Error while initializing http SSL layer from PEM: java.lang.Exception: "
+                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+            )
+        );
+    }
+
+    @Test
     public void testReloadTransportCertDifferentTrustChain_skipDnValidationPass() throws Exception {
         updateFiles(defaultCertFilePath, pemCertFilePath);
         updateFiles(defaultKeyFilePath, pemKeyFilePath);
@@ -276,6 +299,29 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         updateFiles(defaultCertFilePath, pemCertFilePath);
         updateFiles(defaultKeyFilePath, pemKeyFilePath);
         initTestCluster(pemCertFilePath, pemKeyFilePath, pemCertFilePath, pemKeyFilePath, true, true, true);
+
+        RestHelper rh = getRestHelperAdminUser();
+        // Change transport certs to one signed by a different CA than the previous one
+        updateFiles("ssl/reload/node-new-ca.crt.pem", pemCertFilePath);
+        updateFiles("ssl/reload/node-new-ca.key.pem", pemKeyFilePath);
+
+        RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
+
+        assertThat(reloadCertsResponse.getStatusCode(), is(500));
+        assertThat(
+            DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
+            is(
+                "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
+                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+            )
+        );
+    }
+
+    @Test
+    public void testReloadTransportCertDifferentTrustChain_defaultSettingValidationFail() throws Exception {
+        updateFiles(defaultCertFilePath, pemCertFilePath);
+        updateFiles(defaultKeyFilePath, pemKeyFilePath);
+        initTestCluster(pemCertFilePath, pemKeyFilePath, pemCertFilePath, pemKeyFilePath, true, true, null);
 
         RestHelper rh = getRestHelperAdminUser();
         // Change transport certs to one signed by a different CA than the previous one
@@ -397,8 +443,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
      * @param httpPemCertFilePath                  Absolute Path to transport pem cert file
      * @param httpPemKeyFilePath                   Absolute Path to transport pem key file
      * @param sslCertReload                        Sets the ssl cert reload flag
-     * @param httpEnforceReloadDnVerification      Sets the http enforce reload dn verification flag
-     * @param transportEnforceReloadDnVerification Sets the transport enforce reload dn verification flag
+     * @param httpEnforceReloadDnVerification      Sets the http enforce reload dn verification flag if non-null
+     * @param transportEnforceReloadDnVerification Sets the transport enforce reload dn verification flag if non-null
      */
     private void initTestCluster(
         final String transportPemCertFilePath,
@@ -406,18 +452,16 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         final String httpPemCertFilePath,
         final String httpPemKeyFilePath,
         final boolean sslCertReload,
-        final boolean httpEnforceReloadDnVerification,
-        final boolean transportEnforceReloadDnVerification
+        final Boolean httpEnforceReloadDnVerification,
+        final Boolean transportEnforceReloadDnVerification
     ) throws Exception {
-        final Settings settings = Settings.builder()
+        final Settings.Builder settingsBuilder = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, "CN=kirk,OU=client,O=client,L=Test,C=DE")
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE")
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION, httpEnforceReloadDnVerification)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION, transportEnforceReloadDnVerification)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, transportPemCertFilePath)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, transportPemKeyFilePath)
             .put(
@@ -430,8 +474,17 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/root-ca.pem")
             )
-            .put(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, sslCertReload)
-            .build();
+            .put(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, sslCertReload);
+
+        if (httpEnforceReloadDnVerification != null) settingsBuilder.put(
+            SSLConfigConstants.SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
+            httpEnforceReloadDnVerification
+        );
+
+        if (transportEnforceReloadDnVerification != null) settingsBuilder.put(
+            SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
+            transportEnforceReloadDnVerification
+        );
 
         final Settings initTransportClientSettings = Settings.builder()
             .put(
@@ -445,7 +498,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
             )
             .build();
 
-        setup(initTransportClientSettings, new DynamicSecurityConfig(), settings, true, clusterConfiguration);
+        setup(initTransportClientSettings, new DynamicSecurityConfig(), settingsBuilder.build(), true, clusterConfiguration);
     }
 
 }
