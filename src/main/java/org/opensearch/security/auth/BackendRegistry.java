@@ -304,6 +304,7 @@ public class BackendRegistry {
                 if (authDomain.isChallenge()) {
                     final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
                     if (restResponse.isPresent()) {
+                        // saml will always hit this to re-request authentication
                         if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
                             auditLog.logFailedLogin("<NONE>", false, null, request);
                         }
