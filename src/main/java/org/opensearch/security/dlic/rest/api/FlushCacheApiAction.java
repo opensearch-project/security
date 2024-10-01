@@ -36,14 +36,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     private final static Logger LOGGER = LogManager.getLogger(FlushCacheApiAction.class);
 
-    private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(
-            new Route(Method.DELETE, "/cache"),
-            new Route(Method.GET, "/cache"),
-            new Route(Method.PUT, "/cache"),
-            new Route(Method.POST, "/cache")
-        )
-    );
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(Method.DELETE, "/cache")));
 
     @Inject
     public FlushCacheApiAction(
