@@ -37,7 +37,7 @@ public class ContextProvidingPluginSubjectTests {
 
         final Plugin testPlugin = new TestIdentityAwarePlugin();
 
-        final User pluginUser = new User(testPlugin.getClass().getCanonicalName());
+        final User pluginUser = new User("plugin:" + testPlugin.getClass().getCanonicalName());
 
         ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
 
@@ -63,7 +63,7 @@ public class ContextProvidingPluginSubjectTests {
 
         final PluginContextSwitcher contextSwitcher = new PluginContextSwitcher();
 
-        final User pluginUser = new User(testPlugin.getClass().getCanonicalName());
+        final User pluginUser = new User("plugin:" + testPlugin.getClass().getCanonicalName());
 
         ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
 
