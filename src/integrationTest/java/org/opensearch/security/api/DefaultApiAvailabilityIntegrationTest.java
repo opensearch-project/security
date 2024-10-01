@@ -95,9 +95,7 @@ public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegratio
 
     @Test
     public void flushCache() throws Exception {
-        withUser(NEW_USER, client -> {
-            forbidden(() -> client.delete(apiPath("cache")));
-        });
+        withUser(NEW_USER, client -> { forbidden(() -> client.delete(apiPath("cache"))); });
         withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), client -> {
             methodNotAllowed(() -> client.get(apiPath("cache")));
             methodNotAllowed(() -> client.postJson(apiPath("cache"), EMPTY_BODY));
