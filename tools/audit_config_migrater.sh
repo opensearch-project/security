@@ -1,10 +1,5 @@
 #!/bin/bash
 
-echo "**************************************************************************"
-echo "** This tool will be deprecated in the next major release of OpenSearch **"
-echo "** https://github.com/opensearch-project/security/issues/1755           **"
-echo "**************************************************************************"
-
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 if ! [ -x "$(command -v realpath)" ]; then
     if [ -L "$SCRIPT_PATH" ]; then
