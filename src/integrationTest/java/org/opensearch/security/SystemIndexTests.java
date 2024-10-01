@@ -18,7 +18,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.plugin.SystemIndexPlugin1;
 import org.opensearch.security.plugin.SystemIndexPlugin2;
@@ -52,8 +51,6 @@ public class SystemIndexTests {
         .plugin(SystemIndexPlugin1.class, SystemIndexPlugin2.class)
         .nodeSettings(
             Map.of(
-                FeatureFlags.IDENTITY,
-                true,
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
                 SECURITY_SYSTEM_INDICES_ENABLED_KEY,
