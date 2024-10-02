@@ -24,6 +24,7 @@ public enum Endpoint {
     PERMISSIONSINFO,
     AUTHTOKEN,
     TENANTS,
+    RATELIMITERS,
     MIGRATE,
     VALIDATE,
     WHITELIST,

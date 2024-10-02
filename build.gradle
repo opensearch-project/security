@@ -65,7 +65,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.10.0"
-    id "org.gradle.test-retry" version "1.5.10"
+    id "org.gradle.test-retry" version "1.6.0"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
@@ -471,7 +471,7 @@ configurations {
         resolutionStrategy {
             force 'commons-codec:commons-codec:1.17.1'
             force 'org.slf4j:slf4j-api:1.7.36'
-            force 'org.scala-lang:scala-library:2.13.14'
+            force 'org.scala-lang:scala-library:2.13.15'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
@@ -482,7 +482,7 @@ configurations {
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.6"
+            force "org.xerial.snappy:snappy-java:1.1.10.7"
             force "com.google.guava:guava:${guava_version}"
 
             // for spotbugs dependency conflict
@@ -495,9 +495,9 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.31.0"
-            force "org.checkerframework:checker-qual:3.46.0"
-            force "ch.qos.logback:logback-classic:1.5.7"
+            force "com.google.errorprone:error_prone_annotations:2.32.0"
+            force "org.checkerframework:checker-qual:3.47.0"
+            force "ch.qos.logback:logback-classic:1.5.8"
         }
     }
 
@@ -580,7 +580,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.9.0'
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.41.1'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
     //JWT
@@ -602,7 +602,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.17.1'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.31.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.32.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7'
@@ -639,14 +639,14 @@ dependencies {
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.6'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.7'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.46.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.47.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
@@ -679,8 +679,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.9.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.1'
     testImplementation('org.awaitility:awaitility:4.2.2') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -696,7 +696,7 @@ dependencies {
     testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.14'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.15'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
@@ -718,7 +718,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.16.1'
+    integrationTestImplementation 'commons-io:commons-io:2.17.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
