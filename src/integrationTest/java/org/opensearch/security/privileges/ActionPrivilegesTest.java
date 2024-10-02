@@ -36,12 +36,13 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.common.unit.ByteSizeUnit;
+import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
 
@@ -440,17 +441,24 @@ public class ActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA;
 
+                Settings settings = Settings.EMPTY;
+                if (statefulness == Statefulness.STATEFUL_LIMITED) {
+                    settings = Settings.builder()
+                        .put(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(), new ByteSizeValue(10, ByteSizeUnit.BYTES))
+                        .build();
+                }
+
                 this.subject = new ActionPrivileges(
                     roles,
                     FlattenedActionGroups.EMPTY,
                     () -> INDEX_METADATA,
-                    Settings.EMPTY,
+                    settings,
                     WellKnownActions.CLUSTER_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS
                 );
 
-                if (statefulness == Statefulness.STATEFUL) {
+                if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA, 1);
                 }
             }
@@ -613,9 +621,16 @@ public class ActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA;
 
-                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA, Settings.EMPTY);
+                Settings settings = Settings.EMPTY;
+                if (statefulness == Statefulness.STATEFUL_LIMITED) {
+                    settings = Settings.builder()
+                        .put(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(), new ByteSizeValue(10, ByteSizeUnit.BYTES))
+                        .build();
+                }
 
-                if (statefulness == Statefulness.STATEFUL) {
+                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA, settings);
+
+                if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA, 1);
                 }
             }
@@ -768,6 +783,7 @@ public class ActionPrivilegesTest {
 
         enum Statefulness {
             STATEFUL,
+            STATEFUL_LIMITED,
             NON_STATEFUL
         }
     }
@@ -784,7 +800,7 @@ public class ActionPrivilegesTest {
 
             assertTrue(
                 "relevantOnly() returned identical object",
-                ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, null) == metadata
+                ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata) == metadata
             );
         }
 
@@ -798,7 +814,7 @@ public class ActionPrivilegesTest {
             assertNotNull("Original metadata contains index_open_1", metadata.get("index_open_1"));
             assertNotNull("Original metadata contains index_closed", metadata.get("index_closed"));
 
-            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, null);
+            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata);
 
             assertNotNull("Filtered metadata contains index_open_1", filteredMetadata.get("index_open_1"));
             assertNull("Filtered metadata does not contain index_closed", filteredMetadata.get("index_closed"));
@@ -811,33 +827,10 @@ public class ActionPrivilegesTest {
             assertNotNull("Original metadata contains backing index", metadata.get(".ds-data_stream_1-000001"));
             assertNotNull("Original metadata contains data stream", metadata.get("data_stream_1"));
 
-            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, null);
+            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata);
 
             assertNull("Filtered metadata does not contain backing index", filteredMetadata.get(".ds-data_stream_1-000001"));
             assertNotNull("Filtered metadata contains data stream", filteredMetadata.get("data_stream_1"));
-        }
-
-        @Test
-        public void relevantOnly_includePattern() throws Exception {
-            Map<String, IndexAbstraction> metadata = //
-                indices("index_a11", "index_a12", "index_b1")//
-                    .alias("alias_a")
-                    .of("index_a11")//
-                    .build()
-                    .getIndicesLookup();
-
-            assertNotNull("Original metadata contains index_a11", metadata.get("index_a11"));
-            assertNotNull("Original metadata contains index_b1", metadata.get("index_b1"));
-            assertNotNull("Original metadata contains alias_a", metadata.get("alias_a"));
-
-            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(
-                metadata,
-                WildcardMatcher.from("index_a*", "alias_a*")
-            );
-
-            assertNotNull("Filtered metadata contains index_a11", filteredMetadata.get("index_a11"));
-            assertNull("Filtered metadata does not contain index_b1", filteredMetadata.get("index_b1"));
-            assertNotNull("Filtered metadata contains alias_a", filteredMetadata.get("alias_a"));
         }
 
         @Test
@@ -858,7 +851,7 @@ public class ActionPrivilegesTest {
                 "role_with_errors:\n"
                     + "  index_permissions:\n"
                     + "  - index_patterns: ['/invalid_regex_with_attr${user.name}\\/']\n"
-                    + "    allowed_actions: ['indices:some_action*']",
+                    + "    allowed_actions: ['indices:some_action*', 'indices:data/write/index']",
                 CType.ROLES
             );
 

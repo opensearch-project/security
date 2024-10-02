@@ -178,8 +178,7 @@ public class PrivilegesEvaluatorResponse {
 
     public static PrivilegesEvaluatorResponse partiallyOk(
         Set<String> availableIndices,
-        CheckTable<String, String> indexToActionCheckTable,
-        PrivilegesEvaluationContext context
+        CheckTable<String, String> indexToActionCheckTable
     ) {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.onlyAllowedForIndices = ImmutableSet.copyOf(availableIndices);
@@ -187,16 +186,13 @@ public class PrivilegesEvaluatorResponse {
         return response;
     }
 
-    public static PrivilegesEvaluatorResponse insufficient(String missingPrivilege, PrivilegesEvaluationContext context) {
+    public static PrivilegesEvaluatorResponse insufficient(String missingPrivilege) {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.of(missingPrivilege));
         return response;
     }
 
-    public static PrivilegesEvaluatorResponse insufficient(
-        CheckTable<String, String> indexToActionCheckTable,
-        PrivilegesEvaluationContext context
-    ) {
+    public static PrivilegesEvaluatorResponse insufficient(CheckTable<String, String> indexToActionCheckTable) {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.indexToActionCheckTable = indexToActionCheckTable;
         return response;

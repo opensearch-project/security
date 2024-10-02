@@ -17,12 +17,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.collections4.CollectionUtils;
@@ -33,7 +31,6 @@ import org.opensearch.cluster.metadata.DataStream;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.unit.ByteSizeUnit;
@@ -43,7 +40,6 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.threadpool.ThreadPool;
 
 import com.selectivem.collections.CheckTable;
 import com.selectivem.collections.CompactMapGroupBuilder;
@@ -57,7 +53,7 @@ import com.selectivem.collections.ImmutableCompactSubSet;
  * instance of this class corresponds to the life-cycle of the role and action group configuration. If the role or
  * action group configuration is changed, a new instance needs to be built.
  */
-public class ActionPrivileges {
+public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
     /**
      * This setting controls the allowed heap size of the precomputed index privileges (in the inner class StatefulIndexPrivileges).
@@ -67,26 +63,10 @@ public class ActionPrivileges {
      * This settings defaults to 10 MB. This is a generous limit. Experiments have shown that an example setup with
      * 10,000 indices and 1,000 roles requires about 1 MB of heap. 100,000 indices and 100 roles require about 9 MB of heap.
      * (Of course, these numbers can vary widely based on the actual role configuration).
-     * <p>
-     * The setting plugins.security.privileges_evaluation.precomputed_privileges.include_indices can be used to control
-     * for which indices the precomputed privileges shall be created. This allows to lower the heap utilization.
      */
     public static Setting<ByteSizeValue> PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE = Setting.memorySizeSetting(
         "plugins.security.privileges_evaluation.precomputed_privileges.max_heap_size",
         new ByteSizeValue(10, ByteSizeUnit.MB),
-        Setting.Property.NodeScope
-    );
-
-    /**
-     * Determines the indices which shall be included in the precomputed index privileges. Included indices get
-     * the fasted privilege evaluation.
-     * <p>
-     * You can use patterns like "index_*".
-     * <p>
-     * Defaults to all indices.
-     */
-    public static Setting<String> PRECOMPUTED_PRIVILEGES_INCLUDE_INDICES = Setting.simpleString(
-        "plugins.security.privileges_evaluation.precomputed_privileges.include_indices",
         Setting.Property.NodeScope
     );
 
@@ -100,11 +80,8 @@ public class ActionPrivileges {
     private final ImmutableSet<String> wellKnownIndexActions;
     private final Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier;
     private final ByteSizeValue statefulIndexMaxHeapSize;
-    private final WildcardMatcher statefulIndexIncludeIndices;
 
     private final AtomicReference<StatefulIndexPrivileges> statefulIndex = new AtomicReference<>();
-
-    private Future<?> updateFuture;
 
     public ActionPrivileges(
         SecurityDynamicConfiguration<RoleV7> roles,
@@ -123,10 +100,6 @@ public class ActionPrivileges {
         this.wellKnownIndexActions = wellKnownIndexActions;
         this.indexMetadataSupplier = indexMetadataSupplier;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
-        String statefulIndexIncludeIndices = PRECOMPUTED_PRIVILEGES_INCLUDE_INDICES.get(settings);
-        this.statefulIndexIncludeIndices = Strings.isNullOrEmpty(statefulIndexIncludeIndices)
-            ? null
-            : WildcardMatcher.from(statefulIndexIncludeIndices);
     }
 
     public ActionPrivileges(
@@ -246,7 +219,7 @@ public class ActionPrivileges {
     void updateStatefulIndexPrivileges(Map<String, IndexAbstraction> indices, long metadataVersion) {
         StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
 
-        indices = StatefulIndexPrivileges.relevantOnly(indices, statefulIndexIncludeIndices);
+        indices = StatefulIndexPrivileges.relevantOnly(indices);
 
         if (statefulIndex == null || !statefulIndex.indices.equals(indices)) {
             long start = System.currentTimeMillis();
@@ -266,66 +239,15 @@ public class ActionPrivileges {
         }
     }
 
-    /**
-     * Updates the stateful index configuration asynchronously with the index metadata from the current cluster state.
-     * As the update process can take some seconds for clusters with many indices, this method "de-bounces" the updates,
-     * i.e., a further update will be only initiated after the previous update has finished. This is okay as this class
-     * can handle the case that it do not have the most recent information. It will fall back to slower methods then.
-     */
-    public synchronized void updateStatefulIndexPrivilegesAsync(ClusterService clusterService, ThreadPool threadPool) {
-        long currentMetadataVersion = clusterService.state().metadata().version();
-
-        StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
-
-        if (statefulIndex != null && currentMetadataVersion <= statefulIndex.metadataVersion) {
-            return;
-        }
-
-        if (this.updateFuture == null || this.updateFuture.isDone()) {
-            this.updateFuture = threadPool.generic().submit(() -> {
-                for (int i = 0;; i++) {
-                    if (i > 10) {
-                        try {
-                            // In case we got many consecutive updates, let's sleep a little to let
-                            // other operations catch up.
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            return;
-                        }
-                    }
-
-                    Metadata metadata = clusterService.state().metadata();
-
-                    synchronized (ActionPrivileges.this) {
-                        if (metadata.version() <= ActionPrivileges.this.statefulIndex.get().metadataVersion) {
-                            return;
-                        }
-                    }
-
-                    try {
-                        log.debug("Updating ActionPrivileges with metadata version {}", metadata.version());
-                        updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
-                    } catch (Exception e) {
-                        log.error("Error while updating ActionPrivileges", e);
-                    } finally {
-                        synchronized (ActionPrivileges.this) {
-                            if (ActionPrivileges.this.updateFuture.isCancelled()) {
-                                return;
-                            }
-                        }
-                    }
-                }
-            });
-        }
+    @Override
+    protected void updateClusterStateMetadata(Metadata metadata) {
+        this.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
     }
 
-    /**
-     * Stops any concurrent update tasks to let the node gracefully shut down.
-     */
-    public synchronized void shutdown() {
-        if (this.updateFuture != null && !this.updateFuture.isDone()) {
-            this.updateFuture.cancel(true);
-        }
+    @Override
+    protected long getCurrentlyUsedMetadataVersion() {
+        StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
+        return statefulIndex != null ? statefulIndex.metadataVersion : 0;
     }
 
     int getEstimatedStatefulIndexByteSize() {
@@ -485,7 +407,7 @@ public class ActionPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(action, context);
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
         /**
@@ -518,7 +440,7 @@ public class ActionPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(action, context);
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
         /**
@@ -555,9 +477,9 @@ public class ActionPrivileges {
             }
 
             if (actions.size() == 1) {
-                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next(), context);
+                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
             } else {
-                return PrivilegesEvaluatorResponse.insufficient("any of " + actions, context);
+                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
             }
         }
     }
@@ -756,6 +678,22 @@ public class ActionPrivileges {
             this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
         }
 
+        /**
+         * Checks whether this instance provides privileges for the combination of the provided action,
+         * the provided indices and the provided roles.
+         * <p>
+         * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
+         * <p>
+         * If privileges are only available for a sub-set of indices, isPartiallyOk() will return true
+         * and the indices for which privileges are available are returned by getAvailableIndices(). This allows the
+         * do_not_fail_on_forbidden behaviour.
+         * <p>
+         * This method will only verify privileges for the index/action combinations which are un-checked in
+         * the checkTable instance provided to this method. Checked index/action combinations are considered to be
+         * "already fulfilled by other means" - usually that comes from the stateful data structure.
+         * As a side-effect, this method will further mark the available index/action combinations in the provided
+         * checkTable instance as checked.
+         */
         PrivilegesEvaluatorResponse providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
@@ -837,10 +775,10 @@ public class ActionPrivileges {
             Set<String> availableIndices = checkTable.getCompleteRows();
 
             if (!availableIndices.isEmpty()) {
-                return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable, context).evaluationExceptions(exceptions);
+                return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable).evaluationExceptions(exceptions);
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(checkTable, context)
+            return PrivilegesEvaluatorResponse.insufficient(checkTable)
                 .reason(
                     resolvedIndices.getAllIndices().size() == 1
                         ? "Insufficient permissions for the referenced index"
@@ -885,7 +823,7 @@ public class ActionPrivileges {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
             if (!CollectionUtils.containsAny(actions, this.explicitlyRequiredIndexActions)) {
-                return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions), context);
+                return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions));
             }
 
             for (String role : context.getMappedRoles()) {
@@ -912,7 +850,7 @@ public class ActionPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(checkTable, context)
+            return PrivilegesEvaluatorResponse.insufficient(checkTable)
                 .reason("No explicit privileges have been provided for the referenced indices.")
                 .evaluationExceptions(exceptions);
         }
@@ -983,6 +921,16 @@ public class ActionPrivileges {
             CompactMapGroupBuilder<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> indexMapBuilder =
                 new CompactMapGroupBuilder<>(indices.keySet(), (k2) -> roleSetBuilder.createSubSetBuilder());
 
+            // We iterate here through the present RoleV7 instances and nested through their "index_permissions" sections.
+            // During the loop, the actionToIndexToRoles map is being built.
+            // For that, action patterns from the role will be matched against the "well-known actions" to build
+            // a concrete action map and index patterns from the role will be matched against the present indices
+            // to build a concrete index map.
+            //
+            // The complexity of this loop is O(n*m) where n is dependent on the structure of the roles configuration
+            // and m is the number of matched indices. This formula does not take the loop through matchedActions in
+            // account, as this is bound by a constant number and thus does not need to be considered in the O() notation.
+
             top: for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
                     String roleName = entry.getKey();
@@ -995,6 +943,7 @@ public class ActionPrivileges {
 
                         if (indexPermissions.getIndex_patterns().contains("*")) {
                             // Wildcard index patterns are handled in the static IndexPermissions object.
+                            // This avoids having to build huge data structures - when a very easy shortcut is available.
                             continue;
                         }
 
@@ -1033,10 +982,9 @@ public class ActionPrivileges {
                                         .getEstimatedByteSize() > statefulIndexMaxHeapSize.getBytes()) {
                                         log.info(
                                             "Size of precomputed index privileges exceeds configured limit ({}). Using capped data structure."
-                                                + "This might lead to slightly lower performance during privilege evaluation. Consider raising {} or limiting the performance critical indices using {}.",
+                                                + "This might lead to slightly lower performance during privilege evaluation. Consider raising {}.",
                                             statefulIndexMaxHeapSize,
-                                            PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(),
-                                            PRECOMPUTED_PRIVILEGES_INCLUDE_INDICES.getKey()
+                                            PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey()
                                         );
                                         break top;
                                     }
@@ -1154,16 +1102,11 @@ public class ActionPrivileges {
          *     <li>Indices which are not matched by includeIndices
          * </ul>
          */
-        static Map<String, IndexAbstraction> relevantOnly(Map<String, IndexAbstraction> indices, WildcardMatcher includeIndices) {
+        static Map<String, IndexAbstraction> relevantOnly(Map<String, IndexAbstraction> indices) {
             // First pass: Check if we need to filter at all
             boolean doFilter = false;
 
             for (IndexAbstraction indexAbstraction : indices.values()) {
-                if (includeIndices != null && !includeIndices.test(indexAbstraction.getName())) {
-                    doFilter = true;
-                    break;
-                }
-
                 if (indexAbstraction instanceof IndexAbstraction.Index) {
                     if (indexAbstraction.getParentDataStream() != null
                         || indexAbstraction.getWriteIndex().getState() == IndexMetadata.State.CLOSE) {
@@ -1181,10 +1124,6 @@ public class ActionPrivileges {
             ImmutableMap.Builder<String, IndexAbstraction> builder = ImmutableMap.builder();
 
             for (IndexAbstraction indexAbstraction : indices.values()) {
-                if (includeIndices != null && !includeIndices.test(indexAbstraction.getName())) {
-                    continue;
-                }
-
                 if (indexAbstraction instanceof IndexAbstraction.Index) {
                     if (indexAbstraction.getParentDataStream() == null
                         && indexAbstraction.getWriteIndex().getState() != IndexMetadata.State.CLOSE) {

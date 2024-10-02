@@ -215,7 +215,7 @@ public class PrivilegesEvaluator {
             clusterService.addListener(event -> {
                 ActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();
                 if (actionPrivileges != null) {
-                    actionPrivileges.updateStatefulIndexPrivilegesAsync(clusterService, threadPool);
+                    actionPrivileges.updateClusterStateMetadataAsync(clusterService, threadPool);
                 }
             });
         }
@@ -424,7 +424,7 @@ public class PrivilegesEvaluator {
         if (isClusterPerm(action0)) {
             if (serviceAccountUser) {
                 log.info("{} is a service account which doesn't have access to cluster level permission: {}", user, action0);
-                return PrivilegesEvaluatorResponse.insufficient(action0, context);
+                return PrivilegesEvaluatorResponse.insufficient(action0);
             }
 
             presponse = actionPrivileges.hasClusterPrivilege(context, action0);
@@ -526,7 +526,7 @@ public class PrivilegesEvaluator {
             if (!replaceResult.continueEvaluation) {
                 if (replaceResult.accessDenied) {
                     auditLog.logMissingPrivileges(action0, request, task);
-                    return PrivilegesEvaluatorResponse.insufficient(action0, context);
+                    return PrivilegesEvaluatorResponse.insufficient(action0);
                 } else {
                     presponse.allowed = true;
                     presponse.createIndexRequestBuilder = replaceResult.createIndexRequestBuilder;

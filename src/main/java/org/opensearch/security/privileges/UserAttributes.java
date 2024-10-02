@@ -15,6 +15,7 @@ import java.util.Set;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.opensearch.security.user.User;
 

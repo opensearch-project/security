@@ -2080,7 +2080,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             // Privileges evaluation
             settings.add(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
-            settings.add(ActionPrivileges.PRECOMPUTED_PRIVILEGES_INCLUDE_INDICES);
         }
 
         return settings;
