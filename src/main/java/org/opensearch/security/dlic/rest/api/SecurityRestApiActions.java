@@ -88,8 +88,6 @@ public class SecurityRestApiActions {
             ),
             new AuthTokenProcessorAction(clusterService, threadPool, securityApiDependencies),
             new TenantsApiAction(clusterService, threadPool, securityApiDependencies),
-            new MigrateApiAction(clusterService, threadPool, securityApiDependencies),
-            new ValidateApiAction(clusterService, threadPool, securityApiDependencies),
             new AccountApiAction(clusterService, threadPool, securityApiDependencies, passwordHasher),
             new NodesDnApiAction(clusterService, threadPool, securityApiDependencies),
             new WhitelistApiAction(clusterService, threadPool, securityApiDependencies),

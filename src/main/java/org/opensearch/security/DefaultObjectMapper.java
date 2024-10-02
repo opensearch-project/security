@@ -267,6 +267,22 @@ public class DefaultObjectMapper {
         }
     }
 
+    @SuppressWarnings("removal")
+    public static <T> T convertValue(JsonNode jsonNode, JavaType jt) throws IOException {
+
+        final SecurityManager sm = System.getSecurityManager();
+
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
+        }
+
+        try {
+            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.convertValue(jsonNode, jt));
+        } catch (final PrivilegedActionException e) {
+            throw (IOException) e.getCause();
+        }
+    }
+
     public static TypeFactory getTypeFactory() {
         return objectMapper.getTypeFactory();
     }

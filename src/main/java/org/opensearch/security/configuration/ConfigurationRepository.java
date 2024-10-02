@@ -33,7 +33,6 @@ import java.security.PrivilegedAction;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -100,7 +99,7 @@ public class ConfigurationRepository implements ClusterStateListener {
 
     private final String securityIndex;
     private final Client client;
-    private final Cache<CType, SecurityDynamicConfiguration<?>> configCache;
+    private final Cache<CType<?>, SecurityDynamicConfiguration<?>> configCache;
     private final List<ConfigurationChangeListener> configurationChangedListener;
     private final ConfigurationLoaderSecurity7 cl;
     private final Settings settings;
@@ -283,7 +282,7 @@ public class ConfigurationRepository implements ClusterStateListener {
             while (!dynamicConfigFactory.isInitialized()) {
                 try {
                     LOGGER.debug("Try to load config ...");
-                    reloadConfiguration(Arrays.asList(CType.values()), true);
+                    reloadConfiguration(CType.values(), true);
                     break;
                 } catch (Exception e) {
                     LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
@@ -510,21 +509,23 @@ public class ConfigurationRepository implements ClusterStateListener {
      * @param configurationType
      * @return can also return empty in case it was never loaded
      */
-    public SecurityDynamicConfiguration<?> getConfiguration(CType configurationType) {
+    public <T> SecurityDynamicConfiguration<T> getConfiguration(CType<T> configurationType) {
         SecurityDynamicConfiguration<?> conf = configCache.getIfPresent(configurationType);
         if (conf != null) {
-            return conf.deepClone();
+            @SuppressWarnings("unchecked")
+            SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) conf.deepClone();
+            return result;
         }
-        return SecurityDynamicConfiguration.empty();
+        return SecurityDynamicConfiguration.empty(configurationType);
     }
 
     private final Lock LOCK = new ReentrantLock();
 
-    public boolean reloadConfiguration(final Collection<CType> configTypes) throws ConfigUpdateAlreadyInProgressException {
+    public boolean reloadConfiguration(final Collection<CType<?>> configTypes) throws ConfigUpdateAlreadyInProgressException {
         return reloadConfiguration(configTypes, false);
     }
 
-    private boolean reloadConfiguration(final Collection<CType> configTypes, final boolean fromBackgroundThread)
+    private boolean reloadConfiguration(final Collection<CType<?>> configTypes, final boolean fromBackgroundThread)
         throws ConfigUpdateAlreadyInProgressException {
         if (!fromBackgroundThread && !initalizeConfigTask.isDone()) {
             LOGGER.warn("Unable to reload configuration, initalization thread has not yet completed.");
@@ -533,7 +534,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         return loadConfigurationWithLock(configTypes);
     }
 
-    private boolean loadConfigurationWithLock(Collection<CType> configTypes) {
+    private boolean loadConfigurationWithLock(Collection<CType<?>> configTypes) {
         try {
             if (LOCK.tryLock(60, TimeUnit.SECONDS)) {
                 try {
@@ -551,13 +552,13 @@ public class ConfigurationRepository implements ClusterStateListener {
         }
     }
 
-    private void reloadConfiguration0(Collection<CType> configTypes, boolean acceptInvalid) {
-        final Map<CType, SecurityDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false, acceptInvalid);
+    private void reloadConfiguration0(Collection<CType<?>> configTypes, boolean acceptInvalid) {
+        ConfigurationMap loaded = getConfigurationsFromIndex(configTypes, false, acceptInvalid);
         notifyConfigurationListeners(loaded);
     }
 
-    private void notifyConfigurationListeners(final Map<CType, SecurityDynamicConfiguration<?>> configuration) {
-        configCache.putAll(configuration);
+    private void notifyConfigurationListeners(ConfigurationMap configuration) {
+        configCache.putAll(configuration.rawMap());
         notifyAboutChanges(configuration);
     }
 
@@ -565,7 +566,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         configurationChangedListener.add(listener);
     }
 
-    private synchronized void notifyAboutChanges(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig) {
+    private synchronized void notifyAboutChanges(ConfigurationMap typeToConfig) {
         for (ConfigurationChangeListener listener : configurationChangedListener) {
             try {
                 LOGGER.debug("Notify {} listener about change configuration with type {}", listener);
@@ -583,21 +584,18 @@ public class ConfigurationRepository implements ClusterStateListener {
      * @param logComplianceEvent
      * @return
      */
-    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(
-        Collection<CType> configTypes,
-        boolean logComplianceEvent
-    ) {
+    public ConfigurationMap getConfigurationsFromIndex(Collection<CType<?>> configTypes, boolean logComplianceEvent) {
         return getConfigurationsFromIndex(configTypes, logComplianceEvent, this.acceptInvalid);
     }
 
-    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(
-        Collection<CType> configTypes,
+    public ConfigurationMap getConfigurationsFromIndex(
+        Collection<CType<?>> configTypes,
         boolean logComplianceEvent,
         boolean acceptInvalid
     ) {
 
         final ThreadContext threadContext = threadPool.getThreadContext();
-        final Map<CType, SecurityDynamicConfiguration<?>> retVal = new HashMap<>();
+        final ConfigurationMap.Builder resultBuilder = new ConfigurationMap.Builder();
 
         try (StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
@@ -611,15 +609,15 @@ public class ConfigurationRepository implements ClusterStateListener {
                 } else {
                     LOGGER.debug("security index exists and was created with ES 7 (new layout)");
                 }
-                retVal.putAll(
-                    validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size())
+                resultBuilder.with(
+                    validate(cl.load(configTypes.toArray(new CType<?>[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size())
                 );
 
             } else {
                 // wait (and use new layout)
                 LOGGER.debug("security index not exists (yet)");
-                retVal.putAll(
-                    validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size())
+                resultBuilder.with(
+                    validate(cl.load(configTypes.toArray(new CType<?>[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size())
                 );
             }
 
@@ -627,18 +625,19 @@ public class ConfigurationRepository implements ClusterStateListener {
             throw new OpenSearchException(e);
         }
 
+        ConfigurationMap result = resultBuilder.build();
+
         if (logComplianceEvent && auditLog.getComplianceConfig() != null && auditLog.getComplianceConfig().isEnabled()) {
-            CType configurationType = configTypes.iterator().next();
+            CType<?> configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
-            fields.put(configurationType.toLCString(), Strings.toString(MediaTypeRegistry.JSON, retVal.get(configurationType)));
+            fields.put(configurationType.toLCString(), Strings.toString(MediaTypeRegistry.JSON, result.get(configurationType)));
             auditLog.logDocumentRead(this.securityIndex, configurationType.toLCString(), null, fields);
         }
 
-        return retVal;
+        return result;
     }
 
-    private Map<CType, SecurityDynamicConfiguration<?>> validate(Map<CType, SecurityDynamicConfiguration<?>> conf, int expectedSize)
-        throws InvalidConfigException {
+    private ConfigurationMap validate(ConfigurationMap conf, int expectedSize) throws InvalidConfigException {
 
         if (conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");
