@@ -40,7 +40,6 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = "plugins.security.ssl.http.truststore_type";
     public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION =
         "plugins.security.ssl.http.enforce_cert_reload_dn_verification";
-    public static final Boolean SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION_DEFAULT = true;
     public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE =
         "plugins.security.ssl.transport.enable_openssl_if_available";
     public static final String SECURITY_SSL_TRANSPORT_ENABLED = "plugins.security.ssl.transport.enabled";
@@ -52,7 +51,6 @@ public final class SSLConfigConstants {
 
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION =
         "plugins.security.ssl.transport.enforce_cert_reload_dn_verification";
-    public static final Boolean SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION_DEFAULT = true;
     public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.keystore_alias";
     public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = "plugins.security.ssl.transport.server.keystore_alias";
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.client.keystore_alias";
