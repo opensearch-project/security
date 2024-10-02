@@ -65,7 +65,7 @@ public class RolesMappingApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return CType.ROLESMAPPING;
     }
 

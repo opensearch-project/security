@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -47,7 +46,6 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
-import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.setting.DeprecatedSettings;
 
 public class ConfigV7 {
@@ -62,66 +60,6 @@ public class ConfigV7 {
 
     public ConfigV7() {
         super();
-    }
-
-    public ConfigV7(ConfigV6 c6) {
-        dynamic = new Dynamic();
-
-        dynamic.filtered_alias_mode = c6.dynamic.filtered_alias_mode;
-        dynamic.disable_rest_auth = c6.dynamic.disable_rest_auth;
-        dynamic.disable_intertransport_auth = c6.dynamic.disable_intertransport_auth;
-        dynamic.respect_request_indices_options = c6.dynamic.respect_request_indices_options;
-        dynamic.license = c6.dynamic.license;
-        dynamic.do_not_fail_on_forbidden = c6.dynamic.do_not_fail_on_forbidden || c6.dynamic.kibana.do_not_fail_on_forbidden;
-        dynamic.do_not_fail_on_forbidden_empty = c6.dynamic.do_not_fail_on_forbidden_empty;
-        dynamic.multi_rolespan_enabled = c6.dynamic.multi_rolespan_enabled;
-        dynamic.hosts_resolver_mode = c6.dynamic.hosts_resolver_mode;
-        dynamic.transport_userrname_attribute = c6.dynamic.transport_userrname_attribute;
-
-        dynamic.kibana = new Kibana();
-
-        dynamic.kibana.index = c6.dynamic.kibana.index;
-        dynamic.kibana.multitenancy_enabled = c6.dynamic.kibana.multitenancy_enabled;
-        dynamic.kibana.private_tenant_enabled = true;
-        dynamic.kibana.default_tenant = "";
-        dynamic.kibana.server_username = c6.dynamic.kibana.server_username;
-        dynamic.kibana.sign_in_options = c6.dynamic.kibana.sign_in_options;
-
-        dynamic.http = new Http();
-
-        dynamic.http.anonymous_auth_enabled = c6.dynamic.http.anonymous_auth_enabled;
-
-        dynamic.http.xff = new Xff();
-
-        dynamic.http.xff.enabled = c6.dynamic.http.xff.enabled;
-        dynamic.http.xff.internalProxies = c6.dynamic.http.xff.internalProxies;
-        dynamic.http.xff.remoteIpHeader = c6.dynamic.http.xff.remoteIpHeader;
-
-        dynamic.authc = new Authc();
-
-        dynamic.authc.domains.putAll(
-            c6.dynamic.authc.getDomains()
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthcDomain(entry.getValue())))
-        );
-
-        dynamic.authz = new Authz();
-
-        dynamic.authz.domains.putAll(
-            c6.dynamic.authz.getDomains()
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthzDomain(entry.getValue())))
-        );
-
-        dynamic.auth_failure_listeners = new AuthFailureListeners();
-        dynamic.auth_failure_listeners.listeners.putAll(
-            c6.dynamic.auth_failure_listeners.getListeners()
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthFailureListener(entry.getValue())))
-        );
     }
 
     @Override
@@ -243,17 +181,6 @@ public class ConfigV7 {
             super();
         }
 
-        public AuthFailureListener(ConfigV6.AuthFailureListener v6) {
-            super();
-            this.type = v6.type;
-            this.authentication_backend = v6.authentication_backend;
-            this.allowed_tries = v6.allowed_tries;
-            this.time_window_seconds = v6.time_window_seconds;
-            this.block_expiry_seconds = v6.block_expiry_seconds;
-            this.max_blocked_clients = v6.max_blocked_clients;
-            this.max_tracked_clients = v6.max_tracked_clients;
-        }
-
         public AuthFailureListener(
             String type,
             String authentication_backend,
@@ -341,18 +268,6 @@ public class ConfigV7 {
             super();
         }
 
-        public AuthcDomain(ConfigV6.AuthcDomain v6) {
-            super();
-            http_enabled = v6.http_enabled && v6.enabled;
-            // if(v6.enabled)vv {
-            // http_enabled = true;
-            // }
-            order = v6.order;
-            http_authenticator = new HttpAuthenticator(v6.http_authenticator);
-            authentication_backend = new AuthcBackend(v6.authentication_backend);
-            description = "Migrated from v6";
-        }
-
         @Override
         public String toString() {
             return "AuthcDomain [http_enabled="
@@ -405,12 +320,6 @@ public class ConfigV7 {
             super();
         }
 
-        public HttpAuthenticator(ConfigV6.HttpAuthenticator v6) {
-            this.challenge = v6.challenge;
-            this.type = v6.type;
-            this.config = v6.config;
-        }
-
         @JsonIgnore
         public String configAsJson() {
             try {
@@ -435,11 +344,6 @@ public class ConfigV7 {
             super();
         }
 
-        public AuthzBackend(ConfigV6.AuthzBackend v6) {
-            this.type = v6.type;
-            this.config = v6.config;
-        }
-
         @JsonIgnore
         public String configAsJson() {
             try {
@@ -462,11 +366,6 @@ public class ConfigV7 {
 
         public AuthcBackend() {
             super();
-        }
-
-        public AuthcBackend(ConfigV6.AuthcBackend v6) {
-            this.type = v6.type;
-            this.config = v6.config;
         }
 
         @JsonIgnore
@@ -514,12 +413,6 @@ public class ConfigV7 {
 
         public AuthzDomain() {
             super();
-        }
-
-        public AuthzDomain(ConfigV6.AuthzDomain v6) {
-            http_enabled = v6.http_enabled && v6.enabled;
-            authorization_backend = new AuthzBackend(v6.authorization_backend);
-            description = "Migrated from v6";
         }
 
         @Override

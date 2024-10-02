@@ -26,11 +26,6 @@
 
 package org.opensearch.security.configuration;
 
-import java.util.Map;
-
-import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-
 /**
  * Callback function on change particular configuration
  */
@@ -39,5 +34,5 @@ public interface ConfigurationChangeListener {
     /**
      * @param configuration not null updated configuration on that was subscribe current listener
      */
-    void onChange(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig);
+    void onChange(ConfigurationMap typeToConfig);
 }

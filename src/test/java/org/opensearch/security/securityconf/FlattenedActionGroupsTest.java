@@ -38,8 +38,7 @@ public class FlattenedActionGroupsTest {
         );
         SecurityDynamicConfiguration<ActionGroupsV7> config = SecurityDynamicConfiguration.fromMap(
             testActionGroups.map,
-            CType.ACTIONGROUPS,
-            2
+            CType.ACTIONGROUPS
         );
 
         FlattenedActionGroups actionGroups = new FlattenedActionGroups(config);
@@ -66,8 +65,7 @@ public class FlattenedActionGroupsTest {
 
         SecurityDynamicConfiguration<ActionGroupsV7> config = SecurityDynamicConfiguration.fromMap(
             testActionGroups.map,
-            CType.ACTIONGROUPS,
-            2
+            CType.ACTIONGROUPS
         );
 
         FlattenedActionGroups actionGroups = new FlattenedActionGroups(config);

@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
@@ -43,6 +42,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.state.SecurityConfig;
@@ -128,17 +128,14 @@ public class SecurityIndexHandler {
         }
     }
 
-    public void loadConfiguration(
-        final Set<SecurityConfig> configuration,
-        final ActionListener<Map<CType, SecurityDynamicConfiguration<?>>> listener
-    ) {
+    public void loadConfiguration(final Set<SecurityConfig> configuration, final ActionListener<ConfigurationMap> listener) {
         try (final ThreadContext.StoredContext threadContext = client.threadPool().getThreadContext().stashContext()) {
             client.threadPool().getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-            final var configurationTypes = configuration.stream().map(SecurityConfig::type).collect(Collectors.toUnmodifiableList());
+            final List<CType<?>> configurationTypes = configuration.stream()
+                .map(SecurityConfig::type)
+                .collect(Collectors.toUnmodifiableList());
             client.multiGet(newMultiGetRequest(configurationTypes), ActionListener.runBefore(ActionListener.wrap(r -> {
-                final var cTypeConfigsBuilder = ImmutableMap.<CType, SecurityDynamicConfiguration<?>>builderWithExpectedSize(
-                    configuration.size()
-                );
+                final var cTypeConfigsBuilder = new ConfigurationMap.Builder();
                 var hasFailures = false;
                 for (final var item : r.getResponses()) {
                     if (item.isFailed()) {
@@ -162,15 +159,14 @@ public class SecurityIndexHandler {
                             hasFailures = true;
                             break;
                         }
-                        cTypeConfigsBuilder.put(cType, config);
+                        cTypeConfigsBuilder.with(config);
                     } else {
                         if (!cType.emptyIfMissing()) {
                             listener.onFailure(new SecurityException("Missing required configuration for type: " + cType));
                             hasFailures = true;
                             break;
                         }
-                        cTypeConfigsBuilder.put(
-                            cType,
+                        cTypeConfigsBuilder.with(
                             SecurityDynamicConfiguration.fromJson(
                                 emptyJsonConfigFor(cType),
                                 cType,
@@ -188,7 +184,7 @@ public class SecurityIndexHandler {
         }
     }
 
-    private MultiGetRequest newMultiGetRequest(final List<CType> configurationTypes) {
+    private MultiGetRequest newMultiGetRequest(final List<CType<?>> configurationTypes) {
         final var request = new MultiGetRequest().realtime(true).refresh(true);
         for (final var cType : configurationTypes) {
             request.add(indexName, cType.toLCString());
@@ -197,7 +193,7 @@ public class SecurityIndexHandler {
     }
 
     private SecurityDynamicConfiguration<?> buildDynamicConfiguration(
-        final CType cType,
+        final CType<?> cType,
         final BytesReference bytesRef,
         final long seqNo,
         final long primaryTerm

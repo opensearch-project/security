@@ -27,19 +27,13 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
-import org.opensearch.security.securityconf.impl.v6.RoleV6;
 
 public class RoleV7 implements Hideable, StaticDefinable {
 
@@ -56,49 +50,6 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     }
 
-    public RoleV7(RoleV6 roleV6) {
-        this.reserved = roleV6.isReserved();
-        this.hidden = roleV6.isHidden();
-        this.description = "Migrated from v6 (all types mapped)";
-        this.cluster_permissions = roleV6.getCluster();
-        index_permissions = new ArrayList<>();
-        tenant_permissions = new ArrayList<>();
-
-        for (Entry<String, RoleV6.Index> v6i : roleV6.getIndices().entrySet()) {
-            index_permissions.add(new Index(v6i.getKey(), v6i.getValue()));
-        }
-
-        // rw tenants
-        List<String> rwTenants = roleV6.getTenants()
-            .entrySet()
-            .stream()
-            .filter(e -> "rw".equalsIgnoreCase(e.getValue()))
-            .map(e -> e.getKey())
-            .collect(Collectors.toList());
-
-        if (rwTenants != null && !rwTenants.isEmpty()) {
-            Tenant t = new Tenant();
-            t.setAllowed_actions(Collections.singletonList("kibana_all_write"));
-            t.setTenant_patterns(rwTenants);
-            tenant_permissions.add(t);
-        }
-
-        List<String> roTenants = roleV6.getTenants()
-            .entrySet()
-            .stream()
-            .filter(e -> "ro".equalsIgnoreCase(e.getValue()))
-            .map(e -> e.getKey())
-            .collect(Collectors.toList());
-
-        if (roTenants != null && !roTenants.isEmpty()) {
-            Tenant t = new Tenant();
-            t.setAllowed_actions(Collections.singletonList("kibana_all_read"));
-            t.setTenant_patterns(roTenants);
-            tenant_permissions.add(t);
-        }
-
-    }
-
     public static class Index {
 
         private List<String> index_patterns = Collections.emptyList();
@@ -106,19 +57,6 @@ public class RoleV7 implements Hideable, StaticDefinable {
         private List<String> fls = Collections.emptyList();
         private List<String> masked_fields = Collections.emptyList();
         private List<String> allowed_actions = Collections.emptyList();
-
-        public Index(String pattern, RoleV6.Index v6Index) {
-            super();
-            index_patterns = Collections.singletonList(pattern);
-            dls = v6Index.get_dls_();
-            fls = v6Index.get_fls_();
-            masked_fields = v6Index.get_masked_fields_();
-            Set<String> tmpActions = new HashSet<>();
-            for (Entry<String, List<String>> type : v6Index.getTypes().entrySet()) {
-                tmpActions.addAll(type.getValue());
-            }
-            allowed_actions = new ArrayList<>(tmpActions);
-        }
 
         public Index() {
             super();

@@ -29,8 +29,6 @@ package org.opensearch.security.configuration;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -94,10 +92,10 @@ public class ConfigurationLoaderSecurity7 {
         return isAuditConfigDocPresentInIndex.get();
     }
 
-    Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid)
-        throws InterruptedException, TimeoutException {
+    ConfigurationMap load(final CType<?>[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException,
+        TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
-        final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
+        ConfigurationMap.Builder result = new ConfigurationMap.Builder();
         final boolean isDebugEnabled = log.isDebugEnabled();
         loadAsync(events, new ConfigCallback() {
 
@@ -118,7 +116,8 @@ public class ConfigurationLoaderSecurity7 {
                     isAuditConfigDocPresentInIndex.set(true);
                 }
 
-                rs.put(dConf.getCType(), dConf);
+                result.with(dConf);
+
                 latch.countDown();
                 if (isDebugEnabled) {
                     log.debug(
@@ -142,7 +141,7 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void noData(String id) {
-                CType cType = CType.fromString(id);
+                CType<?> cType = CType.fromString(id);
 
                 // Since NODESDN is newly introduced data-type applying for existing clusters as well, we make it backward compatible by
                 // returning valid empty
@@ -154,7 +153,7 @@ public class ConfigurationLoaderSecurity7 {
                             cType,
                             ConfigurationRepository.getDefaultConfigVersion()
                         );
-                        rs.put(cType, empty);
+                        result.with(empty);
                         latch.countDown();
                         return;
                     } catch (Exception e) {
@@ -172,7 +171,7 @@ public class ConfigurationLoaderSecurity7 {
                             ConfigurationRepository.getDefaultConfigVersion()
                         );
                         empty.putCObject("config", AuditConfig.from(settings));
-                        rs.put(cType, empty);
+                        result.with(empty);
                         latch.countDown();
                         return;
                     } catch (Exception e) {
@@ -204,10 +203,10 @@ public class ConfigurationLoaderSecurity7 {
             );
         }
 
-        return rs;
+        return result.build();
     }
 
-    void loadAsync(final CType[] events, final ConfigCallback callback, boolean acceptInvalid) {
+    void loadAsync(final CType<?>[] events, final ConfigCallback callback, boolean acceptInvalid) {
         if (events == null || events.length == 0) {
             log.warn("No config events requested to load");
             return;
@@ -301,23 +300,6 @@ public class ConfigurationLoaderSecurity7 {
                 log.debug("Load " + id + " with version " + configVersion);
             }
 
-            if (CType.ACTIONGROUPS.toLCString().equals(id)) {
-                try {
-                    return SecurityDynamicConfiguration.fromJson(
-                        jsonAsString,
-                        CType.fromString(id),
-                        configVersion,
-                        seqNo,
-                        primaryTerm,
-                        acceptInvalid
-                    );
-                } catch (Exception e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Unable to load " + id + " with version " + configVersion + " - Try loading legacy format ...");
-                    }
-                    return SecurityDynamicConfiguration.fromJson(jsonAsString, CType.fromString(id), 0, seqNo, primaryTerm, acceptInvalid);
-                }
-            }
             return SecurityDynamicConfiguration.fromJson(
                 jsonAsString,
                 CType.fromString(id),

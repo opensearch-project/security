@@ -66,6 +66,7 @@ public class RestApiAdminPrivilegesEvaluator {
         .put(Endpoint.CONFIG, action -> buildEndpointActionPermission(Endpoint.CONFIG, action))
         .put(Endpoint.INTERNALUSERS, action -> buildEndpointPermission(Endpoint.INTERNALUSERS))
         .put(Endpoint.NODESDN, action -> buildEndpointPermission(Endpoint.NODESDN))
+        .put(Endpoint.RATELIMITERS, action -> buildEndpointPermission(Endpoint.RATELIMITERS))
         .put(Endpoint.ROLES, action -> buildEndpointPermission(Endpoint.ROLES))
         .put(Endpoint.ROLESMAPPING, action -> buildEndpointPermission(Endpoint.ROLESMAPPING))
         .put(Endpoint.TENANTS, action -> buildEndpointPermission(Endpoint.TENANTS))
@@ -98,13 +99,6 @@ public class RestApiAdminPrivilegesEvaluator {
             return false;
         }
         if (adminDNs.isAdmin(userAndRemoteAddress.getLeft())) {
-            if (logger.isDebugEnabled()) {
-                logger.debug(
-                    "Security admin permissions required for endpoint {} but {} is not an admin",
-                    endpoint,
-                    userAndRemoteAddress.getLeft().getName()
-                );
-            }
             return true;
         }
         if (!ENDPOINTS_WITH_PERMISSIONS.containsKey(endpoint)) {

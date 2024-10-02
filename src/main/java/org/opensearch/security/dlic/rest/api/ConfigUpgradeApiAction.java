@@ -69,7 +69,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     private final static Logger LOGGER = LogManager.getLogger(ConfigUpgradeApiAction.class);
 
-    private final static Set<CType> SUPPORTED_CTYPES = ImmutableSet.of(CType.ROLES);
+    private final static Set<CType<?>> SUPPORTED_CTYPES = ImmutableSet.of(CType.ROLES);
 
     private final static String REQUEST_PARAM_CONFIGS_KEY = "configs";
 
@@ -130,11 +130,11 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     private ValidationResult<List<ConfigItemChanges>> applyDifferences(
         final RestRequest request,
         final Client client,
-        final List<Tuple<CType, JsonNode>> differencesToUpdate
+        final List<Tuple<CType<?>, JsonNode>> differencesToUpdate
     ) {
         try {
             final var updatedResources = new ArrayList<ValidationResult<ConfigItemChanges>>();
-            for (final Tuple<CType, JsonNode> difference : differencesToUpdate) {
+            for (final Tuple<CType<?>, JsonNode> difference : differencesToUpdate) {
                 updatedResources.add(
                     loadConfiguration(difference.v1(), false, false).map(
                         configuration -> patchEntities(request, difference.v2(), SecurityConfiguration.of(null, configuration)).map(
@@ -167,7 +167,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
 
     }
 
-    ValidationResult<List<Tuple<CType, JsonNode>>> verifyHasDifferences(List<Tuple<CType, JsonNode>> diffs) {
+    ValidationResult<List<Tuple<CType<?>, JsonNode>>> verifyHasDifferences(List<Tuple<CType<?>, JsonNode>> diffs) {
         if (diffs.isEmpty()) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Unable to upgrade, no differences found"));
         }
@@ -183,9 +183,9 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return ValidationResult.success(diffs);
     }
 
-    private ValidationResult<List<Tuple<CType, JsonNode>>> configurationDifferences(final Set<CType> configurations) {
+    private ValidationResult<List<Tuple<CType<?>, JsonNode>>> configurationDifferences(final Set<CType<?>> configurations) {
         try {
-            final var differences = new ArrayList<ValidationResult<Tuple<CType, JsonNode>>>();
+            final var differences = new ArrayList<ValidationResult<Tuple<CType<?>, JsonNode>>>();
             for (final var configuration : configurations) {
                 differences.add(computeDifferenceToUpdate(configuration));
             }
@@ -199,7 +199,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }
     }
 
-    ValidationResult<Tuple<CType, JsonNode>> computeDifferenceToUpdate(final CType configType) {
+    ValidationResult<Tuple<CType<?>, JsonNode>> computeDifferenceToUpdate(final CType<?> configType) {
         return withIOException(() -> loadConfiguration(configType, false, false).map(activeRoles -> {
             final var activeRolesJson = Utils.convertJsonToJackson(activeRoles, true);
             final var defaultRolesJson = loadConfigFileAsJson(configType);
@@ -208,10 +208,10 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         }));
     }
 
-    private ValidationResult<Set<CType>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
+    private ValidationResult<Set<CType<?>>> getAndValidateConfigurationsToUpgrade(final RestRequest request) {
         final String[] configs = request.paramAsStringArray(REQUEST_PARAM_CONFIGS_KEY, null);
 
-        final Set<CType> configurations;
+        final Set<CType<?>> configurations;
         try {
             configurations = Optional.ofNullable(configs).map(CType::fromStringValues).orElse(SUPPORTED_CTYPES);
         } catch (final IllegalArgumentException iae) {
@@ -261,12 +261,12 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return node.get("op").asText().equals("remove");
     }
 
-    private <T> SecurityDynamicConfiguration<T> loadYamlFile(final String filepath, final CType cType) throws IOException {
+    private <T> SecurityDynamicConfiguration<T> loadYamlFile(final String filepath, final CType<T> cType) throws IOException {
         return ConfigHelper.fromYamlFile(filepath, cType, ConfigurationRepository.DEFAULT_CONFIG_VERSION, 0, 0);
     }
 
     @SuppressWarnings("removal")
-    JsonNode loadConfigFileAsJson(final CType cType) throws IOException {
+    JsonNode loadConfigFileAsJson(final CType<?> cType) throws IOException {
         final var cd = securityApiDependencies.configurationRepository().getConfigDirectory();
         final var filepath = cType.configFile(Path.of(cd)).toString();
         try {
@@ -286,7 +286,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         throw new UnsupportedOperationException("This class supports multiple configuration types");
     }
 
@@ -354,10 +354,10 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     /** Tranforms config changes from a raw PATCH into simplier view */
     static class ConfigItemChanges {
 
-        private final CType config;
+        private final CType<?> config;
         private final Map<String, List<String>> itemsGroupedByOperation;
 
-        public ConfigItemChanges(final CType config, final JsonNode differences) {
+        public ConfigItemChanges(final CType<?> config, final JsonNode differences) {
             this.config = config;
             this.itemsGroupedByOperation = classifyChanges(differences);
         }

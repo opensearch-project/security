@@ -74,7 +74,7 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return CType.INTERNALUSERS;
     }
 

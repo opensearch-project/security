@@ -22,6 +22,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -58,9 +59,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
 
         final var allClusterPermissions = new RoleV7();
         allClusterPermissions.setCluster_permissions(List.of("*"));
-        @SuppressWarnings("unchecked")
-        final var c = (SecurityDynamicConfiguration<RoleV7>) rolesConfiguration;
-        c.putCEntry("some_role_with_static_mapping", allClusterPermissions);
+        final var c = rolesConfiguration;
         c.putCEntry("some_role_with_reserved_mapping", allClusterPermissions);
         c.putCEntry("some_role_with_hidden_mapping", allClusterPermissions);
 
@@ -72,19 +71,18 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         config.set("all_access", objectMapper.createObjectNode());
         config.set("regular_role", objectMapper.createObjectNode());
 
-        config.set("some_role_with_static_mapping", objectMapper.createObjectNode().put("static", true));
         config.set("some_role_with_reserved_mapping", objectMapper.createObjectNode().put("reserved", true));
         config.set("some_role_with_hidden_mapping", objectMapper.createObjectNode().put("hidden", true));
 
         final var rolesMappingConfiguration = SecurityDynamicConfiguration.fromJson(
             objectMapper.writeValueAsString(config),
-            CType.ROLES,
+            CType.ROLESMAPPING,
             2,
             1,
             1
         );
         when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLESMAPPING), false)).thenReturn(
-            Map.of(CType.ROLESMAPPING, rolesMappingConfiguration)
+            ConfigurationMap.of(rolesMappingConfiguration)
         );
     }
 
@@ -185,11 +183,6 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         // should not be ok to set role with reserved role mapping
         userJson = objectMapper.createObjectNode()
             .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_reserved_mapping"));
-        result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
-        assertFalse(result.isValid());
-        // should not be ok to set role with static role mapping
-        userJson = objectMapper.createObjectNode()
-            .set("opendistro_security_roles", objectMapper.createArrayNode().add("some_role_with_static_mapping"));
         result = internalUsersApiAction.validateSecurityRoles(SecurityConfiguration.of(userJson, "some_user", configuration));
         assertFalse(result.isValid());
     }

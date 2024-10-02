@@ -54,6 +54,15 @@ public class Base64HelperTest {
     }
 
     @Test
+    public void testEnsureCustomSerialized() {
+        String test = "string";
+        String jdkSerialized = Base64Helper.serializeObject(test, true);
+        String customSerialized = Base64Helper.serializeObject(test, false);
+        assertThat(Base64Helper.ensureCustomSerialized(jdkSerialized), is(customSerialized));
+        assertThat(Base64Helper.ensureCustomSerialized(customSerialized), is(customSerialized));
+    }
+
+    @Test
     public void testDuplicatedItemSizes() {
         var largeObject = new HashMap<String, Object>();
         var hm = new HashMap<>();

@@ -14,7 +14,6 @@ package org.opensearch.security.configuration;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -154,7 +153,7 @@ public class ConfigurationRepositoryTest {
         ConfigurationRepository configRepository = createConfigurationRepository(Settings.EMPTY);
 
         SecurityDynamicConfiguration<?> config = configRepository.getConfiguration(CType.CONFIG);
-        SecurityDynamicConfiguration<?> emptyConfig = SecurityDynamicConfiguration.empty();
+        SecurityDynamicConfiguration<?> emptyConfig = SecurityDynamicConfiguration.empty(CType.CONFIG);
 
         assertThat(config, is(instanceOf(SecurityDynamicConfiguration.class)));
         assertThat(config.getCEntries().size(), is(equalTo(0)));
@@ -256,8 +255,8 @@ public class ConfigurationRepositoryTest {
     public void testExecuteConfigurationInitialization_executeInitializationOnlyOnce() throws Exception {
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
-            final var listener = (ActionListener<Map<CType, SecurityDynamicConfiguration<?>>>) invocation.getArgument(1);
-            listener.onResponse(Map.of());
+            final var listener = (ActionListener<ConfigurationMap>) invocation.getArgument(1);
+            listener.onResponse(ConfigurationMap.EMPTY);
             return null;
         }).when(securityIndexHandler).loadConfiguration(any(), any());
 

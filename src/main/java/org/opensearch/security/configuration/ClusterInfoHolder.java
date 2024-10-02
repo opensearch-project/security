@@ -29,6 +29,7 @@ package org.opensearch.security.configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.Version;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -65,6 +66,17 @@ public class ClusterInfoHolder implements ClusterStateListener {
 
     public boolean isInitialized() {
         return initialized;
+    }
+
+    public Version getMinNodeVersion() {
+        if (nodes == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Cluster Info Holder not initialized yet for 'nodes'");
+            }
+            return null;
+        }
+
+        return nodes.getMinNodeVersion();
     }
 
     public Boolean hasNode(DiscoveryNode node) {

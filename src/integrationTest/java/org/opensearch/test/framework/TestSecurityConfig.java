@@ -43,6 +43,9 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -93,6 +96,13 @@ public class TestSecurityConfig {
     private Map<String, RoleMapping> rolesMapping = new LinkedHashMap<>();
 
     private Map<String, ActionGroup> actionGroups = new LinkedHashMap<>();
+
+    /**
+     * A map from document id to a string containing config JSON.
+     * If this is not null, it will be used ALTERNATIVELY to all other configuration contained in this class.
+     * Can be used to simulate invalid configuration or legacy configuration.
+     */
+    private Map<String, String> rawConfigurationDocuments;
 
     private String indexName = ".opendistro_security";
 
@@ -210,6 +220,27 @@ public class TestSecurityConfig {
 
     public List<ActionGroup> actionGroups() {
         return List.copyOf(actionGroups.values());
+    }
+
+    /**
+     * Specifies raw document content for the configuration index as YAML document. If this method is used,
+     * then ONLY the raw documents will be written to the configuration index. Any other configuration specified
+     * by the roles() or users() method will be ignored.
+     * Can be used to simulate invalid configuration or legacy configuration.
+     */
+    public TestSecurityConfig rawConfigurationDocumentYaml(String configTypeId, String configDocumentAsYaml) {
+        try {
+            if (this.rawConfigurationDocuments == null) {
+                this.rawConfigurationDocuments = new LinkedHashMap<>();
+            }
+
+            JsonNode node = new ObjectMapper(new YAMLFactory()).readTree(configDocumentAsYaml);
+
+            this.rawConfigurationDocuments.put(configTypeId, new ObjectMapper().writeValueAsString(node));
+            return this;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static class Config implements ToXContentObject {
@@ -964,15 +995,24 @@ public class TestSecurityConfig {
         }
         client.admin().indices().create(new CreateIndexRequest(indexName).settings(settings)).actionGet();
 
-        writeSingleEntryConfigToIndex(client, CType.CONFIG, config);
-        if (auditConfiguration != null) {
-            writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
+        if (rawConfigurationDocuments == null) {
+            writeSingleEntryConfigToIndex(client, CType.CONFIG, config);
+            if (auditConfiguration != null) {
+                writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
+            }
+            writeConfigToIndex(client, CType.ROLES, roles);
+            writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
+            writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
+            writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
+            writeEmptyConfigToIndex(client, CType.TENANTS);
+        } else {
+            // Write raw configuration alternatively to the normal configuration
+
+            for (Map.Entry<String, String> entry : this.rawConfigurationDocuments.entrySet()) {
+                writeConfigToIndex(client, entry.getKey(), entry.getValue());
+            }
         }
-        writeConfigToIndex(client, CType.ROLES, roles);
-        writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
-        writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
-        writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
-        writeEmptyConfigToIndex(client, CType.TENANTS);
+
     }
 
     public void updateInternalUsersConfiguration(Client client, List<User> users) {
@@ -987,11 +1027,11 @@ public class TestSecurityConfig {
         return passwordHasher.hash(clearTextPassword.toCharArray());
     }
 
-    private void writeEmptyConfigToIndex(Client client, CType configType) {
+    private void writeEmptyConfigToIndex(Client client, CType<?> configType) {
         writeConfigToIndex(client, configType, Collections.emptyMap());
     }
 
-    private void writeConfigToIndex(Client client, CType configType, Map<String, ? extends ToXContentObject> config) {
+    private void writeConfigToIndex(Client client, CType<?> configType, Map<String, ? extends ToXContentObject> config) {
         try {
             String json = configToJson(configType, config);
 
@@ -1008,11 +1048,23 @@ public class TestSecurityConfig {
         }
     }
 
+    private void writeConfigToIndex(Client client, String documentId, String jsonString) {
+        try {
+            log.info("Writing raw security configuration into index {}:\n{}", documentId, jsonString);
+
+            BytesReference bytesReference = toByteReference(jsonString);
+            client.index(new IndexRequest(indexName).id(documentId).setRefreshPolicy(IMMEDIATE).source(documentId, bytesReference))
+                .actionGet();
+        } catch (Exception e) {
+            throw new RuntimeException("Error while initializing config for " + indexName, e);
+        }
+    }
+
     private static BytesReference toByteReference(String string) throws UnsupportedEncodingException {
         return BytesReference.fromByteBuffer(ByteBuffer.wrap(string.getBytes("utf-8")));
     }
 
-    private void updateConfigInIndex(Client client, CType configType, Map<String, ? extends ToXContentObject> config) {
+    private void updateConfigInIndex(Client client, CType<?> configType, Map<String, ? extends ToXContentObject> config) {
         try {
             String json = configToJson(configType, config);
             BytesReference bytesReference = toByteReference(json);
@@ -1025,7 +1077,7 @@ public class TestSecurityConfig {
         }
     }
 
-    private static String configToJson(CType configType, Map<String, ? extends ToXContentObject> config) throws IOException {
+    private static String configToJson(CType<?> configType, Map<String, ? extends ToXContentObject> config) throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder();
 
         builder.startObject();
@@ -1043,11 +1095,11 @@ public class TestSecurityConfig {
         return builder.toString();
     }
 
-    private void writeSingleEntryConfigToIndex(Client client, CType configType, ToXContentObject config) {
+    private void writeSingleEntryConfigToIndex(Client client, CType<?> configType, ToXContentObject config) {
         writeSingleEntryConfigToIndex(client, configType, configType.toLCString(), config);
     }
 
-    private void writeSingleEntryConfigToIndex(Client client, CType configType, String configurationRoot, ToXContentObject config) {
+    private void writeSingleEntryConfigToIndex(Client client, CType<?> configType, String configurationRoot, ToXContentObject config) {
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
 
