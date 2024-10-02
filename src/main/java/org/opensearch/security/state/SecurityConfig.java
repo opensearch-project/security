@@ -26,20 +26,20 @@ import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 
 public class SecurityConfig implements Writeable, ToXContent {
 
-    private final CType type;
+    private final CType<?> type;
 
     private final Instant lastModified;
 
     private final String hash;
 
-    public SecurityConfig(final CType type, final String hash, final Instant lastModified) {
+    public SecurityConfig(final CType<?> type, final String hash, final Instant lastModified) {
         this.type = type;
         this.hash = hash;
         this.lastModified = lastModified;
     }
 
     public SecurityConfig(final StreamInput in) throws IOException {
-        this.type = in.readEnum(CType.class);
+        this.type = CType.fromOrd(in.readVInt());
         this.hash = in.readString();
         this.lastModified = in.readOptionalInstant();
     }
@@ -48,7 +48,7 @@ public class SecurityConfig implements Writeable, ToXContent {
         return Optional.ofNullable(lastModified);
     }
 
-    public CType type() {
+    public CType<?> type() {
         return type;
     }
 
@@ -58,7 +58,7 @@ public class SecurityConfig implements Writeable, ToXContent {
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
-        out.writeEnum(type);
+        out.writeVInt(type.getOrd());
         out.writeString(hash);
         out.writeOptionalInstant(lastModified);
     }
@@ -89,7 +89,7 @@ public class SecurityConfig implements Writeable, ToXContent {
 
     public final static class Builder {
 
-        private final CType type;
+        private final CType<?> type;
 
         private Instant lastModified;
 

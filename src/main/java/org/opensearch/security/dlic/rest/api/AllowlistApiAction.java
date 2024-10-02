@@ -106,7 +106,7 @@ public class AllowlistApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected CType getConfigType() {
+    protected CType<?> getConfigType() {
         return CType.ALLOWLIST;
     }
 
