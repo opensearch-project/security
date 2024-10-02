@@ -42,7 +42,7 @@ public class LegacyConfigV6AutoConversionTest {
                 + "          challenge: true\n"
                 + "        authentication_backend:\n"
                 + "          type: intern\n"
-        )//
+        )
         .rawConfigurationDocumentYaml(
             "internalusers",
             "admin:\n"
@@ -52,7 +52,7 @@ public class LegacyConfigV6AutoConversionTest {
                 + "  - admin\n"
                 + "  attributes:\n"
                 + "    attribute1: value1\n"
-        )//
+        )
         .rawConfigurationDocumentYaml(
             "roles",
             "all_access_role:\n"
@@ -65,7 +65,7 @@ public class LegacyConfigV6AutoConversionTest {
                 + "      - UNLIMITED\n"
                 + "  tenants:\n"
                 + "    admin_tenant: RW\n"
-        )//
+        )
         .rawConfigurationDocumentYaml("rolesmapping", "all_access_role:\n" + "  readonly: true\n" + "  backendroles:\n" + "  - admin")//
         .rawConfigurationDocumentYaml("actiongroups", "dummy:\n" + "  permissions: []");
 
