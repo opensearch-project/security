@@ -32,6 +32,7 @@ alerting_read_access:
     - 'cluster:admin/opendistro/alerting/destination/get'
     - 'cluster:admin/opendistro/alerting/monitor/get'
     - 'cluster:admin/opendistro/alerting/monitor/search'
+    - 'cluster:admin/opensearch/alerting/comments/search'
     - 'cluster:admin/opensearch/alerting/findings/get'
     - 'cluster:admin/opensearch/alerting/remote/indexes/get'
     - 'cluster:admin/opensearch/alerting/workflow/get'
@@ -44,6 +45,7 @@ alerting_ack_alerts:
     - 'cluster:admin/opendistro/alerting/alerts/*'
     - 'cluster:admin/opendistro/alerting/chained_alerts/*'
     - 'cluster:admin/opendistro/alerting/workflow_alerts/*'
+    - 'cluster:admin/opensearch/alerting/comments/*'
 
 # Allows users to use all alerting functionality
 alerting_full_access:
@@ -84,7 +86,12 @@ anomaly_full_access:
         - '*'
       allowed_actions:
         - 'indices:admin/aliases/get'
+        - 'indices:admin/mappings/fields/get'
+        - 'indices:admin/mappings/fields/get*'
         - 'indices:admin/mappings/get'
+        - 'indices:admin/resolve/index'
+        - 'indices:data/read/field_caps*'
+        - 'indices:data/read/search'
         - 'indices_monitor'
 
 # Allow users to execute read only k-NN actions
@@ -409,7 +416,7 @@ security_analytics_ack_alerts:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
-    - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/ack'
+    - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/*'
     - 'cluster:admin/opensearch/securityanalytics/threatintel/alerts/*'
 
 # Allows users to use all Flow Framework functionality

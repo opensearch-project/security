@@ -191,6 +191,13 @@ public class ConfigConstants {
 
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
 
+    // Internal Opensearch data_stream
+    public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME = "data_stream.name";
+    public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_MANAGE = "data_stream.template.manage";
+    public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NAME = "data_stream.template.name";
+    public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_REPLICAS = "data_stream.template.number_of_replicas";
+    public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS = "data_stream.template.number_of_shards";
+
     // Internal / External OpenSearch
     public static final String SECURITY_AUDIT_OPENSEARCH_INDEX = "index";
     public static final String SECURITY_AUDIT_OPENSEARCH_TYPE = "type";

@@ -68,6 +68,17 @@ public class ClusterInfoHolder implements ClusterStateListener {
         return initialized;
     }
 
+    public Version getMinNodeVersion() {
+        if (nodes == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Cluster Info Holder not initialized yet for 'nodes'");
+            }
+            return null;
+        }
+
+        return nodes.getMinNodeVersion();
+    }
+
     public Boolean hasNode(DiscoveryNode node) {
         if (nodes == null) {
             if (log.isDebugEnabled()) {
