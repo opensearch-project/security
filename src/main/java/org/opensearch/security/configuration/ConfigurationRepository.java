@@ -639,7 +639,7 @@ public class ConfigurationRepository implements ClusterStateListener {
 
     private ConfigurationMap validate(ConfigurationMap conf, int expectedSize) throws InvalidConfigException {
 
-        if (conf == null || conf.size() < expectedSize) {
+        if (conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");
         }
 
