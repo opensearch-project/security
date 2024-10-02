@@ -37,7 +37,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
-import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
 
 public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
 
@@ -86,15 +85,6 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
     public InternalUserV7() {
         super();
         // default constructor
-    }
-
-    public InternalUserV7(InternalUserV6 u6) {
-        hash = u6.getHash();
-        reserved = u6.isReserved();
-        hidden = u6.isHidden();
-        backend_roles = u6.getRoles();
-        attributes = u6.getAttributes();
-        description = "Migrated from v6";
     }
 
     public String getHash() {
