@@ -297,7 +297,6 @@ public class CType<T> implements Comparable<CType<?>> {
         public SecurityDynamicConfiguration<NewType> convert(SecurityDynamicConfiguration<OldType> oldConfig, CType<NewType> ctype) {
             SecurityDynamicConfiguration<NewType> newConfig = SecurityDynamicConfiguration.empty(ctype);
             newConfig.setAutoConvertedFrom(oldConfig);
-            // newConfig.setSeqNoPrimaryTerm();
 
             for (Map.Entry<String, OldType> oldEntry : oldConfig.getCEntries().entrySet()) {
                 newConfig.putCEntry(mapKeyConversionFunction.apply(oldEntry.getKey()), entryConversionFunction.apply(oldEntry.getValue()));
