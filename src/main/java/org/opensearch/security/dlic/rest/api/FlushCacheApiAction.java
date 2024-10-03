@@ -105,7 +105,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
                     "POST",
                     "POST is not supported on this endpoint and will be removed in the next major release."
                 );
-                methodNotImplemented(channel, Method.GET);
+                methodNotImplemented(channel, Method.POST);
             })
             .override(Method.PUT, (channel, request, client) -> {
                 deprecationLogger.deprecate("PUT", "PUT is not supported on this endpoint and will be removed in the next major release.");
