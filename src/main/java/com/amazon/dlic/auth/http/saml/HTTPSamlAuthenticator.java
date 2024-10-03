@@ -88,6 +88,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
     private static boolean openSamlInitialized = false;
+    public static final String SAML_TYPE = "saml";
 
     private String subjectKey;
     private String rolesKey;
@@ -175,7 +176,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     @Override
     public String getType() {
-        return "saml";
+        return SAML_TYPE;
     }
 
     @Override
