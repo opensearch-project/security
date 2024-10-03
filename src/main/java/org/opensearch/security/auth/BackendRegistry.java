@@ -75,6 +75,7 @@ import org.greenrobot.eventbus.Subscribe;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
+import static com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator.SAML_TYPE;
 
 public class BackendRegistry {
 
@@ -303,7 +304,10 @@ public class BackendRegistry {
                 if (authDomain.isChallenge()) {
                     final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
                     if (restResponse.isPresent()) {
-                        auditLog.logFailedLogin("<NONE>", false, null, request);
+                        // saml will always hit this to re-request authentication
+                        if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
+                            auditLog.logFailedLogin("<NONE>", false, null, request);
+                        }
                         if (isTraceEnabled) {
                             log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
