@@ -50,7 +50,7 @@ import org.opensearch.security.user.User;
 
 import org.greenrobot.eventbus.Subscribe;
 
-public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
+public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
@@ -69,7 +69,7 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     private final Boolean systemIndexPermissionEnabled;
 
     // constructor is called per index, so avoid costly operations here
-    public SecurityIndexSearcherWrapper(
+    public SystemIndexSearcherWrapper(
         final IndexService indexService,
         final Settings settings,
         final AdminDNs adminDNs,
