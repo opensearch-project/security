@@ -43,8 +43,7 @@ import org.opensearch.security.support.WildcardMatcher;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class UtilTests {
 
@@ -166,10 +165,11 @@ public class UtilTests {
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings), is("abvtTtxyz"));
         assertTrue(passwordHasherPBKDF2.check("tTt".toCharArray(), SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}", settings)));
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings), is("abvtTtxyzxxx"));
+        System.out.println("TQ Test :  " + SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings));
+        assertEquals(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings), "forcefail");
         assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$2y$"));
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings), is("abv${env.MYENV:tTt}xyz"));
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings), is("abv${env.MYENV-tTt}xyz"));
-        // assertThat(SecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings), is("abvabcdefgxyz"));
 
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
