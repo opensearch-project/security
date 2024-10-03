@@ -39,6 +39,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
+import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
@@ -152,7 +153,8 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     }
 
     protected final boolean isBlockedSystemIndexRequest() {
-        boolean isSystemIndex = systemIndexMatcher.test(index.getName());
+        boolean matchesSystemIndexRegisteredWithCore = !SystemIndexRegistry.matchesSystemIndexPattern(Set.of(index.getName())).isEmpty();
+        boolean isSystemIndex = systemIndexMatcher.test(index.getName()) || matchesSystemIndexRegisteredWithCore;
         if (!isSystemIndex) {
             return false;
         }
@@ -161,7 +163,7 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (user == null) {
                 // allow request without user from plugin.
-                return systemIndexMatcher.test(index.getName());
+                return systemIndexMatcher.test(index.getName()) || matchesSystemIndexRegisteredWithCore;
             }
             final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
             final Set<String> mappedRoles = evaluator.mapRoles(user, caller);
