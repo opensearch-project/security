@@ -19,7 +19,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -36,8 +35,6 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class FlushCacheApiAction extends AbstractApiAction {
 
     private final static Logger LOGGER = LogManager.getLogger(FlushCacheApiAction.class);
-
-    private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(FlushCacheApiAction.class);
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
