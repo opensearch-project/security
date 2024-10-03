@@ -82,7 +82,7 @@ public class SystemIndexTests {
     }
 
     @Test
-    public void adminShouldNotBeAbleToReadSystemIndex() {
+    public void regularUserShouldGetNoResultsWhenSearchingSystemIndex() {
         // Create system index and index a dummy document as the super admin user, data returned to super admin
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse response1 = client.put(".system-index1");
