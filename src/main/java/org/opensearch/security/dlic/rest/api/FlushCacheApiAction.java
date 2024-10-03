@@ -30,7 +30,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
-import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplemented;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -43,9 +42,21 @@ public class FlushCacheApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.DELETE, "/cache"),
-            new Route(Method.GET, "/cache"),
-            new Route(Method.PUT, "/cache"),
-            new Route(Method.POST, "/cache")
+            new DeprecatedRoute(
+                Method.GET,
+                "/cache",
+                "GET is not supported for /cache endpoint and will be removed in the next major version."
+            ),
+            new DeprecatedRoute(
+                Method.PUT,
+                "/cache",
+                "PUT is not supported for /cache endpoint and will be removed in the next major version."
+            ),
+            new DeprecatedRoute(
+                Method.POST,
+                "/cache",
+                "POST is not supported for /cache endpoint and will be removed in the next major version."
+            )
         )
     );
 
@@ -95,23 +106,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
                     }
                 )
-            )
-            .override(Method.GET, (channel, request, client) -> {
-                deprecationLogger.deprecate("GET", "GET is not supported on this endpoint and will be removed in the next major release.");
-                methodNotImplemented(channel, Method.GET);
-            })
-            .override(Method.POST, (channel, request, client) -> {
-                deprecationLogger.deprecate(
-                    "POST",
-                    "POST is not supported on this endpoint and will be removed in the next major release."
-                );
-                methodNotImplemented(channel, Method.POST);
-            })
-            .override(Method.PUT, (channel, request, client) -> {
-                deprecationLogger.deprecate("PUT", "PUT is not supported on this endpoint and will be removed in the next major release.");
-                methodNotImplemented(channel, Method.PUT);
-            });
-
+            );
     }
 
     @Override
