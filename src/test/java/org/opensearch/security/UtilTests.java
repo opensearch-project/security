@@ -165,9 +165,7 @@ public class UtilTests {
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings), is("abvtTtxyz"));
         assertTrue(passwordHasherPBKDF2.check("tTt".toCharArray(), SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}", settings)));
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings), is("abvtTtxyzxxx"));
-        System.out.println("TQ Test :  " + SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings));
-        assertEquals(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings), "forcefail");
-        assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$2y$"));
+        assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$3$"));
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings), is("abv${env.MYENV:tTt}xyz"));
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings), is("abv${env.MYENV-tTt}xyz"));
 
