@@ -304,7 +304,7 @@ public class ConfigModelV7 extends ConfigModel {
 
             for (SecurityRole role : roles) {
                 for (IndexPattern ip : role.getIpatterns()) {
-                    final Set<String> concreteIndices = ip.concreteIndexNames(user, resolver, cs);
+                    final Set<String> concreteIndices = ip.concreteIndexNames(user, resolver, cs, true);
                     String dls = ip.getDlsQuery(user);
 
                     if (dls != null && dls.length() > 0) {
@@ -759,23 +759,35 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         /** Finds the indices accessible to the user and resolves them to concrete names */
+        public Set<String> concreteIndexNames(
+            final User user,
+            final IndexNameExpressionResolver resolver,
+            final ClusterService cs,
+            final boolean includeClosed
+        ) {
+            return getResolvedIndexPattern(user, resolver, cs, false, includeClosed);
+        }
+
+        /** Finds the indices accessible to the user and resolves them to concrete names */
         public Set<String> concreteIndexNames(final User user, final IndexNameExpressionResolver resolver, final ClusterService cs) {
-            return getResolvedIndexPattern(user, resolver, cs, false);
+            return getResolvedIndexPattern(user, resolver, cs, false, false);
         }
 
         /** Finds the indices accessible to the user and attempts to resolve them to names, also includes any unresolved names */
         public Set<String> attemptResolveIndexNames(final User user, final IndexNameExpressionResolver resolver, final ClusterService cs) {
-            return getResolvedIndexPattern(user, resolver, cs, true);
+            return getResolvedIndexPattern(user, resolver, cs, true, false);
         }
 
         public Set<String> getResolvedIndexPattern(
             final User user,
             final IndexNameExpressionResolver resolver,
             final ClusterService cs,
-            final boolean appendUnresolved
+            final boolean appendUnresolved,
+            final boolean includeClosed
         ) {
             final String unresolved = getUnresolvedIndexPattern(user);
             final ImmutableSet.Builder<String> resolvedIndices = new ImmutableSet.Builder<>();
+            final IndicesOptions expansionMode = includeClosed ? IndicesOptions.lenientExpand() : IndicesOptions.lenientExpandOpen();
 
             final WildcardMatcher matcher = WildcardMatcher.from(unresolved);
             boolean includeDataStreams = true;
@@ -792,7 +804,7 @@ public class ConfigModelV7 extends ConfigModel {
                 if (aliasesAndDataStreamsForPermittedPattern.length > 0) {
                     final String[] resolvedAliasesAndDataStreamIndices = resolver.concreteIndexNames(
                         cs.state(),
-                        IndicesOptions.lenientExpandOpen(),
+                        expansionMode,
                         includeDataStreams,
                         aliasesAndDataStreamsForPermittedPattern
                     );
@@ -803,7 +815,7 @@ public class ConfigModelV7 extends ConfigModel {
             if (!(unresolved == null || unresolved.isBlank())) {
                 final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(
                     cs.state(),
-                    IndicesOptions.lenientExpandOpen(),
+                    expansionMode,
                     includeDataStreams,
                     unresolved
                 );

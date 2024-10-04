@@ -62,6 +62,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.log.LogsRule;
 
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -230,6 +231,12 @@ public class FlsAndFieldMaskingTests {
         "cluster_composite_ops_ro"
     ).indexPermissions("read").fls(String.format("~%s", FIELD_TITLE)).on(FIRST_INDEX_NAME);
 
+    static final TestSecurityConfig.Role ROLE_NO_FIELD_TITLE_WILDCARD_INDEX_FLS = new TestSecurityConfig.Role("example_exclusive_fls")
+        .clusterPermissions("cluster_composite_ops_ro")
+        .indexPermissions("read", "indices:admin/mappings/get")
+        .fls(String.format("~%s", FIELD_TITLE))
+        .on("*");
+
     static final TestSecurityConfig.Role ROLE_ONLY_FIELD_TITLE_MASKED = new TestSecurityConfig.Role("example_mask").clusterPermissions(
         "cluster_composite_ops_ro"
     ).indexPermissions("read").maskedFields(FIELD_TITLE.concat("::/(?<=.{1})./::").concat(MASK_VALUE)).on(FIRST_INDEX_NAME);
@@ -247,6 +254,12 @@ public class FlsAndFieldMaskingTests {
     static final TestSecurityConfig.User USER_NO_FIELD_TITLE_FLS = new TestSecurityConfig.User("exclusive_fls_user").roles(
         ROLE_NO_FIELD_TITLE_FLS
     );
+
+    /**
+     * Example user with fls filter in which the user can see every field but the {@link Song#FIELD_TITLE} field.
+     */
+    static final TestSecurityConfig.User USER_NO_FIELD_TITLE_WILDCARD_INDEX_FLS = new TestSecurityConfig.User("exclusive_wildcard_fls_user")
+        .roles(ROLE_NO_FIELD_TITLE_WILDCARD_INDEX_FLS);
 
     /**
      * Example user in which {@link Song#FIELD_TITLE} field is masked.
@@ -305,6 +318,7 @@ public class FlsAndFieldMaskingTests {
             ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
             TWINS_FIRST_ARTIST_READER,
             USER_ONLY_FIELD_TITLE_FLS,
+            USER_NO_FIELD_TITLE_WILDCARD_INDEX_FLS,
             USER_NO_FIELD_TITLE_FLS,
             USER_ONLY_FIELD_TITLE_MASKED,
             USER_BOTH_ONLY_AND_NO_FIELD_TITLE_FLS,
@@ -1775,6 +1789,28 @@ public class FlsAndFieldMaskingTests {
             assertSearchHitsDoContainField(searchResponse, FIELD_STARS);
             assertThat(searchResponse.toString(), containsString(SizeFieldMapper.NAME));
             assertSearchHitsDoNotContainField(searchResponse, FIELD_ARTIST);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testGetMappingsOnAClosedIndexWithFlsRestrictions() throws IOException {
+        String indexName = "fls_excludes_mappings";
+        List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
+
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse mappingsResponse = client.get(indexName + "/_mapping");
+            mappingsResponse.assertStatusCode(SC_OK);
+            assertThat(mappingsResponse.getBody(), containsString("title"));
+
+            TestRestClient.HttpResponse closeResponse = client.post(indexName + "/_close");
+            closeResponse.assertStatusCode(SC_OK);
+        }
+
+        try (TestRestClient client = cluster.getRestClient(USER_NO_FIELD_TITLE_WILDCARD_INDEX_FLS)) {
+            TestRestClient.HttpResponse mappingsResponse = client.get(indexName + "/_mapping");
+            mappingsResponse.assertStatusCode(SC_OK);
+            assertThat(mappingsResponse.getBody(), not(containsString("title")));
         }
     }
 
