@@ -81,6 +81,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.client = client;
+        log.info("Loaded SampleResourcePlugin components.");
         return Collections.emptyList();
     }
 
@@ -118,7 +119,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
 
     @Override
     public String getResourceIndex() {
-        return "";
+        return RESOURCE_INDEX_NAME;
     }
 
     @Override
