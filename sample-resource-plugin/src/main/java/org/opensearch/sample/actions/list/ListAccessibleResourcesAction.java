@@ -21,7 +21,7 @@ public class ListAccessibleResourcesAction extends ActionType<ListAccessibleReso
     /**
      * List sample resource action name
      */
-    public static final String NAME = "cluster:admin/sampleresource/list";
+    public static final String NAME = "cluster:admin/sample-resource-plugin/list";
 
     private ListAccessibleResourcesAction() {
         super(NAME, ListAccessibleResourcesResponse::new);

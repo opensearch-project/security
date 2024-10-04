@@ -29,12 +29,14 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.sample.Resource;
 import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.sample.actions.create.CreateResourceAction;
 import org.opensearch.sample.actions.create.CreateResourceRequest;
 import org.opensearch.sample.actions.create.CreateResourceResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.opensearch.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
 
 /**
  * Transport action for CreateSampleResource.
@@ -44,20 +46,12 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
     private final TransportService transportService;
     private final Client nodeClient;
-    private final String resourceIndex;
 
     @Inject
-    public CreateResourceTransportAction(
-        TransportService transportService,
-        ActionFilters actionFilters,
-        Client nodeClient,
-        String actionName,
-        String resourceIndex
-    ) {
-        super(actionName, transportService, actionFilters, (in) -> new CreateResourceRequest(in));
+    public CreateResourceTransportAction(TransportService transportService, ActionFilters actionFilters, Client nodeClient) {
+        super(CreateResourceAction.NAME, transportService, actionFilters, CreateResourceRequest::new);
         this.transportService = transportService;
         this.nodeClient = nodeClient;
-        this.resourceIndex = resourceIndex;
     }
 
     @Override
@@ -73,7 +67,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
     private void createResource(CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
         Resource sample = request.getResource();
         try {
-            IndexRequest ir = nodeClient.prepareIndex(resourceIndex)
+            IndexRequest ir = nodeClient.prepareIndex(RESOURCE_INDEX_NAME)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setSource(sample.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .request();
