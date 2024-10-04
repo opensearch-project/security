@@ -9,16 +9,16 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.sample.actions.create;
+package org.opensearch.sample.actions.create;
 
 import java.io.IOException;
 
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.sample.Resource;
+import org.opensearch.sample.Resource;
 
-import static org.opensearch.security.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
 
 public class SampleResource extends Resource {
 

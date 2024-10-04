@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.sample.actions.create;
+package org.opensearch.sample.actions.create;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,10 +14,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.client.Client;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.security.sample.transport.CreateResourceTransportAction;
+import org.opensearch.sample.transport.CreateResourceTransportAction;
 import org.opensearch.transport.TransportService;
 
-import static org.opensearch.security.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
 
 /**
  * Transport action for CreateSampleResource.

@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.sample.actions.create;
+package org.opensearch.sample.transport;
 
 import java.io.IOException;
 
@@ -14,29 +14,24 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.security.sample.Resource;
+import org.opensearch.sample.Resource;
 
 /**
  * Request object for CreateSampleResource transport action
  */
-public class CreateSampleResourceRequest extends ActionRequest {
+public class CreateResourceRequest<T extends Resource> extends ActionRequest {
 
-    private final Resource resource;
+    private final T resource;
 
     /**
      * Default constructor
      */
-    public CreateSampleResourceRequest(Resource resource) {
+    public CreateResourceRequest(T resource) {
         this.resource = resource;
     }
 
-    /**
-     * Constructor with stream input
-     * @param in the stream input
-     * @throws IOException IOException
-     */
-    public CreateSampleResourceRequest(final StreamInput in) throws IOException {
-        this.resource = new SampleResource(in);
+    public CreateResourceRequest(StreamInput in, Reader<T> resourceReader) throws IOException {
+        this.resource = resourceReader.read(in);
     }
 
     @Override

@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.sample.actions.list;
+package org.opensearch.sample.transport;
 
 import java.io.IOException;
 
@@ -17,9 +17,9 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 /**
- * Response to a ListSampleResourceRequest
+ * Response to a CreateSampleResourceRequest
  */
-public class ListSampleResourceResponse extends ActionResponse implements ToXContentObject {
+public class CreateResourceResponse extends ActionResponse implements ToXContentObject {
     private final String message;
 
     /**
@@ -27,7 +27,7 @@ public class ListSampleResourceResponse extends ActionResponse implements ToXCon
      *
      * @param message The message
      */
-    public ListSampleResourceResponse(String message) {
+    public CreateResourceResponse(String message) {
         this.message = message;
     }
 
@@ -41,7 +41,7 @@ public class ListSampleResourceResponse extends ActionResponse implements ToXCon
      *
      * @param in the stream input
      */
-    public ListSampleResourceResponse(final StreamInput in) throws IOException {
+    public CreateResourceResponse(final StreamInput in) throws IOException {
         message = in.readString();
     }
 

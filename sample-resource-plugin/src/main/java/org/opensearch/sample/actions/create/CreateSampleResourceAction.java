@@ -6,10 +6,10 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.sample.actions.create;
+package org.opensearch.sample.actions.create;
 
 import org.opensearch.action.ActionType;
-import org.opensearch.security.sample.transport.CreateResourceResponse;
+import org.opensearch.sample.transport.CreateResourceResponse;
 
 /**
  * Action to create a sample resource

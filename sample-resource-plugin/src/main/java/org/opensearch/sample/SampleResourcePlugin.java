@@ -6,7 +6,7 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.opensearch.security.sample;
+package org.opensearch.sample;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,13 +44,13 @@ import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.sample.actions.create.CreateSampleResourceAction;
+import org.opensearch.sample.actions.create.CreateSampleResourceRestAction;
+import org.opensearch.sample.actions.create.CreateSampleResourceTransportAction;
+import org.opensearch.sample.actions.list.ListSampleResourceAction;
+import org.opensearch.sample.actions.list.ListSampleResourceRestAction;
+import org.opensearch.sample.actions.list.ListSampleResourceTransportAction;
 import org.opensearch.script.ScriptService;
-import org.opensearch.security.sample.actions.create.CreateSampleResourceAction;
-import org.opensearch.security.sample.actions.create.CreateSampleResourceRestAction;
-import org.opensearch.security.sample.actions.create.CreateSampleResourceTransportAction;
-import org.opensearch.security.sample.actions.list.ListSampleResourceAction;
-import org.opensearch.security.sample.actions.list.ListSampleResourceRestAction;
-import org.opensearch.security.sample.actions.list.ListSampleResourceTransportAction;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 

@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.sample;
+package org.opensearch.sample;
 
 import org.opensearch.accesscontrol.resources.ResourceAccessScope;
 

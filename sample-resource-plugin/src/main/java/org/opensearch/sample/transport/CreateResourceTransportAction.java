@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.sample.transport;
+package org.opensearch.sample.transport;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,8 +29,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.security.sample.Resource;
-import org.opensearch.security.sample.SampleResourcePlugin;
+import org.opensearch.sample.Resource;
+import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 

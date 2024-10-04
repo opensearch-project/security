@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.sample.actions.list;
+package org.opensearch.sample.actions.list;
 
 import org.opensearch.action.ActionType;
 
