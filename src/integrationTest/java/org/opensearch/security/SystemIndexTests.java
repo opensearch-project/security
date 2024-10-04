@@ -80,4 +80,29 @@ public class SystemIndexTests {
             assertThat(response4.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
         }
     }
+
+    @Test
+    public void regularUserShouldGetNoResultsWhenSearchingSystemIndex() {
+        // Create system index and index a dummy document as the super admin user, data returned to super admin
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse response1 = client.put(".system-index1");
+
+            assertThat(response1.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            String doc = "{\"field\":\"value\"}";
+            HttpResponse adminPostResponse = client.postJson(".system-index1/_doc/1?refresh=true", doc);
+            assertThat(adminPostResponse.getStatusCode(), equalTo(RestStatus.CREATED.getStatus()));
+            HttpResponse response2 = client.get(".system-index1/_search");
+
+            assertThat(response2.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response2.getBody(), response2.getBody().contains("\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"}"));
+        }
+
+        // Regular users should not be able to read it
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            // regular user cannot read system index
+            HttpResponse response1 = client.get(".system-index1/_search");
+
+            assertThat(response1.getBody(), response1.getBody().contains("\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"}"));
+        }
+    }
 }
