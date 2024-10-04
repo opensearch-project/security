@@ -9,13 +9,14 @@
 package org.opensearch.security.sample.transport;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
+import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -86,17 +87,21 @@ public class CreateResourceTransportAction<T extends Resource> extends HandledTr
 
             log.warn("Index Request: {}", ir.toString());
 
-            ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                log.info("Created resource: {}", idxResponse.toString());
-                ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
-                ResourceSharing sharing = rs.getResourceAccessControlPlugin()
-                    .shareWith(idxResponse.getId(), idxResponse.getIndex(), Map.of());
-                log.info("Created resource sharing entry: {}", sharing.toString());
-            }, listener::onFailure);
+            ActionListener<IndexResponse> irListener = getIndexResponseActionListener(listener);
             nodeClient.index(ir, irListener);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static ActionListener<IndexResponse> getIndexResponseActionListener(ActionListener<CreateResourceResponse> listener) {
+        ShareWith shareWith = new ShareWith(List.of());
+        return ActionListener.wrap(idxResponse -> {
+            log.info("Created resource: {}", idxResponse.toString());
+            ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
+            ResourceSharing sharing = rs.getResourceAccessControlPlugin().shareWith(idxResponse.getId(), idxResponse.getIndex(), shareWith);
+            log.info("Created resource sharing entry: {}", sharing.toString());
+        }, listener::onFailure);
     }
 
     // TODO add delete implementation as a separate transport action
