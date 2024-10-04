@@ -17,6 +17,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.accesscontrol.resources.CreatedBy;
 import org.opensearch.accesscontrol.resources.EntityType;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
@@ -61,10 +62,11 @@ public class ResourceAccessHandler {
 
     public ResourceSharing shareWith(String resourceId, String systemIndexName, ShareWith shareWith) {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith);
+        LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user, shareWith);
 
         // TODO add concrete implementation
-        return null;
+        CreatedBy c = new CreatedBy("", null);
+        return new ResourceSharing(systemIndexName, resourceId, c, shareWith);
     }
 
     public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> revokeAccess) {

@@ -18,13 +18,13 @@ import org.opensearch.rest.action.RestToXContentListener;
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.GET;
 
-public class ListSampleResourceRestAction extends BaseRestHandler {
+public class ListAccessibleResourcesRestAction extends BaseRestHandler {
 
-    public ListSampleResourceRestAction() {}
+    public ListAccessibleResourcesRestAction() {}
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(GET, "/_plugins/resource_sharing_example/resource"));
+        return singletonList(new Route(GET, "/_plugins/sample_resource_sharing/resource"));
     }
 
     @Override
@@ -34,10 +34,10 @@ public class ListSampleResourceRestAction extends BaseRestHandler {
 
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        final ListSampleResourceRequest listSampleResourceRequest = new ListSampleResourceRequest();
+        final ListAccessibleResourcesRequest listAccessibleResourcesRequest = new ListAccessibleResourcesRequest();
         return channel -> client.executeLocally(
-            ListSampleResourceAction.INSTANCE,
-            listSampleResourceRequest,
+            ListAccessibleResourcesAction.INSTANCE,
+            listAccessibleResourcesRequest,
             new RestToXContentListener<>(channel)
         );
     }
