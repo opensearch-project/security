@@ -154,7 +154,7 @@ public class SystemIndexAccessEvaluatorTest {
 
         when(presponse.addMissingPrivileges(any())).thenReturn(true);
 
-        doReturn(ImmutableSet.of(index)).when(ip).getResolvedIndexPattern(user, indexNameExpressionResolver, cs, true);
+        doReturn(ImmutableSet.of(index)).when(ip).getResolvedIndexPattern(user, indexNameExpressionResolver, cs, true, false);
     }
 
     @After

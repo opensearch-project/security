@@ -41,7 +41,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SecurityUtils;
 
-public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWrapper {
+public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapper {
 
     public final Logger log = LogManager.getLogger(this.getClass());
 
