@@ -71,20 +71,10 @@ public class ResourceSharingIndexHandler {
         }
     }
 
-    // public void createIndexIfAbsent() {
-    // try {
-    // final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
-    // final CreateIndexRequest createIndexRequest = new CreateIndexRequest(resourceSharingIndex).settings(indexSettings);
-    // final boolean ok = client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
-    // LOGGER.info("Resource sharing index {} created?: {}", resourceSharingIndex, ok);
-    // } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
-    // LOGGER.info("Index {} already exists", resourceSharingIndex);
-    // }
-    // }
-
     public void createResourceSharingIndexIfAbsent(Callable<Boolean> callable) {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex);
+            CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
             ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
                 LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
                 callable.call();

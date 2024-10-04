@@ -51,9 +51,9 @@ public class ResourceAccessHandler {
         return List.of();
     }
 
-    public boolean hasPermission(String resourceId, String systemIndexName) {
+    public boolean hasPermission(String resourceId, String systemIndexName, String scope) {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        LOGGER.info("Checking if {} has permission to resource {}", user.getName(), resourceId);
+        LOGGER.info("Checking if {} has {} permission to resource {}", user.getName(), scope, resourceId);
 
         // TODO add concrete implementation
         return false;
