@@ -2191,13 +2191,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public Map<String, List<String>> listAccessibleResources() {
-        return this.resourceAccessHandler.listAccessibleResources();
-    }
-
-    @Override
-    public List<String> listAccessibleResourcesForPlugin(String systemIndexName) {
-        return this.resourceAccessHandler.listAccessibleResourcesForPlugin(systemIndexName);
+    public List<String> listAccessibleResourcesInPlugin(String systemIndexName) {
+        return this.resourceAccessHandler.listAccessibleResourcesInPlugin(systemIndexName);
     }
 
     @Override
