@@ -23,6 +23,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
@@ -45,6 +46,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
     private final Client nodeClient;
     private final String resourceIndex;
 
+    @Inject
     public CreateResourceTransportAction(
         TransportService transportService,
         ActionFilters actionFilters,

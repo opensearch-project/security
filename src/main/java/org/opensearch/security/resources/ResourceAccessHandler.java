@@ -44,7 +44,7 @@ public class ResourceAccessHandler {
         return Map.of();
     }
 
-    public List<String> listAccessibleResourcesForPlugin(String systemIndex) {
+    public List<String> listAccessibleResourcesInPlugin(String systemIndex) {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Listing accessible resource within a system index {} for : {}", systemIndex, user.getName());
 

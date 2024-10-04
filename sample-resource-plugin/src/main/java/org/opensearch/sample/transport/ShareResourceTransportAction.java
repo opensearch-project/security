@@ -19,6 +19,7 @@ import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.client.Client;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sample.SampleResourcePlugin;
@@ -39,6 +40,7 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
     private final Client nodeClient;
     private final String resourceIndex;
 
+    @Inject
     public ShareResourceTransportAction(
         TransportService transportService,
         ActionFilters actionFilters,
