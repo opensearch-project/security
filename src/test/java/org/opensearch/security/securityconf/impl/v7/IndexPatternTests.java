@@ -79,13 +79,13 @@ public class IndexPatternTests {
     /** Ensure that concreteIndexNames sends correct parameters are sent to getResolvedIndexPattern */
     @Test
     public void testConcreteIndexNamesOverload() {
-        doReturn(ImmutableSet.of("darn")).when(ip).getResolvedIndexPattern(user, resolver, clusterService, false);
+        doReturn(ImmutableSet.of("darn")).when(ip).getResolvedIndexPattern(user, resolver, clusterService, false, false);
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
         assertThat(results, contains("darn"));
 
-        verify(ip).getResolvedIndexPattern(user, resolver, clusterService, false);
+        verify(ip).getResolvedIndexPattern(user, resolver, clusterService, false, false);
         verify(ip).concreteIndexNames(user, resolver, clusterService);
         verifyNoMoreInteractions(ip);
     }
@@ -93,13 +93,13 @@ public class IndexPatternTests {
     /** Ensure that attemptResolveIndexNames sends correct parameters are sent to getResolvedIndexPattern */
     @Test
     public void testAttemptResolveIndexNamesOverload() {
-        doReturn(ImmutableSet.of("yarn")).when(ip).getResolvedIndexPattern(user, resolver, clusterService, true);
+        doReturn(ImmutableSet.of("yarn")).when(ip).getResolvedIndexPattern(user, resolver, clusterService, true, false);
 
         final Set<String> results = ip.attemptResolveIndexNames(user, resolver, clusterService);
 
         assertThat(results, contains("yarn"));
 
-        verify(ip).getResolvedIndexPattern(user, resolver, clusterService, true);
+        verify(ip).getResolvedIndexPattern(user, resolver, clusterService, true, false);
         verify(ip).attemptResolveIndexNames(user, resolver, clusterService);
         verifyNoMoreInteractions(ip);
     }
@@ -138,6 +138,24 @@ public class IndexPatternTests {
         verify(clusterService).state();
         verify(ip).getUnresolvedIndexPattern(user);
         verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"));
+    }
+
+    /** Verify concreteIndexNames on exact name matches */
+    @Test
+    public void testExactNameOnClosedIndex() {
+        doReturn("index-17").when(ip).getUnresolvedIndexPattern(user);
+        when(clusterService.state()).thenReturn(mock(ClusterState.class));
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpand()), eq(true), eq("index-17"))).thenReturn(
+            new String[] { "resolved-index-17" }
+        );
+
+        final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService, true);
+
+        assertThat(results, contains("resolved-index-17"));
+
+        verify(clusterService).state();
+        verify(ip).getUnresolvedIndexPattern(user);
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpand()), eq(true), eq("index-17"));
     }
 
     /** Verify concreteIndexNames on multiple matches */
