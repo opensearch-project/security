@@ -18,7 +18,7 @@ public class ShareResourceAction extends ActionType<ShareResourceResponse> {
     /**
      * List sample resource action name
      */
-    public static final String NAME = "cluster:admin/sampleresource/share";
+    public static final String NAME = "cluster:admin/sample-resource-plugin/share";
 
     private ShareResourceAction() {
         super(NAME, ShareResourceResponse::new);
