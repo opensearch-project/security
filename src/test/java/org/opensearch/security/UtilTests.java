@@ -156,6 +156,44 @@ public class UtilTests {
     }
 
     @Test
+    public void testEnvReplacePBKDF2() {
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2).build();
+        final PasswordHasher passwordHasherPBKDF2 = PasswordHasherFactory.createPasswordHasher(settings);
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings), is("abvtTtxyz"));
+        assertTrue(passwordHasherPBKDF2.check("tTt".toCharArray(), SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}", settings)));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings), is("abvtTtxyzxxx"));
+        assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$3$"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings), is("abv${env.MYENV:tTt}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings), is("abv${env.MYENV-tTt}xyz"));
+
+        Map<String, String> env = System.getenv();
+        assertTrue(env.size() > 0);
+
+        boolean checked = false;
+
+        for (String k : env.keySet()) {
+            String val = System.getenv().get(k);
+            if (val == null || val.isEmpty()) {
+                continue;
+            }
+            assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings), is("abv" + val + "xyz"));
+            assertThat(SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings), is("abv${" + k + "}xyz"));
+            assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings), is("abv" + val + "xyz"));
+            assertThat(
+                SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings),
+                is("abv" + val + "xyzabv" + val + "xyz")
+            );
+            assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings), is("abv" + val + "xyz"));
+            assertTrue(passwordHasherPBKDF2.check(val.toCharArray(), SecurityUtils.replaceEnvVars("${envbc." + k + "}", settings)));
+            checked = true;
+        }
+
+        assertTrue(checked);
+    }
+
+    @Test
     public void testNoEnvReplace() {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));

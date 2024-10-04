@@ -96,16 +96,16 @@ public final class SecurityUtils {
             return in;
         }
 
-        return replaceEnvVarsBC(replaceEnvVarsNonBC(replaceEnvVarsBase64(in)));
+        return replaceEnvVarsBC(replaceEnvVarsNonBC(replaceEnvVarsBase64(in, settings), settings), settings);
     }
 
-    private static String replaceEnvVarsNonBC(String in) {
+    private static String replaceEnvVarsNonBC(String in, Settings settings) {
         // ${env.MY_ENV_VAR}
         // ${env.MY_ENV_VAR:-default}
         Matcher matcher = ENV_PATTERN.matcher(in);
         StringBuffer sb = new StringBuffer();
         while (matcher.find()) {
-            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false);
+            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false, settings);
             if (replacement != null) {
                 matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
             }
@@ -114,13 +114,13 @@ public final class SecurityUtils {
         return sb.toString();
     }
 
-    private static String replaceEnvVarsBC(String in) {
+    private static String replaceEnvVarsBC(String in, Settings settings) {
         // ${envbc.MY_ENV_VAR}
         // ${envbc.MY_ENV_VAR:-default}
         Matcher matcher = ENVBC_PATTERN.matcher(in);
         StringBuffer sb = new StringBuffer();
         while (matcher.find()) {
-            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), true);
+            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), true, settings);
             if (replacement != null) {
                 matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
             }
@@ -129,13 +129,13 @@ public final class SecurityUtils {
         return sb.toString();
     }
 
-    private static String replaceEnvVarsBase64(String in) {
+    private static String replaceEnvVarsBase64(String in, Settings settings) {
         // ${envbc.MY_ENV_VAR}
         // ${envbc.MY_ENV_VAR:-default}
         Matcher matcher = ENVBASE64_PATTERN.matcher(in);
         StringBuffer sb = new StringBuffer();
         while (matcher.find()) {
-            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false);
+            final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false, settings);
             if (replacement != null) {
                 matcher.appendReplacement(
                     sb,
@@ -149,16 +149,16 @@ public final class SecurityUtils {
 
     // ${env.MY_ENV_VAR}
     // ${env.MY_ENV_VAR:-default}
-    private static String resolveEnvVar(String envVarName, String mode, boolean bc) {
+    private static String resolveEnvVar(String envVarName, String mode, boolean bc, Settings settings) {
         final String envVarValue = System.getenv(envVarName);
         if (envVarValue == null || envVarValue.isEmpty()) {
             if (mode != null && mode.startsWith(":-") && mode.length() > 2) {
-                return bc ? Hasher.hash(mode.substring(2).toCharArray()) : mode.substring(2);
+                return bc ? Hasher.hash(mode.substring(2).toCharArray(), settings) : mode.substring(2);
             } else {
                 return null;
             }
         } else {
-            return bc ? Hasher.hash(envVarValue.toCharArray()) : envVarValue;
+            return bc ? Hasher.hash(envVarValue.toCharArray(), settings) : envVarValue;
         }
     }
 }
