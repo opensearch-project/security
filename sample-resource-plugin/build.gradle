@@ -13,7 +13,7 @@ import org.opensearch.gradle.test.RestIntegTestTask
 opensearchplugin {
     name 'opensearch-sample-resource-plugin'
     description 'Sample plugin that extends OpenSearch Resource Plugin'
-    classname 'org.opensearch.security.sample.SampleResourcePlugin'
+    classname 'org.opensearch.sample.SampleResourcePlugin'
 }
 
 ext {
