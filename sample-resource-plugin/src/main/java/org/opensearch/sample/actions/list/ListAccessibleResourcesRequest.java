@@ -18,16 +18,16 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 /**
  * Request object for ListSampleResource transport action
  */
-public class ListSampleResourceRequest extends ActionRequest {
+public class ListAccessibleResourcesRequest extends ActionRequest {
 
-    public ListSampleResourceRequest() {}
+    public ListAccessibleResourcesRequest() {}
 
     /**
      * Constructor with stream input
      * @param in the stream input
      * @throws IOException IOException
      */
-    public ListSampleResourceRequest(final StreamInput in) throws IOException {}
+    public ListAccessibleResourcesRequest(final StreamInput in) throws IOException {}
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {}

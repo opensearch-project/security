@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.actions.create;
+package org.opensearch.sample.actions.verify;
 
 import java.io.IOException;
 
@@ -16,10 +16,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
-/**
- * Response to a CreateSampleResourceRequest
- */
-public class CreateSampleResourceResponse extends ActionResponse implements ToXContentObject {
+public class VerifyResourceAccessResponse extends ActionResponse implements ToXContentObject {
     private final String message;
 
     /**
@@ -27,7 +24,7 @@ public class CreateSampleResourceResponse extends ActionResponse implements ToXC
      *
      * @param message The message
      */
-    public CreateSampleResourceResponse(String message) {
+    public VerifyResourceAccessResponse(String message) {
         this.message = message;
     }
 
@@ -41,7 +38,7 @@ public class CreateSampleResourceResponse extends ActionResponse implements ToXC
      *
      * @param in the stream input
      */
-    public CreateSampleResourceResponse(final StreamInput in) throws IOException {
+    public VerifyResourceAccessResponse(final StreamInput in) throws IOException {
         message = in.readString();
     }
 

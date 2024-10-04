@@ -8,10 +8,7 @@
  */
 package org.opensearch.sample;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -44,12 +41,16 @@ import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.sample.actions.create.CreateSampleResourceAction;
-import org.opensearch.sample.actions.create.CreateSampleResourceRestAction;
-import org.opensearch.sample.actions.create.CreateSampleResourceTransportAction;
-import org.opensearch.sample.actions.list.ListSampleResourceAction;
-import org.opensearch.sample.actions.list.ListSampleResourceRestAction;
-import org.opensearch.sample.actions.list.ListSampleResourceTransportAction;
+import org.opensearch.sample.actions.create.CreateResourceAction;
+import org.opensearch.sample.actions.create.CreateResourceRestAction;
+import org.opensearch.sample.actions.list.ListAccessibleResourcesAction;
+import org.opensearch.sample.actions.list.ListAccessibleResourcesRestAction;
+import org.opensearch.sample.actions.share.ShareResourceAction;
+import org.opensearch.sample.actions.verify.VerifyResourceAccessAction;
+import org.opensearch.sample.transport.CreateResourceTransportAction;
+import org.opensearch.sample.transport.ListAccessibleResourcesTransportAction;
+import org.opensearch.sample.transport.ShareResourceTransportAction;
+import org.opensearch.sample.transport.VerifyResourceAccessTransportAction;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -62,7 +63,9 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, ResourcePlugin {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
 
-    public static final String RESOURCE_INDEX_NAME = ".sample_resources";
+    public static final String RESOURCE_INDEX_NAME = ".sample_resource_sharing_plugin";
+
+    public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
 
     private Client client;
 
@@ -95,14 +98,16 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return List.of(new CreateSampleResourceRestAction(), new ListSampleResourceRestAction());
+        return List.of(new CreateResourceRestAction(), new ListAccessibleResourcesRestAction());
     }
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
-            new ActionHandler<>(CreateSampleResourceAction.INSTANCE, CreateSampleResourceTransportAction.class),
-            new ActionHandler<>(ListSampleResourceAction.INSTANCE, ListSampleResourceTransportAction.class)
+            new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
+            new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, ListAccessibleResourcesTransportAction.class),
+            new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class),
+            new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, VerifyResourceAccessTransportAction.class)
         );
     }
 

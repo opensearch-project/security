@@ -9,22 +9,21 @@
 package org.opensearch.sample.actions.create;
 
 import org.opensearch.action.ActionType;
-import org.opensearch.sample.transport.CreateResourceResponse;
 
 /**
  * Action to create a sample resource
  */
-public class CreateSampleResourceAction extends ActionType<CreateResourceResponse> {
+public class CreateResourceAction extends ActionType<CreateResourceResponse> {
     /**
      * Create sample resource action instance
      */
-    public static final CreateSampleResourceAction INSTANCE = new CreateSampleResourceAction();
+    public static final CreateResourceAction INSTANCE = new CreateResourceAction();
     /**
      * Create sample resource action name
      */
     public static final String NAME = "cluster:admin/sampleresource/create";
 
-    private CreateSampleResourceAction() {
+    private CreateResourceAction() {
         super(NAME, CreateResourceResponse::new);
     }
 }

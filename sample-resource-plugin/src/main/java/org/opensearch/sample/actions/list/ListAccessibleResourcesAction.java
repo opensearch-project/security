@@ -13,17 +13,17 @@ import org.opensearch.action.ActionType;
 /**
  * Action to list sample resources
  */
-public class ListSampleResourceAction extends ActionType<ListSampleResourceResponse> {
+public class ListAccessibleResourcesAction extends ActionType<ListAccessibleResourcesResponse> {
     /**
      * List sample resource action instance
      */
-    public static final ListSampleResourceAction INSTANCE = new ListSampleResourceAction();
+    public static final ListAccessibleResourcesAction INSTANCE = new ListAccessibleResourcesAction();
     /**
      * List sample resource action name
      */
     public static final String NAME = "cluster:admin/sampleresource/list";
 
-    private ListSampleResourceAction() {
-        super(NAME, ListSampleResourceResponse::new);
+    private ListAccessibleResourcesAction() {
+        super(NAME, ListAccessibleResourcesResponse::new);
     }
 }

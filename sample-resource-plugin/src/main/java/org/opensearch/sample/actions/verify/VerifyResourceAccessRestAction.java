@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.actions.create;
+package org.opensearch.sample.actions.verify;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,23 +17,22 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
-import org.opensearch.sample.transport.CreateResourceRequest;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-public class CreateSampleResourceRestAction extends BaseRestHandler {
+public class VerifyResourceAccessRestAction extends BaseRestHandler {
 
-    public CreateSampleResourceRestAction() {}
+    public VerifyResourceAccessRestAction() {}
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(POST, "/_plugins/resource_sharing_example/resource"));
+        return singletonList(new Route(POST, "/_plugins/sample_resource_sharing/verify_resource_access"));
     }
 
     @Override
     public String getName() {
-        return "create_sample_resource";
+        return "verify_resource_access";
     }
 
     @Override
@@ -43,14 +42,11 @@ public class CreateSampleResourceRestAction extends BaseRestHandler {
             source = parser.map();
         }
 
-        String name = (String) source.get("name");
-        SampleResource resource = new SampleResource();
-        resource.setName(name);
-        final CreateResourceRequest<SampleResource> createSampleResourceRequest = new CreateResourceRequest<>(resource);
-        return channel -> client.executeLocally(
-            CreateSampleResourceAction.INSTANCE,
-            createSampleResourceRequest,
-            new RestToXContentListener<>(channel)
-        );
+        String resourceIdx = (String) source.get("resource_idx");
+        String sourceIdx = (String) source.get("source_idx");
+        String scope = (String) source.get("scope");
+
+        // final CreateResourceRequest<SampleResource> createSampleResourceRequest = new CreateResourceRequest<>(resource);
+        return channel -> client.executeLocally(VerifyResourceAccessAction.INSTANCE, null, new RestToXContentListener<>(channel));
     }
 }

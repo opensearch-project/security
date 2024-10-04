@@ -47,7 +47,7 @@ public class SampleResource extends Resource {
 
     @Override
     public String getWriteableName() {
-        return "sampled_resource";
+        return "sample_resource";
     }
 
     public void setName(String name) {

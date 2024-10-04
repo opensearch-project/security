@@ -17,8 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
@@ -27,10 +25,11 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.sample.Resource;
 import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.sample.actions.create.CreateResourceRequest;
+import org.opensearch.sample.actions.create.CreateResourceResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -39,9 +38,7 @@ import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 /**
  * Transport action for CreateSampleResource.
  */
-public class CreateResourceTransportAction<T extends Resource> extends HandledTransportAction<
-    CreateResourceRequest<T>,
-    CreateResourceResponse> {
+public class CreateResourceTransportAction extends HandledTransportAction<CreateResourceRequest, CreateResourceResponse> {
     private static final Logger log = LogManager.getLogger(CreateResourceTransportAction.class);
 
     private final TransportService transportService;
@@ -53,31 +50,25 @@ public class CreateResourceTransportAction<T extends Resource> extends HandledTr
         ActionFilters actionFilters,
         Client nodeClient,
         String actionName,
-        String resourceIndex,
-        Writeable.Reader<T> resourceReader
+        String resourceIndex
     ) {
-        super(actionName, transportService, actionFilters, (in) -> new CreateResourceRequest<T>(in, resourceReader));
+        super(actionName, transportService, actionFilters, (in) -> new CreateResourceRequest(in));
         this.transportService = transportService;
         this.nodeClient = nodeClient;
         this.resourceIndex = resourceIndex;
     }
 
     @Override
-    protected void doExecute(Task task, CreateResourceRequest<T> request, ActionListener<CreateResourceResponse> listener) {
+    protected void doExecute(Task task, CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
         try (ThreadContext.StoredContext ignore = transportService.getThreadPool().getThreadContext().stashContext()) {
-            CreateIndexRequest cir = new CreateIndexRequest(resourceIndex);
-            ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(
-                response -> { createResource(request, listener); },
-                (failResponse) -> {
-                    /* Index already exists, ignore and continue */
-                    createResource(request, listener);
-                }
-            );
-            nodeClient.admin().indices().create(cir, cirListener);
+            createResource(request, listener);
+            listener.onResponse(new CreateResourceResponse("Resource " + request.getResource() + " created successfully."));
+        } catch (Exception e) {
+            listener.onFailure(e);
         }
     }
 
-    private void createResource(CreateResourceRequest<T> request, ActionListener<CreateResourceResponse> listener) {
+    private void createResource(CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
         Resource sample = request.getResource();
         try {
             IndexRequest ir = nodeClient.prepareIndex(resourceIndex)
@@ -104,5 +95,4 @@ public class CreateResourceTransportAction<T extends Resource> extends HandledTr
         }, listener::onFailure);
     }
 
-    // TODO add delete implementation as a separate transport action
 }

@@ -19,24 +19,19 @@ import org.opensearch.sample.Resource;
 /**
  * Request object for CreateSampleResource transport action
  */
-public class CreateSampleResourceRequest extends ActionRequest {
+public class CreateResourceRequest extends ActionRequest {
 
     private final Resource resource;
 
     /**
      * Default constructor
      */
-    public CreateSampleResourceRequest(Resource resource) {
+    public CreateResourceRequest(Resource resource) {
         this.resource = resource;
     }
 
-    /**
-     * Constructor with stream input
-     * @param in the stream input
-     * @throws IOException IOException
-     */
-    public CreateSampleResourceRequest(final StreamInput in) throws IOException {
-        this.resource = new SampleResource(in);
+    public CreateResourceRequest(StreamInput in) throws IOException {
+        this.resource = in.readNamedWriteable(Resource.class);
     }
 
     @Override
