@@ -493,8 +493,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
 
         }
-
-        this.resourceAccessHandler = new ResourceAccessHandler(threadPool);
     }
 
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
@@ -1210,6 +1208,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
             e.subscribeForChanges(dcf);
         }
+
+        resourceAccessHandler = new ResourceAccessHandler(threadPool);
 
         rmr = ResourceManagementRepository.create(settings, threadPool, localClient);
 
