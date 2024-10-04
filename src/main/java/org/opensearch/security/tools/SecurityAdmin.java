@@ -204,7 +204,7 @@ public class SecurityAdmin {
                 .longOpt("truststore-type")
                 .hasArg()
                 .argName("type")
-                .desc("JKS or PKCS12, if not given we use the file extension to dectect the type")
+                .desc("JKS or PKCS12, if not given we use the file extension to detect the type")
                 .build()
         );
         options.addOption(
@@ -212,7 +212,7 @@ public class SecurityAdmin {
                 .longOpt("keystore-type")
                 .hasArg()
                 .argName("type")
-                .desc("JKS or PKCS12, if not given we use the file extension to dectect the type")
+                .desc("JKS or PKCS12, if not given we use the file extension to detect the type")
                 .build()
         );
         // CS-ENFORCE-SINGLE
