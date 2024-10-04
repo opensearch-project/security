@@ -11,14 +11,10 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.util.List;
-import java.util.Map;
-
 import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.securityconf.impl.CType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -61,8 +57,6 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
     @Test
     public void onConfigChangeShouldCheckRoles() throws Exception {
         when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
-        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false))
-                .thenReturn(Map.of(CType.ROLES, rolesConfiguration));
         final var rolesApiActionEndpointValidator =
                 new RolesMappingApiAction(clusterService, threadPool,
                         securityApiDependencies).createEndpointValidator();

@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -376,7 +375,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
-        final CType cType,
+        final CType<?> cType,
         boolean omitSensitiveData,
         final boolean logComplianceEvent
     ) {
@@ -451,20 +450,18 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         };
     }
 
-    protected abstract CType getConfigType();
+    protected abstract CType<?> getConfigType();
 
-    protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+    protected final SecurityDynamicConfiguration<?> load(final CType<?> config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
-            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
-            .get(config)
+            .getUnconvertedConfigurationFromIndex(config, logComplianceEvent)
             .deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
-    protected final SecurityDynamicConfiguration<?> loadAndRedact(final CType config, boolean logComplianceEvent) {
+    protected final SecurityDynamicConfiguration<?> loadAndRedact(final CType<?> config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = securityApiDependencies.configurationRepository()
-            .getConfigurationsFromIndex(List.of(config), logComplianceEvent)
-            .get(config)
+            .getUnconvertedConfigurationFromIndex(config, logComplianceEvent)
             .deepCloneWithRedaction();
         return DynamicConfigFactory.addStatics(loaded);
     }
@@ -496,7 +493,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     public static ActionFuture<IndexResponse> saveAndUpdateConfigs(
         final SecurityApiDependencies dependencies,
         final Client client,
-        final CType cType,
+        final CType<?> cType,
         final SecurityDynamicConfiguration<?> configuration
     ) {
         final var request = createIndexRequestForConfig(dependencies, cType, configuration);
@@ -506,7 +503,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     public static void saveAndUpdateConfigsAsync(
         final SecurityApiDependencies dependencies,
         final Client client,
-        final CType cType,
+        final CType<?> cType,
         final SecurityDynamicConfiguration<?> configuration,
         final ActionListener<IndexResponse> actionListener
     ) {
@@ -516,7 +513,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     private static IndexRequest createIndexRequestForConfig(
         final SecurityApiDependencies dependencies,
-        final CType cType,
+        final CType<?> cType,
         final SecurityDynamicConfiguration<?> configuration
     ) {
         configuration.removeStatic();

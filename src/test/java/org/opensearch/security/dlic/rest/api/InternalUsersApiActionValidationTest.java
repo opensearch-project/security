@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 public class InternalUsersApiActionValidationTest extends AbstractApiActionValidationTest {
@@ -58,8 +59,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
 
         final var allClusterPermissions = new RoleV7();
         allClusterPermissions.setCluster_permissions(List.of("*"));
-        @SuppressWarnings("unchecked")
-        final var c = (SecurityDynamicConfiguration<RoleV7>) rolesConfiguration;
+        final var c = rolesConfiguration;
         c.putCEntry("some_role_with_reserved_mapping", allClusterPermissions);
         c.putCEntry("some_role_with_hidden_mapping", allClusterPermissions);
 
@@ -81,9 +81,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             1,
             1
         );
-        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLESMAPPING), false)).thenReturn(
-            Map.of(CType.ROLESMAPPING, rolesMappingConfiguration)
-        );
+        doReturn(rolesMappingConfiguration).when(configurationRepository).getUnconvertedConfigurationFromIndex(CType.ROLESMAPPING, false);
     }
 
     @Test

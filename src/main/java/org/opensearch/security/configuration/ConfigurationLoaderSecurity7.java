@@ -29,8 +29,6 @@ package org.opensearch.security.configuration;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -40,7 +38,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.LegacyESVersion;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
 import org.opensearch.action.get.MultiGetRequest;
@@ -57,8 +54,12 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v6.RoleV6;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityUtils;
@@ -95,10 +96,10 @@ public class ConfigurationLoaderSecurity7 {
         return isAuditConfigDocPresentInIndex.get();
     }
 
-    Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid)
-        throws InterruptedException, TimeoutException {
+    ConfigurationMap load(final CType<?>[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException,
+        TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
-        final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
+        ConfigurationMap.Builder result = new ConfigurationMap.Builder();
         final boolean isDebugEnabled = log.isDebugEnabled();
         loadAsync(events, new ConfigCallback() {
 
@@ -119,7 +120,8 @@ public class ConfigurationLoaderSecurity7 {
                     isAuditConfigDocPresentInIndex.set(true);
                 }
 
-                rs.put(dConf.getCType(), dConf);
+                result.with(dConf);
+
                 latch.countDown();
                 if (isDebugEnabled) {
                     log.debug(
@@ -143,36 +145,19 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void noData(String id) {
-                CType cType = CType.fromString(id);
-
-                // when index was created with ES 6 there are no separate tenants. So we load just empty ones.
-                // when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
-                if (cs.state().metadata().index(securityIndex).getCreationVersion().before(LegacyESVersion.V_7_0_0)) {
-                    // created with SG 6
-                    // skip tenants
-
-                    if (isDebugEnabled) {
-                        log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6)");
-                    }
-
-                    if (cType == CType.TENANTS) {
-                        rs.put(cType, SecurityDynamicConfiguration.empty());
-                        latch.countDown();
-                        return;
-                    }
-                }
+                CType<?> cType = CType.fromString(id);
 
                 // Since NODESDN is newly introduced data-type applying for existing clusters as well, we make it backward compatible by
                 // returning valid empty
                 // SecurityDynamicConfiguration.
                 // Same idea for new setting WHITELIST/ALLOWLIST
-                if (cType == CType.NODESDN || cType == CType.WHITELIST || cType == CType.ALLOWLIST) {
+                if (cType == CType.NODESDN || cType == CType.WHITELIST || cType == CType.ALLOWLIST || cType == CType.TENANTS) {
                     try {
                         SecurityDynamicConfiguration<?> empty = ConfigHelper.createEmptySdc(
                             cType,
                             ConfigurationRepository.getDefaultConfigVersion()
                         );
-                        rs.put(cType, empty);
+                        result.with(empty);
                         latch.countDown();
                         return;
                     } catch (Exception e) {
@@ -190,7 +175,7 @@ public class ConfigurationLoaderSecurity7 {
                             ConfigurationRepository.getDefaultConfigVersion()
                         );
                         empty.putCObject("config", AuditConfig.from(settings));
-                        rs.put(cType, empty);
+                        result.with(empty);
                         latch.countDown();
                         return;
                     } catch (Exception e) {
@@ -222,10 +207,26 @@ public class ConfigurationLoaderSecurity7 {
             );
         }
 
-        return rs;
+        SecurityDynamicConfiguration<RoleV7> roleConfig = result.get(CType.ROLES);
+        SecurityDynamicConfiguration<TenantV7> tenantConfig = result.get(CType.TENANTS);
+
+        if (roleConfig != null
+            && roleConfig.getAutoConvertedFrom() != null
+            && (tenantConfig == null || tenantConfig.getCEntries().isEmpty())) {
+            // Special case for configuration that was auto-converted from v6:
+            // We need to generate tenant config from role config.
+            // Having such a special case here is not optimal, but IMHO acceptable, as this
+            // should be only a temporary measure until V6 configuration is completely discontinued.
+            @SuppressWarnings("unchecked")
+            SecurityDynamicConfiguration<RoleV6> roleV6config = (SecurityDynamicConfiguration<RoleV6>) roleConfig.getAutoConvertedFrom();
+            SecurityDynamicConfiguration<TenantV7> tenants = Migration.createTenants(roleV6config);
+            result.with(tenants);
+        }
+
+        return result.build();
     }
 
-    void loadAsync(final CType[] events, final ConfigCallback callback, boolean acceptInvalid) {
+    void loadAsync(final CType<?>[] events, final ConfigCallback callback, boolean acceptInvalid) {
         if (events == null || events.length == 0) {
             log.warn("No config events requested to load");
             return;

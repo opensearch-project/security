@@ -41,7 +41,7 @@ public class ConfigReaderTest {
 
     @Test
     public void testThrowsIOExceptionForMandatoryCTypes() {
-        for (final var cType : CType.REQUIRED_CONFIG_FILES) {
+        for (final var cType : CType.requiredConfigTypes()) {
             assertThrows(IOException.class, () -> YamlConfigReader.newReader(cType, configDir.toPath()));
         }
     }
@@ -49,7 +49,7 @@ public class ConfigReaderTest {
     @Test
     public void testCreateReaderForNonMandatoryCTypes() throws IOException {
         final var yamlMapper = DefaultObjectMapper.YAML_MAPPER;
-        for (final var cType : CType.NOT_REQUIRED_CONFIG_FILES) {
+        for (final var cType : CType.notRequiredConfigTypes()) {
             try (final var reader = new BufferedReader(YamlConfigReader.newReader(cType, configDir.toPath()))) {
                 final var emptyYaml = yamlMapper.readTree(reader);
                 assertTrue(emptyYaml.has("_meta"));

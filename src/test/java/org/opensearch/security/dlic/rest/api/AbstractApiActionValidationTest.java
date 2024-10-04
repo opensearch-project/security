@@ -13,7 +13,6 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,6 +31,7 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -40,7 +40,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 @RunWith(MockitoJUnitRunner.class)
 public abstract class AbstractApiActionValidationTest {
@@ -62,7 +62,7 @@ public abstract class AbstractApiActionValidationTest {
     @Mock
     SecurityDynamicConfiguration<?> configuration;
 
-    SecurityDynamicConfiguration<?> rolesConfiguration;
+    SecurityDynamicConfiguration<RoleV7> rolesConfiguration;
 
     ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
 
@@ -100,9 +100,7 @@ public abstract class AbstractApiActionValidationTest {
         config.set("regular_role", objectMapper.createObjectNode().set("cluster_permissions", objectMapper.createArrayNode().add("*")));
 
         rolesConfiguration = SecurityDynamicConfiguration.fromJson(objectMapper.writeValueAsString(config), CType.ROLES, 2, 1, 1);
-        when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false)).thenReturn(
-            Map.of(CType.ROLES, rolesConfiguration)
-        );
+        doReturn(rolesConfiguration).when(configurationRepository).getUnconvertedConfigurationFromIndex(CType.ROLES, false);
     }
 
     @Test
@@ -110,7 +108,7 @@ public abstract class AbstractApiActionValidationTest {
 
         final var defaultPessimisticValidator = new AbstractApiAction(null, clusterService, threadPool, securityApiDependencies) {
             @Override
-            protected CType getConfigType() {
+            protected CType<?> getConfigType() {
                 return CType.CONFIG;
             }
         }.createEndpointValidator();

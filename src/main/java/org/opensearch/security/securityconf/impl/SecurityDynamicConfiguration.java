@@ -46,12 +46,13 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
+
+    public static final int CURRENT_VERSION = 2;
 
     private static final TypeReference<HashMap<String, Object>> typeRefMSO = new TypeReference<HashMap<String, Object>>() {
     };
@@ -62,11 +63,27 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private final Object modificationLock = new Object();
     private long seqNo = -1;
     private long primaryTerm = -1;
-    private CType ctype;
+    /**
+     * CType with a proper generic parameter. Will be null for older config versions. If you need the ctype anyway,
+     * refer to ctypeUnsafe.
+     */
+    private CType<T> ctype;
+    /**
+     * CType with a ? generic parameter. Will be not null for older config versions.
+     */
+    private CType<?> ctypeUnsafe;
     private int version = -1;
 
-    public static <T> SecurityDynamicConfiguration<T> empty() {
-        return new SecurityDynamicConfiguration<T>();
+    private SecurityDynamicConfiguration<?> autoConvertedFrom;
+
+    public static <T> SecurityDynamicConfiguration<T> empty(CType<T> ctype) {
+        return new SecurityDynamicConfiguration<T>(ctype);
+    }
+
+    public static <T> SecurityDynamicConfiguration<T> empty(CType<T> ctype, int version) {
+        SecurityDynamicConfiguration<T> result = new SecurityDynamicConfiguration<T>(ctype);
+        result.version = version;
+        return result;
     }
 
     @JsonIgnore
@@ -74,14 +91,18 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return !centries.isEmpty();
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm)
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType<T> ctype, int version, long seqNo, long primaryTerm)
         throws IOException {
         return fromJson(json, ctype, version, seqNo, primaryTerm, false);
     }
 
+    /**
+     * Creates the SecurityDynamicConfiguration instance from the given JSON. If a config version is found, which
+     * is not the current one, it will be automatically converted into the current configuration version.
+     */
     public static <T> SecurityDynamicConfiguration<T> fromJson(
         String json,
-        CType ctype,
+        CType<T> ctype,
         int version,
         long seqNo,
         long primaryTerm,
@@ -89,22 +110,26 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     ) throws IOException {
         SecurityDynamicConfiguration<T> sdc = null;
         if (ctype != null) {
-            final Class<?> implementationClass = ctype.getImplementationClass().get(version);
-            if (implementationClass == null) {
-                throw new IllegalArgumentException("No implementation class found for " + ctype + " and config version " + version);
-            }
-            if (acceptInvalid && version < 2) {
-                sdc = NonValidatingObjectMapper.readValue(
-                    json,
-                    NonValidatingObjectMapper.getTypeFactory()
-                        .constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
-                );
+            CType.OldConfigVersion<?, T> oldConfigVersion = ctype.findOldConfigVersion(version);
+
+            if (oldConfigVersion != null) {
+                sdc = oldConfigVersion.parseJson(ctype, json, acceptInvalid);
+                if (sdc._meta == null) {
+                    sdc._meta = new Meta();
+                    sdc._meta.setConfig_version(CURRENT_VERSION);
+                    sdc._meta.setType(ctype.toLCString());
+                }
+                if (sdc.getAutoConvertedFrom() != null) {
+                    sdc.getAutoConvertedFrom().version = version;
+                }
+                version = CURRENT_VERSION;
             } else {
                 sdc = DefaultObjectMapper.readValue(
                     json,
-                    DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
+                    DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
                 );
             }
+
             validate(sdc, version, ctype);
 
         } else {
@@ -112,6 +137,61 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         }
 
         sdc.ctype = ctype;
+        sdc.ctypeUnsafe = ctype;
+        sdc.seqNo = seqNo;
+        sdc.primaryTerm = primaryTerm;
+        sdc.version = version;
+
+        if (sdc.getAutoConvertedFrom() != null) {
+            sdc.getAutoConvertedFrom().seqNo = seqNo;
+            sdc.getAutoConvertedFrom().primaryTerm = primaryTerm;
+            sdc.getAutoConvertedFrom().ctypeUnsafe = ctype;
+        }
+
+        return sdc;
+    }
+
+    /**
+     * Creates the SecurityDynamicConfiguration instance from the given JSON . If a config version is found, which
+     * is not the current one, no conversion will be performed. The configuration will be returned as it was found.
+     */
+    public static SecurityDynamicConfiguration<?> fromJsonWithoutAutoConversion(
+        String json,
+        CType<?> ctype,
+        int version,
+        long seqNo,
+        long primaryTerm
+    ) throws IOException {
+        return fromNodeWithoutAutoConversion(DefaultObjectMapper.readTree(json), ctype, version, seqNo, primaryTerm);
+    }
+
+    /**
+     * Creates the SecurityDynamicConfiguration instance from the given JsonNode. If a config version is found, which
+     * is not the current one, no conversion will be performed. The configuration will be returned as it was found.
+     */
+    public static SecurityDynamicConfiguration<?> fromNodeWithoutAutoConversion(
+        JsonNode jsonNode,
+        CType<?> ctype,
+        int version,
+        long seqNo,
+        long primaryTerm
+    ) throws IOException {
+        Class<?> configClass;
+        CType.OldConfigVersion<?, ?> oldConfigVersion = ctype.findOldConfigVersion(version);
+
+        if (oldConfigVersion != null) {
+            configClass = oldConfigVersion.getOldType();
+        } else {
+            configClass = ctype.getConfigClass();
+        }
+
+        SecurityDynamicConfiguration<?> sdc = DefaultObjectMapper.convertValue(
+            jsonNode,
+            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, configClass)
+        );
+
+        validate(sdc, version, ctype);
+
         sdc.seqNo = seqNo;
         sdc.primaryTerm = primaryTerm;
         sdc.version = version;
@@ -122,18 +202,16 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     /**
      * For testing only
      */
-    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType ctype, int version)
-        throws JsonProcessingException {
-        Class<?> implementationClass = ctype.getImplementationClass().get(version);
+    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType<T> ctype) throws JsonProcessingException {
         SecurityDynamicConfiguration<T> result = DefaultObjectMapper.objectMapper.convertValue(
             map,
-            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
+            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
         );
         result.ctype = ctype;
         return result;
     }
 
-    public static void validate(SecurityDynamicConfiguration<?> sdc, int version, CType ctype) throws IOException {
+    public static void validate(SecurityDynamicConfiguration<?> sdc, int version, CType<?> ctype) throws IOException {
         if (version < 2 && sdc.get_meta() != null) {
             throw new IOException("A version of " + version + " can not have a _meta key for " + ctype);
         }
@@ -154,14 +232,26 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long seqNo, long primaryTerm)
+    public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType<T> ctype, int version, long seqNo, long primaryTerm)
         throws IOException {
-        return fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
+        return SecurityDynamicConfiguration.<T>fromJson(
+            DefaultObjectMapper.writeValueAsString(json, false),
+            ctype,
+            version,
+            seqNo,
+            primaryTerm
+        );
     }
 
     // for Jackson
     private SecurityDynamicConfiguration() {
         super();
+    }
+
+    private SecurityDynamicConfiguration(CType<T> ctype) {
+        super();
+        this.ctype = ctype;
+        this.ctypeUnsafe = ctype;
     }
 
     private Meta _meta;
@@ -295,13 +385,14 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     @JsonIgnore
-    public CType getCType() {
-        return ctype;
+    public void setSeqNoPrimaryTerm(long seqNo, long primaryTerm) {
+        this.seqNo = seqNo;
+        this.primaryTerm = primaryTerm;
     }
 
     @JsonIgnore
-    public void setCType(CType ctype) {
-        this.ctype = ctype;
+    public CType<T> getCType() {
+        return ctype;
     }
 
     @JsonIgnore
@@ -310,23 +401,75 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     @JsonIgnore
-    public Class<?> getImplementingClass() {
-        return getCType() == null ? null : getCType().getImplementationClass().get(getVersion());
+    public SecurityDynamicConfiguration<?> getAutoConvertedFrom() {
+        return autoConvertedFrom;
     }
 
     @JsonIgnore
+    public void setAutoConvertedFrom(SecurityDynamicConfiguration<?> autoConvertedFrom) {
+        this.autoConvertedFrom = autoConvertedFrom;
+    }
+
+    @JsonIgnore
+    public Class<?> getImplementingClass() {
+        return getCType() == null ? null : getCType().getConfigClass();
+    }
+
+    @SuppressWarnings("unchecked")
+    @JsonIgnore
     public SecurityDynamicConfiguration<T> deepClone() {
         try {
-            return fromJson(DefaultObjectMapper.writeValueAsString(this, false), ctype, version, seqNo, primaryTerm);
+            if (ctype != null) {
+                SecurityDynamicConfiguration<T> result = fromJson(
+                    DefaultObjectMapper.writeValueAsString(this, false),
+                    ctype,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
+                result.autoConvertedFrom = this.autoConvertedFrom;
+                return result;
+            } else {
+                // We are on a pre-v7 config version. This can be only if we skipped auto conversion. So, we do here the same.
+                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(
+                    DefaultObjectMapper.writeValueAsString(this, false),
+                    ctypeUnsafe,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
+                return result;
+            }
         } catch (Exception e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 
+    @SuppressWarnings("unchecked")
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepCloneWithRedaction() {
         try {
-            return fromJson(DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this), ctype, version, seqNo, primaryTerm);
+            if (ctype != null) {
+                SecurityDynamicConfiguration<T> result = fromJson(
+                    DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this),
+                    ctype,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
+                result.autoConvertedFrom = this.autoConvertedFrom;
+                return result;
+            } else {
+                // We are on a pre-v7 config version. This can be only if we skipped auto conversion. So, we do here the same.
+                SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(
+                    DefaultObjectMapper.writeValueAsStringAndRedactSensitive(this),
+                    ctypeUnsafe,
+                    version,
+                    seqNo,
+                    primaryTerm
+                );
+                return result;
+            }
         } catch (Exception e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }

@@ -29,13 +29,17 @@ import org.apache.commons.cli.Options;
 
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v6.ConfigV6;
+import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
+import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
+import org.opensearch.security.securityconf.impl.v6.RoleV6;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.security.support.ConfigHelper;
 
 public class Migrater {
 
@@ -89,7 +93,7 @@ public class Migrater {
         return retVal;
     }
 
-    public static boolean migrateFile(File file, CType cType, boolean backup) {
+    public static boolean migrateFile(File file, CType<?> cType, boolean backup) {
         final String absolutePath = file.getAbsolutePath();
         // NODESDN is newer type and supports populating empty content if file is missing
         if (!file.exists() && cType != CType.NODESDN) {
@@ -118,15 +122,13 @@ public class Migrater {
             }
 
             if (cType == CType.CONFIG) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateConfig(
-                    SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.CONFIG, 1, 0, 0)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateConfig(Migration.readYaml(file, ConfigV6.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.ROLES) {
                 Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> tup = Migration.migrateRoles(
-                    SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.ROLES, 1, 0, 0),
+                    Migration.readYaml(file, RoleV6.class),
                     null
                 );
                 boolean roles = backupAndWrite(file, tup.v1(), backup);
@@ -134,38 +136,22 @@ public class Migrater {
             }
 
             if (cType == CType.ROLESMAPPING) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateRoleMappings(
-                    SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.ROLESMAPPING, 1, 0, 0)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateRoleMappings(Migration.readYaml(file, RoleMappingsV6.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.INTERNALUSERS) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateInternalUsers(
-                    SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.INTERNALUSERS, 1, 0, 0)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateInternalUsers(Migration.readYaml(file, InternalUserV6.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.AUDIT) {
-                SecurityDynamicConfiguration<?> val = Migration.migrateAudit(
-                    SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.AUDIT, 1, 0, 0)
-                );
+                SecurityDynamicConfiguration<?> val = Migration.migrateAudit(Migration.readYaml(file, AuditConfig.class));
                 return backupAndWrite(file, val, backup);
             }
 
             if (cType == CType.NODESDN) {
-                SecurityDynamicConfiguration<NodesDn> val = Migration.migrateNodesDn(
-                    SecurityDynamicConfiguration.fromNode(
-                        DefaultObjectMapper.YAML_MAPPER.readTree(
-                            ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, file.getAbsolutePath(), true)
-                        ),
-                        CType.NODESDN,
-                        1,
-                        0,
-                        0
-                    )
-                );
+                SecurityDynamicConfiguration<NodesDn> val = Migration.migrateNodesDn(Migration.readYaml(file, NodesDn.class));
                 return backupAndWrite(file, val, backup);
             }
         } catch (Exception e) {
