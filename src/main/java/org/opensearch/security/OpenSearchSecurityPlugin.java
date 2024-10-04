@@ -2198,8 +2198,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public boolean hasPermission(String resourceId, String systemIndexName) {
-        return this.resourceAccessHandler.hasPermission(resourceId, systemIndexName);
+    public boolean hasPermission(String resourceId, String systemIndexName, String scope) {
+        return this.resourceAccessHandler.hasPermission(resourceId, systemIndexName, scope);
     }
 
     @Override
