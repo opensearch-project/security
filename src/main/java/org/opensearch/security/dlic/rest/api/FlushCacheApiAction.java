@@ -39,9 +39,21 @@ public class FlushCacheApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.DELETE, "/cache"),
-            new Route(Method.GET, "/cache"),
-            new Route(Method.PUT, "/cache"),
-            new Route(Method.POST, "/cache")
+            new DeprecatedRoute(
+                Method.GET,
+                "/cache",
+                "GET is not supported for /cache endpoint and will be removed in the next major version. Use DELETE instead."
+            ),
+            new DeprecatedRoute(
+                Method.PUT,
+                "/cache",
+                "PUT is not supported for /cache endpoint and will be removed in the next major version. Use DELETE instead."
+            ),
+            new DeprecatedRoute(
+                Method.POST,
+                "/cache",
+                "POST is not supported for /cache endpoint and will be removed in the next major version. Use DELETE instead."
+            )
         )
     );
 
