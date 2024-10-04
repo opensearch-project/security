@@ -151,7 +151,7 @@ public class SystemIndexAccessEvaluatorTest {
         when(log.isDebugEnabled()).thenReturn(true);
         when(log.isInfoEnabled()).thenReturn(true);
 
-        doReturn(ImmutableSet.of(index)).when(ip).getResolvedIndexPattern(user, indexNameExpressionResolver, cs, true);
+        doReturn(ImmutableSet.of(index)).when(ip).getResolvedIndexPattern(user, indexNameExpressionResolver, cs, true, false);
     }
 
     @After

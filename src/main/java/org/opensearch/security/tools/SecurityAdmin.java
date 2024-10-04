@@ -27,6 +27,7 @@
 package org.opensearch.security.tools;
 
 // CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
+
 import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
@@ -108,7 +109,6 @@ import org.opensearch.client.indices.GetIndexRequest.Feature;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.transport.NoNodeAvailableException;
 import org.opensearch.cluster.health.ClusterHealthStatus;
-import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -125,20 +125,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.securityconf.Migration;
-import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.NodesDn;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
-import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
-import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
-import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
@@ -152,7 +139,6 @@ import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
 @SuppressWarnings("deprecation")
 public class SecurityAdmin {
 
-    private static final boolean CREATE_AS_LEGACY = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_CREATE_AS_LEGACY"));
     private static final boolean ALLOW_MIXED = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_ALLOW_MIXED_CLUSTER"));
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
@@ -218,7 +204,7 @@ public class SecurityAdmin {
                 .longOpt("truststore-type")
                 .hasArg()
                 .argName("type")
-                .desc("JKS or PKCS12, if not given we use the file extension to dectect the type")
+                .desc("JKS or PKCS12, if not given we use the file extension to detect the type")
                 .build()
         );
         options.addOption(
@@ -226,7 +212,7 @@ public class SecurityAdmin {
                 .longOpt("keystore-type")
                 .hasArg()
                 .argName("type")
-                .desc("JKS or PKCS12, if not given we use the file extension to dectect the type")
+                .desc("JKS or PKCS12, if not given we use the file extension to detect the type")
                 .build()
         );
         // CS-ENFORCE-SINGLE
@@ -335,10 +321,6 @@ public class SecurityAdmin {
         options.addOption(Option.builder("backup").hasArg().argName("folder").desc("Backup configuration to folder").build());
 
         options.addOption(
-            Option.builder("migrate").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build()
-        );
-
-        options.addOption(
             Option.builder("rev")
                 .longOpt("resolve-env-vars")
                 .desc("Resolve/Substitute env vars in config with their value before uploading")
@@ -352,15 +334,6 @@ public class SecurityAdmin {
                 .argName("version")
                 .longOpt("validate-configs")
                 .desc("Validate config for version 6 or 7 (default 7)")
-                .build()
-        );
-
-        options.addOption(
-            Option.builder("mo")
-                .longOpt("migrate-offline")
-                .hasArg()
-                .argName("folder")
-                .desc("Migrate and use folder to store migrated files")
                 .build()
         );
 
@@ -403,10 +376,8 @@ public class SecurityAdmin {
         final boolean promptForPassword;
         String explicitReplicas = null;
         String backup = null;
-        String migrate = null;
         final boolean resolveEnvVars;
         Integer validateConfig = null;
-        String migrateOffline = null;
 
         InjectableValues.Std injectableValues = new InjectableValues.Std();
         injectableValues.addValue(Settings.class, Settings.builder().build());
@@ -492,8 +463,6 @@ public class SecurityAdmin {
 
             backup = line.getOptionValue("backup");
 
-            migrate = line.getOptionValue("migrate");
-
             resolveEnvVars = line.hasOption("rev");
 
             validateConfig = !line.hasOption("vc") ? null : Integer.parseInt(line.getOptionValue("vc", "7"));
@@ -501,8 +470,6 @@ public class SecurityAdmin {
             if (validateConfig != null && validateConfig.intValue() != 6 && validateConfig.intValue() != 7) {
                 throw new ParseException("version must be 6 or 7");
             }
-
-            migrateOffline = line.getOptionValue("mo");
 
         } catch (ParseException exp) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
@@ -513,12 +480,6 @@ public class SecurityAdmin {
         if (validateConfig != null) {
             System.out.println("Validate configuration for Version " + validateConfig.intValue());
             return validateConfig(cd, file, type, validateConfig.intValue());
-        }
-
-        if (migrateOffline != null) {
-            System.out.println("Migrate " + migrateOffline + " offline");
-            final boolean retVal = Migrater.migrateDirectory(new File(migrateOffline), true);
-            return retVal ? 0 : -1;
         }
 
         System.out.print("Will connect to " + hostname + ":" + port);
@@ -624,9 +585,7 @@ public class SecurityAdmin {
             if (updateSettings != null) {
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();
                 Response res = restHighLevelClient.getLowLevelClient()
-                    .performRequest(
-                        new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(true)))
-                    );
+                    .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
 
                 if (res.getStatusLine().getStatusCode() != 200) {
                     System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
@@ -647,9 +606,7 @@ public class SecurityAdmin {
 
             if (reload) {
                 Response res = restHighLevelClient.getLowLevelClient()
-                    .performRequest(
-                        new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(false)))
-                    );
+                    .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
 
                 if (res.getStatusLine().getStatusCode() != 200) {
                     System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
@@ -679,9 +636,7 @@ public class SecurityAdmin {
                     .put("index.auto_expand_replicas", replicaAutoExpand ? "0-all" : "false")
                     .build();
                 Response res = restHighLevelClient.getLowLevelClient()
-                    .performRequest(
-                        new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(false)))
-                    );
+                    .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
 
                 if (res.getStatusLine().getStatusCode() != 200) {
                     System.out.println("Unable to reload configuration because return code was " + whoAmIRes.getStatusLine());
@@ -875,74 +830,30 @@ public class SecurityAdmin {
                 }
             }
 
-            final boolean createLegacyMode = !indexExists && CREATE_AS_LEGACY;
-
-            if (createLegacyMode) {
-                System.out.println(
-                    "We forcibly create the new index in legacy mode so that ES 6 config can be uploaded. To move to v7 configs youneed to migrate."
-                );
-            }
-
-            final boolean legacy = createLegacyMode
-                || (indexExists
-                    && securityIndex.getMappings() != null
-                    && securityIndex.getMappings().get(index) != null
-                    && securityIndex.getMappings().get(index).getSourceAsMap().containsKey("security"));
-
-            if (legacy) {
-                System.out.println("Legacy index '" + index + "' (ES 6) detected (or forced). You should migrate the configuration!");
-            }
-
             if (retrieve) {
                 String date = DATE_FORMAT.format(new Date());
 
-                boolean success = retrieveFile(restHighLevelClient, cd + "config_" + date + ".yml", index, "config", legacy);
-                success = retrieveFile(restHighLevelClient, cd + "roles_" + date + ".yml", index, "roles", legacy) && success;
-                success = retrieveFile(restHighLevelClient, cd + "roles_mapping_" + date + ".yml", index, "rolesmapping", legacy)
-                    && success;
-                success = retrieveFile(restHighLevelClient, cd + "internal_users_" + date + ".yml", index, "internalusers", legacy)
-                    && success;
-                success = retrieveFile(restHighLevelClient, cd + "action_groups_" + date + ".yml", index, "actiongroups", legacy)
-                    && success;
-                success = retrieveFile(restHighLevelClient, cd + "audit_" + date + ".yml", index, "audit", legacy) && success;
+                boolean success = retrieveFile(restHighLevelClient, cd + "config_" + date + ".yml", index, "config");
+                success = retrieveFile(restHighLevelClient, cd + "roles_" + date + ".yml", index, "roles") && success;
+                success = retrieveFile(restHighLevelClient, cd + "roles_mapping_" + date + ".yml", index, "rolesmapping") && success;
+                success = retrieveFile(restHighLevelClient, cd + "internal_users_" + date + ".yml", index, "internalusers") && success;
+                success = retrieveFile(restHighLevelClient, cd + "action_groups_" + date + ".yml", index, "actiongroups") && success;
+                success = retrieveFile(restHighLevelClient, cd + "audit_" + date + ".yml", index, "audit") && success;
 
-                if (!legacy) {
-                    success = retrieveFile(restHighLevelClient, cd + "security_tenants_" + date + ".yml", index, "tenants", legacy)
-                        && success;
-                }
+                success = retrieveFile(restHighLevelClient, cd + "security_tenants_" + date + ".yml", index, "tenants") && success;
 
                 final boolean populateFileIfEmpty = true;
-                success = retrieveFile(restHighLevelClient, cd + "nodes_dn_" + date + ".yml", index, "nodesdn", legacy, populateFileIfEmpty)
+                success = retrieveFile(restHighLevelClient, cd + "nodes_dn_" + date + ".yml", index, "nodesdn", populateFileIfEmpty)
                     && success;
-                success = retrieveFile(
-                    restHighLevelClient,
-                    cd + "whitelist_" + date + ".yml",
-                    index,
-                    "whitelist",
-                    legacy,
-                    populateFileIfEmpty
-                ) && success;
-                success = retrieveFile(
-                    restHighLevelClient,
-                    cd + "allowlist_" + date + ".yml",
-                    index,
-                    "allowlist",
-                    legacy,
-                    populateFileIfEmpty
-                ) && success;
+                success = retrieveFile(restHighLevelClient, cd + "whitelist_" + date + ".yml", index, "whitelist", populateFileIfEmpty)
+                    && success;
+                success = retrieveFile(restHighLevelClient, cd + "allowlist_" + date + ".yml", index, "allowlist", populateFileIfEmpty)
+                    && success;
                 return (success ? 0 : -1);
             }
 
             if (backup != null) {
-                return backup(restHighLevelClient, index, new File(backup), legacy);
-            }
-
-            if (migrate != null) {
-                if (!legacy) {
-                    System.out.println("ERR: Seems cluster is already migrated");
-                    return -1;
-                }
-                return migrate(restHighLevelClient, index, new File(migrate), expectedNodeCount, resolveEnvVars);
+                return backup(restHighLevelClient, index, new File(backup));
             }
 
             boolean isCdAbs = new File(cd).isAbsolute();
@@ -965,7 +876,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
 
-                boolean success = uploadFile(restHighLevelClient, file, index, type, legacy, resolveEnvVars);
+                boolean success = uploadFile(restHighLevelClient, file, index, type, resolveEnvVars);
 
                 if (!success) {
                     System.out.println("ERR: cannot upload configuration, see errors above");
@@ -980,7 +891,7 @@ public class SecurityAdmin {
                 return (success ? 0 : -1);
             }
 
-            return upload(restHighLevelClient, index, cd, legacy, expectedNodeCount, resolveEnvVars);
+            return upload(restHighLevelClient, index, cd, expectedNodeCount, resolveEnvVars);
         }
     }
 
@@ -1055,10 +966,9 @@ public class SecurityAdmin {
         final String filepath,
         final String index,
         final String _id,
-        final boolean legacy,
         boolean resolveEnvVars
     ) {
-        return uploadFile(restHighLevelClient, filepath, index, _id, legacy, resolveEnvVars, false);
+        return uploadFile(restHighLevelClient, filepath, index, _id, resolveEnvVars, false);
     }
 
     private static boolean uploadFile(
@@ -1066,37 +976,22 @@ public class SecurityAdmin {
         final String filepath,
         final String index,
         final String _id,
-        final boolean legacy,
         boolean resolveEnvVars,
         final boolean populateEmptyIfMissing
     ) {
 
         String id = _id;
 
-        if (legacy) {
-            id = _id;
-
-            try {
-                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
-            } catch (Exception e) {
-                System.out.println("ERR: Seems " + filepath + " is not in legacy format: " + e);
-                return false;
-            }
-
-        } else {
-            try {
-                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
-            } catch (Exception e) {
-                System.out.println("ERR: Seems " + filepath + " is not in OpenSearch Security 7 format: " + e);
-                return false;
-            }
+        try {
+            ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
+        } catch (Exception e) {
+            System.out.println("ERR: Seems " + filepath + " is not in OpenSearch Security 7 format: " + e);
+            return false;
         }
 
-        System.out.println("Will update '" + "/" + id + "' with " + filepath + " " + (legacy ? "(legacy mode)" : ""));
+        System.out.println("Will update '" + "/" + id + "' with " + filepath);
 
-        try (
-            Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)
-        ) {
+        try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), 2, filepath, populateEmptyIfMissing)) {
             final String content = CharStreams.toString(reader);
             final String res = restHighLevelClient.index(
                 new IndexRequest(index).id(id)
@@ -1124,10 +1019,9 @@ public class SecurityAdmin {
         final RestHighLevelClient restHighLevelClient,
         final String filepath,
         final String index,
-        final String _id,
-        final boolean legacy
+        final String _id
     ) {
-        return retrieveFile(restHighLevelClient, filepath, index, _id, legacy, false);
+        return retrieveFile(restHighLevelClient, filepath, index, _id, false);
     }
 
     private static boolean retrieveFile(
@@ -1135,17 +1029,11 @@ public class SecurityAdmin {
         final String filepath,
         final String index,
         final String _id,
-        final boolean legacy,
         final boolean populateFileIfEmpty
     ) {
         String id = _id;
 
-        if (legacy) {
-            id = _id;
-
-        }
-
-        System.out.println("Will retrieve '" + "/" + id + "' into " + filepath + " " + (legacy ? "(legacy mode)" : ""));
+        System.out.println("Will retrieve '" + "/" + id + "' into " + filepath);
         try (Writer writer = new FileWriter(filepath, StandardCharsets.UTF_8)) {
 
             final GetResponse response = restHighLevelClient.get(
@@ -1157,7 +1045,7 @@ public class SecurityAdmin {
             String yaml;
             if (isEmpty) {
                 if (populateFileIfEmpty) {
-                    yaml = ConfigHelper.createEmptySdcYaml(CType.fromString(_id), legacy ? 1 : 2);
+                    yaml = ConfigHelper.createEmptySdcYaml(CType.fromString(_id), 2);
                 } else {
                     System.out.println("   FAIL: Configuration for '" + _id + "' failed because of empty source");
                     return false;
@@ -1171,21 +1059,13 @@ public class SecurityAdmin {
 
                 }
 
-                if (legacy) {
-                    try {
-                        ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 1, 0, 0);
-                    } catch (Exception e) {
-                        System.out.println("ERR: Seems " + _id + " from cluster is not in legacy format: " + e);
-                        return false;
-                    }
-                } else {
-                    try {
-                        ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 2, 0, 0);
-                    } catch (Exception e) {
-                        System.out.println("ERR: Seems " + _id + " from cluster is not in 7 format: " + e);
-                        return false;
-                    }
+                try {
+                    ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 2, 0, 0);
+                } catch (Exception e) {
+                    System.out.println("ERR: Seems " + _id + " from cluster is not in 7 format: " + e);
+                    return false;
                 }
+
             }
 
             writer.write(yaml);
@@ -1463,53 +1343,43 @@ public class SecurityAdmin {
         }
     }
 
-    private static int backup(RestHighLevelClient tc, String index, File backupDir, boolean legacy) {
+    private static int backup(RestHighLevelClient tc, String index, File backupDir) {
         backupDir.mkdirs();
 
-        boolean success = retrieveFile(tc, backupDir.getAbsolutePath() + "/config.yml", index, "config", legacy);
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles.yml", index, "roles", legacy) && success;
+        boolean success = retrieveFile(tc, backupDir.getAbsolutePath() + "/config.yml", index, "config");
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles.yml", index, "roles") && success;
 
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles_mapping.yml", index, "rolesmapping", legacy) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/internal_users.yml", index, "internalusers", legacy) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/action_groups.yml", index, "actiongroups", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/roles_mapping.yml", index, "rolesmapping") && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/internal_users.yml", index, "internalusers") && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/action_groups.yml", index, "actiongroups") && success;
 
-        if (!legacy) {
-            success = retrieveFile(tc, backupDir.getAbsolutePath() + "/tenants.yml", index, "tenants", legacy) && success;
-        }
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/whitelist.yml", index, "whitelist", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/allowlist.yml", index, "allowlist", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/tenants.yml", index, "tenants") && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/nodes_dn.yml", index, "nodesdn", true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/whitelist.yml", index, "whitelist", true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/allowlist.yml", index, "allowlist", true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit") && success;
 
         return success ? 0 : -1;
     }
 
-    private static int upload(
-        RestHighLevelClient tc,
-        String index,
-        String cd,
-        boolean legacy,
-        int expectedNodeCount,
-        boolean resolveEnvVars
-    ) throws IOException {
-        boolean success = uploadFile(tc, cd + "config.yml", index, "config", legacy, resolveEnvVars);
-        success = uploadFile(tc, cd + "roles.yml", index, "roles", legacy, resolveEnvVars) && success;
-        success = uploadFile(tc, cd + "roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
+    private static int upload(RestHighLevelClient tc, String index, String cd, int expectedNodeCount, boolean resolveEnvVars)
+        throws IOException {
+        boolean success = uploadFile(tc, cd + "config.yml", index, "config", resolveEnvVars);
+        success = uploadFile(tc, cd + "roles.yml", index, "roles", resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "roles_mapping.yml", index, "rolesmapping", resolveEnvVars) && success;
 
-        success = uploadFile(tc, cd + "internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
-        success = uploadFile(tc, cd + "action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "internal_users.yml", index, "internalusers", resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "action_groups.yml", index, "actiongroups", resolveEnvVars) && success;
 
-        if (!legacy) {
-            success = uploadFile(tc, cd + "tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
-        }
+        success = uploadFile(tc, cd + "tenants.yml", index, "tenants", resolveEnvVars) && success;
 
-        success = uploadFile(tc, cd + "nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
-        success = uploadFile(tc, cd + "whitelist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd + "nodes_dn.yml", index, "nodesdn", resolveEnvVars, true) && success;
+        success = uploadFile(tc, cd + "whitelist.yml", index, "whitelist", resolveEnvVars) && success;
         if (new File(cd + "audit.yml").exists()) {
-            success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd + "audit.yml", index, "audit", resolveEnvVars) && success;
         }
         if (new File(cd + "allowlist.yml").exists()) {
-            success = uploadFile(tc, cd + "allowlist.yml", index, "allowlist", legacy, resolveEnvVars) && success;
+            success = uploadFile(tc, cd + "allowlist.yml", index, "allowlist", resolveEnvVars) && success;
         }
 
         if (!success) {
@@ -1518,164 +1388,11 @@ public class SecurityAdmin {
         }
 
         Response cur = tc.getLowLevelClient()
-            .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes((legacy)))));
-        success = checkConfigUpdateResponse(cur, expectedNodeCount, getTypes(legacy).length) && success;
+            .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes())));
+        success = checkConfigUpdateResponse(cur, expectedNodeCount, getTypes().length) && success;
 
         System.out.println("Done with " + (success ? "success" : "failures"));
         return (success ? 0 : -1);
-    }
-
-    private static int migrate(RestHighLevelClient tc, String index, File backupDir, int expectedNodeCount, boolean resolveEnvVars)
-        throws IOException {
-
-        System.out.println("== Migration started ==");
-        System.out.println("=======================");
-
-        System.out.println("-> Backup current configuration to " + backupDir.getAbsolutePath());
-
-        if (backup(tc, index, backupDir, true) != 0) {
-            return -1;
-        }
-
-        System.out.println("  done");
-
-        File v7Dir = new File(backupDir, "v7");
-        v7Dir.mkdirs();
-
-        try {
-
-            System.out.println("-> Migrate configuration to new format and store it here: " + v7Dir.getAbsolutePath());
-            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsV7 = Migration.migrateActionGroups(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "action_groups.yml")),
-                    CType.ACTIONGROUPS,
-                    1,
-                    0,
-                    0
-                )
-            );
-            SecurityDynamicConfiguration<ConfigV7> configV7 = Migration.migrateConfig(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "config.yml")),
-                    CType.CONFIG,
-                    1,
-                    0,
-                    0
-                )
-            );
-            SecurityDynamicConfiguration<InternalUserV7> internalUsersV7 = Migration.migrateInternalUsers(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "internal_users.yml")),
-                    CType.INTERNALUSERS,
-                    1,
-                    0,
-                    0
-                )
-            );
-            SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = SecurityDynamicConfiguration.fromNode(
-                DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "roles_mapping.yml")),
-                CType.ROLESMAPPING,
-                1,
-                0,
-                0
-            );
-            Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesTenantsV7 = Migration.migrateRoles(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "roles.yml")),
-                    CType.ROLES,
-                    1,
-                    0,
-                    0
-                ),
-                rolesmappingV6
-            );
-            SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
-            SecurityDynamicConfiguration<NodesDn> nodesDn = Migration.migrateNodesDn(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(
-                        ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir, "nodes_dn.yml").getAbsolutePath(), true)
-                    ),
-                    CType.NODESDN,
-                    1,
-                    0,
-                    0
-                )
-            );
-            SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettings = Migration.migrateWhitelistingSetting(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(
-                        ConfigHelper.createFileOrStringReader(
-                            CType.WHITELIST,
-                            1,
-                            new File(backupDir, "whitelist.yml").getAbsolutePath(),
-                            true
-                        )
-                    ),
-                    CType.WHITELIST,
-                    1,
-                    0,
-                    0
-                )
-            );
-            SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettings = Migration.migrateAllowlistingSetting(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(
-                        ConfigHelper.createFileOrStringReader(
-                            CType.ALLOWLIST,
-                            1,
-                            new File(backupDir, "allowlist.yml").getAbsolutePath(),
-                            true
-                        )
-                    ),
-                    CType.ALLOWLIST,
-                    1,
-                    0,
-                    0
-                )
-            );
-            SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(
-                SecurityDynamicConfiguration.fromNode(
-                    DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir, "audit.yml")),
-                    CType.AUDIT,
-                    1,
-                    0,
-                    0
-                )
-            );
-
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/config.yml"), configV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/internal_users.yml"), internalUsersV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles.yml"), rolesTenantsV7.v1());
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/whitelist.yml"), whitelistingSettings);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/allowlist.yml"), allowlistingSettings);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/audit.yml"), audit);
-
-        } catch (Exception e) {
-            System.out.println("ERR: Unable to migrate config files due to " + e);
-            return -1;
-        }
-
-        System.out.println("  done");
-
-        System.out.println("-> Delete old " + index + " index");
-        deleteConfigIndex(tc, index, true);
-        System.out.println("  done");
-
-        System.out.println("-> Upload new configuration into OpenSearch cluster");
-
-        int uploadResult = upload(tc, index, v7Dir.getAbsolutePath() + "/", false, expectedNodeCount, resolveEnvVars);
-
-        if (uploadResult == 0) {
-            System.out.println("  done");
-        } else {
-            System.out.println("  ERR: unable to upload");
-        }
-
-        return uploadResult;
     }
 
     private static String readTypeFromFile(File file) throws IOException {
@@ -1727,7 +1444,7 @@ public class SecurityAdmin {
         return -1;
     }
 
-    private static boolean validateConfigFile(String file, CType cType, int version) {
+    private static boolean validateConfigFile(String file, CType<?> cType, int version) {
         try {
             ConfigHelper.fromYamlFile(file, cType, version == 7 ? 2 : 1, 0, 0);
             System.out.println(file + " OK");
@@ -1738,10 +1455,7 @@ public class SecurityAdmin {
         }
     }
 
-    private static String[] getTypes(boolean legacy) {
-        if (legacy) {
-            return new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups", "nodesdn", "audit" };
-        }
+    private static String[] getTypes() {
         return CType.lcStringValues().toArray(new String[0]);
     }
 

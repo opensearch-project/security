@@ -85,7 +85,7 @@ public class UserService {
     final static String FAILED_ACCOUNT_RETRIEVAL_MESSAGE = "The account specified could not be accessed at this time.";
     final static String AUTH_TOKEN_GENERATION_MESSAGE = "An auth token could not be generated for the specified account.";
 
-    private static CType getUserConfigName() {
+    private static CType<?> getUserConfigName() {
         return CType.INTERNALUSERS;
     }
 
@@ -116,7 +116,7 @@ public class UserService {
      * @param config CType whose data is to be loaded in-memory
      * @return configuration loaded with given CType data
      */
-    protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+    protected final SecurityDynamicConfiguration<?> load(final CType<?> config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
             Collections.singleton(config),
             logComplianceEvent
@@ -311,7 +311,7 @@ public class UserService {
     public static void saveAndUpdateConfigs(
         final String indexName,
         final Client client,
-        final CType cType,
+        final CType<?> cType,
         final SecurityDynamicConfiguration<?> configuration
     ) {
         final IndexRequest ir = new IndexRequest(indexName);

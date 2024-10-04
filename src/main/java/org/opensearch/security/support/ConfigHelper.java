@@ -62,7 +62,7 @@ public class ConfigHelper {
 
     private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
 
-    public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion) throws Exception {
+    public static void uploadFile(Client tc, String filepath, String index, CType<?> cType, int configVersion) throws Exception {
         uploadFile(tc, filepath, index, cType, configVersion, false);
     }
 
@@ -71,7 +71,7 @@ public class ConfigHelper {
         Client tc,
         String filepath,
         String index,
-        CType cType,
+        CType<?> cType,
         int configVersion,
         boolean populateEmptyIfFileMissing
     ) throws Exception {
@@ -111,7 +111,7 @@ public class ConfigHelper {
         });
     }
 
-    public static Reader createFileOrStringReader(CType cType, int configVersion, String filepath, boolean populateEmptyIfFileMissing)
+    public static Reader createFileOrStringReader(CType<?> cType, int configVersion, String filepath, boolean populateEmptyIfFileMissing)
         throws Exception {
         Reader reader;
         if (!populateEmptyIfFileMissing || new File(filepath).exists()) {
@@ -122,10 +122,9 @@ public class ConfigHelper {
         return reader;
     }
 
-    public static SecurityDynamicConfiguration<?> createEmptySdc(CType cType, int configVersion) throws Exception {
-        SecurityDynamicConfiguration<?> empty = SecurityDynamicConfiguration.empty();
+    public static SecurityDynamicConfiguration<?> createEmptySdc(CType<?> cType, int configVersion) throws Exception {
+        SecurityDynamicConfiguration<?> empty = SecurityDynamicConfiguration.empty(cType);
         if (configVersion == 2) {
-            empty.setCType(cType);
             empty.set_meta(new Meta());
             empty.get_meta().setConfig_version(configVersion);
             empty.get_meta().setType(cType.toLCString());
@@ -135,7 +134,7 @@ public class ConfigHelper {
         return c;
     }
 
-    public static String createEmptySdcYaml(CType cType, int configVersion) throws Exception {
+    public static String createEmptySdcYaml(CType<?> cType, int configVersion) throws Exception {
         return DefaultObjectMapper.YAML_MAPPER.writeValueAsString(createEmptySdc(cType, configVersion));
     }
 
@@ -158,7 +157,7 @@ public class ConfigHelper {
 
     public static <T> SecurityDynamicConfiguration<T> fromYamlReader(
         Reader yamlReader,
-        CType ctype,
+        CType<T> ctype,
         int version,
         long seqNo,
         long primaryTerm
@@ -178,14 +177,19 @@ public class ConfigHelper {
         }
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromYamlFile(String filepath, CType ctype, int version, long seqNo, long primaryTerm)
-        throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromYamlFile(
+        String filepath,
+        CType<T> ctype,
+        int version,
+        long seqNo,
+        long primaryTerm
+    ) throws IOException {
         return fromYamlReader(new FileReader(filepath, StandardCharsets.UTF_8), ctype, version, seqNo, primaryTerm);
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromYamlString(
         String yamlString,
-        CType ctype,
+        CType<T> ctype,
         int version,
         long seqNo,
         long primaryTerm
