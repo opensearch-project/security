@@ -42,17 +42,17 @@ public class FlushCacheApiAction extends AbstractApiAction {
             new DeprecatedRoute(
                 Method.GET,
                 "/cache",
-                "GET is not supported for /cache endpoint and will be removed in the next major version."
+                "GET is not supported for /cache endpoint and will be removed in the next major version. Use DELETE instead."
             ),
             new DeprecatedRoute(
                 Method.PUT,
                 "/cache",
-                "PUT is not supported for /cache endpoint and will be removed in the next major version."
+                "PUT is not supported for /cache endpoint and will be removed in the next major version. Use DELETE instead."
             ),
             new DeprecatedRoute(
                 Method.POST,
                 "/cache",
-                "POST is not supported for /cache endpoint and will be removed in the next major version."
+                "POST is not supported for /cache endpoint and will be removed in the next major version. Use DELETE instead."
             )
         )
     );
