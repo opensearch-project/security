@@ -701,6 +701,7 @@ dependencies {
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
+        exclude(group:'commons.io', module: 'commons:io')
     }
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
