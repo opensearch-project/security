@@ -113,8 +113,8 @@ public class SecuritySettingsConfigurer {
             try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
                 Yaml yaml = new Yaml();
                 Map<String, Object> yamlData = yaml.load(br);
-                // Check for flat keys
                 if (yamlData != null) {
+                    // Check for flat keys
                     for (String key : yamlData.keySet()) {
                         if (key.startsWith("plugins.security")) {
                             System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
