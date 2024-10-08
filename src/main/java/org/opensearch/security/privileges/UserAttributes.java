@@ -35,7 +35,7 @@ public class UserAttributes {
 
         orig = orig.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
         orig = replaceRoles(orig, user);
-        orig = replaceSecurityRoles(orig, user);
+        orig = replaceSecurityRoles(orig, context);
         for (Map.Entry<String, String> entry : user.getCustomAttributesMap().entrySet()) {
             if (entry == null || entry.getKey() == null || entry.getValue() == null) {
                 continue;
