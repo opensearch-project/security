@@ -106,15 +106,30 @@ public class SecuritySettingsConfigurer {
     /**
      * Checks if security plugin is already configured. If so, the script execution will exit.
      */
+    @SuppressWarnings("unchecked")
     void checkIfSecurityPluginIsAlreadyConfigured() {
-        // Check if the configuration file contains the 'plugins.security' string
+        // Check if the configuration file contains security settings
         if (installer.OPENSEARCH_CONF_FILE != null && new File(installer.OPENSEARCH_CONF_FILE).exists()) {
             try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (line.toLowerCase().contains("plugins.security")) {
-                        System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
-                        System.exit(installer.skip_updates);
+                Yaml yaml = new Yaml();
+                Map<String, Object> yamlData = yaml.load(br);
+                if (yamlData != null) {
+                    // Check for flat keys
+                    for (String key : yamlData.keySet()) {
+                        if (key.startsWith("plugins.security")) {
+                            System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
+                            System.exit(installer.skip_updates);
+                        }
+                    }
+                    // Check for nested keys
+                    if (yamlData.containsKey("plugins")) {
+                        Map<String, Object> plugins = (Map<String, Object>) yamlData.get("plugins");
+                        for (String key : plugins.keySet()) {
+                            if (key.startsWith("security")) {
+                                System.out.println(installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.");
+                                System.exit(installer.skip_updates);
+                            }
+                        }
                     }
                 }
             } catch (IOException e) {

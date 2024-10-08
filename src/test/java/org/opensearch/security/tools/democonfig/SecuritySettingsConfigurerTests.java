@@ -363,6 +363,24 @@ public class SecuritySettingsConfigurerTests {
         }
     }
 
+    @Test
+    public void testReadNonFlatYamlAlreadyConfigured() throws IOException {
+        installer.OPENSEARCH_CONF_FILE = Paths.get("src/test/resources/opensearch-config-non-flat.yaml").toFile().getAbsolutePath();
+        String expectedMessage = installer.OPENSEARCH_CONF_FILE + " seems to be already configured for Security. Quit.";
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+            securitySettingsConfigurer.checkIfSecurityPluginIsAlreadyConfigured();
+        } catch (SecurityException e) {
+            assertThat(e.getMessage(), equalTo("System.exit(-1) blocked to allow print statement testing."));
+        } finally {
+            System.setSecurityManager(null);
+        }
+        verifyStdOutContainsString(expectedMessage);
+
+        // reset the file pointer
+        installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
+    }
+
     @SuppressWarnings("unchecked")
     public static void setEnv(String key, String value) throws NoSuchFieldException, IllegalAccessException {
         Class<?>[] classes = Collections.class.getDeclaredClasses();
