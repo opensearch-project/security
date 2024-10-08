@@ -71,6 +71,11 @@ public class DelegatingRestHandler implements RestHandler {
     }
 
     @Override
+    public boolean isActionPaginated() {
+        return delegate.isActionPaginated();
+    }
+
+    @Override
     public String toString() {
         return delegate.toString();
     }
