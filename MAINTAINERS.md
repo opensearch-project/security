@@ -25,10 +25,10 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 
 ## Emeritus
 
-| Maintainer | GitHub ID                                               | Affiliation |
-|------------|---------------------------------------------------------|-------------|
-| Dave Lago  | [davidlago](https://github.com/davidlago)               | Contributor |
-| Chang Liu  | [cliu123](https://github.com/cliu123)                   | Amazon      |
+| Maintainer       | GitHub ID                                               | Affiliation |
+|------------------|---------------------------------------------------------|-------------|
+| Dave Lago        | [davidlago](https://github.com/davidlago)               | Contributor |
+| Chang Liu        | [cliu123](https://github.com/cliu123)                   | Amazon      |
 | Stephen Crawford | [stephen-crawford](https://github.com/stephen-crawford) | Contributor |
 
 
