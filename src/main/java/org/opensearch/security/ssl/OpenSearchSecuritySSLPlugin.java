@@ -638,6 +638,23 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             Setting.longSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered)
         );
 
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+
         return settings;
     }
 
