@@ -536,7 +536,6 @@ task integrationTest(type: Test) {
             retry {
                 failOnPassedAfterRetry = false
                 maxRetries = 2
-                maxFailures = 10
             }
         }
     }
