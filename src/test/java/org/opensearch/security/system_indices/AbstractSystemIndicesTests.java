@@ -186,6 +186,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     }
 
     void validateForbiddenResponse(RestHelper.HttpResponse response, String action, String user) {
+
         assertThat(response.getStatusCode(), is(RestStatus.FORBIDDEN.getStatus()));
         MatcherAssert.assertThat(response.getBody(), Matchers.containsStringIgnoringCase(permissionExceptionMessage(action, user)));
     }
@@ -195,7 +196,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         boolean isRequestingAccessToNonAuthorizedSystemIndex = (!user.equals(allAccessUser)
             && index.equals(SYSTEM_INDEX_WITH_NO_ASSOCIATED_ROLE_PERMISSIONS));
         if (isSecurityIndexRequest || isRequestingAccessToNonAuthorizedSystemIndex) {
-            validateForbiddenResponse(response, isSecurityIndexRequest ? "" : action, user);
+            validateForbiddenResponse(response, action, user);
         } else {
             assertThat(response.getStatusCode(), is(RestStatus.OK.getStatus()));
         }
