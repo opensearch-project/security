@@ -155,6 +155,12 @@ public class IndexPatternTest {
         assertFalse(indexPattern.matches("index_next_year", ctx(), INDEX_METADATA.getIndicesLookup()));
     }
 
+    @Test(expected = PrivilegesEvaluationException.class)
+    public void dateMathIndex_invalid() throws Exception {
+        IndexPattern indexPattern = IndexPattern.from("<index_year_{now/y{yyyy}>");
+        indexPattern.matches("index_year_" + CURRENT_YEAR, ctx(), INDEX_METADATA.getIndicesLookup());
+    }
+
     @Test
     public void templatedIndex() throws Exception {
         IndexPattern indexPattern = IndexPattern.from("index_${attrs.a11}");
@@ -174,6 +180,18 @@ public class IndexPatternTest {
 
         assertEquals(WildcardMatcher.from("index_a12"), indexPattern.getStaticPattern());
         assertEquals(IndexPattern.from("index_${attrs.a11}"), indexPattern.dynamicOnly());
+        assertEquals("index_a12 index_${attrs.a11}", indexPattern.toString());
+    }
+
+    @Test
+    public void mixed2() throws Exception {
+        IndexPattern indexPattern = IndexPattern.from("<index_year_{now/y{yyyy}}>", "index_a12");
+        assertTrue(indexPattern.hasStaticPattern());
+        assertTrue(indexPattern.hasDynamicPattern());
+
+        assertEquals(WildcardMatcher.from("index_a12"), indexPattern.getStaticPattern());
+        assertEquals(IndexPattern.from("<index_year_{now/y{yyyy}}>"), indexPattern.dynamicOnly());
+        assertEquals("index_a12 <index_year_{now/y{yyyy}}>", indexPattern.toString());
     }
 
     private static PrivilegesEvaluationContext ctx() {
