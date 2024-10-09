@@ -103,7 +103,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
     }
 
-    public final static SecurityDynamicConfiguration<?> addStatics(SecurityDynamicConfiguration<?> original) {
+    public final static <T> SecurityDynamicConfiguration<T> addStatics(SecurityDynamicConfiguration<T> original) {
         if (original.getCType() == CType.ACTIONGROUPS && !staticActionGroups.getCEntries().isEmpty()) {
             original.add(staticActionGroups.deepClone());
         }
