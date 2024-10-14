@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 public class ResourceManagementRepository {
@@ -40,13 +39,14 @@ public class ResourceManagementRepository {
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
     }
 
-    public static ResourceManagementRepository create(Settings settings, final ThreadPool threadPool, Client client) {
-        final var resourceSharingIndex = ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-        return new ResourceManagementRepository(
-            threadPool,
-            client,
-            new ResourceSharingIndexHandler(resourceSharingIndex, settings, client, threadPool)
-        );
+    public static ResourceManagementRepository create(
+        Settings settings,
+        final ThreadPool threadPool,
+        Client client,
+        ResourceSharingIndexHandler resourceSharingIndexHandler
+    ) {
+
+        return new ResourceManagementRepository(threadPool, client, resourceSharingIndexHandler);
     }
 
     public void createResourceSharingIndexIfAbsent() {

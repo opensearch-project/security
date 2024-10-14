@@ -85,11 +85,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
     }
 
     private static ActionListener<IndexResponse> getIndexResponseActionListener(ActionListener<CreateResourceResponse> listener) {
-        SharedWithScope.SharedWithPerScope sharedWithPerScope = new SharedWithScope.SharedWithPerScope(
-            List.of(),
-            List.of(),
-            List.of()
-        );
+        SharedWithScope.SharedWithPerScope sharedWithPerScope = new SharedWithScope.SharedWithPerScope(List.of(), List.of(), List.of());
         SharedWithScope sharedWithScope = new SharedWithScope(SampleResourceScope.SAMPLE_FULL_ACCESS.getName(), sharedWithPerScope);
         ShareWith shareWith = new ShareWith(List.of(sharedWithScope));
         return ActionListener.wrap(idxResponse -> {

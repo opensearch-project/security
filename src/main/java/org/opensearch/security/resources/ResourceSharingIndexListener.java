@@ -8,13 +8,17 @@
 
 package org.opensearch.security.resources;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.accesscontrol.resources.CreatedBy;
 import org.opensearch.client.Client;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -26,6 +30,7 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
     private final static Logger log = LogManager.getLogger(ResourceSharingIndexListener.class);
 
     private static final ResourceSharingIndexListener INSTANCE = new ResourceSharingIndexListener();
+    private ResourceSharingIndexHandler resourceSharingIndexHandler;
 
     private boolean initialized;
 
@@ -52,6 +57,12 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
         this.threadPool = threadPool;
 
         this.client = client;
+        this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
+            client,
+            threadPool
+        );
+        ;
 
     }
 
@@ -60,19 +71,25 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
     }
 
     @Override
-
     public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
 
         // implement a check to see if a resource was updated
-        log.warn("postIndex called on " + shardId.getIndexName());
+        log.info("postIndex called on {}", shardId.getIndexName());
 
         String resourceId = index.id();
 
         String resourceIndex = shardId.getIndexName();
+
+        try {
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceId, resourceIndex, new CreatedBy("bleh", ""), null);
+            log.info("successfully indexed resource {}", resourceId);
+        } catch (IOException e) {
+            log.info("failed to index resource {}", resourceId);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-
     public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
 
         // implement a check to see if a resource was deleted
