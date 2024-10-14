@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.IdentityAwarePlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.security.auth.SecurityUserTests;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
@@ -52,7 +53,7 @@ public class ContextProvidingPluginSubjectTests {
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
-        SecurityUserSubjectTests.terminate(threadPool);
+        SecurityUserTests.terminate(threadPool);
     }
 
     @Test
@@ -78,7 +79,7 @@ public class ContextProvidingPluginSubjectTests {
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
-        SecurityUserSubjectTests.terminate(threadPool);
+        SecurityUserTests.terminate(threadPool);
     }
 
     @Test

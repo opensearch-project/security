@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.identity;
+package org.opensearch.security.auth;
 
 import java.util.concurrent.TimeUnit;
 
@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
 import static org.junit.Assert.assertNull;
 
-public class SecurityUserSubjectTests {
+public class SecurityUserTests {
 
     public static boolean terminate(ThreadPool threadPool) {
         return ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
@@ -36,7 +36,7 @@ public class SecurityUserSubjectTests {
 
         User user = new User("testUser");
 
-        SecurityUserSubject subject = new SecurityUserSubject(threadPool, user);
+        SecurityUser subject = new SecurityUser(threadPool, user);
 
         assertThat(subject.getPrincipal().getName(), equalTo(user.getName()));
 
