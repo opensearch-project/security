@@ -194,7 +194,22 @@ public class PrivilegesEvaluator {
         this.dcm = dcm;
     }
 
-    public SecurityRoles getSecurityRoles(Set<String> roles) {
+    public SecurityRoles getSecurityRoles(User user, Set<String> roles) {
+        SecurityRoles securityRoles;
+        if (user.isPluginUser()) {
+            securityRoles = getSecurityRoleForPlugin(user.getName());
+        } else {
+            securityRoles = filterSecurityRolesFromCache(roles);
+
+            // Add the security roles for this user so that they can be used for DLS parameter substitution.
+            user.addSecurityRoles(roles);
+            setUserInfoInThreadContext(user);
+        }
+
+        return securityRoles;
+    }
+
+    public SecurityRoles filterSecurityRolesFromCache(Set<String> roles) {
         return configModel.getSecurityRoles().filter(roles);
     }
 
@@ -214,7 +229,7 @@ public class PrivilegesEvaluator {
     }
 
     private boolean hasRestAdminPermissions(final Set<String> roles, String permission) {
-        final SecurityRoles securityRoles = getSecurityRoles(roles);
+        final SecurityRoles securityRoles = filterSecurityRolesFromCache(roles);
         return securityRoles.hasExplicitClusterPermissionPermission(permission);
     }
 
@@ -294,16 +309,7 @@ public class PrivilegesEvaluator {
             context.setMappedRoles(mappedRoles);
         }
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
-        final SecurityRoles securityRoles;
-        if (user.isPluginUser()) {
-            securityRoles = getSecurityRoleForPlugin(user.getName());
-        } else {
-            securityRoles = getSecurityRoles(mappedRoles);
-        }
-
-        // Add the security roles for this user so that they can be used for DLS parameter substitution.
-        user.addSecurityRoles(mappedRoles);
-        setUserInfoInThreadContext(user);
+        final SecurityRoles securityRoles = getSecurityRoles(user, mappedRoles);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
