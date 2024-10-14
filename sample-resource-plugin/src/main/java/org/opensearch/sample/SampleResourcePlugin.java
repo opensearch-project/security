@@ -46,7 +46,9 @@ import org.opensearch.sample.actions.create.CreateResourceRestAction;
 import org.opensearch.sample.actions.list.ListAccessibleResourcesAction;
 import org.opensearch.sample.actions.list.ListAccessibleResourcesRestAction;
 import org.opensearch.sample.actions.share.ShareResourceAction;
+import org.opensearch.sample.actions.share.ShareResourceRestAction;
 import org.opensearch.sample.actions.verify.VerifyResourceAccessAction;
+import org.opensearch.sample.actions.verify.VerifyResourceAccessRestAction;
 import org.opensearch.sample.transport.CreateResourceTransportAction;
 import org.opensearch.sample.transport.ListAccessibleResourcesTransportAction;
 import org.opensearch.sample.transport.ShareResourceTransportAction;
@@ -98,7 +100,12 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return List.of(new CreateResourceRestAction(), new ListAccessibleResourcesRestAction());
+        return List.of(
+            new CreateResourceRestAction(),
+            new ListAccessibleResourcesRestAction(),
+            new VerifyResourceAccessRestAction(),
+            new ShareResourceRestAction()
+        );
     }
 
     @Override
