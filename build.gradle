@@ -495,9 +495,10 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.32.0"
+            force "com.google.errorprone:error_prone_annotations:2.33.0"
             force "org.checkerframework:checker-qual:3.47.0"
-            force "ch.qos.logback:logback-classic:1.5.8"
+            force "ch.qos.logback:logback-classic:1.5.10"
+            force "commons-io:commons-io:2.17.0"
         }
     }
 
@@ -580,7 +581,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.9.0'
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.41.1'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.41.2'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
     //JWT
@@ -602,16 +603,16 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.17.1'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.32.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.33.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
-    runtimeOnly 'org.ow2.asm:asm:9.7'
+    runtimeOnly 'org.ow2.asm:asm:9.7.1'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.2'
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.2'
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.27"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.28"
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     implementation "org.opensaml:opensaml-core:${open_saml_version}"
@@ -736,7 +737,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.23.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.24.0') {
         exclude group: 'com.google.guava'
     }
 }

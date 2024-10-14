@@ -17,18 +17,20 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Darshit Chanpura | [DarshitChanpura](https://github.com/DarshitChanpura) | Amazon      |
 | Peter Nied       | [peternied](https://github.com/peternied)             | Amazon      |
 | Craig Perkins    | [cwperks](https://github.com/cwperks)                 | Amazon      |
+| Derek Ho         | [derek-ho](https://github.com/derek-ho)               | Amazon      |
 | Ryan Liang       | [RyanL1997](https://github.com/RyanL1997)             | Amazon      |
-| Stephen Crawford | [scrawfor99](https://github.com/stephen-crawford)     | Amazon      |
 | Andriy Redko     | [reta](https://github.com/reta)                       | Aiven       |
 | Andrey Pleskach  | [willyborankin](https://github.com/willyborankin)     | Aiven       |
 | Nils Bandener    | [nibix](https://github.com/nibix)                     | Eliatra     |
 
 ## Emeritus
 
-| Maintainer | GitHub ID                                 | Affiliation |
-|------------|-------------------------------------------|-------------|
-| Dave Lago  | [davidlago](https://github.com/davidlago) | Contributor |
-| Chang Liu  | [cliu123](https://github.com/cliu123)     | Amazon      |
+| Maintainer       | GitHub ID                                               | Affiliation |
+|------------------|---------------------------------------------------------|-------------|
+| Dave Lago        | [davidlago](https://github.com/davidlago)               | Contributor |
+| Chang Liu        | [cliu123](https://github.com/cliu123)                   | Amazon      |
+| Stephen Crawford | [stephen-crawford](https://github.com/stephen-crawford) | Contributor |
+
 
 ## Practices
 
