@@ -179,13 +179,14 @@ public class RateLimitersApiAction extends AbstractApiAction {
             // Try to remove the listener by name
             if (config.dynamic.auth_failure_listeners.getListeners().remove(listenerName) == null) {
                 notFound(channel, "listener not found");
+            } else {
+                saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        ok(channel, authFailureContent(config));
+                    }
+                });
             }
-            saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
-                @Override
-                public void onResponse(IndexResponse indexResponse) {
-                    ok(channel, authFailureContent(config));
-                }
-            });
         }).error((status, toXContent) -> response(channel, status, toXContent)))
             .override(PUT, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
                 ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
