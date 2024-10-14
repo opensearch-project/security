@@ -69,6 +69,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.accesscontrol.resources.EntityType;
+import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.action.ActionRequest;
@@ -119,11 +120,13 @@ import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ResourceAccessControlPlugin;
+import org.opensearch.plugins.ResourcePlugin;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
@@ -179,6 +182,7 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourceManagementRepository;
+import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.resources.ResourceSharingIndexListener;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
@@ -237,10 +241,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     implements
         ClusterPlugin,
         MapperPlugin,
+        IdentityPlugin,
+        ResourceAccessControlPlugin,
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
         ExtensionAwarePlugin,
-        IdentityPlugin,
-        ResourceAccessControlPlugin
+        ExtensiblePlugin
 // CS-ENFORCE-SINGLE
 
 {
@@ -845,6 +850,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
     }
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
+    @Override
+    public void loadExtensions(ExtensionLoader loader) {
+
+        log.info("Loading resource plugins");
+        for (ResourcePlugin resourcePlugin : loader.loadExtensions(ResourcePlugin.class)) {
+            String resourceIndex = resourcePlugin.getResourceIndex();
+
+            this.indicesToListen.add(resourceIndex);
+            log.info("Loaded resource plugin: {}, index: {}", resourcePlugin, resourceIndex);
+        }
+    }
+    // CS-ENFORCE-SINGLE
+
     @Override
     public List<ActionFilter> getActionFilters() {
         List<ActionFilter> filters = new ArrayList<>(1);
@@ -1209,9 +1228,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             e.subscribeForChanges(dcf);
         }
 
-        resourceAccessHandler = new ResourceAccessHandler(threadPool);
+        final var resourceSharingIndex = ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
+        ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
+        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
 
-        rmr = ResourceManagementRepository.create(settings, threadPool, localClient);
+        rmr = ResourceManagementRepository.create(settings, threadPool, localClient, rsIndexHandler);
 
         components.add(adminDns);
         components.add(cr);
@@ -2087,6 +2108,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
         }
+
         // create resource sharing index if absent
         rmr.createResourceSharingIndexIfAbsent();
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
@@ -2226,6 +2248,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
+        private static ResourceService resourceService;
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
