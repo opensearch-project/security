@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
+import org.opensearch.accesscontrol.resources.SharedWithScope;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
@@ -29,6 +30,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.sample.Resource;
 import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.actions.create.CreateResourceAction;
 import org.opensearch.sample.actions.create.CreateResourceRequest;
 import org.opensearch.sample.actions.create.CreateResourceResponse;
@@ -60,6 +62,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
             createResource(request, listener);
             listener.onResponse(new CreateResourceResponse("Resource " + request.getResource() + " created successfully."));
         } catch (Exception e) {
+            log.info("Failed to create resource", e);
             listener.onFailure(e);
         }
     }
@@ -82,7 +85,13 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
     }
 
     private static ActionListener<IndexResponse> getIndexResponseActionListener(ActionListener<CreateResourceResponse> listener) {
-        ShareWith shareWith = new ShareWith(List.of());
+        SharedWithScope.SharedWithPerScope sharedWithPerScope = new SharedWithScope.SharedWithPerScope(
+            List.of(),
+            List.of(),
+            List.of()
+        );
+        SharedWithScope sharedWithScope = new SharedWithScope(SampleResourceScope.SAMPLE_FULL_ACCESS.getName(), sharedWithPerScope);
+        ShareWith shareWith = new ShareWith(List.of(sharedWithScope));
         return ActionListener.wrap(idxResponse -> {
             log.info("Created resource: {}", idxResponse.toString());
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();

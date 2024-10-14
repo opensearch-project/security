@@ -33,7 +33,7 @@ public class ShareResourceRestAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "list_sample_resources";
+        return "share_sample_resources";
     }
 
     @Override
