@@ -570,6 +570,7 @@ task integrationTest(type: Test) {
     }
 }
 
+tasks.integTest.dependsOn(integrationTest)
 tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
 
 //run the integrationTest task before the check task
