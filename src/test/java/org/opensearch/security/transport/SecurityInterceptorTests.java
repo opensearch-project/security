@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.Version;
+import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.action.search.PitService;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -171,7 +172,8 @@ public class SecurityInterceptorTests {
             transportService,
             mock(IndicesService.class),
             mock(PitService.class),
-            mock(ExtensionsManager.class)
+            mock(ExtensionsManager.class),
+            mock(ResourceService.class)
         );
         // CS-ENFORCE-SINGLE
 

@@ -120,7 +120,6 @@ import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ClusterPlugin;
-import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
@@ -244,8 +243,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         IdentityPlugin,
         ResourceAccessControlPlugin,
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-        ExtensionAwarePlugin,
-        ExtensiblePlugin
+        ExtensionAwarePlugin
 // CS-ENFORCE-SINGLE
 
 {
@@ -726,6 +724,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
+            log.info("Indices to listen to: {}", this.indicesToListen);
             if (this.indicesToListen.contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(ResourceSharingIndexListener.getInstance());
                 log.warn("Security plugin started listening to operations on index {}", indexModule.getIndex().getName());
@@ -849,20 +848,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }.toListener());
         }
     }
-
-    // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
-    @Override
-    public void loadExtensions(ExtensionLoader loader) {
-
-        log.info("Loading resource plugins");
-        for (ResourcePlugin resourcePlugin : loader.loadExtensions(ResourcePlugin.class)) {
-            String resourceIndex = resourcePlugin.getResourceIndex();
-
-            this.indicesToListen.add(resourceIndex);
-            log.info("Loaded resource plugin: {}, index: {}", resourcePlugin, resourceIndex);
-        }
-    }
-    // CS-ENFORCE-SINGLE
 
     @Override
     public List<ActionFilter> getActionFilters() {
@@ -2111,6 +2096,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // create resource sharing index if absent
         rmr.createResourceSharingIndexIfAbsent();
+
+        log.info("Loading resource plugins");
+        for (ResourcePlugin resourcePlugin : OpenSearchSecurityPlugin.GuiceHolder.getResourceService().listResourcePlugins()) {
+            String resourceIndex = resourcePlugin.getResourceIndex();
+
+            this.indicesToListen.add(resourceIndex);
+            log.info("Loaded resource plugin: {}, index: {}", resourcePlugin, resourceIndex);
+        }
+
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -2128,6 +2122,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final List<Class<? extends LifecycleComponent>> services = new ArrayList<>(1);
         services.add(GuiceHolder.class);
+        log.info("Guice service classes loaded");
         return services;
     }
 
@@ -2259,13 +2254,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             final TransportService remoteClusterService,
             IndicesService indicesService,
             PitService pitService,
-            ExtensionsManager extensionsManager
+            ExtensionsManager extensionsManager,
+            ResourceService resourceService
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
+            GuiceHolder.resourceService = resourceService;
         }
         // CS-ENFORCE-SINGLE
 
@@ -2290,6 +2287,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return extensionsManager;
         }
         // CS-ENFORCE-SINGLE
+
+        public static ResourceService getResourceService() {
+            return resourceService;
+        }
 
         @Override
         public void close() {}
