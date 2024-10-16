@@ -52,6 +52,8 @@ public class Song {
     public static final String GENRE_JAZZ = "jazz";
     public static final String GENRE_BLUES = "blues";
 
+    public static final String[] GENRES = new String[] { GENRE_BLUES, GENRE_JAZZ, GENRE_ROCK };
+
     public static final String QUERY_TITLE_NEXT_SONG = FIELD_TITLE + ":" + "\"" + TITLE_NEXT_SONG + "\"";
     public static final String QUERY_TITLE_POISON = FIELD_TITLE + ":" + TITLE_POISON;
     public static final String QUERY_TITLE_MAGNUM_OPUS = FIELD_TITLE + ":" + TITLE_MAGNUM_OPUS;
@@ -112,7 +114,11 @@ public class Song {
             UUID.randomUUID().toString(),
             UUID.randomUUID().toString(),
             Randomness.get().nextInt(5),
-            UUID.randomUUID().toString()
+            randomGenre()
         );
+    }
+
+    static String randomGenre() {
+        return GENRES[Randomness.get().nextInt(GENRES.length)];
     }
 }
