@@ -55,6 +55,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.identity.UserSubject;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
@@ -223,7 +224,10 @@ public class BackendRegistry {
 
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
+            User superuser = new User(sslPrincipal);
+            UserSubject subject = new SecurityUser(threadPool, superuser);
+            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
@@ -389,6 +393,8 @@ public class BackendRegistry {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             threadPool.getThreadContext()
                 .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser == null ? authenticatedUser : impersonatedUser);
+            UserSubject subject = new SecurityUser(threadPool, impersonatedUser == null ? authenticatedUser : impersonatedUser);
+            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             auditLog.logSucceededLogin(
                 (impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(),
                 false,
@@ -421,7 +427,10 @@ public class BackendRegistry {
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
 
+                UserSubject subject = new SecurityUser(threadPool, anonymousUser);
+
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
+                threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
                 auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");

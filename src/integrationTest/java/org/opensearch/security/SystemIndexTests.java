@@ -13,12 +13,14 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.http.ExampleSystemIndexPlugin;
+import org.opensearch.security.plugin.SystemIndexPlugin1;
+import org.opensearch.security.plugin.SystemIndexPlugin2;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -26,7 +28,10 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.plugin.SystemIndexPlugin1.SYSTEM_INDEX_1;
+import static org.opensearch.security.plugin.SystemIndexPlugin2.SYSTEM_INDEX_2;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -39,11 +44,11 @@ public class SystemIndexTests {
     public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0).httpAuthenticatorWithChallenge("basic").backend("internal");
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
-        .plugin(ExampleSystemIndexPlugin.class)
+        .plugin(SystemIndexPlugin1.class, SystemIndexPlugin2.class)
         .nodeSettings(
             Map.of(
                 SECURITY_RESTAPI_ROLES_ENABLED,
@@ -53,6 +58,14 @@ public class SystemIndexTests {
             )
         )
         .build();
+
+    @Before
+    public void wipeAllIndices() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.delete(".system-index1");
+            client.delete(".system-index2");
+        }
+    }
 
     @Test
     public void adminShouldNotBeAbleToDeleteSecurityIndex() {
@@ -69,7 +82,7 @@ public class SystemIndexTests {
 
             assertThat(response2.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
 
-            // regular use can create system index
+            // regular user can create system index
             HttpResponse response3 = client.put(".system-index1");
 
             assertThat(response3.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
@@ -78,6 +91,101 @@ public class SystemIndexTests {
             HttpResponse response4 = client.delete(".system-index1");
 
             assertThat(response4.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldBeAbleToIndexDocumentIntoItsSystemIndex() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response.getBody(), containsString(SystemIndexPlugin1.class.getCanonicalName()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldNotBeAbleToIndexDocumentIntoSystemIndexRegisteredByOtherPlugin() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_2);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(
+                response.getBody(),
+                containsString(
+                    "no permissions for [indices:admin/create] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
+                )
+            );
+        }
+    }
+
+    @Test
+    public void testPluginShouldBeAbleToCreateSystemIndexButUserShouldNotBeAbleToIndex() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1 + "?runAs=user");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(response.getBody(), containsString("no permissions for [indices:data/write/index] and User [name=admin"));
+        }
+    }
+
+    @Test
+    public void testPluginShouldNotBeAbleToRunClusterActions() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.get("try-cluster-health/plugin");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
+            assertThat(
+                response.getBody(),
+                containsString(
+                    "no permissions for [cluster:monitor/health] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
+                )
+            );
+        }
+    }
+
+    @Test
+    public void testAdminUserShouldBeAbleToRunClusterActions() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.get("try-cluster-health/user");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+        }
+    }
+
+    @Test
+    public void testAuthenticatedUserShouldBeAbleToRunClusterActions() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.get("try-cluster-health/default");
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldBeAbleToBulkIndexDocumentIntoItsSystemIndex() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+        }
+    }
+
+    @Test
+    public void testPluginShouldNotBeAbleToBulkIndexDocumentIntoMixOfSystemIndexWhereAtLeastOneDoesNotBelongToPlugin() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.put(".system-index1");
+            client.put(".system-index2");
+        }
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-mixed-index");
+
+            assertThat(
+                response.getBody(),
+                containsString(
+                    "no permissions for [indices:data/write/bulk[s]] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
+                )
+            );
         }
     }
 
