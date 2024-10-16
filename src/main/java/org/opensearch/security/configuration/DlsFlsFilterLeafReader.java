@@ -729,6 +729,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public void binaryField(final FieldInfo fieldInfo, final byte[] value) throws IOException {
+
             if (fieldInfo.name.equals("_source")) {
                 final BytesReference bytesRef = new BytesArray(value);
                 final Tuple<XContentType, Map<String, Object>> bytesRefTuple = XContentHelper.convertToMap(
@@ -817,6 +818,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             }
 
             if (v != null && (v instanceof String || v instanceof byte[])) {
+
                 final String field = stack.isEmpty() ? key : Joiner.on('.').join(stack) + "." + key;
                 final MaskedField mf = maskedFieldsMap.getMaskedField(field).orElse(null);
                 if (mf != null) {
