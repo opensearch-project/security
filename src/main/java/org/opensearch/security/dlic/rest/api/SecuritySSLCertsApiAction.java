@@ -12,11 +12,10 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,8 +30,10 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.ssl.SecurityKeyStore;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.ssl.SslContextHandler;
+import org.opensearch.security.ssl.SslSettingsManager;
+import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.ssl.config.Certificate;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -62,23 +63,20 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
         )
     );
 
-    private final SecurityKeyStore securityKeyStore;
+    private final SslSettingsManager sslSettingsManager;
 
     private final boolean certificatesReloadEnabled;
-
-    private final boolean httpsEnabled;
 
     public SecuritySSLCertsApiAction(
         final ClusterService clusterService,
         final ThreadPool threadPool,
-        final SecurityKeyStore securityKeyStore,
+        final SslSettingsManager sslSettingsManager,
         final boolean certificatesReloadEnabled,
         final SecurityApiDependencies securityApiDependencies
     ) {
         super(Endpoint.SSL, clusterService, threadPool, securityApiDependencies);
-        this.securityKeyStore = securityKeyStore;
+        this.sslSettingsManager = sslSettingsManager;
         this.certificatesReloadEnabled = certificatesReloadEnabled;
-        this.httpsEnabled = securityApiDependencies.settings().getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true);
         this.requestHandlersBuilder.configureRequestHandlers(this::securitySSLCertsRequestHandlers);
     }
 
@@ -108,10 +106,10 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
             .verifyAccessForAllMethods()
             .override(
                 Method.GET,
-                (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> loadCertificates(channel, keyStore))
+                (channel, request, client) -> withSecurityKeyStore().valid(ignore -> loadCertificates(channel))
                     .error((status, toXContent) -> response(channel, status, toXContent))
             )
-            .override(Method.PUT, (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> {
+            .override(Method.PUT, (channel, request, client) -> withSecurityKeyStore().valid(ignore -> {
                 if (!certificatesReloadEnabled) {
                     badRequest(
                         channel,
@@ -123,7 +121,7 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
                         )
                     );
                 } else {
-                    reloadCertificates(channel, request, keyStore);
+                    reloadCertificates(channel, request);
                 }
             }).error((status, toXContent) -> response(channel, status, toXContent)));
     }
@@ -138,65 +136,70 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
         }
     }
 
-    ValidationResult<SecurityKeyStore> withSecurityKeyStore() {
-        if (securityKeyStore == null) {
+    ValidationResult<SslSettingsManager> withSecurityKeyStore() {
+        if (sslSettingsManager == null) {
             return ValidationResult.error(RestStatus.OK, badRequestMessage("keystore is not initialized"));
         }
-        return ValidationResult.success(securityKeyStore);
+        return ValidationResult.success(sslSettingsManager);
     }
 
-    protected void loadCertificates(final RestChannel channel, final SecurityKeyStore keyStore) throws IOException {
+    protected void loadCertificates(final RestChannel channel) throws IOException {
         ok(
             channel,
             (builder, params) -> builder.startObject()
-                .field("http_certificates_list", httpsEnabled ? generateCertDetailList(keyStore.getHttpCerts()) : null)
-                .field("transport_certificates_list", generateCertDetailList(keyStore.getTransportCerts()))
+                .field(
+                    "http_certificates_list",
+                    generateCertDetailList(
+                        sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::keyMaterialCertificates).orElse(null)
+                    )
+                )
+                .field(
+                    "transport_certificates_list",
+                    generateCertDetailList(
+                        sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
+                            .map(SslContextHandler::keyMaterialCertificates)
+                            .orElse(null)
+                    )
+                )
                 .endObject()
         );
     }
 
-    private List<Map<String, String>> generateCertDetailList(final X509Certificate[] certs) {
+    private List<Map<String, String>> generateCertDetailList(final Stream<Certificate> certs) {
         if (certs == null) {
             return null;
         }
-        return Arrays.stream(certs).map(cert -> {
-            final String issuerDn = cert != null && cert.getIssuerX500Principal() != null ? cert.getIssuerX500Principal().getName() : "";
-            final String subjectDn = cert != null && cert.getSubjectX500Principal() != null ? cert.getSubjectX500Principal().getName() : "";
-
-            final String san = securityKeyStore.getSubjectAlternativeNames(cert);
-
-            final String notBefore = cert != null && cert.getNotBefore() != null ? cert.getNotBefore().toInstant().toString() : "";
-            final String notAfter = cert != null && cert.getNotAfter() != null ? cert.getNotAfter().toInstant().toString() : "";
-            return ImmutableMap.of(
+        return certs.map(
+            c -> ImmutableMap.of(
                 "issuer_dn",
-                issuerDn,
+                c.issuer(),
                 "subject_dn",
-                subjectDn,
+                c.subject(),
                 "san",
-                san,
+                c.subjectAlternativeNames(),
                 "not_before",
-                notBefore,
+                c.notBefore(),
                 "not_after",
-                notAfter
-            );
-        }).collect(Collectors.toList());
+                c.notAfter()
+            )
+        ).collect(Collectors.toList());
     }
 
-    protected void reloadCertificates(final RestChannel channel, final RestRequest request, final SecurityKeyStore keyStore)
-        throws IOException {
+    protected void reloadCertificates(final RestChannel channel, final RestRequest request) throws IOException {
         final String certType = request.param("certType").toLowerCase().trim();
         try {
             switch (certType) {
                 case "http":
-                    if (!httpsEnabled) {
+                    if (sslSettingsManager.sslConfiguration(CertType.HTTP).isPresent()) {
+                        sslSettingsManager.reloadSslContext(CertType.HTTP);
+                        ok(channel, (builder, params) -> builder.startObject().field("message", "updated http certs").endObject());
+                    } else {
                         badRequest(channel, "SSL for HTTP is disabled");
-                        return;
                     }
-                    keyStore.initHttpSSLConfig();
-                    ok(channel, (builder, params) -> builder.startObject().field("message", "updated http certs").endObject());
                     break;
                 case "transport":
-                    keyStore.initTransportSSLConfig();
+                    sslSettingsManager.reloadSslContext(CertType.TRANSPORT);
+                    sslSettingsManager.reloadSslContext(CertType.TRANSPORT_CLIENT);
                     ok(channel, (builder, params) -> builder.startObject().field("message", "updated transport certs").endObject());
                     break;
                 default:

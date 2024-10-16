@@ -9,6 +9,7 @@
 package org.opensearch.security.ssl;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
@@ -55,16 +57,16 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
     private SecureTransportSettingsProvider secureTransportSettingsProvider;
     private ClusterSettings clusterSettings;
 
+    private Path osPathHome;
+
     @Before
     public void setUp() {
+        osPathHome = FileHelper.getAbsoluteFilePathFromClassPath("ssl/kirk-keystore.jks").getParent().getParent();
         settings = Settings.builder()
+            .put(Environment.PATH_HOME_SETTING.getKey(), osPathHome)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/kirk-keystore.jks")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
@@ -116,7 +118,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
 
     @Test
     public void testRegisterSecureHttpTransport() throws IOException {
-        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(settings, null, false)) {
+        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(settings, osPathHome, false)) {
             final Map<String, Supplier<HttpServerTransport>> transports = plugin.getSecureHttpTransports(
                 settings,
                 MOCK_POOL,
@@ -140,7 +142,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
 
     @Test
     public void testRegisterSecureTransport() throws IOException {
-        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(settings, null, false)) {
+        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(settings, osPathHome, false)) {
             final Map<String, Supplier<Transport>> transports = plugin.getSecureTransports(
                 settings,
                 MOCK_POOL,
@@ -165,7 +167,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
             .build();
 
-        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(deprecated, null, false)) {
+        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(deprecated, osPathHome, false)) {
             final Map<String, Supplier<Transport>> transports = plugin.getSecureTransports(
                 deprecated,
                 MOCK_POOL,
@@ -190,7 +192,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
             .put(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .build();
 
-        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(migrated, null, false)) {
+        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(migrated, osPathHome, false)) {
             final Map<String, Supplier<Transport>> transports = plugin.getSecureTransports(
                 migrated,
                 MOCK_POOL,
@@ -229,7 +231,7 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 .put(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
                 .build();
 
-            try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(migrated, null, false)) {
+            try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(migrated, osPathHome, false)) {
                 final Map<String, Supplier<Transport>> transports = plugin.getSecureTransports(
                     migrated,
                     MOCK_POOL,

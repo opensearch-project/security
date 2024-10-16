@@ -43,6 +43,13 @@
   <module name="BeforeExecutionExclusionFileFilter">
     <property name="fileNamePattern" value="src/main/java/com/amazon/dlic/auth/http/kerberos/HTTPSpnegoAuthenticator.java"/>
   </module>
+  <module name="BeforeExecutionExclusionFileFilter">
+    <property name="fileNamePattern" value="src/test/java/org/opensearch/security/ssl/SslContextHandlerTest.java"/>
+  </module>
+  <module name="BeforeExecutionExclusionFileFilter">
+    <property name="fileNamePattern" value="src/test/java/org/opensearch/security/ssl/CertificatesRule.java"/>
+  </module>
+
 
   <!-- https://checkstyle.org/config_filters.html#SuppressionFilter -->
   <module name="SuppressionFilter">
