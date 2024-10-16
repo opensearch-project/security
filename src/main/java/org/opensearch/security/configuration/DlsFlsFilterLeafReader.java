@@ -663,9 +663,18 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 }
 
                 delegate.binaryField(fieldInfo, Utils.jsonMapToByteArray(filteredSource));
-            } else {
+            } else if (shouldInclude(fieldInfo.name)) {
                 delegate.binaryField(fieldInfo, value);
             }
+        }
+
+        private boolean shouldInclude(String field) {
+            if (excludesSet != null && !excludesSet.isEmpty()) {
+                return !excludesSet.contains(field);
+            } else if (includesSet != null && !includesSet.isEmpty()) {
+                return includesSet.contains(field);
+            }
+            return true;
         }
 
         @Override
@@ -720,7 +729,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public void binaryField(final FieldInfo fieldInfo, final byte[] value) throws IOException {
-
             if (fieldInfo.name.equals("_source")) {
                 final BytesReference bytesRef = new BytesArray(value);
                 final Tuple<XContentType, Map<String, Object>> bytesRefTuple = XContentHelper.convertToMap(
@@ -733,7 +741,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 final XContentBuilder xBuilder = XContentBuilder.builder(bytesRefTuple.v1().xContent()).map(filteredSource);
                 delegate.binaryField(fieldInfo, BytesReference.toBytes(BytesReference.bytes(xBuilder)));
             } else {
-                delegate.binaryField(fieldInfo, value);
+                final MaskedField mf = maskedFieldsMap.getMaskedField(fieldInfo.name).orElse(null);
+                if (mf != null) {
+                    delegate.binaryField(fieldInfo, mf.mask(value));
+                } else {
+                    delegate.binaryField(fieldInfo, value);
+                }
             }
         }
 
@@ -804,7 +817,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             }
 
             if (v != null && (v instanceof String || v instanceof byte[])) {
-
                 final String field = stack.isEmpty() ? key : Joiner.on('.').join(stack) + "." + key;
                 final MaskedField mf = maskedFieldsMap.getMaskedField(field).orElse(null);
                 if (mf != null) {
