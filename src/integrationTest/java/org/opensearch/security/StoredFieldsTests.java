@@ -67,8 +67,10 @@ public class StoredFieldsTests {
                   ]
                 }
                 """);
-            Assert.assertFalse(fieldSearchResponse.getBody().contains("boo!"));
+            Assert.assertTrue(fieldSearchResponse.getBody().contains("raw"));
+            Assert.assertTrue(fieldSearchResponse.getBody().contains("hello"));
             Assert.assertTrue(fieldSearchResponse.getBody().contains("restricted"));
+            Assert.assertFalse(fieldSearchResponse.getBody().contains("boo!"));
         }
     }
 
@@ -86,8 +88,10 @@ public class StoredFieldsTests {
                   ]
                 }
                 """);
-            Assert.assertFalse(fieldSearchResponse.getBody().contains("boo!"));
+            Assert.assertTrue(fieldSearchResponse.getBody().contains("raw"));
+            Assert.assertTrue(fieldSearchResponse.getBody().contains("hello"));
             Assert.assertFalse(fieldSearchResponse.getBody().contains("restricted"));
+            Assert.assertFalse(fieldSearchResponse.getBody().contains("boo!"));
         }
     }
 
