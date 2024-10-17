@@ -54,6 +54,7 @@ public class KeySetRetriever implements KeySetProvider {
     private int oidcCacheModuleResponses = 0;
     private long oidcRequests = 0;
     private long lastCacheStatusLog = 0;
+    private String userInfoEndpoint;
     private String jwksUri;
 
     KeySetRetriever(String openIdConnectEndpoint, SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint) {
@@ -173,6 +174,10 @@ public class KeySetRetriever implements KeySetProvider {
 
     public void setRequestTimeoutMs(int httpTimeoutMs) {
         this.requestTimeoutMs = httpTimeoutMs;
+    }
+
+    public void setUserInfoEndpoint(String userInfoEndpoint) {
+        this.userInfoEndpoint = userInfoEndpoint;
     }
 
     private void logCacheResponseStatus(HttpCacheContext httpContext) {
