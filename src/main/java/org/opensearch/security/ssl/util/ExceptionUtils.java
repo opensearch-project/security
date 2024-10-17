@@ -76,7 +76,7 @@ public class ExceptionUtils {
         return new OpenSearchException("An error occurred during the creation of Jwk: {}", cause, cause.getMessage());
     }
 
-    public static OpenSearchException createTransportClientNoLongerSupportedException() {
-        return new OpenSearchException("Transport client authentication no longer supported.");
+    public static OpenSearchException clusterWrongNodeCertConfigException() {
+        return new OpenSearchException("Node certificate configuration is wrong or certificate is invalid.");
     }
 }
