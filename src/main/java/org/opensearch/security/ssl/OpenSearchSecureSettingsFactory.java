@@ -69,8 +69,13 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             }
 
             @Override
-            public boolean isDualModeEnabled(Settings settings) {
-                return sslConfig.isDualModeEnabled();
+            public Optional<SecureTransportParameters> parameters(Settings settings) {
+                return Optional.of(new SecureTransportParameters() {
+                    @Override
+                    public boolean dualModeEnabled() {
+                        return sslConfig.isDualModeEnabled();
+                    }
+                });
             }
 
             @Override
