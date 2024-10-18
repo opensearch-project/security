@@ -76,7 +76,9 @@ public class ExceptionUtils {
         return new OpenSearchException("An error occurred during the creation of Jwk: {}", cause, cause.getMessage());
     }
 
-    public static OpenSearchException clusterWrongNodeCertConfigException() {
-        return new OpenSearchException("Node certificate configuration is wrong or certificate is invalid.");
+    public static OpenSearchException clusterWrongNodeCertConfigException(String sslPrincipal) {
+        return new OpenSearchException("Node presenting certificate with SSL Principal {" + sslPrincipal + "} could" +
+                " not securely connect to the cluster. Please ensure the principal is correct and present in the" +
+                " nodes_dn list.");
     }
 }
