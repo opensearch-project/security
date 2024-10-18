@@ -97,6 +97,7 @@ public class LocalOpenSearchCluster {
     private final List<Class<? extends Plugin>> additionalPlugins;
     private final List<Node> nodes = new ArrayList<>();
     private final TestCertificates testCertificates;
+    private final Integer expectedNodeStartupCount;
 
     private File clusterHomeDir;
     private List<String> seedHosts;
@@ -112,13 +113,15 @@ public class LocalOpenSearchCluster {
         ClusterManager clusterManager,
         NodeSettingsSupplier nodeSettingsSupplier,
         List<Class<? extends Plugin>> additionalPlugins,
-        TestCertificates testCertificates
+        TestCertificates testCertificates,
+        Integer expectedNodeStartCount
     ) {
         this.clusterName = clusterName;
         this.clusterManager = clusterManager;
         this.nodeSettingsSupplier = nodeSettingsSupplier;
         this.additionalPlugins = additionalPlugins;
         this.testCertificates = testCertificates;
+        this.expectedNodeStartupCount = expectedNodeStartCount;
         try {
             createClusterDirectory(clusterName);
         } catch (IOException e) {
@@ -198,7 +201,12 @@ public class LocalOpenSearchCluster {
 
         log.info("Startup finished. Waiting for GREEN");
 
-        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), nodes.size());
+        int expectedCount = nodes.size();
+        if (expectedNodeStartupCount != null) {
+            expectedCount = expectedNodeStartupCount;
+        }
+
+        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), expectedCount);
         log.info("Started: {}", this);
 
     }

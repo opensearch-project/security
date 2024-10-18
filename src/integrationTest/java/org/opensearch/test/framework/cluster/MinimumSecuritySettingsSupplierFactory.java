@@ -28,6 +28,8 @@
 
 package org.opensearch.test.framework.cluster;
 
+import java.util.Map;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -49,6 +51,16 @@ public class MinimumSecuritySettingsSupplierFactory {
 
     public NodeSettingsSupplier minimumOpenSearchSettings(boolean sslOnly, Settings other) {
         return i -> minimumOpenSearchSettingsBuilder(i, sslOnly).put(other).build();
+    }
+
+    public NodeSettingsSupplier minimumOpenSearchSettings(boolean sslOnly, Map<Integer, Settings> nodeOverride, Settings other) {
+        return i -> {
+            Settings override = nodeOverride.get(i);
+            if (override != null) {
+                return minimumOpenSearchSettingsBuilder(i, sslOnly).put(other).put(override).build();
+            }
+            return minimumOpenSearchSettingsBuilder(i, sslOnly).put(other).build();
+        };
     }
 
     private Settings.Builder minimumOpenSearchSettingsBuilder(int node, boolean sslOnly) {
