@@ -77,8 +77,12 @@ public class ExceptionUtils {
     }
 
     public static OpenSearchException clusterWrongNodeCertConfigException(String sslPrincipal) {
-        return new OpenSearchException("Node presenting certificate with SSL Principal {" + sslPrincipal + "} could" +
-                " not securely connect to the cluster. Please ensure the principal is correct and present in the" +
-                " nodes_dn list.");
+        return new OpenSearchException(
+            "Node presenting certificate with SSL Principal {"
+                + sslPrincipal
+                + "} could"
+                + " not securely connect to the cluster. Please ensure the principal is correct and present in the"
+                + " nodes_dn list."
+        );
     }
 }
