@@ -155,6 +155,20 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         );
     }
 
+    /**
+     * For testing only
+     */
+    public static <T> SecurityDynamicConfiguration<T> fromYaml(String yaml, CType<T> ctype) throws JsonProcessingException {
+        Class<T> implementationClass = ctype.getConfigClass();
+        SecurityDynamicConfiguration<T> result = DefaultObjectMapper.YAML_MAPPER.readValue(
+            yaml,
+            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
+        );
+        result.ctype = ctype;
+        result.version = 2;
+        return result;
+    }
+
     // for Jackson
     private SecurityDynamicConfiguration() {
         super();
@@ -311,6 +325,18 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     @SuppressWarnings("unchecked")
+    @JsonIgnore
+    public SecurityDynamicConfiguration<T> clone() {
+        SecurityDynamicConfiguration<T> result = new SecurityDynamicConfiguration<T>();
+        result.version = this.version;
+        result.ctype = this.ctype;
+        result.primaryTerm = this.primaryTerm;
+        result.seqNo = this.seqNo;
+        result._meta = this._meta;
+        result.centries.putAll(this.centries);
+        return result;
+    }
+
     @JsonIgnore
     public SecurityDynamicConfiguration<T> deepClone() {
         try {

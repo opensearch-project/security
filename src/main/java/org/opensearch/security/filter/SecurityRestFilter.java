@@ -27,12 +27,14 @@
 package org.opensearch.security.filter;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -225,17 +227,12 @@ public class SecurityRestFilter {
         if (routeSupportsRestAuthorization) {
             PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
             NamedRoute route = ((NamedRoute) handler.get());
-            // if actionNames are present evaluate those first
-            Set<String> actionNames = route.actionNames();
-            if (actionNames != null && !actionNames.isEmpty()) {
-                pres = evaluator.evaluate(user, actionNames);
-            }
-
-            // now if pres.allowed is still false check for the NamedRoute name as a permission
-            if (!pres.isAllowed()) {
-                String action = route.name();
-                pres = evaluator.evaluate(user, Set.of(action));
-            }
+            // Check both route.actionNames() and route.name(). The presence of either is sufficient.
+            Set<String> actionNames = ImmutableSet.<String>builder()
+                .addAll(route.actionNames() != null ? route.actionNames() : Collections.emptySet())
+                .add(route.name())
+                .build();
+            pres = evaluator.evaluate(user, route.name(), actionNames);
 
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
