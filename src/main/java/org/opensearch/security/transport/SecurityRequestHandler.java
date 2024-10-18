@@ -290,7 +290,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     || HeaderHelper.isTrustedClusterRequest(getThreadContext())
                     || HeaderHelper.isExtensionRequest(getThreadContext()))) {
                     // CS-ENFORCE-SINGLE
-                    final OpenSearchException exception = ExceptionUtils.createTransportClientNoLongerSupportedException();
+                    final OpenSearchException exception = ExceptionUtils.clusterWrongNodeCertConfigException(principal);
                     log.error(exception.toString());
                     transportChannel.sendResponse(exception);
                     return;
