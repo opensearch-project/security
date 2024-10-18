@@ -1355,7 +1355,14 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         String uri = "cross_cluster_two:twitter/_search?pretty";
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
-        assertThat(ccs.getBody(), containsString("Transport client authentication no longer supported"));
+        assertThat(
+            ccs.getBody(),
+            containsString(
+                "Node presenting certificate with SSL Principal "
+                    + "{CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE} could not securely connect to the cluster. Please"
+                    + " ensure the principal is correct and present in the nodes_dn list."
+            )
+        );
     }
 
     @Test
