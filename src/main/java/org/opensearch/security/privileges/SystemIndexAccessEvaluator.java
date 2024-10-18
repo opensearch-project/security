@@ -272,10 +272,12 @@ public class SystemIndexAccessEvaluator {
                     log.debug("Service account cannot access regular indices: {}", regularIndices);
                 }
                 presponse.allowed = false;
+                presponse.addMissingPrivileges(action);
                 presponse.markComplete();
                 return;
             }
             boolean containsProtectedIndex = requestContainsAnyProtectedSystemIndices(requestedResolved);
+
             if (containsProtectedIndex) {
                 auditLog.logSecurityIndexAttempt(request, action, task);
                 if (log.isInfoEnabled()) {
@@ -287,6 +289,7 @@ public class SystemIndexAccessEvaluator {
                     );
                 }
                 presponse.allowed = false;
+                presponse.addMissingPrivileges(action);
                 presponse.markComplete();
                 return;
             } else if (containsSystemIndex
@@ -307,9 +310,35 @@ public class SystemIndexAccessEvaluator {
                         );
                     }
                     presponse.allowed = false;
+                    presponse.addMissingPrivileges(action);
                     presponse.markComplete();
                     return;
                 }
+        }
+
+        if (user.isPluginUser()) {
+            Set<String> matchingSystemIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
+                user.getName().replace("plugin:", ""),
+                requestedResolved.getAllIndices()
+            );
+            if (requestedResolved.getAllIndices().equals(matchingSystemIndices)) {
+                // plugin is authorized to perform any actions on its own registered system indices
+                presponse.allowed = true;
+                presponse.markComplete();
+            } else {
+                if (log.isInfoEnabled()) {
+                    log.info(
+                        "Plugin {} can only perform {} on it's own registered System Indices. System indices from request that match plugin's registered system indices: {}",
+                        user.getName(),
+                        action,
+                        matchingSystemIndices
+                    );
+                }
+                presponse.allowed = false;
+                presponse.addMissingPrivileges(action);
+                presponse.markComplete();
+            }
+            return;
         }
 
         if (isActionAllowed(action)) {
@@ -329,6 +358,7 @@ public class SystemIndexAccessEvaluator {
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     log.warn("{} for '_all' indices is not allowed for a regular user", action);
                     presponse.allowed = false;
+                    presponse.addMissingPrivileges(action);
                     presponse.markComplete();
                 }
             }
@@ -343,6 +373,7 @@ public class SystemIndexAccessEvaluator {
                             log.debug("Filtered '{}' but resulting list is empty", securityIndex);
                         }
                         presponse.allowed = false;
+                        presponse.addMissingPrivileges(action);
                         presponse.markComplete();
                         return;
                     }
@@ -355,6 +386,7 @@ public class SystemIndexAccessEvaluator {
                     final String foundSystemIndexes = String.join(", ", getAllSystemIndices(requestedResolved));
                     log.warn("{} for '{}' index is not allowed for a regular user", action, foundSystemIndexes);
                     presponse.allowed = false;
+                    presponse.addMissingPrivileges(action);
                     presponse.markComplete();
                 }
             }
