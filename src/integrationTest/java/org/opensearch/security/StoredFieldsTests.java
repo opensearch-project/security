@@ -1,6 +1,7 @@
 package org.opensearch.security;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -67,6 +68,7 @@ public class StoredFieldsTests {
                   ]
                 }
                 """);
+            fieldSearchResponse.assertStatusCode(HttpStatus.SC_OK);
             Assert.assertTrue(fieldSearchResponse.getBody().contains("raw"));
             Assert.assertTrue(fieldSearchResponse.getBody().contains("hello"));
             Assert.assertTrue(fieldSearchResponse.getBody().contains("restricted"));
@@ -88,6 +90,7 @@ public class StoredFieldsTests {
                   ]
                 }
                 """);
+            fieldSearchResponse.assertStatusCode(HttpStatus.SC_OK);
             Assert.assertTrue(fieldSearchResponse.getBody().contains("raw"));
             Assert.assertTrue(fieldSearchResponse.getBody().contains("hello"));
             Assert.assertFalse(fieldSearchResponse.getBody().contains("restricted"));
