@@ -211,7 +211,7 @@ public class PrivilegesEvaluator {
             clusterService.addListener(event -> {
                 ActionPrivileges actionPrivileges = PrivilegesEvaluator.this.actionPrivileges.get();
                 if (actionPrivileges != null) {
-                    actionPrivileges.updateStatefulIndexPrivilegesAsync(clusterService, threadPool);
+                    actionPrivileges.updateClusterStateMetadataAsync(clusterService, threadPool);
                 }
             });
         }

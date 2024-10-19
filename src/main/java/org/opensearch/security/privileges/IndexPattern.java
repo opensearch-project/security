@@ -191,9 +191,7 @@ public class IndexPattern {
      * Returns true if this object cannot match against any index name.
      */
     public boolean isEmpty() {
-        return (staticPattern == null || staticPattern == WildcardMatcher.NONE)
-            && this.patternTemplates.isEmpty()
-            && this.dateMathExpressions.isEmpty();
+        return !hasStaticPattern() && !hasDynamicPattern();
     }
 
     @Override
