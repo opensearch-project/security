@@ -858,7 +858,7 @@ public class ActionPrivilegesTest {
                 "role_with_errors:\n"
                     + "  index_permissions:\n"
                     + "  - index_patterns: ['/invalid_regex_with_attr${user.name}\\/']\n"
-                    + "    allowed_actions: ['indices:some_action*']",
+                    + "    allowed_actions: ['indices:some_action*', 'indices:data/write/index']",
                 CType.ROLES
             );
 
