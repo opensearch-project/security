@@ -123,7 +123,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
 
             if (config != null) {
-                config.updateIndicesAsync(clusterService, threadPool);
+                config.updateClusterStateMetadataAsync(clusterService, threadPool);
             }
         });
     }
