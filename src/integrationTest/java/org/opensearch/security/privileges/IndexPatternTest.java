@@ -26,6 +26,7 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -143,6 +144,7 @@ public class IndexPatternTest {
         IndexPattern indexPattern = IndexPattern.from("/index_x\\/");
         assertFalse(indexPattern.hasStaticPattern());
         assertFalse(indexPattern.hasDynamicPattern());
+        assertTrue(indexPattern.isEmpty());
     }
 
     @Test
@@ -161,6 +163,7 @@ public class IndexPatternTest {
         IndexPattern indexPattern = IndexPattern.from("<alias_year_{now/y{yyyy}}>");
         assertFalse(indexPattern.hasStaticPattern());
         assertTrue(indexPattern.hasDynamicPattern());
+        assertFalse(indexPattern.isEmpty());
 
         assertTrue(indexPattern.matches("index_current_year", ctx(), INDEX_METADATA.getIndicesLookup()));
         assertFalse(indexPattern.matches("index_next_year", ctx(), INDEX_METADATA.getIndicesLookup()));
@@ -197,6 +200,7 @@ public class IndexPatternTest {
         IndexPattern indexPattern = IndexPattern.from("index_${attrs.a11}", "index_a12");
         assertTrue(indexPattern.hasStaticPattern());
         assertTrue(indexPattern.hasDynamicPattern());
+        assertFalse(indexPattern.isEmpty());
 
         assertEquals(WildcardMatcher.from("index_a12"), indexPattern.getStaticPattern());
         assertEquals(IndexPattern.from("index_${attrs.a11}"), indexPattern.dynamicOnly());
@@ -208,10 +212,23 @@ public class IndexPatternTest {
         IndexPattern indexPattern = IndexPattern.from("<index_year_{now/y{yyyy}}>", "index_a12");
         assertTrue(indexPattern.hasStaticPattern());
         assertTrue(indexPattern.hasDynamicPattern());
+        assertFalse(indexPattern.isEmpty());
 
         assertEquals(WildcardMatcher.from("index_a12"), indexPattern.getStaticPattern());
         assertEquals(IndexPattern.from("<index_year_{now/y{yyyy}}>"), indexPattern.dynamicOnly());
         assertEquals("index_a12 <index_year_{now/y{yyyy}}>", indexPattern.toString());
+    }
+
+    @Test
+    public void equals() {
+        IndexPattern a1 = IndexPattern.from("data_stream_a*");
+        IndexPattern a2 = IndexPattern.from("data_stream_a*");
+        IndexPattern b = IndexPattern.from("<index_year_{now/y{yyyy}}>", "data_stream_a*");
+
+        assertEquals(a1, a1);
+        assertEquals(a1, a2);
+        assertNotEquals(a1, b);
+        assertFalse(a1.equals(a1.toString()));
     }
 
     private static PrivilegesEvaluationContext ctx() {
