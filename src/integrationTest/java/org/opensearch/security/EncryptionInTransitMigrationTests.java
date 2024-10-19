@@ -21,9 +21,10 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 /**
  * Test related to SSL-only mode of security plugin. In this mode, the security plugin is responsible only for TLS/SSL encryption.
@@ -59,15 +60,11 @@ public class EncryptionInTransitMigrationTests {
             TestRestClient.HttpResponse settingsResponse = client.putJson("_cluster/settings", settingsJson);
             settingsResponse.assertStatusCode(200);
 
-            Thread.sleep(2000);
-
-            TestRestClient.HttpResponse secondResponse = client.get("_cat/nodes");
-            secondResponse.assertStatusCode(200);
-
-            String[] secondLines = secondResponse.getBody().split("\n");
-            assertEquals("Expected 3 nodes after disabling SSL dual mode", 3, secondLines.length);
-        } catch (InterruptedException e) {
-            fail("Test failed due to exception: " + e.getMessage());
+            await().atMost(10, SECONDS).pollInterval(1, SECONDS).until(() -> {
+                TestRestClient.HttpResponse secondResponse = client.get("_cat/nodes");
+                String[] secondLines = secondResponse.getBody().split("\n");
+                return secondLines.length == 3;
+            });
         }
     }
 }
