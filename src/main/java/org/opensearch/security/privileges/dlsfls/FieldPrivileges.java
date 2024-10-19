@@ -67,11 +67,7 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
 
     @Override
     protected FlsRule compile(PrivilegesEvaluationContext context, Collection<FlsRule> rules) throws PrivilegesEvaluationException {
-        if (rules.isEmpty()) {
-            return FlsRule.DENY_ALL;
-        } else {
-            return FlsRule.merge(rules);
-        }
+        return FlsRule.merge(rules);
     }
 
     /**

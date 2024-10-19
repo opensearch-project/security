@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.logging.log4j.util.Strings;
 
@@ -114,14 +115,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
                 return false;
             }
             DlsQuery other = (DlsQuery) obj;
-            if (queryString == null) {
-                if (other.queryString != null) {
-                    return false;
-                }
-            } else if (!queryString.equals(other.queryString)) {
-                return false;
-            }
-            return true;
+            return Objects.equals(this.queryString, other.queryString);
         }
 
         protected QueryBuilder parseQuery(String queryString, NamedXContentRegistry xContentRegistry)

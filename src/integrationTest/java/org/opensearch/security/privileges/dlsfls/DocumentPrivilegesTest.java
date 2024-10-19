@@ -1164,8 +1164,10 @@ public class DocumentPrivilegesTest {
                 xContentRegistry
             );
 
+            assertEquals(query1a, query1a);
             assertEquals(query1a, query1b);
             assertNotEquals(query2, query1a);
+            assertFalse(query1a.equals(query1a.queryString));
         }
     }
 
