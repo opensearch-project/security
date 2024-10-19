@@ -720,7 +720,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
                                 return true;
                             }
                         } catch (PrivilegesEvaluationException e) {
-                            log.error("Error while matching index pattern of role {}", role, e);
+                            throw new PrivilegesEvaluationException("Error while evaluating index pattern of role " + role, e);
                         }
                     }
                 }

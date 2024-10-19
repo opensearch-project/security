@@ -300,6 +300,56 @@ public class DocumentPrivilegesTest {
         }
 
         @Test
+        public void indexPatternTemplate_invalid() throws Exception {
+            SecurityDynamicConfiguration<RoleV7> roleConfig = roleConfig(
+                new TestSecurityConfig.Role("dls_role_1").indexPermissions("*")
+                    .dls(QueryBuilders.termQuery("dept", "dept_r1"))
+                    .on("/index_${attr.attr_a}1\\/"),
+                new TestSecurityConfig.Role("non_dls_role").indexPermissions("*").on("*")
+            );
+
+            DocumentPrivileges subject = createSubject(roleConfig);
+
+            if (userSpec.roles.contains("dls_role_1") && !(userSpec.roles.contains("non_dls_role") && dfmEmptyOverridesAll)) {
+                // dls_role_1 will yield an invalid regex pattern. As we also have user attributes, this will
+                // lead to an exception being thrown at evaluation time
+
+                try {
+                    DlsRestriction dlsRestriction = subject.getRestriction(context, index.getName());
+                    fail("getRestriction() should have thrown an exception. However, it returned: " + dlsRestriction);
+                } catch (PrivilegesEvaluationException e) {
+                    assertEquals("Error while evaluating index pattern of role dls_role_1", e.getMessage());
+                }
+
+                if (!dfmEmptyOverridesAll) {
+                    // For the isUnrestricted(), we will only get an error if dfmEmptyOverridesAll == false.
+                    // This is because for dfmEmptyOverridesAll == true, we just look for roles which give us
+                    // unrestricted access
+
+                    try {
+                        boolean isUnrestricted = subject.isUnrestricted(context, index.getName());
+                        fail("isUnrestricted() should have thrown an exception. However, it returned: " + isUnrestricted);
+                    } catch (PrivilegesEvaluationException e) {
+                        assertEquals("Error while evaluating index pattern of role dls_role_1", e.getMessage());
+                    }
+                } else {
+                    boolean isUnrestricted = subject.isUnrestricted(context, index.getName());
+                    assertFalse("isUnrestricted() should return false, as there is no role which gives privileges", isUnrestricted);
+                }
+
+            } else {
+                // Here, we just assert that no exception is being thrown
+                DlsRestriction dlsRestriction = subject.getRestriction(context, index.getName());
+                boolean isUnrestricted = subject.isUnrestricted(context, index.getName());
+                if (dlsRestriction.isUnrestricted()) {
+                    assertTrue("isUnrestricted() should return true according to " + dlsRestriction, isUnrestricted);
+                } else {
+                    assertFalse("isUnrestricted() should return false according to " + dlsRestriction, isUnrestricted);
+                }
+            }
+        }
+
+        @Test
         public void queryPatternTemplate() throws Exception {
             SecurityDynamicConfiguration<RoleV7> roleConfig = roleConfig(
                 new TestSecurityConfig.Role("dls_role_1").indexPermissions("*")
