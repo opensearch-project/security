@@ -674,7 +674,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     @Override
     public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
-        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, NOOP_SSL_EXCEPTION_HANDLER, securityRestHandler));
+        return Optional.of(
+            new OpenSearchSecureSettingsFactory(threadPool, sks, NOOP_SSL_EXCEPTION_HANDLER, securityRestHandler, SSLConfig)
+        );
     }
 
     protected Settings migrateSettings(Settings settings) {
