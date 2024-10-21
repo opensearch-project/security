@@ -54,7 +54,6 @@ public class FlsStoredFieldVisitor extends StoredFieldVisitor {
 
     @Override
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
-
         if (fieldInfo.name.equals("_source")) {
             try {
                 delegate.binaryField(fieldInfo, FlsDocumentFilter.filter(value, flsRule, fieldMaskingRule, metaFields));
@@ -62,7 +61,25 @@ public class FlsStoredFieldVisitor extends StoredFieldVisitor {
                 throw new OpenSearchException("Cannot filter source of document", e);
             }
         } else {
-            delegate.binaryField(fieldInfo, value);
+            // See https://github.com/opensearch-project/security/pull/4826
+            FieldMasking.FieldMaskingRule.Field field = this.fieldMaskingRule.get(fieldInfo.name);
+
+            if (field != null) {
+                delegate.binaryField(fieldInfo, field.apply(value));
+            } else {
+                delegate.binaryField(fieldInfo, value);
+            }
+        }
+    }
+
+    @Override
+    public void stringField(FieldInfo fieldInfo, String value) throws IOException {
+        FieldMasking.FieldMaskingRule.Field field = this.fieldMaskingRule.get(fieldInfo.name);
+
+        if (field != null) {
+            delegate.stringField(fieldInfo, field.apply(value));
+        } else {
+            delegate.stringField(fieldInfo, value);
         }
     }
 
