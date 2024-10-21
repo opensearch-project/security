@@ -26,10 +26,10 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
-import static org.junit.Assert.assertNotEquals;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class IndexPatternTest {
