@@ -11,21 +11,17 @@
 package org.opensearch.security.privileges.dlsfls;
 
 import java.util.Map;
-import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.ClusterStateMetadataDependentPrivileges;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.threadpool.ThreadPool;
 
 /**
  * Encapsulates the processed DLS/FLS configuration from roles.yml.
