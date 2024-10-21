@@ -1121,20 +1121,43 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
-        evaluator = new PrivilegesEvaluator(
-            clusterService,
-            clusterService::state,
-            threadPool,
-            threadPool.getThreadContext(),
-            cr,
-            resolver,
-            auditLog,
-            settings,
-            privilegesInterceptor,
-            cih,
-            irr,
-            namedXContentRegistry.get()
-        );
+        if (PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.get(settings)) {
+            // Use legacy implementation (non-default)
+            evaluator = new org.opensearch.security.privileges.legacy.PrivilegesEvaluatorImpl(
+                clusterService,
+                threadPool,
+                cr,
+                resolver,
+                auditLog,
+                settings,
+                privilegesInterceptor,
+                cih,
+                irr,
+                namedXContentRegistry.get()
+            );
+
+            restLayerEvaluator = new org.opensearch.security.privileges.legacy.RestLayerPrivilegesEvaluatorImpl(clusterService, threadPool);
+        } else {
+            // Use new implementation (default)
+            evaluator = new org.opensearch.security.privileges.PrivilegesEvaluatorImpl(
+                clusterService,
+                clusterService::state,
+                threadPool,
+                threadPool.getThreadContext(),
+                cr,
+                resolver,
+                auditLog,
+                settings,
+                privilegesInterceptor,
+                cih,
+                irr,
+                namedXContentRegistry.get()
+            );
+
+            restLayerEvaluator = new org.opensearch.security.privileges.RestLayerPrivilegesEvaluatorImpl(
+                (org.opensearch.security.privileges.PrivilegesEvaluatorImpl) evaluator
+            );
+        }
 
         sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
 
@@ -1145,8 +1168,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         } else {
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
-
-        restLayerEvaluator = new RestLayerPrivilegesEvaluator(evaluator);
 
         securityRestHandler = new SecurityRestFilter(
             backendRegistry,
@@ -2062,6 +2083,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             // Privileges evaluation
             settings.add(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
+            settings.add(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR);
         }
 
         return settings;

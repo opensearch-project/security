@@ -51,7 +51,7 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
-    PrivilegesEvaluationContext(
+    public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
         String action,
@@ -135,7 +135,7 @@ public class PrivilegesEvaluationContext {
      * However, this method should be only used for this one particular phase. Normally, all roles should be determined
      * upfront and stay constant during the whole privilege evaluation process.
      */
-    void setMappedRoles(ImmutableSet<String> mappedRoles) {
+    public void setMappedRoles(ImmutableSet<String> mappedRoles) {
         this.mappedRoles = mappedRoles;
     }
 

@@ -40,10 +40,10 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import com.selectivem.collections.CheckTable;
 
 public class PrivilegesEvaluatorResponse {
-    boolean allowed = false;
-    Set<String> missingSecurityRoles = new HashSet<>();
+    public boolean allowed = false;
+    public Set<String> missingSecurityRoles = new HashSet<>();
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
-    CreateIndexRequestBuilder createIndexRequestBuilder;
+    public CreateIndexRequestBuilder createIndexRequestBuilder;
     private Set<String> onlyAllowedForIndices = ImmutableSet.of();
     private CheckTable<String, String> indexToActionCheckTable;
     private String privilegeMatrix;
@@ -189,6 +189,12 @@ public class PrivilegesEvaluatorResponse {
     public static PrivilegesEvaluatorResponse insufficient(String missingPrivilege) {
         PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
         response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.of(missingPrivilege));
+        return response;
+    }
+
+    public static PrivilegesEvaluatorResponse insufficient(Collection<String> missingPrivileges) {
+        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
+        response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.copyOf(missingPrivileges));
         return response;
     }
 

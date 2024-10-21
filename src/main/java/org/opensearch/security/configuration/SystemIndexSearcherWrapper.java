@@ -43,7 +43,6 @@ import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -170,8 +169,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
 
             String permission = ConfigConstants.SYSTEM_INDEX_PERMISSION;
             PrivilegesEvaluationContext context = evaluator.createContext(user, permission);
-            PrivilegesEvaluatorResponse result = evaluator.getActionPrivileges()
-                .hasExplicitIndexPrivilege(context, Set.of(permission), IndexResolverReplacer.Resolved.ofIndex(index.getName()));
+            PrivilegesEvaluatorResponse result = evaluator.hasExplicitIndexPrivilege(context, Set.of(permission), index.getName());
 
             return !result.isAllowed();
         }

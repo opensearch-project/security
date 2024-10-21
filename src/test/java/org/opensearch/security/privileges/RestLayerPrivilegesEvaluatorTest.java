@@ -91,8 +91,8 @@ public class RestLayerPrivilegesEvaluatorTest {
             "  cluster_permissions:\n" + //
             "  - any", CType.ROLES);
 
-        PrivilegesEvaluator privilegesEvaluator = createPrivilegesEvaluator(roles);
-        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesEvaluator);
+        PrivilegesEvaluatorImpl privilegesEvaluator = createPrivilegesEvaluator(roles);
+        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluatorImpl(privilegesEvaluator);
 
         PrivilegesEvaluatorResponse response = restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", Set.of(action));
 
@@ -102,8 +102,8 @@ public class RestLayerPrivilegesEvaluatorTest {
 
     @Test
     public void testEvaluate_NotInitialized_NullModel_ExceptionThrown() {
-        PrivilegesEvaluator privilegesEvaluator = createPrivilegesEvaluator(null);
-        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesEvaluator);
+        PrivilegesEvaluatorImpl privilegesEvaluator = createPrivilegesEvaluator(null);
+        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluatorImpl(privilegesEvaluator);
         final OpenSearchSecurityException exception = assertThrows(
             OpenSearchSecurityException.class,
             () -> restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", null)
@@ -117,8 +117,8 @@ public class RestLayerPrivilegesEvaluatorTest {
         SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
             "  cluster_permissions:\n" + //
             "  - hw:greet", CType.ROLES);
-        PrivilegesEvaluator privilegesEvaluator = createPrivilegesEvaluator(roles);
-        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesEvaluator);
+        PrivilegesEvaluatorImpl privilegesEvaluator = createPrivilegesEvaluator(roles);
+        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluatorImpl(privilegesEvaluator);
         PrivilegesEvaluatorResponse response = restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", Set.of(action));
         assertThat(response.allowed, equalTo(true));
     }
@@ -129,8 +129,8 @@ public class RestLayerPrivilegesEvaluatorTest {
         SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
             "  cluster_permissions:\n" + //
             "  - cluster:admin/opensearch/hw/greet", CType.ROLES);
-        PrivilegesEvaluator privilegesEvaluator = createPrivilegesEvaluator(roles);
-        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesEvaluator);
+        PrivilegesEvaluatorImpl privilegesEvaluator = createPrivilegesEvaluator(roles);
+        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluatorImpl(privilegesEvaluator);
         PrivilegesEvaluatorResponse response = restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", Set.of(action));
         assertThat(response.allowed, equalTo(true));
     }
@@ -141,14 +141,14 @@ public class RestLayerPrivilegesEvaluatorTest {
         SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
             "  cluster_permissions:\n" + //
             "  - other_action", CType.ROLES);
-        PrivilegesEvaluator privilegesEvaluator = createPrivilegesEvaluator(roles);
-        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluator(privilegesEvaluator);
+        PrivilegesEvaluatorImpl privilegesEvaluator = createPrivilegesEvaluator(roles);
+        RestLayerPrivilegesEvaluator restPrivilegesEvaluator = new RestLayerPrivilegesEvaluatorImpl(privilegesEvaluator);
         PrivilegesEvaluatorResponse response = restPrivilegesEvaluator.evaluate(TEST_USER, "route_name", Set.of(action));
         assertThat(response.allowed, equalTo(false));
     }
 
-    PrivilegesEvaluator createPrivilegesEvaluator(SecurityDynamicConfiguration<RoleV7> roles) {
-        PrivilegesEvaluator privilegesEvaluator = new PrivilegesEvaluator(
+    PrivilegesEvaluatorImpl createPrivilegesEvaluator(SecurityDynamicConfiguration<RoleV7> roles) {
+        PrivilegesEvaluatorImpl privilegesEvaluator = new PrivilegesEvaluatorImpl(
             clusterService,
             () -> clusterService.state(),
             null,

@@ -457,6 +457,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
                 return result;
             } else {
                 // We are on a pre-v7 config version. This can be only if we skipped auto conversion. So, we do here the same.
+                @SuppressWarnings("unchecked")
                 SecurityDynamicConfiguration<T> result = (SecurityDynamicConfiguration<T>) fromJsonWithoutAutoConversion(
                     DefaultObjectMapper.writeValueAsString(this, false),
                     ctypeUnsafe,
