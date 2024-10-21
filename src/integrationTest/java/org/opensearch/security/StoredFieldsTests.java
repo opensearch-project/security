@@ -69,14 +69,10 @@ public class StoredFieldsTests {
             TestRestClient.HttpResponse normalSearchResponse = client.get("test_index/_search");
             Assert.assertFalse(normalSearchResponse.getBody().contains("boo!"));
 
-            TestRestClient.HttpResponse fieldSearchResponse = client.postJson("test_index/_search", """
-                {
-                  "stored_fields": [
-                    "raw",
-                    "restricted"
-                  ]
-                }
-                """);
+            TestRestClient.HttpResponse fieldSearchResponse = client.postJson(
+                "test_index/_search",
+                "{\"stored_fields\": [\"raw\", \"restricted\"]}"
+            );
             fieldSearchResponse.assertStatusCode(HttpStatus.SC_OK);
             Assert.assertTrue(fieldSearchResponse.getBody().contains("raw"));
             Assert.assertTrue(fieldSearchResponse.getBody().contains("hello"));
@@ -91,14 +87,10 @@ public class StoredFieldsTests {
             TestRestClient.HttpResponse normalSearchResponse = client.get("test_index/_search");
             Assert.assertFalse(normalSearchResponse.getBody().contains("boo!"));
 
-            TestRestClient.HttpResponse fieldSearchResponse = client.postJson("test_index/_search", """
-                {
-                  "stored_fields": [
-                    "raw",
-                    "restricted"
-                  ]
-                }
-                """);
+            TestRestClient.HttpResponse fieldSearchResponse = client.postJson(
+                "test_index/_search",
+                "{\"stored_fields\": [\"raw\", \"restricted\"]}"
+            );
             fieldSearchResponse.assertStatusCode(HttpStatus.SC_OK);
             Assert.assertTrue(fieldSearchResponse.getBody().contains("raw"));
             Assert.assertTrue(fieldSearchResponse.getBody().contains("hello"));
