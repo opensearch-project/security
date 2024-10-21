@@ -10,10 +10,11 @@
  */
 package org.opensearch.security.privileges;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.awaitility.Awaitility;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
+
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
@@ -21,7 +22,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.node.Node;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.util.concurrent.atomic.AtomicReference;
+import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 
 public class ClusterStateMetadataDependentPrivilegesTest {
 
@@ -102,8 +104,7 @@ public class ClusterStateMetadataDependentPrivilegesTest {
             // We need to be slow with updates to test the debounce-functionality
             try {
                 Thread.sleep(100);
-            } catch (InterruptedException e) {
-            }
+            } catch (InterruptedException e) {}
 
             this.currentMetadataVersion = metadata.version();
         }

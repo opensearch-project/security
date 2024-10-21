@@ -10,13 +10,14 @@
  */
 package org.opensearch.security.privileges;
 
+import java.util.concurrent.Future;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.util.concurrent.Future;
 
 /**
  * Abstract super class for classes which need metadata updates from the cluster state. This class implements
