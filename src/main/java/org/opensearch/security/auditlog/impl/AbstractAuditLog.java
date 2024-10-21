@@ -666,7 +666,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                 // originalResult.internalSourceRef()));
 
                 // current source, normally not null or empty
-                msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(XContentType.JSON, currentIndex.source()));
+                if (auditConfigFilter.shouldLogRequestBody() || originalResult == null) {
+                    msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(XContentType.JSON, currentIndex.source()));
+                }
             }
 
         }

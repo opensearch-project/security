@@ -14,7 +14,6 @@ package org.opensearch.security.auditlog.compliance;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -47,8 +46,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES;
 import static org.junit.Assert.assertThrows;
 
 public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
@@ -62,7 +64,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "emp")
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
+            .put(OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
         setup(additionalSettings);
@@ -181,7 +183,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             // .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "emp")
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "emp")
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
+            .put(OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
         setup(additionalSettings);
@@ -262,7 +264,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
             .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
+            .put(OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
         setup(additionalSettings);
@@ -318,7 +320,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true)
             .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false)
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
+            .put(OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
@@ -474,35 +476,27 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         );
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
 
-        // TODO Write a request to emp. i.e.
-        // curl -XPUT -kv -H 'Content-Type: application/json' https://localhost:9200/emp/_doc/4 -u 'admin:xx' -d '{
-        // "name": "Criag",
-        // "title": "Software Engineer
-        // }'
-        List<AuditMessage> messages;
-        try {
-            messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
-                try (Client tc = getClient()) {
-                    tc.prepareIndex("emp")
-                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                        .setSource(Map.of("name", "Criag", "title", "Software Engineer"))
-                        .execute()
-                        .actionGet();
-                }
-            }, 1);
-        } catch (final MessagesNotFoundException ex) {
-            // indices:admin/mapping/auto_put can be logged twice, this handles if they were not found
-            assertThat("Too many missing audit log messages", ex.getMissingCount(), equalTo(2));
-            messages = ex.getFoundMessages();
-        }
+        List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            try (Client tc = getClient()) {
+                rh.executePutRequest("emp/_doc/0?refresh", "{\"name\" : \"Criag\", \"title\" : \"Software Engineer\"}");
+            }
+        }, 7);
 
-        // Then write another request to update the misspelled name:
+        AuditMessage complianceDocWriteMessage = messages.stream()
+            .filter(m -> m.getCategory().equals(AuditCategory.COMPLIANCE_DOC_WRITE))
+            .findFirst()
+            .orElse(null);
+        assertThat(complianceDocWriteMessage, notNullValue());
+        assertThat(complianceDocWriteMessage.getRequestBody(), notNullValue());
 
-        // curl -XPUT -kv -H 'Content-Type: application/json' https://localhost:9200/emp/_doc/4 -u 'admin:xx' -d '{
-        // "name": "Craig",
-        // "title": "Software Engineer"
-        // }'
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            try (Client tc = getClient()) {
+                rh.executePutRequest("emp/_doc/0?refresh", "{\"name\" : \"Craig\", \"title\" : \"Software Engineer\"}");
+            }
+        }, 1);
 
-        // Then wait for the audit messages
+        complianceDocWriteMessage = messages.get(0);
+        assertThat(complianceDocWriteMessage, notNullValue());
+        assertThat(complianceDocWriteMessage.getRequestBody(), nullValue());
     }
 }
