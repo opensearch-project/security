@@ -639,17 +639,19 @@ public abstract class AbstractAuditLog implements AuditLog {
                         XContentType.JSON
                     )
                 ) {
-                    Object base64 = parser.map().values().iterator().next();
-                    if (base64 instanceof String) {
-                        msg.addSecurityConfigContentToRequestBody(
-                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
-                            id
-                        );
-                    } else {
-                        msg.addSecurityConfigTupleToRequestBody(
-                            new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()),
-                            id
-                        );
+                    if (auditConfigFilter.shouldLogRequestBody() || originalResult == null) {
+                        Object base64 = parser.map().values().iterator().next();
+                        if (base64 instanceof String) {
+                            msg.addSecurityConfigContentToRequestBody(
+                                new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                                id
+                            );
+                        } else {
+                            msg.addSecurityConfigTupleToRequestBody(
+                                new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()),
+                                id
+                            );
+                        }
                     }
                 } catch (Exception e) {
                     log.error(e.toString());

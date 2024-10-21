@@ -14,6 +14,7 @@ package org.opensearch.security.auditlog.compliance;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -442,5 +443,66 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         });
         Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 1);
+    }
+
+    @Test
+    public void testWriteLogDiffsEnabledAndLogRequestBodyDisabled() throws Exception {
+        Settings additionalSettings = Settings.builder().put("plugins.security.audit.type", TestAuditlogImpl.class.getName()).build();
+
+        setup(additionalSettings);
+
+        rh.sendAdminCertificate = true;
+        rh.keystore = "auditlog/kirk-keystore.jks";
+
+        // watch emp for write
+        AuditConfig auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(Settings.builder().put("plugins.security.audit.config.log_request_body", false).build()),
+            ComplianceConfig.from(
+                ImmutableMap.of(
+                    "enabled",
+                    true,
+                    "write_watched_indices",
+                    Collections.singletonList("emp"),
+                    "write_log_diffs",
+                    true,
+                    "write_metadata_only",
+                    false
+                ),
+                additionalSettings
+            )
+        );
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // TODO Write a request to emp. i.e.
+        // curl -XPUT -kv -H 'Content-Type: application/json' https://localhost:9200/emp/_doc/4 -u 'admin:xx' -d '{
+        // "name": "Criag",
+        // "title": "Software Engineer
+        // }'
+        List<AuditMessage> messages;
+        try {
+            messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+                try (Client tc = getClient()) {
+                    tc.prepareIndex("emp")
+                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .setSource(Map.of("name", "Criag", "title", "Software Engineer"))
+                        .execute()
+                        .actionGet();
+                }
+            }, 1);
+        } catch (final MessagesNotFoundException ex) {
+            // indices:admin/mapping/auto_put can be logged twice, this handles if they were not found
+            assertThat("Too many missing audit log messages", ex.getMissingCount(), equalTo(2));
+            messages = ex.getFoundMessages();
+        }
+
+        // Then write another request to update the misspelled name:
+
+        // curl -XPUT -kv -H 'Content-Type: application/json' https://localhost:9200/emp/_doc/4 -u 'admin:xx' -d '{
+        // "name": "Craig",
+        // "title": "Software Engineer"
+        // }'
+
+        // Then wait for the audit messages
     }
 }
