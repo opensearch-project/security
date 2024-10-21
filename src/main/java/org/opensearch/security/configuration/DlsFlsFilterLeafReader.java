@@ -663,9 +663,18 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 }
 
                 delegate.binaryField(fieldInfo, Utils.jsonMapToByteArray(filteredSource));
-            } else {
+            } else if (shouldInclude(fieldInfo.name)) {
                 delegate.binaryField(fieldInfo, value);
             }
+        }
+
+        private boolean shouldInclude(String field) {
+            if (excludesSet != null && !excludesSet.isEmpty()) {
+                return !excludesSet.contains(field);
+            } else if (includesSet != null && !includesSet.isEmpty()) {
+                return includesSet.contains(field);
+            }
+            return true;
         }
 
         @Override
@@ -733,7 +742,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 final XContentBuilder xBuilder = XContentBuilder.builder(bytesRefTuple.v1().xContent()).map(filteredSource);
                 delegate.binaryField(fieldInfo, BytesReference.toBytes(BytesReference.bytes(xBuilder)));
             } else {
-                delegate.binaryField(fieldInfo, value);
+                final MaskedField mf = maskedFieldsMap.getMaskedField(fieldInfo.name).orElse(null);
+                if (mf != null) {
+                    delegate.binaryField(fieldInfo, mf.mask(value));
+                } else {
+                    delegate.binaryField(fieldInfo, value);
+                }
             }
         }
 
