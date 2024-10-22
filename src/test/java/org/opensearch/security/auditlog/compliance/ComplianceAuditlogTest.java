@@ -487,7 +487,13 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .findFirst()
             .orElse(null);
         assertThat(complianceDocWriteMessage, notNullValue());
-        assertThat(complianceDocWriteMessage.getRequestBody(), notNullValue());
+        assertThat(
+            (String) complianceDocWriteMessage.getAsMap().get("audit_compliance_diff_content"),
+            containsString(
+                "[{\"op\":\"add\",\"path\":\"/name\",\"value\":\"Criag\"},{\"op\":\"add\",\"path\":\"/title\",\"value\":\"Software Engineer\"}]"
+            )
+        );
+        assertThat(complianceDocWriteMessage.getRequestBody(), nullValue());
 
         messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try (Client tc = getClient()) {
@@ -496,7 +502,10 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         }, 1);
 
         complianceDocWriteMessage = messages.get(0);
-        assertThat(complianceDocWriteMessage, notNullValue());
+        assertThat(
+            (String) complianceDocWriteMessage.getAsMap().get("audit_compliance_diff_content"),
+            containsString("[{\"op\":\"replace\",\"path\":\"/name\",\"value\":\"Craig\"}]")
+        );
         assertThat(complianceDocWriteMessage.getRequestBody(), nullValue());
     }
 }
