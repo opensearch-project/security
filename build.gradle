@@ -686,6 +686,9 @@ dependencies {
     testImplementation('org.awaitility:awaitility:4.2.2') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
+    testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+    testImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
+
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
         testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"

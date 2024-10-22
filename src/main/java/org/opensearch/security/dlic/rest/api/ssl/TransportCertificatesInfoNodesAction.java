@@ -12,22 +12,22 @@
 package org.opensearch.security.dlic.rest.api.ssl;
 
 import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.ImmutableList;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.nodes.TransportNodesAction;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.security.ssl.DefaultSecurityKeyStore;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.ssl.SslContextHandler;
+import org.opensearch.security.ssl.SslSettingsManager;
+import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.ssl.config.Certificate;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportService;
@@ -38,18 +38,15 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
     TransportCertificatesInfoNodesAction.NodeRequest,
     CertificatesNodesResponse.CertificatesNodeResponse> {
 
-    private final DefaultSecurityKeyStore securityKeyStore;
-
-    private final boolean httpsEnabled;
+    private final SslSettingsManager sslSettingsManager;
 
     @Inject
     public TransportCertificatesInfoNodesAction(
-        final Settings settings,
         final ThreadPool threadPool,
         final ClusterService clusterService,
         final TransportService transportService,
         final ActionFilters actionFilters,
-        final DefaultSecurityKeyStore securityKeyStore
+        final SslSettingsManager sslSettingsManager
     ) {
         super(
             CertificatesActionType.NAME,
@@ -62,8 +59,7 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
             ThreadPool.Names.GENERIC,
             CertificatesNodesResponse.CertificatesNodeResponse.class
         );
-        this.httpsEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true);
-        this.securityKeyStore = securityKeyStore;
+        this.sslSettingsManager = sslSettingsManager;
     }
 
     @Override
@@ -89,12 +85,6 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
     protected CertificatesNodesResponse.CertificatesNodeResponse nodeOperation(final NodeRequest request) {
         final var sslCertRequest = request.sslCertsInfoNodesRequest;
 
-        if (securityKeyStore == null) {
-            return new CertificatesNodesResponse.CertificatesNodeResponse(
-                clusterService.localNode(),
-                new IllegalStateException("keystore is not initialized")
-            );
-        }
         try {
             return new CertificatesNodesResponse.CertificatesNodeResponse(
                 clusterService.localNode(),
@@ -109,23 +99,27 @@ public class TransportCertificatesInfoNodesAction extends TransportNodesAction<
         var httpCertificates = List.<CertificateInfo>of();
         var transportsCertificates = List.<CertificateInfo>of();
         if (CertificateType.isHttp(certificateType)) {
-            httpCertificates = httpsEnabled ? certificatesDetails(securityKeyStore.getHttpCerts()) : List.of();
+            httpCertificates = sslSettingsManager.sslContextHandler(CertType.HTTP)
+                .map(SslContextHandler::keyMaterialCertificates)
+                .map(this::certificatesDetails)
+                .orElse(List.of());
         }
         if (CertificateType.isTransport(certificateType)) {
-            transportsCertificates = certificatesDetails(securityKeyStore.getTransportCerts());
+            transportsCertificates = sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
+                .map(SslContextHandler::keyMaterialCertificates)
+                .map(this::certificatesDetails)
+                .orElse(List.of());
         }
         return new CertificatesInfo(Map.of(CertificateType.HTTP, httpCertificates, CertificateType.TRANSPORT, transportsCertificates));
     }
 
-    private List<CertificateInfo> certificatesDetails(final X509Certificate[] certs) {
-        if (certs == null) {
+    private List<CertificateInfo> certificatesDetails(final Stream<Certificate> certificateStream) {
+        if (certificateStream == null) {
             return null;
         }
-        final var certificates = ImmutableList.<CertificateInfo>builder();
-        for (final var c : certs) {
-            certificates.add(CertificateInfo.from(c, securityKeyStore.getSubjectAlternativeNames(c)));
-        }
-        return certificates.build();
+        return certificateStream.map(
+            c -> new CertificateInfo(c.subject(), c.subjectAlternativeNames(), c.issuer(), c.notAfter(), c.notBefore())
+        ).collect(Collectors.toList());
     }
 
     public static class NodeRequest extends TransportRequest {

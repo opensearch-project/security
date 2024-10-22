@@ -648,7 +648,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         evaluator,
                         threadPool,
                         Objects.requireNonNull(auditLog),
-                        sks,
+                        sslSettingsManager,
                         Objects.requireNonNull(userService),
                         sslCertReloadEnabled,
                         passwordHasher
@@ -1207,9 +1207,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(userService);
         components.add(passwordHasher);
 
-        if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
-            components.add(sks);
-        }
+        components.add(sslSettingsManager);
+
         final var allowDefaultInit = settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
         final var useClusterState = useClusterStateToInitSecurityConfig(settings);
         if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
@@ -2167,7 +2166,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
         return Optional.of(
-            new OpenSearchSecureSettingsFactory(threadPool, sks, evaluateSslExceptionHandler(), securityRestHandler, SSLConfig)
+            new OpenSearchSecureSettingsFactory(
+                threadPool,
+                sslSettingsManager,
+                evaluateSslExceptionHandler(),
+                securityRestHandler,
+                SSLConfig
+            )
         );
     }
 
