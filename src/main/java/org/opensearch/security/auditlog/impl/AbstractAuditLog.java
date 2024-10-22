@@ -633,7 +633,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
-        if (!complianceConfig.shouldLogWriteMetadataOnly()) {
+        if (!complianceConfig.shouldLogWriteMetadataOnly() && !complianceConfig.shouldLogDiffsForWrite()) {
             if (securityIndex.equals(shardId.getIndexName())) {
                 // current source, normally not null or empty
                 try (
