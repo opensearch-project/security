@@ -389,7 +389,6 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testRS256() throws Exception {
-
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         KeyPair pair = keyGen.generateKeyPair();
@@ -397,21 +396,8 @@ public class HTTPJwtAuthenticatorTest {
         PublicKey pub = pair.getPublic();
 
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(priv, SignatureAlgorithm.RS256).compact();
-        Settings settings = Settings.builder()
-            .put(
-                "signing_key",
-                "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub.getEncoded()) + "-----END PUBLIC KEY-----"
-            )
-            .build();
-
-        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
-        Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Bearer " + jwsToken);
-
-        AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
-        );
+        String signingKey = "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub.getEncoded()) + "-----END PUBLIC KEY-----";
+        AuthCredentials creds = testJwtAuthenticationWithSigningKey(signingKey, jwsToken);
 
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is("Leonard McCoy"));
@@ -437,7 +423,6 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testRS256WithNewlines() throws Exception {
-
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         KeyPair pair = keyGen.generateKeyPair();
@@ -445,23 +430,25 @@ public class HTTPJwtAuthenticatorTest {
         PublicKey pub = pair.getPublic();
 
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(priv, SignatureAlgorithm.RS256).compact();
+
         String signingKey = "-----BEGIN PUBLIC KEY-----\n"
             + formatKeyWithNewlines(BaseEncoding.base64().encode(pub.getEncoded()))
             + "\n-----END PUBLIC KEY-----";
+        AuthCredentials creds = testJwtAuthenticationWithSigningKey(signingKey, jwsToken);
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is("Leonard McCoy"));
+        assertThat(creds.getBackendRoles().size(), is(0));
+    }
+
+    private AuthCredentials testJwtAuthenticationWithSigningKey(String signingKey, String jwsToken) throws NoSuchAlgorithmException {
         Settings settings = Settings.builder().put("signing_key", signingKey).build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
-        AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
-        );
-
-        Assert.assertNotNull(creds);
-        assertThat(creds.getUsername(), is("Leonard McCoy"));
-        assertThat(creds.getBackendRoles().size(), is(0));
+        return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(), null);
     }
 
     @Test
@@ -473,17 +460,10 @@ public class HTTPJwtAuthenticatorTest {
         PrivateKey priv = pair.getPrivate();
         PublicKey pub = pair.getPublic();
 
-        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(pub.getEncoded())).build();
+        String signingKey = BaseEncoding.base64().encode(pub.getEncoded());
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(priv, SignatureAlgorithm.ES512).compact();
 
-        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
-        Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", jwsToken);
-
-        AuthCredentials creds = jwtAuth.extractCredentials(
-            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
-            null
-        );
+        AuthCredentials creds = testJwtAuthenticationWithSigningKey(signingKey, jwsToken);
 
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is("Leonard McCoy"));
