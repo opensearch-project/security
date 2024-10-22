@@ -418,6 +418,52 @@ public class HTTPJwtAuthenticatorTest {
         assertThat(creds.getBackendRoles().size(), is(0));
     }
 
+    private static String formatKeyWithNewlines(String keyAsString) {
+        StringBuilder result = new StringBuilder();
+        int lineLength = 64;
+        int length = keyAsString.length();
+
+        for (int i = 0; i < length; i += lineLength) {
+            if (i + lineLength < length) {
+                result.append(keyAsString, i, i + lineLength);
+            } else {
+                result.append(keyAsString.substring(i));
+            }
+            result.append("\n");
+        }
+
+        return result.toString().trim();
+    }
+
+    @Test
+    public void testRS256WithNewlines() throws Exception {
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair pair = keyGen.generateKeyPair();
+        PrivateKey priv = pair.getPrivate();
+        PublicKey pub = pair.getPublic();
+
+        String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(priv, SignatureAlgorithm.RS256).compact();
+        String signingKey = "-----BEGIN PUBLIC KEY-----\n"
+            + formatKeyWithNewlines(BaseEncoding.base64().encode(pub.getEncoded()))
+            + "\n-----END PUBLIC KEY-----";
+        Settings settings = Settings.builder().put("signing_key", signingKey).build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is("Leonard McCoy"));
+        assertThat(creds.getBackendRoles().size(), is(0));
+    }
+
     @Test
     public void testES512() throws Exception {
 
