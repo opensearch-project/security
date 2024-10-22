@@ -123,12 +123,21 @@ public class CertificatesRule extends ExternalResource {
 
     public X509CertificateHolder generateCaCertificate(final KeyPair parentKeyPair) throws IOException, NoSuchAlgorithmException,
         OperatorCreationException {
-        return generateCaCertificate(parentKeyPair, generateSerialNumber());
+        final var startAndEndDate = generateStartAndEndDate();
+        return generateCaCertificate(parentKeyPair, generateSerialNumber(), startAndEndDate.v1(), startAndEndDate.v2());
     }
 
-    public X509CertificateHolder generateCaCertificate(final KeyPair parentKeyPair, final BigInteger serialNumber) throws IOException,
-        NoSuchAlgorithmException, OperatorCreationException {
-        final var startAndEndDate = generateStartAndEndDate();
+    public X509CertificateHolder generateCaCertificate(final KeyPair parentKeyPair, final Instant startDate, final Instant endDate)
+        throws IOException, NoSuchAlgorithmException, OperatorCreationException {
+        return generateCaCertificate(parentKeyPair, generateSerialNumber(), startDate, endDate);
+    }
+
+    public X509CertificateHolder generateCaCertificate(
+        final KeyPair parentKeyPair,
+        final BigInteger serialNumber,
+        final Instant startDate,
+        final Instant endDate
+    ) throws IOException, NoSuchAlgorithmException, OperatorCreationException {
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
         return createCertificateBuilder(
             DEFAULT_SUBJECT_NAME,
@@ -136,8 +145,8 @@ public class CertificatesRule extends ExternalResource {
             parentKeyPair.getPublic(),
             parentKeyPair.getPublic(),
             serialNumber,
-            startAndEndDate.v1(),
-            startAndEndDate.v2()
+            startDate,
+            endDate
         ).addExtension(Extension.basicConstraints, true, new BasicConstraints(true))
             .addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyCertSign | KeyUsage.cRLSign))
             .build(new JcaContentSignerBuilder("SHA256withRSA").setProvider(BOUNCY_CASTLE_PROVIDER).build(parentKeyPair.getPrivate()));
