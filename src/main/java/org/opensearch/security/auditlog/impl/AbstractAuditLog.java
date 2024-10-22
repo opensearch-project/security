@@ -644,19 +644,17 @@ public abstract class AbstractAuditLog implements AuditLog {
                         XContentType.JSON
                     )
                 ) {
-                    if (auditConfigFilter.shouldLogRequestBody()) {
-                        Object base64 = parser.map().values().iterator().next();
-                        if (base64 instanceof String) {
-                            msg.addSecurityConfigContentToRequestBody(
-                                new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
-                                id
-                            );
-                        } else {
-                            msg.addSecurityConfigTupleToRequestBody(
-                                new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()),
-                                id
-                            );
-                        }
+                    Object base64 = parser.map().values().iterator().next();
+                    if (base64 instanceof String) {
+                        msg.addSecurityConfigContentToRequestBody(
+                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            id
+                        );
+                    } else {
+                        msg.addSecurityConfigTupleToRequestBody(
+                            new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()),
+                            id
+                        );
                     }
                 } catch (Exception e) {
                     log.error(e.toString());
@@ -671,9 +669,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                 // originalResult.internalSourceRef()));
 
                 // current source, normally not null or empty
-                if (auditConfigFilter.shouldLogRequestBody()) {
-                    msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(XContentType.JSON, currentIndex.source()));
-                }
+                msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(XContentType.JSON, currentIndex.source()));
             }
 
         }
