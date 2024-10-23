@@ -51,8 +51,8 @@ public class KeyUtils {
                 } else {
                     try {
                         PublicKey key = null;
-
-                        final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
+                        final String minimalKeyFormat = signingKey.replaceAll("\\r|\\n", "")
+                            .replace("-----BEGIN PUBLIC KEY-----", "")
                             .replace("-----END PUBLIC KEY-----", "")
                             .trim();
 
