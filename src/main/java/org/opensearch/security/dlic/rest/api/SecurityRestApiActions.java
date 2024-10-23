@@ -25,7 +25,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.ssl.SecurityKeyStore;
+import org.opensearch.security.ssl.SslSettingsManager;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
@@ -47,7 +47,7 @@ public class SecurityRestApiActions {
         final ThreadPool threadPool,
         final AuditLog auditLog,
         final UserService userService,
-        final SecurityKeyStore securityKeyStore,
+        final SslSettingsManager sslSettingsManager,
         final boolean certificatesReloadEnabled,
         final PasswordHasher passwordHasher
     ) {
@@ -98,7 +98,13 @@ public class SecurityRestApiActions {
             new AuditApiAction(clusterService, threadPool, securityApiDependencies),
             new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),
             new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies),
-            new SecuritySSLCertsApiAction(clusterService, threadPool, securityKeyStore, certificatesReloadEnabled, securityApiDependencies),
+            new SecuritySSLCertsApiAction(
+                clusterService,
+                threadPool,
+                sslSettingsManager,
+                certificatesReloadEnabled,
+                securityApiDependencies
+            ),
             new CertificatesApiAction(clusterService, threadPool, securityApiDependencies)
         );
     }
