@@ -566,30 +566,33 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addComplianceDocVersion(result.getVersion());
         msg.addComplianceOperation(result.isCreated() ? Operation.CREATE : Operation.UPDATE);
 
-        if (complianceConfig.shouldLogDiffsForWrite()
-            && originalResult != null
-            && originalResult.isExists()
-            && originalResult.internalSourceRef() != null) {
+        if (complianceConfig.shouldLogDiffsForWrite()) {
             try {
                 String originalSource = null;
                 String currentSource = null;
+                if (!(originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null)) {
+                    // originalSource is empty
+                    originalSource = "{}";
+                }
                 if (securityIndex.equals(shardId.getIndexName())) {
-                    try (
-                        XContentParser parser = XContentHelper.createParser(
-                            NamedXContentRegistry.EMPTY,
-                            THROW_UNSUPPORTED_OPERATION,
-                            originalResult.internalSourceRef(),
-                            XContentType.JSON
-                        )
-                    ) {
-                        Object base64 = parser.map().values().iterator().next();
-                        if (base64 instanceof String) {
-                            originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
-                        } else {
-                            originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                    if (originalSource == null) {
+                        try (
+                            XContentParser parser = XContentHelper.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                THROW_UNSUPPORTED_OPERATION,
+                                originalResult.internalSourceRef(),
+                                XContentType.JSON
+                            )
+                        ) {
+                            Object base64 = parser.map().values().iterator().next();
+                            if (base64 instanceof String) {
+                                originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
+                            } else {
+                                originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                            }
+                        } catch (Exception e) {
+                            log.error(e.toString());
                         }
-                    } catch (Exception e) {
-                        log.error(e.toString());
                     }
 
                     try (
@@ -615,7 +618,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                     );
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
-                    originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                    if (originalSource == null) {
+                        originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                    }
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                     final JsonNode diffnode = JsonDiff.asJson(
                         DefaultObjectMapper.objectMapper.readTree(originalSource),
@@ -628,7 +633,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
-        if (!complianceConfig.shouldLogWriteMetadataOnly()) {
+        if (!complianceConfig.shouldLogWriteMetadataOnly() && !complianceConfig.shouldLogDiffsForWrite()) {
             if (securityIndex.equals(shardId.getIndexName())) {
                 // current source, normally not null or empty
                 try (
