@@ -59,12 +59,13 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.dlsfls.DlsRestriction;
+import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
+import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
 import org.opensearch.security.queries.QueryBuilderTraverser;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ReflectiveAttributeAccessors;
-import org.opensearch.security.support.SecurityUtils;
 
 public class DlsFilterLevelActionHandler {
     private static final Logger log = LogManager.getLogger(DlsFilterLevelActionHandler.class);
@@ -76,13 +77,12 @@ public class DlsFilterLevelActionHandler {
 
     public static boolean handle(
         PrivilegesEvaluationContext context,
-        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
+        IndexToRuleMap<DlsRestriction> dlsRestrictionMap,
         ActionListener<?> listener,
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
         IndexNameExpressionResolver resolver,
-        DlsQueryParser dlsQueryParser,
         ThreadContext threadContext
     ) {
 
@@ -115,13 +115,12 @@ public class DlsFilterLevelActionHandler {
 
         return new DlsFilterLevelActionHandler(
             context,
-            evaluatedDlsFlsConfig,
+            dlsRestrictionMap,
             listener,
             nodeClient,
             clusterService,
             indicesService,
             resolver,
-            dlsQueryParser,
             threadContext
         ).handle();
     }
@@ -129,11 +128,10 @@ public class DlsFilterLevelActionHandler {
     private final String action;
     private final ActionRequest request;
     private final ActionListener<?> listener;
-    private final EvaluatedDlsFlsConfig evaluatedDlsFlsConfig;
+    private final IndexToRuleMap<DlsRestriction> dlsRestrictionMap;
     private final Resolved resolved;
     private final boolean requiresIndexScoping;
     private final Client nodeClient;
-    private final DlsQueryParser dlsQueryParser;
     private final ClusterService clusterService;
     private final IndicesService indicesService;
     private final ThreadContext threadContext;
@@ -143,24 +141,22 @@ public class DlsFilterLevelActionHandler {
 
     DlsFilterLevelActionHandler(
         PrivilegesEvaluationContext context,
-        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
+        IndexToRuleMap<DlsRestriction> dlsRestrictionMap,
         ActionListener<?> listener,
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
         IndexNameExpressionResolver resolver,
-        DlsQueryParser dlsQueryParser,
         ThreadContext threadContext
     ) {
         this.action = context.getAction();
         this.request = context.getRequest();
         this.listener = listener;
-        this.evaluatedDlsFlsConfig = evaluatedDlsFlsConfig;
+        this.dlsRestrictionMap = dlsRestrictionMap;
         this.resolved = context.getResolvedRequest();
         this.nodeClient = nodeClient;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
-        this.dlsQueryParser = dlsQueryParser;
         this.threadContext = threadContext;
         this.resolver = resolver;
 
@@ -464,7 +460,7 @@ public class DlsFilterLevelActionHandler {
     }
 
     private boolean modifyQuery(String localClusterAlias) throws IOException {
-        Map<String, Set<String>> filterLevelQueries = evaluatedDlsFlsConfig.getDlsQueriesByIndex();
+        Map<String, DlsRestriction> filterLevelQueries = dlsRestrictionMap.getIndexMap();
 
         BoolQueryBuilder dlsQueryBuilder = QueryBuilders.boolQuery().minimumShouldMatch(1);
         DocumentAllowList documentAllowlist = new DocumentAllowList();
@@ -474,8 +470,6 @@ public class DlsFilterLevelActionHandler {
         Set<String> indices = resolved.getAllIndicesResolved(clusterService, resolver);
 
         for (String index : indices) {
-            String dlsEval = SecurityUtils.evalMap(filterLevelQueries, index);
-
             String prefixedIndex;
 
             if (localClusterAlias != null) {
@@ -484,7 +478,9 @@ public class DlsFilterLevelActionHandler {
                 prefixedIndex = index;
             }
 
-            if (dlsEval == null) {
+            DlsRestriction dlsRestriction = filterLevelQueries.get(index);
+
+            if (dlsRestriction == null || dlsRestriction.isUnrestricted()) {
                 if (requiresIndexScoping) {
                     // This index has no DLS configured, thus it is unrestricted.
                     // To allow the index in a complex query, we need to add the query below to let the index pass.
@@ -493,33 +489,22 @@ public class DlsFilterLevelActionHandler {
                 continue;
             }
 
-            Set<String> unparsedDlsQueries = filterLevelQueries.get(dlsEval);
-
-            if (unparsedDlsQueries == null || unparsedDlsQueries.isEmpty()) {
-                if (requiresIndexScoping) {
-                    // This index has no DLS configured, thus it is unrestricted.
-                    // To allow the index in a complex query, we need to add the query below to let the index pass.
-                    dlsQueryBuilder.should(QueryBuilders.termQuery("_index", prefixedIndex));
-                }
-                continue;
-            }
-
-            for (String unparsedDlsQuery : unparsedDlsQueries) {
+            for (DocumentPrivileges.RenderedDlsQuery parsedDlsQuery : dlsRestriction.getQueries()) {
                 queryCount++;
 
-                QueryBuilder parsedDlsQuery = dlsQueryParser.parse(unparsedDlsQuery);
-
                 if (!requiresIndexScoping) {
-                    dlsQueryBuilder.should(parsedDlsQuery);
+                    dlsQueryBuilder.should(parsedDlsQuery.getQueryBuilder());
                 } else {
                     // The original request referred to several indices. That's why we have to scope each query to the index it is meant for
                     dlsQueryBuilder.should(
-                        QueryBuilders.boolQuery().must(QueryBuilders.termQuery("_index", prefixedIndex)).must(parsedDlsQuery)
+                        QueryBuilders.boolQuery()
+                            .must(QueryBuilders.termQuery("_index", prefixedIndex))
+                            .must(parsedDlsQuery.getQueryBuilder())
                     );
                 }
 
                 Set<QueryBuilder> queryBuilders = QueryBuilderTraverser.findAll(
-                    parsedDlsQuery,
+                    parsedDlsQuery.getQueryBuilder(),
                     (q) -> (q instanceof TermsQueryBuilder) && ((TermsQueryBuilder) q).termsLookup() != null
                 );
 
