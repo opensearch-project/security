@@ -126,7 +126,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final Settings settings;
     protected volatile SecurityRestFilter securityRestHandler;
     protected final SharedGroupFactory sharedGroupFactory;
-    protected final SecurityKeyStore sks;
+    protected final SslSettingsManager sslSettingsManager;
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
@@ -144,7 +144,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             this.httpSSLEnabled = false;
             this.transportSSLEnabled = false;
             this.extendedKeyUsageEnabled = false;
-            this.sks = null;
+            this.sslSettingsManager = null;
             this.configPath = null;
             SSLConfig = new SSLConfig(false, false);
 
@@ -246,11 +246,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             log.error("SSL not activated for http and/or transport.");
         }
 
-        if (ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
-            this.sks = new ExternalSecurityKeyStore(settings);
-        } else {
-            this.sks = new DefaultSecurityKeyStore(settings, configPath);
-        }
+        this.sslSettingsManager = new SslSettingsManager(new Environment(settings, configPath));
     }
 
     @Override
@@ -311,7 +307,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
 
         if (!client) {
-            handlers.add(new SecuritySSLInfoAction(settings, configPath, restController, sks, Objects.requireNonNull(principalExtractor)));
+            handlers.add(new SecuritySSLInfoAction(settings, configPath, sslSettingsManager, Objects.requireNonNull(principalExtractor)));
         }
 
         return handlers;
@@ -638,6 +634,23 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             Setting.longSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered)
         );
 
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+
         return settings;
     }
 
@@ -674,7 +687,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     @Override
     public Optional<SecureSettingsFactory> getSecureSettingFactory(Settings settings) {
-        return Optional.of(new OpenSearchSecureSettingsFactory(threadPool, sks, NOOP_SSL_EXCEPTION_HANDLER, securityRestHandler));
+        return Optional.of(
+            new OpenSearchSecureSettingsFactory(threadPool, sslSettingsManager, NOOP_SSL_EXCEPTION_HANDLER, securityRestHandler, SSLConfig)
+        );
     }
 
     protected Settings migrateSettings(Settings settings) {

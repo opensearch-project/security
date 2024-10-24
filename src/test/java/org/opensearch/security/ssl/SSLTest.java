@@ -569,7 +569,7 @@ public class SSLTest extends SingleClusterTest {
             Assert.fail();
         } catch (Exception e1) {
             Throwable e = ExceptionUtils.getRootCause(e1);
-            Assert.assertTrue(e.toString(), e.toString().contains("no valid cipher"));
+            Assert.assertTrue(e.toString(), e.toString().contains("No valid cipher"));
         }
     }
 

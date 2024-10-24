@@ -36,7 +36,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_
 public final class SecureSSLSettings {
     private static final Logger LOG = LogManager.getLogger(SecureSSLSettings.class);
 
-    private static final String SECURE_SUFFIX = "_secure";
+    public static final String SECURE_SUFFIX = "_secure";
     private static final String PREFIX = "plugins.security.ssl";
     private static final String HTTP_PREFIX = PREFIX + ".http";
     private static final String TRANSPORT_PREFIX = PREFIX + ".transport";

@@ -25,8 +25,10 @@ import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.plugins.TransportExceptionHandler;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.http.netty.Netty4ConditionalDecompressor;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
+import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportAdapterProvider;
@@ -35,20 +37,23 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
     private final ThreadPool threadPool;
-    private final SecurityKeyStore sks;
+    private final SslSettingsManager sslSettingsManager;
     private final SslExceptionHandler sslExceptionHandler;
     private final SecurityRestFilter restFilter;
+    private final SSLConfig sslConfig;
 
     public OpenSearchSecureSettingsFactory(
         ThreadPool threadPool,
-        SecurityKeyStore sks,
+        SslSettingsManager sslSettingsManager,
         SslExceptionHandler sslExceptionHandler,
-        SecurityRestFilter restFilter
+        SecurityRestFilter restFilter,
+        SSLConfig sslConfig
     ) {
         this.threadPool = threadPool;
-        this.sks = sks;
+        this.sslSettingsManager = sslSettingsManager;
         this.sslExceptionHandler = sslExceptionHandler;
         this.restFilter = restFilter;
+        this.sslConfig = sslConfig;
     }
 
     @Override
@@ -65,13 +70,23 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             }
 
             @Override
+            public Optional<SecureTransportParameters> parameters(Settings settings) {
+                return Optional.of(new SecureTransportParameters() {
+                    @Override
+                    public boolean dualModeEnabled() {
+                        return sslConfig.isDualModeEnabled();
+                    }
+                });
+            }
+
+            @Override
             public Optional<SSLEngine> buildSecureServerTransportEngine(Settings settings, Transport transport) throws SSLException {
-                return Optional.of(sks.createServerTransportSSLEngine());
+                return sslSettingsManager.sslContextHandler(CertType.TRANSPORT).map(SslContextHandler::createSSLEngine);
             }
 
             @Override
             public Optional<SSLEngine> buildSecureClientTransportEngine(Settings settings, String hostname, int port) throws SSLException {
-                return Optional.of(sks.createClientTransportSSLEngine(hostname, port));
+                return sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).map(c -> c.createSSLEngine(hostname, port));
             }
         });
     }
@@ -128,7 +143,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
 
             @Override
             public Optional<SSLEngine> buildSecureHttpServerEngine(Settings settings, HttpServerTransport transport) throws SSLException {
-                return Optional.of(sks.createHTTPSSLEngine());
+                return sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::createSSLEngine);
             }
         });
     }

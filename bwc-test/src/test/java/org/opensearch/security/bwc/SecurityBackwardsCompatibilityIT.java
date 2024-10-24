@@ -27,6 +27,7 @@ import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
@@ -44,9 +45,11 @@ import org.opensearch.common.Randomness;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
+import org.opensearch.common.xcontent.support.XContentMapValues;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
+import static org.apache.hc.core5.http.ContentType.APPLICATION_NDJSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
@@ -239,15 +242,21 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                     }
                 });
                 bulkRequestBody.append(objectMapper.writeValueAsString(indexRequest) + "\n");
-                bulkRequestBody.append(objectMapper.writeValueAsString(Song.randomSong().asJson()) + "\n");
+                bulkRequestBody.append(Song.randomSong().asJson() + "\n");
             }
             List<Response> responses = RestHelper.requestAgainstAllNodes(
                 testUserRestClient,
                 "POST",
                 "_bulk?refresh=wait_for",
-                RestHelper.toHttpEntity(bulkRequestBody.toString())
+                new StringEntity(bulkRequestBody.toString(), APPLICATION_NDJSON)
             );
             responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
+            for (Response response : responses) {
+                Map<String, Object> responseMap = responseAsMap(response);
+                List<?> itemResults = (List<?>) XContentMapValues.extractValue(responseMap, "items", "index", "result");
+                assertTrue("More than 0 response items", itemResults.size() > 0);
+                assertTrue("All results are 'created': " + itemResults, itemResults.stream().allMatch(i -> i.equals("created")));
+            }
         }
     }
 
@@ -266,6 +275,25 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 RestHelper.toHttpEntity(matchAllQuery)
             );
             responses.forEach(r -> assertThat(r.getStatusLine().getStatusCode(), is(200)));
+
+            for (Response response : responses) {
+                Map<String, Object> responseMap = responseAsMap(response);
+                @SuppressWarnings("unchecked")
+                List<Map<?, ?>> sourceDocs = (List<Map<?, ?>>) XContentMapValues.extractValue(responseMap, "hits", "hits", "_source");
+
+                for (Map<?, ?> sourceDoc : sourceDocs) {
+                    assertNull("response doc should not contain field forbidden by FLS: " + responseMap, sourceDoc.get(Song.FIELD_LYRICS));
+                    assertNotNull(
+                        "response doc should contain field not forbidden by FLS: " + responseMap,
+                        sourceDoc.get(Song.FIELD_ARTIST)
+                    );
+                    assertEquals(
+                        "response doc should always have genre rock: " + responseMap,
+                        Song.GENRE_ROCK,
+                        sourceDoc.get(Song.FIELD_GENRE)
+                    );
+                }
+            }
         }
     }
 

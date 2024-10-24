@@ -22,8 +22,52 @@ import java.util.Collections;
 import java.util.List;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
+
+import io.netty.handler.ssl.OpenSsl;
 
 public final class SSLConfigConstants {
+
+    public static final String SSL_PREFIX = "plugins.security.ssl.";
+
+    public static final String HTTP_SETTINGS = "http";
+
+    public static final String TRANSPORT_SETTINGS = "transport";
+
+    public static final String SSL_HTTP_PREFIX = SSL_PREFIX + HTTP_SETTINGS + ".";
+
+    public static final String SSL_TRANSPORT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + ".";
+
+    public static final String SSL_TRANSPORT_SERVER_EXTENDED_PREFIX = "server.";
+
+    public static final String SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX = "client.";
+
+    public static final String SSL_TRANSPORT_CLIENT_PREFIX = SSL_PREFIX + TRANSPORT_SETTINGS + SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX;
+
+    public static final String ENABLED = "enabled";
+
+    public static final String CLIENT_AUTH_MODE = "clientauth_mode";
+
+    public static final String KEYSTORE_TYPE = "keystore_type";
+    public static final String KEYSTORE_ALIAS = "keystore_alias";
+    public static final String KEYSTORE_FILEPATH = "keystore_filepath";
+    public static final String KEYSTORE_PASSWORD = "keystore_password";
+    public static final String KEYSTORE_KEY_PASSWORD = "keystore_keypassword";
+
+    public static final String TRUSTSTORE_ALIAS = "truststore_alias";
+    public static final String TRUSTSTORE_FILEPATH = "truststore_filepath";
+    public static final String TRUSTSTORE_TYPE = "truststore_type";
+    public static final String TRUSTSTORE_PASSWORD = "truststore_password";
+
+    public static final String PEM_KEY_FILEPATH = "pemkey_filepath";
+    public static final String PEM_CERT_FILEPATH = "pemcert_filepath";
+    public static final String PEM_TRUSTED_CAS_FILEPATH = "pemtrustedcas_filepath";
+    public static final String EXTENDED_KEY_USAGE_ENABLED = "extended_key_usage_enabled";
+
+    public static final String ENABLE_OPENSSL_IF_AVAILABLE = "enable_openssl_if_available";
+    public static final String ENABLED_PROTOCOLS = "enabled_protocols";
+    public static final String ENABLED_CIPHERS = "enabled_ciphers";
+    public static final String PEM_KEY_PASSWORD = "pemkey_password";
 
     public static final String SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE = "plugins.security.ssl.http.enable_openssl_if_available";
     public static final String SECURITY_SSL_HTTP_ENABLED = "plugins.security.ssl.http.enabled";
@@ -38,6 +82,8 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS = "plugins.security.ssl.http.truststore_alias";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = "plugins.security.ssl.http.truststore_filepath";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = "plugins.security.ssl.http.truststore_type";
+    public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION =
+        "plugins.security.ssl.http.enforce_cert_reload_dn_verification";
     public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE =
         "plugins.security.ssl.transport.enable_openssl_if_available";
     public static final String SECURITY_SSL_TRANSPORT_ENABLED = "plugins.security.ssl.transport.enabled";
@@ -47,6 +93,8 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME =
         "plugins.security.ssl.transport.resolve_hostname";
 
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION =
+        "plugins.security.ssl.transport.enforce_cert_reload_dn_verification";
     public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.keystore_alias";
     public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = "plugins.security.ssl.transport.server.keystore_alias";
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.client.keystore_alias";
@@ -99,7 +147,19 @@ public final class SSLConfigConstants {
 
     public static final String JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION = "jdk.tls.rejectClientInitiatedRenegotiation";
 
-    private static final String[] _SECURE_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
+    public static final Long OPENSSL_1_1_1_BETA_9 = 0x10101009L;
+
+    public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
+
+    public static final String[] ALLOWED_OPENSSL_HTTP_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
+
+    public static final String[] ALLOWED_OPENSSL_HTTP_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1", "TLSv1" };
+
+    public static final String[] ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS = ALLOWED_SSL_PROTOCOLS;
+
+    public static final String[] ALLOWED_OPENSSL_TRANSPORT_PROTOCOLS_PRIOR_OPENSSL_1_1_1_BETA_9 = { "TLSv1.2", "TLSv1.1" };
+
+    public static final boolean OPENSSL_AVAILABLE = OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable();
 
     public static String[] getSecureSSLProtocols(Settings settings, boolean http) {
         List<String> configuredProtocols = null;
@@ -116,11 +176,11 @@ public final class SSLConfigConstants {
             return configuredProtocols.toArray(new String[0]);
         }
 
-        return _SECURE_SSL_PROTOCOLS.clone();
+        return ALLOWED_SSL_PROTOCOLS.clone();
     }
 
     // @formatter:off
-    private static final String[] _SECURE_SSL_CIPHERS = {
+    public static final String[] ALLOWED_SSL_CIPHERS = {
         // TLS_<key exchange and authentication algorithms>_WITH_<bulk cipher and message authentication algorithms>
 
         // Example (including unsafe ones)
@@ -249,7 +309,7 @@ public final class SSLConfigConstants {
             return configuredCiphers;
         }
 
-        return Collections.unmodifiableList(Arrays.asList(_SECURE_SSL_CIPHERS));
+        return Collections.unmodifiableList(Arrays.asList(ALLOWED_SSL_CIPHERS));
     }
 
     private SSLConfigConstants() {
