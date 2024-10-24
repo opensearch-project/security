@@ -29,7 +29,6 @@ package org.opensearch.security.transport;
 // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -181,10 +180,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
-                    getThreadContext().putTransient(
-                        ConfigConstants.OPENDISTRO_SECURITY_USER,
-                        Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader, useJDKSerialization))
-                    );
+                    User deserializedUser = (User) Base64Helper.deserializeObject(userHeader, useJDKSerialization);
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, deserializedUser);
                 }
 
                 String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
