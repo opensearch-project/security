@@ -74,9 +74,7 @@ public class SslContextHandler {
         if (sameCertificates(newCertificates)) {
             return;
         }
-        if (sslConfiguration.sslParameters().isValidateCertsOnReloadEnabled()) {
-            validateNewCertificates(newCertificates);
-        }
+        validateNewCertificates(newCertificates, sslConfiguration.sslParameters().shouldValidateNewCertDNs());
         invalidateSessions();
         if (sslContext.isClient()) {
             sslContext = sslConfiguration.buildClientSslContext(false);
@@ -143,13 +141,16 @@ public class SslContextHandler {
         }
     }
 
-    private void validateNewCertificates(final List<Certificate> newCertificates) throws CertificateException {
+    private void validateNewCertificates(final List<Certificate> newCertificates, boolean shouldValidateNewCertDNs)
+        throws CertificateException {
         for (final var certificate : newCertificates) {
             certificate.x509Certificate().checkValidity();
         }
-        validateSubjectDns(newCertificates);
-        validateIssuerDns(newCertificates);
-        validateSans(newCertificates);
+        if (shouldValidateNewCertDNs) {
+            validateSubjectDns(newCertificates);
+            validateIssuerDns(newCertificates);
+            validateSans(newCertificates);
+        }
     }
 
     private void invalidateSessions() {

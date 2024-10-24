@@ -54,20 +54,20 @@ public class SslParameters {
 
     private final List<String> ciphers;
 
-    private final boolean validateCertsOnReload;
+    private final boolean validateCertDNsOnReload;
 
     private SslParameters(
         SslProvider provider,
         final ClientAuth clientAuth,
         List<String> protocols,
         List<String> ciphers,
-        boolean validateCertsOnReload
+        boolean validateCertDNsOnReload
     ) {
         this.provider = provider;
         this.ciphers = ciphers;
         this.protocols = protocols;
         this.clientAuth = clientAuth;
-        this.validateCertsOnReload = validateCertsOnReload;
+        this.validateCertDNsOnReload = validateCertDNsOnReload;
     }
 
     public ClientAuth clientAuth() {
@@ -86,8 +86,8 @@ public class SslParameters {
         return protocols;
     }
 
-    public boolean isValidateCertsOnReloadEnabled() {
-        return validateCertsOnReload;
+    public boolean shouldValidateNewCertDNs() {
+        return validateCertDNsOnReload;
     }
 
     @Override
@@ -126,7 +126,7 @@ public class SslParameters {
             }
         }
 
-        private boolean validateCertsOnReload(final Settings settings) {
+        private boolean validateCertDNsOnReload(final Settings settings) {
             return settings.getAsBoolean(ENFORCE_CERT_RELOAD_DN_VERIFICATION, true);
         }
 
@@ -200,7 +200,7 @@ public class SslParameters {
                 clientAuth,
                 protocols(provider, sslConfigSettings, http),
                 ciphers(provider, sslConfigSettings),
-                validateCertsOnReload(sslConfigSettings)
+                validateCertDNsOnReload(sslConfigSettings)
             );
             if (sslParameters.allowedProtocols().isEmpty()) {
                 throw new OpenSearchSecurityException("No ssl protocols for " + (http ? "HTTP" : "Transport") + " layer");
