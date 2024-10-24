@@ -243,8 +243,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         assertThat(
             DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
             is(
-                "OpenSearchSecurityException[Error while initializing http SSL layer from PEM: java.lang.Exception: "
-                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+                "java.security.cert.CertificateException: New certificates do not have valid Issuer DNs. "
+                    + "Current Issuer DNs: [CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com] "
+                    + "new Issuer DNs: [CN=Example Com Inc. Secondary Signing CA,OU=Example Com Inc. Secondary Signing CA,O=Example Com Inc.,DC=example,DC=com]"
             )
         );
     }
@@ -266,8 +267,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         assertThat(
             DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
             is(
-                "OpenSearchSecurityException[Error while initializing http SSL layer from PEM: java.lang.Exception: "
-                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+                "java.security.cert.CertificateException: New certificates do not have valid Issuer DNs. "
+                    + "Current Issuer DNs: [CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com] "
+                    + "new Issuer DNs: [CN=Example Com Inc. Secondary Signing CA,OU=Example Com Inc. Secondary Signing CA,O=Example Com Inc.,DC=example,DC=com]"
             )
         );
     }
@@ -314,8 +316,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         assertThat(
             DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
             is(
-                "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
-                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+                "java.security.cert.CertificateException: New certificates do not have valid Issuer DNs. "
+                    + "Current Issuer DNs: [CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com] "
+                    + "new Issuer DNs: [CN=Example Com Inc. Secondary Signing CA,OU=Example Com Inc. Secondary Signing CA,O=Example Com Inc.,DC=example,DC=com]"
             )
         );
     }
@@ -337,8 +340,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         assertThat(
             DefaultObjectMapper.readTree(reloadCertsResponse.getBody()).get("error").get("root_cause").get(0).get("reason").asText(),
             is(
-                "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
-                    + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+                "java.security.cert.CertificateException: New certificates do not have valid Issuer DNs. "
+                    + "Current Issuer DNs: [CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com] "
+                    + "new Issuer DNs: [CN=Example Com Inc. Secondary Signing CA,OU=Example Com Inc. Secondary Signing CA,O=Example Com Inc.,DC=example,DC=com]"
             )
         );
     }
