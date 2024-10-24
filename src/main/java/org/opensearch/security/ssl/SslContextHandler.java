@@ -74,7 +74,9 @@ public class SslContextHandler {
         if (sameCertificates(newCertificates)) {
             return;
         }
-        validateNewCertificates(newCertificates);
+        if (sslConfiguration.sslParameters().isValidateCertsOnReloadEnabled()) {
+            validateNewCertificates(newCertificates);
+        }
         invalidateSessions();
         if (sslContext.isClient()) {
             sslContext = sslConfiguration.buildClientSslContext(false);
