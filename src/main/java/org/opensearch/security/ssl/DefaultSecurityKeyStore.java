@@ -133,9 +133,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     public final SslProvider sslTransportServerProvider;
     public final SslProvider sslTransportClientProvider;
     private final boolean httpSSLEnabled;
-    private final boolean httpSSLEnforceCertReloadDnVerification;
     private final boolean transportSSLEnabled;
-    private final boolean transportSSLEnforceCertReloadDnVerification;
 
     private ArrayList<String> enabledHttpCiphersJDKProvider;
     private ArrayList<String> enabledHttpCiphersOpenSSLProvider;
@@ -168,17 +166,9 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED,
             SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT
         );
-        httpSSLEnforceCertReloadDnVerification = settings.getAsBoolean(
-            SSLConfigConstants.SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
-            true
-        );
         transportSSLEnabled = settings.getAsBoolean(
             SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED,
             SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT
-        );
-        transportSSLEnforceCertReloadDnVerification = settings.getAsBoolean(
-            SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION,
-            true
         );
         final boolean useOpenSSLForHttpIfAvailable = OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED
             && settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, true);
@@ -432,7 +422,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     certFromTruststore = new CertFromTruststore(truststoreProps, truststoreAlias);
                 }
 
-                validateNewCerts(transportCerts, certFromKeystore.getCerts(), transportSSLEnforceCertReloadDnVerification);
+                validateNewCerts(transportCerts, certFromKeystore.getCerts());
                 transportServerSslContext = buildSSLServerContext(
                     certFromKeystore.getServerKey(),
                     certFromKeystore.getServerCert(),
@@ -483,7 +473,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     certFromFile = new CertFromFile(certProps);
                 }
 
-                validateNewCerts(transportCerts, certFromFile.getCerts(), transportSSLEnforceCertReloadDnVerification);
+                validateNewCerts(transportCerts, certFromFile.getCerts());
                 transportServerSslContext = buildSSLServerContext(
                     certFromFile.getServerPemKey(),
                     certFromFile.getServerPemCert(),
@@ -581,7 +571,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     certFromTruststore = new CertFromTruststore(truststoreProps, truststoreAlias);
                 }
 
-                validateNewCerts(httpCerts, certFromKeystore.getCerts(), httpSSLEnforceCertReloadDnVerification);
+                validateNewCerts(httpCerts, certFromKeystore.getCerts());
                 httpSslContext = buildSSLServerContext(
                     certFromKeystore.getServerKey(),
                     certFromKeystore.getServerCert(),
@@ -612,7 +602,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 );
                 CertFromFile certFromFile = new CertFromFile(certFileProps);
 
-                validateNewCerts(httpCerts, certFromFile.getCerts(), httpSSLEnforceCertReloadDnVerification);
+                validateNewCerts(httpCerts, certFromFile.getCerts());
                 httpSslContext = buildSSLServerContext(
                     certFromFile.getServerPemKey(),
                     certFromFile.getServerPemCert(),
@@ -643,16 +633,11 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
      * If the current and new certificates are same, skip remaining checks.
      * For new X509 cert to be valid Issuer, Subject DN must be the same and
      * new certificates should expire after current ones.
-     * @param currentX509Certs Array of current x509 certificates
-     * @param newX509Certs     Array of x509 certificates which will replace our current cert
-     * @param verifyValidDNs   Whether to verify that new certs have valid IssuerDN, SubjectDN and SAN
+     * @param currentX509Certs  Array of current x509 certificates
+     * @param newX509Certs      Array of x509 certificates which will replace our current cert
      * @throws Exception if certificate is invalid
      */
-    private void validateNewCerts(
-        final X509Certificate[] currentX509Certs,
-        final X509Certificate[] newX509Certs,
-        final boolean verifyValidDNs
-    ) throws Exception {
+    private void validateNewCerts(final X509Certificate[] currentX509Certs, final X509Certificate[] newX509Certs) throws Exception {
 
         // First time we init certs ignore validity check
         if (currentX509Certs == null) {
@@ -669,7 +654,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         }
 
         // Check if new X509 certs have valid IssuerDN, SubjectDN or SAN
-        if (verifyValidDNs && !hasValidDNs(currentX509Certs, newX509Certs)) {
+        if (!hasValidDNs(currentX509Certs, newX509Certs)) {
             throw new Exception("New Certs do not have valid Issuer DN, Subject DN or SAN.");
         }
     }
