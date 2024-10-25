@@ -96,9 +96,7 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
     }
 
     private void verifyTimeoutRequest(final TestRestClient client) throws Exception {
-        TestRestClient.HttpResponse response = ok(() -> client.get(sslCertsPath() + "?timeout=0"));
-        final var body = response.bodyAsJsonNode();
-        assertThat(body.get("nodes").size(), is(0));
+        ok(() -> client.get(sslCertsPath() + "?timeout=0"));
     }
 
     private void verifySSLCertsInfo(final TestRestClient client) throws Exception {

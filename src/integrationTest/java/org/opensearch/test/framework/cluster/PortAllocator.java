@@ -63,7 +63,7 @@ public class PortAllocator {
 
         int startPort = minPort;
 
-        while (!isAvailable(startPort)) {
+        while (!isPortRangeAvailable(startPort, startPort + numRequested)) {
             startPort += 10;
         }
 
@@ -72,8 +72,10 @@ public class PortAllocator {
         for (int currentPort = startPort; foundPorts.size() < numRequested
             && currentPort < SocketUtils.PORT_RANGE_MAX
             && (currentPort - startPort) < 10000; currentPort++) {
-            if (allocate(clientName, currentPort)) {
-                foundPorts.add(currentPort);
+            if (isAvailable(currentPort)) {
+                if (allocate(clientName, currentPort)) {
+                    foundPorts.add(currentPort);
+                }
             }
         }
 
@@ -119,6 +121,15 @@ public class PortAllocator {
 
     private boolean isAvailable(int port) {
         return !isAllocated(port) && !isInUse(port);
+    }
+
+    private boolean isPortRangeAvailable(int port, int endPort) {
+        for (int i = port; i <= endPort; i++) {
+            if (!isAvailable(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private synchronized boolean isAllocated(int port) {

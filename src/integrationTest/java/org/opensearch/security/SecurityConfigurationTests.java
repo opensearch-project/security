@@ -276,10 +276,13 @@ public class SecurityConfigurationTests {
             assertThat(getResponse.getBody(), containsString("create new tenant"));
 
             TestRestClient.HttpResponse updateResponse = client.putJson(TENANT_ENDPOINT, TENANT_BODY_TWO);
-            assertThat(updateResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+            updateResponse.assertStatusCode(HttpStatus.SC_OK);
 
             getResponse = client.get(TENANT_ENDPOINT); // make sure update works
             assertThat(getResponse.getBody(), containsString("update tenant"));
+
+            TestRestClient.HttpResponse deleteResponse = client.delete(TENANT_ENDPOINT);
+            deleteResponse.assertStatusCode(HttpStatus.SC_OK);
         }
     }
 }
