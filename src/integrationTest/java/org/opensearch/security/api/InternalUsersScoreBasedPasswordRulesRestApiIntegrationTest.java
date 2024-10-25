@@ -11,6 +11,7 @@
 
 package org.opensearch.security.api;
 
+import java.util.Map;
 import java.util.StringJoiner;
 
 import org.junit.Test;
@@ -24,31 +25,11 @@ import static org.opensearch.security.api.PatchPayloadHelper.patch;
 
 public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
-    // @BeforeClass
-    // public static void startCluster() throws IOException {
-    // configurationFolder = ConfigurationFiles.createConfigurationDirectory();
-    // extendConfiguration();
-    // clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
-    // .put(PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS))
-    // .put(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, randomBoolean())
-    // .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 9);
-    // final var clusterManager = randomFrom(List.of(ClusterManager.THREE_CLUSTER_MANAGERS, ClusterManager.SINGLENODE));
-    // final var localClusterBuilder = new LocalCluster.Builder().clusterManager(clusterManager)
-    // .nodeSettings(clusterSettings.buildKeepingLast())
-    // .defaultConfigurationInitDirectory(configurationFolder.toString())
-    // .loadConfigurationIntoIndex(false);
-    // localCluster = localClusterBuilder.build();
-    // localCluster.before();
-    // try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-    // Awaitility.await()
-    // .alias("Load default configuration")
-    // .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
-    // }
-    // }
-
-    public static void populateClusterSettings() {
-        AbstractApiIntegrationTest.populateClusterSettings();
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
         clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 9);
+        return clusterSettings;
     }
 
     String internalUsers(String... path) {
