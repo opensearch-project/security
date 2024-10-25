@@ -72,8 +72,11 @@ public class PortAllocator {
         for (int currentPort = startPort; foundPorts.size() < numRequested
             && currentPort < SocketUtils.PORT_RANGE_MAX
             && (currentPort - startPort) < 10000; currentPort++) {
-            if (allocate(clientName, currentPort)) {
-                foundPorts.add(currentPort);
+            System.out.println("Trying port " + currentPort + ", isAvailable: " + isAvailable(currentPort));
+            if (isAvailable(currentPort)) {
+                if (allocate(clientName, currentPort)) {
+                    foundPorts.add(currentPort);
+                }
             }
         }
 
