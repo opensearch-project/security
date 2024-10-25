@@ -91,7 +91,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
     public static LocalCluster localCluster;
 
-    private boolean initialized = false;
+    protected boolean initialized = false;
 
     @Before
     public void startCluster() throws IOException {
