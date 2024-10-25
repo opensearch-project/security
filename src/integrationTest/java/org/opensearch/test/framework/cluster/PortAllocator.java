@@ -63,7 +63,7 @@ public class PortAllocator {
 
         int startPort = minPort;
 
-        while (!isPortRangeAvailable(startPort, startPort+6)) {
+        while (!isPortRangeAvailable(startPort, startPort + 6)) {
             startPort += 10;
         }
 
