@@ -23,7 +23,6 @@ import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -245,7 +244,6 @@ public class SecurityConfigurationTests {
         }
     }
 
-    @Ignore
     @Test
     public void testParallelTenantPutRequests() throws Exception {
         final String TENANT_ENDPOINT = "_plugins/_security/api/tenants/tenant1";
@@ -278,10 +276,13 @@ public class SecurityConfigurationTests {
             assertThat(getResponse.getBody(), containsString("create new tenant"));
 
             TestRestClient.HttpResponse updateResponse = client.putJson(TENANT_ENDPOINT, TENANT_BODY_TWO);
-            assertThat(updateResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+            updateResponse.assertStatusCode(HttpStatus.SC_OK);
 
             getResponse = client.get(TENANT_ENDPOINT); // make sure update works
             assertThat(getResponse.getBody(), containsString("update tenant"));
+
+            TestRestClient.HttpResponse deleteResponse = client.delete(TENANT_ENDPOINT);
+            deleteResponse.assertStatusCode(HttpStatus.SC_OK);
         }
     }
 }
