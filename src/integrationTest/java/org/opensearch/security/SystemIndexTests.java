@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,6 +54,13 @@ public class SystemIndexTests {
             )
         )
         .build();
+
+    @Before
+    public void setup() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.delete(".system-index1");
+        }
+    }
 
     @Test
     public void adminShouldNotBeAbleToDeleteSecurityIndex() {
