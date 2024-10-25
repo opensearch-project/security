@@ -58,7 +58,7 @@ public class SystemIndexTests {
     @Before
     public void setup() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            HttpResponse response4 = client.delete(".system-index1");
+            client.delete(".system-index1");
         }
     }
 
