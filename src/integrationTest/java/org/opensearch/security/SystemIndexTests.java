@@ -79,6 +79,12 @@ public class SystemIndexTests {
 
             assertThat(response4.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
         }
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse response4 = client.delete(".system-index1");
+
+            assertThat(response4.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+        }
     }
 
     @Test

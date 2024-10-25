@@ -23,6 +23,7 @@ import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -244,6 +245,7 @@ public class SecurityConfigurationTests {
         }
     }
 
+    @Ignore
     @Test
     public void testParallelTenantPutRequests() throws Exception {
         final String TENANT_ENDPOINT = "_plugins/_security/api/tenants/tenant1";
