@@ -96,9 +96,7 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
     public static void startCluster() throws IOException {
         configurationFolder = ConfigurationFiles.createConfigurationDirectory();
         extendConfiguration();
-        clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
-            .put(PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS))
-            .put(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, randomBoolean());
+        populateClusterSettings();
         final var clusterManager = randomFrom(List.of(ClusterManager.THREE_CLUSTER_MANAGERS, ClusterManager.SINGLENODE));
         final var localClusterBuilder = new LocalCluster.Builder().clusterManager(clusterManager)
             .nodeSettings(clusterSettings.buildKeepingLast())
@@ -111,6 +109,12 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
         }
+    }
+
+    protected static void populateClusterSettings() {
+        clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+            .put(PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS))
+            .put(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, randomBoolean());
     }
 
     private static void extendConfiguration() throws IOException {
