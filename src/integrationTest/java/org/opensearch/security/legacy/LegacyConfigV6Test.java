@@ -24,7 +24,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class LegacyConfigV6AutoConversionTest {
+public class LegacyConfigV6Test {
     static final TestSecurityConfig LEGACY_CONFIG = new TestSecurityConfig()//
         .rawConfigurationDocumentYaml(
             "config",
@@ -73,17 +73,23 @@ public class LegacyConfigV6AutoConversionTest {
         .build();
 
     @Test
-    public void migrateApi() {
+    public void authc() {
         try (TestRestClient client = cluster.getRestClient("admin", "admin")) {
-            TestRestClient.HttpResponse response = client.post("_opendistro/_security/api/migrate");
+            TestRestClient.HttpResponse response = client.get("_opendistro/_security/authinfo");
             Assert.assertEquals(response.getBody(), 200, response.getStatusCode());
-            Assert.assertEquals(response.getBody(), "Migration completed.", response.getTextFromJsonBody("/message"));
-            response = client.get("_opendistro/_security/api/roles/all_access_role");
+            Assert.assertEquals(response.getBody(), true, response.getBooleanFromJsonBody("/tenants/admin"));
+        }
+    }
+
+    @Test
+    public void configRestApiReturnsV6Config() {
+        try (TestRestClient client = cluster.getRestClient("admin", "admin")) {
+            TestRestClient.HttpResponse response = client.get("_opendistro/_security/api/roles/all_access_role");
             Assert.assertEquals(response.getBody(), 200, response.getStatusCode());
             Assert.assertEquals(
-                "Expected v7 format",
-                "Migrated from v6 (all types mapped)",
-                response.getTextFromJsonBody("/all_access_role/description")
+                "Expected v6 format",
+                "{\"all_access_role\":{\"readonly\":true,\"hidden\":false,\"cluster\":[\"UNLIMITED\"],\"tenants\":{\"admin_tenant\":\"RW\"},\"indices\":{\"*\":{\"*\":[\"UNLIMITED\"]}}}}",
+                response.getBody()
             );
         }
     }
