@@ -159,7 +159,10 @@ public class LocalOpenSearchCluster {
             Math.max(clusterManagerNodeCount, 4),
             5000 + 42 * 1000 + 300
         );
+        System.out.println("retry: " + retry);
+        System.out.println("clusterManagerNodeTransportPorts: " + clusterManagerNodeTransportPorts);
         SortedSet<Integer> clusterManagerNodeHttpPorts = TCP.allocate(clusterName, clusterManagerNodeCount, 5000 + 42 * 1000 + 200);
+        System.out.println("clusterManagerNodeHttpPorts: " + clusterManagerNodeHttpPorts);
 
         this.seedHosts = toHostList(clusterManagerNodeTransportPorts);
         Set<Integer> clusterManagerPorts = clusterManagerNodeTransportPorts.stream()
