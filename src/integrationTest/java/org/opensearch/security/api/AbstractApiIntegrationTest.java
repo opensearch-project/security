@@ -91,27 +91,28 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
     public static LocalCluster localCluster;
 
-    protected static boolean initialized = false;
+    private Class<? extends AbstractApiIntegrationTest> testClass;
 
     @Before
     public void startCluster() throws IOException {
-        if (!initialized) {
-            initialized = true;
-            configurationFolder = ConfigurationFiles.createConfigurationDirectory();
-            extendConfiguration();
-            final var clusterManager = randomFrom(List.of(ClusterManager.THREE_CLUSTER_MANAGERS, ClusterManager.SINGLENODE));
-            final var localClusterBuilder = new LocalCluster.Builder().clusterManager(clusterManager)
-                .nodeSettings(getClusterSettings())
-                .defaultConfigurationInitDirectory(configurationFolder.toString())
-                .loadConfigurationIntoIndex(false);
-            localCluster = localClusterBuilder.build();
-            localCluster.before();
-            try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-                Awaitility.await()
-                    .alias("Load default configuration")
-                    .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
-            }
+        if (this.getClass().equals(testClass)) {
+            return;
         }
+        configurationFolder = ConfigurationFiles.createConfigurationDirectory();
+        extendConfiguration();
+        final var clusterManager = randomFrom(List.of(ClusterManager.THREE_CLUSTER_MANAGERS, ClusterManager.SINGLENODE));
+        final var localClusterBuilder = new LocalCluster.Builder().clusterManager(clusterManager)
+            .nodeSettings(getClusterSettings())
+            .defaultConfigurationInitDirectory(configurationFolder.toString())
+            .loadConfigurationIntoIndex(false);
+        localCluster = localClusterBuilder.build();
+        localCluster.before();
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
+            Awaitility.await()
+                .alias("Load default configuration")
+                .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
+        }
+        testClass = this.getClass();
     }
 
     // @BeforeClass
