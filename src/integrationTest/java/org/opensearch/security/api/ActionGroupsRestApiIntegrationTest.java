@@ -28,6 +28,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
@@ -44,6 +45,13 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
                     allRestAdminPermissions()
                 )
             );
+    }
+
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
+        return clusterSettings;
     }
 
     public ActionGroupsRestApiIntegrationTest() {

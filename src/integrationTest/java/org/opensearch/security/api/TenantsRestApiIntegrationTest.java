@@ -11,6 +11,7 @@
 
 package org.opensearch.security.api;
 
+import java.util.Map;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,6 +26,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
@@ -32,6 +34,13 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
 
     static {
         testSecurityConfig.withRestAdminUser(REST_API_ADMIN_TENANTS_ONLY, restAdminPermission(Endpoint.TENANTS));
+    }
+
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
+        return clusterSettings;
     }
 
     public TenantsRestApiIntegrationTest() {
