@@ -534,11 +534,11 @@ sourceSets {
 task integrationTest(type: Test) {
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
-        if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
+        if (System.getenv('CI_ENVIRONMENT') != 'resource-test') {
             exclude '**/ResourceFocusedTests.class'
         }
         // Only run with retries while in CI systems
-        if (System.getenv('CI_ENVIRONMENT') == 'normal') {
+        if (System.getenv('CI_ENVIRONMENT') == 'normal' || System.getenv('CI_ENVIRONMENT') == null) {
             retry {
                 failOnPassedAfterRetry = false
                 maxRetries = 2
@@ -576,6 +576,11 @@ test {
 
 integrationTest {
     failFast = true
+}
+
+tasks.named("integrationTest") {
+    minHeapSize = "512m"
+    maxHeapSize = "2g"
 }
 
 tasks.integTest.dependsOn(integrationTest)
