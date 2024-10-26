@@ -17,16 +17,23 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
 
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 
 public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     final static String REST_API_ADMIN_CONFIG_UPDATE = "rest-api-admin-config-update";
+
+    static {
+        testSecurityConfig.withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions())
+            .withRestAdminUser(REST_API_ADMIN_CONFIG_UPDATE, restAdminPermission(Endpoint.CONFIG, SECURITY_CONFIG_UPDATE));
+    }
 
     @Override
     protected Map<String, Object> getClusterSettings() {
@@ -81,6 +88,7 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
         badRequest(() -> client.putJson(securityConfigPath("xxx"), EMPTY_BODY));
         verifyNotAllowedMethods(client);
 
+        TestRestClient.HttpResponse resp = client.get(securityConfigPath());
         final var configJson = ok(() -> client.get(securityConfigPath())).bodyAsJsonNode();
         final var authFailureListeners = DefaultObjectMapper.objectMapper.createObjectNode();
         authFailureListeners.set(
