@@ -537,8 +537,7 @@ task integrationTest(type: Test) {
         if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
             exclude '**/ResourceFocusedTests.class'
         }
-        // Only run with retries while in CI systems
-        if (System.getenv('CI_ENVIRONMENT') == 'normal') {
+        if (System.getenv('DISABLE_RETRY') != 'true') {
             retry {
                 failOnPassedAfterRetry = false
                 maxRetries = 2
