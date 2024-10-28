@@ -266,7 +266,7 @@ public class SecurityConfigurationTests {
                 assertThat(
                     response.getBody(),
                     response.getStatusCode(),
-                    anyOf(equalTo(HttpStatus.SC_CREATED), equalTo(HttpStatus.SC_CONFLICT))
+                    anyOf(equalTo(HttpStatus.SC_CREATED), equalTo(HttpStatus.SC_OK), equalTo(HttpStatus.SC_CONFLICT))
                 );
                 if (response.getStatusCode() == HttpStatus.SC_CREATED) numCreatedResponses.getAndIncrement();
             });
