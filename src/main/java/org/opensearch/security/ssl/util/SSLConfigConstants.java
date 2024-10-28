@@ -48,6 +48,8 @@ public final class SSLConfigConstants {
 
     public static final String CLIENT_AUTH_MODE = "clientauth_mode";
 
+    public static final String ENFORCE_CERT_RELOAD_DN_VERIFICATION = "enforce_cert_reload_dn_verification";
+
     public static final String KEYSTORE_TYPE = "keystore_type";
     public static final String KEYSTORE_ALIAS = "keystore_alias";
     public static final String KEYSTORE_FILEPATH = "keystore_filepath";
@@ -82,6 +84,8 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS = "plugins.security.ssl.http.truststore_alias";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = "plugins.security.ssl.http.truststore_filepath";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = "plugins.security.ssl.http.truststore_type";
+    public static final String SECURITY_SSL_HTTP_ENFORCE_CERT_RELOAD_DN_VERIFICATION = "plugins.security.ssl.http."
+        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE =
         "plugins.security.ssl.transport.enable_openssl_if_available";
     public static final String SECURITY_SSL_TRANSPORT_ENABLED = "plugins.security.ssl.transport.enabled";
@@ -91,6 +95,8 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME =
         "plugins.security.ssl.transport.resolve_hostname";
 
+    public static final String SECURITY_SSL_TRANSPORT_ENFORCE_CERT_RELOAD_DN_VERIFICATION = "plugins.security.ssl.transport."
+        + ENFORCE_CERT_RELOAD_DN_VERIFICATION;
     public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.keystore_alias";
     public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS = "plugins.security.ssl.transport.server.keystore_alias";
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS = "plugins.security.ssl.transport.client.keystore_alias";
