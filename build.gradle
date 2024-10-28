@@ -570,19 +570,6 @@ task integrationTest(type: Test) {
     }
 }
 
-test {
-    failFast = true
-}
-
-integrationTest {
-    failFast = true
-}
-
-tasks.named("integrationTest") {
-    minHeapSize = "512m"
-    maxHeapSize = "2g"
-}
-
 tasks.integTest.dependsOn(integrationTest)
 tasks.integrationTest.finalizedBy(jacocoTestReport) // report is always generated after integration tests run
 
