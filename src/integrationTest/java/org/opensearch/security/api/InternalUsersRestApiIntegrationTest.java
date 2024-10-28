@@ -44,7 +44,6 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
@@ -66,13 +65,6 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 new TestSecurityConfig.Role(RESERVED_ROLE).reserved(true),
                 new TestSecurityConfig.Role(SOME_ROLE)
             );
-    }
-
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> clusterSettings = super.getClusterSettings();
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
-        return clusterSettings;
     }
 
     public InternalUsersRestApiIntegrationTest() {

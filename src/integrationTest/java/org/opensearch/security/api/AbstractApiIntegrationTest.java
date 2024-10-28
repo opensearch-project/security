@@ -115,24 +115,6 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         testClass = this.getClass();
     }
 
-    // @BeforeClass
-    // public static void startCluster() throws IOException {
-    // configurationFolder = ConfigurationFiles.createConfigurationDirectory();
-    // extendConfiguration();
-    // final var clusterManager = randomFrom(List.of(ClusterManager.THREE_CLUSTER_MANAGERS, ClusterManager.SINGLENODE));
-    // final var localClusterBuilder = new LocalCluster.Builder().clusterManager(clusterManager)
-    // .nodeSettings(getClusterSettings())
-    // .defaultConfigurationInitDirectory(configurationFolder.toString())
-    // .loadConfigurationIntoIndex(false);
-    // localCluster = localClusterBuilder.build();
-    // localCluster.before();
-    // try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-    // Awaitility.await()
-    // .alias("Load default configuration")
-    // .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
-    // }
-    // }
-
     protected Map<String, Object> getClusterSettings() {
         Map<String, Object> clusterSettings = new HashMap<>();
         clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true);

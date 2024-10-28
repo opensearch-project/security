@@ -35,7 +35,6 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.Role;
 
 public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
@@ -53,13 +52,6 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                 new Role(REST_ADMIN_ROLE_WITH_MAPPING).clusterPermissions(allRestAdminPermissions())
             )
             .rolesMapping(new TestSecurityConfig.RoleMapping(REST_ADMIN_ROLE_WITH_MAPPING));
-    }
-
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> clusterSettings = super.getClusterSettings();
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
-        return clusterSettings;
     }
 
     public RolesMappingRestApiIntegrationTest() {
