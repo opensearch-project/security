@@ -534,11 +534,11 @@ sourceSets {
 task integrationTest(type: Test) {
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
-        if (System.getenv('CI_ENVIRONMENT') != 'resource-test') {
+        if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
             exclude '**/ResourceFocusedTests.class'
         }
         // Only run with retries while in CI systems
-        if (System.getenv('CI_ENVIRONMENT') == 'normal' || System.getenv('CI_ENVIRONMENT') == null) {
+        if (System.getenv('CI_ENVIRONMENT') == 'normal') {
             retry {
                 failOnPassedAfterRetry = false
                 maxRetries = 2
@@ -568,6 +568,11 @@ task integrationTest(type: Test) {
                 "sun.util.resources.provider.*"
         ]
     }
+}
+
+tasks.named("integrationTest") {
+    minHeapSize = "512m"
+    maxHeapSize = "2g"
 }
 
 tasks.integTest.dependsOn(integrationTest)
