@@ -40,6 +40,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.CLIENT_AUTH_MO
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED_CIPHERS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLE_OPENSSL_IF_AVAILABLE;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.ENFORCE_CERT_RELOAD_DN_VERIFICATION;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.OPENSSL_1_1_1_BETA_9;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.OPENSSL_AVAILABLE;
 
@@ -53,11 +54,20 @@ public class SslParameters {
 
     private final List<String> ciphers;
 
-    private SslParameters(SslProvider provider, final ClientAuth clientAuth, List<String> protocols, List<String> ciphers) {
+    private final boolean validateCertDNsOnReload;
+
+    private SslParameters(
+        SslProvider provider,
+        final ClientAuth clientAuth,
+        List<String> protocols,
+        List<String> ciphers,
+        boolean validateCertDNsOnReload
+    ) {
         this.provider = provider;
         this.ciphers = ciphers;
         this.protocols = protocols;
         this.clientAuth = clientAuth;
+        this.validateCertDNsOnReload = validateCertDNsOnReload;
     }
 
     public ClientAuth clientAuth() {
@@ -74,6 +84,10 @@ public class SslParameters {
 
     public List<String> allowedProtocols() {
         return protocols;
+    }
+
+    public boolean shouldValidateNewCertDNs() {
+        return validateCertDNsOnReload;
     }
 
     @Override
@@ -110,6 +124,10 @@ public class SslParameters {
             } else {
                 return SslProvider.JDK;
             }
+        }
+
+        private boolean validateCertDNsOnReload(final Settings settings) {
+            return settings.getAsBoolean(ENFORCE_CERT_RELOAD_DN_VERIFICATION, true);
         }
 
         private List<String> protocols(final SslProvider provider, final Settings settings, boolean http) {
@@ -181,7 +199,8 @@ public class SslParameters {
                 provider,
                 clientAuth,
                 protocols(provider, sslConfigSettings, http),
-                ciphers(provider, sslConfigSettings)
+                ciphers(provider, sslConfigSettings),
+                validateCertDNsOnReload(sslConfigSettings)
             );
             if (sslParameters.allowedProtocols().isEmpty()) {
                 throw new OpenSearchSecurityException("No ssl protocols for " + (http ? "HTTP" : "Transport") + " layer");
