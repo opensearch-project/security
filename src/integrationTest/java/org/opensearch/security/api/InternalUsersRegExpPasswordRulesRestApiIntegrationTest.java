@@ -11,6 +11,7 @@
 
 package org.opensearch.security.api;
 
+import java.util.Map;
 import java.util.StringJoiner;
 
 import org.junit.Test;
@@ -27,10 +28,19 @@ public class InternalUsersRegExpPasswordRulesRestApiIntegrationTest extends Abst
 
     final static String PASSWORD_VALIDATION_ERROR_MESSAGE = "xxxxxxxx";
 
-    static {
-        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, PASSWORD_VALIDATION_ERROR_MESSAGE)
-            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
-            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, PasswordValidator.ScoreStrength.FAIR.name());
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, PASSWORD_VALIDATION_ERROR_MESSAGE);
+        clusterSettings.put(
+            ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
+            "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}"
+        );
+        clusterSettings.put(
+            ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH,
+            PasswordValidator.ScoreStrength.FAIR.name()
+        );
+        return clusterSettings;
     }
 
     String internalUsers(String... path) {
