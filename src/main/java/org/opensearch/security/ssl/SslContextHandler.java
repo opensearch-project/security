@@ -26,6 +26,8 @@ import org.opensearch.transport.NettyAllocator;
 
 import io.netty.handler.ssl.SslContext;
 
+import static java.util.function.Predicate.not;
+
 public class SslContextHandler {
 
     private SslContext sslContext;
@@ -60,6 +62,14 @@ public class SslContextHandler {
         return sslContext;
     }
 
+    public Stream<Certificate> authorityCertificates() {
+        return authorityCertificates(loadedCertificates);
+    }
+
+    Stream<Certificate> authorityCertificates(final List<Certificate> certificates) {
+        return certificates.stream().filter(not(Certificate::hasKey));
+    }
+
     public Stream<Certificate> keyMaterialCertificates() {
         return keyMaterialCertificates(loadedCertificates);
     }
@@ -71,37 +81,62 @@ public class SslContextHandler {
     void reloadSslContext() throws CertificateException {
         final var newCertificates = sslConfiguration.certificates();
 
-        if (sameCertificates(newCertificates)) {
-            return;
+        boolean hasChanges = false;
+
+        final var loadedAuthorityCertificates = authorityCertificates().collect(Collectors.toList());
+        final var loadedKeyMaterialCertificates = keyMaterialCertificates().collect(Collectors.toList());
+        final var newAuthorityCertificates = authorityCertificates(newCertificates).collect(Collectors.toList());
+        final var newKeyMaterialCertificates = keyMaterialCertificates(newCertificates).collect(Collectors.toList());
+
+        if (notSameCertificates(loadedAuthorityCertificates, newAuthorityCertificates)) {
+            hasChanges = true;
+            validateDates(newAuthorityCertificates);
         }
-        validateNewCertificates(newCertificates, sslConfiguration.sslParameters().shouldValidateNewCertDNs());
-        invalidateSessions();
-        if (sslContext.isClient()) {
-            sslContext = sslConfiguration.buildClientSslContext(false);
-        } else {
-            sslContext = sslConfiguration.buildServerSslContext(false);
+
+        if (notSameCertificates(loadedKeyMaterialCertificates, newKeyMaterialCertificates)) {
+            hasChanges = true;
+            validateNewKeyMaterialCertificates(
+                loadedKeyMaterialCertificates,
+                newKeyMaterialCertificates,
+                sslConfiguration.sslParameters().shouldValidateNewCertDNs()
+            );
         }
-        loadedCertificates.clear();
-        loadedCertificates.addAll(newCertificates);
+        if (hasChanges) {
+            invalidateSessions();
+            if (sslContext.isClient()) {
+                sslContext = sslConfiguration.buildClientSslContext(false);
+            } else {
+                sslContext = sslConfiguration.buildServerSslContext(false);
+            }
+            loadedCertificates.clear();
+            loadedCertificates.addAll(newCertificates);
+        }
     }
 
-    private boolean sameCertificates(final List<Certificate> newCertificates) {
-        final Set<String> currentCertSignatureSet = keyMaterialCertificates().map(Certificate::x509Certificate)
+    private boolean notSameCertificates(final List<Certificate> loadedCertificates, final List<Certificate> newCertificates) {
+        final Set<String> currentCertSignatureSet = loadedCertificates.stream()
+            .map(Certificate::x509Certificate)
             .map(X509Certificate::getSignature)
             .map(s -> new String(s, StandardCharsets.UTF_8))
             .collect(Collectors.toSet());
-        final Set<String> newCertSignatureSet = keyMaterialCertificates(newCertificates).map(Certificate::x509Certificate)
+        final Set<String> newCertSignatureSet = newCertificates.stream()
+            .map(Certificate::x509Certificate)
             .map(X509Certificate::getSignature)
             .map(s -> new String(s, StandardCharsets.UTF_8))
             .collect(Collectors.toSet());
-        return currentCertSignatureSet.equals(newCertSignatureSet);
+        return !currentCertSignatureSet.equals(newCertSignatureSet);
     }
 
-    private void validateSubjectDns(final List<Certificate> newCertificates) throws CertificateException {
-        final List<String> currentSubjectDNs = keyMaterialCertificates().map(Certificate::subject).sorted().collect(Collectors.toList());
-        final List<String> newSubjectDNs = keyMaterialCertificates(newCertificates).map(Certificate::subject)
-            .sorted()
-            .collect(Collectors.toList());
+    private void validateDates(final List<Certificate> newCertificates) throws CertificateException {
+        for (final var certificate : newCertificates) {
+            certificate.x509Certificate().checkValidity();
+        }
+    }
+
+    private void validateSubjectDns(final List<Certificate> loadedCertificates, final List<Certificate> newCertificates)
+        throws CertificateException {
+        final List<String> currentSubjectDNs = loadedCertificates.stream().map(Certificate::subject).sorted().collect(Collectors.toList());
+        final List<String> newSubjectDNs = newCertificates.stream().map(Certificate::subject).sorted().collect(Collectors.toList());
         if (!currentSubjectDNs.equals(newSubjectDNs)) {
             throw new CertificateException(
                 "New certificates do not have valid Subject DNs. Current Subject DNs "
@@ -112,11 +147,10 @@ public class SslContextHandler {
         }
     }
 
-    private void validateIssuerDns(final List<Certificate> newCertificates) throws CertificateException {
-        final List<String> currentIssuerDNs = keyMaterialCertificates().map(Certificate::issuer).sorted().collect(Collectors.toList());
-        final List<String> newIssuerDNs = keyMaterialCertificates(newCertificates).map(Certificate::issuer)
-            .sorted()
-            .collect(Collectors.toList());
+    private void validateIssuerDns(final List<Certificate> loadedCertificates, final List<Certificate> newCertificates)
+        throws CertificateException {
+        final List<String> currentIssuerDNs = loadedCertificates.stream().map(Certificate::issuer).sorted().collect(Collectors.toList());
+        final List<String> newIssuerDNs = newCertificates.stream().map(Certificate::issuer).sorted().collect(Collectors.toList());
         if (!currentIssuerDNs.equals(newIssuerDNs)) {
             throw new CertificateException(
                 "New certificates do not have valid Issuer DNs. Current Issuer DNs: "
@@ -127,11 +161,14 @@ public class SslContextHandler {
         }
     }
 
-    private void validateSans(final List<Certificate> newCertificates) throws CertificateException {
-        final List<String> currentSans = keyMaterialCertificates().map(Certificate::subjectAlternativeNames)
+    private void validateSans(final List<Certificate> loadedCertificates, final List<Certificate> newCertificates)
+        throws CertificateException {
+        final List<String> currentSans = loadedCertificates.stream()
+            .map(Certificate::subjectAlternativeNames)
             .sorted()
             .collect(Collectors.toList());
-        final List<String> newSans = keyMaterialCertificates(newCertificates).map(Certificate::subjectAlternativeNames)
+        final List<String> newSans = newCertificates.stream()
+            .map(Certificate::subjectAlternativeNames)
             .sorted()
             .collect(Collectors.toList());
         if (!currentSans.equals(newSans)) {
@@ -141,15 +178,16 @@ public class SslContextHandler {
         }
     }
 
-    private void validateNewCertificates(final List<Certificate> newCertificates, boolean shouldValidateNewCertDNs)
-        throws CertificateException {
-        for (final var certificate : newCertificates) {
-            certificate.x509Certificate().checkValidity();
-        }
+    private void validateNewKeyMaterialCertificates(
+        final List<Certificate> loadedCertificates,
+        final List<Certificate> newCertificates,
+        boolean shouldValidateNewCertDNs
+    ) throws CertificateException {
+        validateDates(newCertificates);
         if (shouldValidateNewCertDNs) {
-            validateSubjectDns(newCertificates);
-            validateIssuerDns(newCertificates);
-            validateSans(newCertificates);
+            validateSubjectDns(loadedCertificates, newCertificates);
+            validateIssuerDns(loadedCertificates, newCertificates);
+            validateSans(loadedCertificates, newCertificates);
         }
     }
 
