@@ -927,6 +927,16 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             CompactMapGroupBuilder<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> indexMapBuilder =
                 new CompactMapGroupBuilder<>(indices.keySet(), (k2) -> roleSetBuilder.createSubSetBuilder());
 
+            // We iterate here through the present RoleV7 instances and nested through their "index_permissions" sections.
+            // During the loop, the actionToIndexToRoles map is being built.
+            // For that, action patterns from the role will be matched against the "well-known actions" to build
+            // a concrete action map and index patterns from the role will be matched against the present indices
+            // to build a concrete index map.
+            //
+            // The complexity of this loop is O(n*m) where n is dependent on the structure of the roles configuration
+            // and m is the number of matched indices. This formula does not take the loop through matchedActions in
+            // account, as this is bound by a constant number and thus does not need to be considered in the O() notation.
+
             top: for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
                     String roleName = entry.getKey();
@@ -939,6 +949,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
                         if (indexPermissions.getIndex_patterns().contains("*")) {
                             // Wildcard index patterns are handled in the static IndexPermissions object.
+                            // This avoids having to build huge data structures - when a very easy shortcut is available.
                             continue;
                         }
 
