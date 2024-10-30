@@ -39,7 +39,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
-import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
@@ -50,7 +49,7 @@ import org.opensearch.security.user.User;
 
 import org.greenrobot.eventbus.Subscribe;
 
-public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
+public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
@@ -69,7 +68,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     private final Boolean systemIndexPermissionEnabled;
 
     // constructor is called per index, so avoid costly operations here
-    public SystemIndexSearcherWrapper(
+    public SecurityIndexSearcherWrapper(
         final IndexService indexService,
         final Settings settings,
         final AdminDNs adminDNs,
@@ -153,8 +152,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     }
 
     protected final boolean isBlockedSystemIndexRequest() {
-        boolean matchesSystemIndexRegisteredWithCore = !SystemIndexRegistry.matchesSystemIndexPattern(Set.of(index.getName())).isEmpty();
-        boolean isSystemIndex = systemIndexMatcher.test(index.getName()) || matchesSystemIndexRegisteredWithCore;
+        boolean isSystemIndex = systemIndexMatcher.test(index.getName());
         if (!isSystemIndex) {
             return false;
         }
@@ -163,7 +161,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (user == null) {
                 // allow request without user from plugin.
-                return systemIndexMatcher.test(index.getName()) || matchesSystemIndexRegisteredWithCore;
+                return systemIndexMatcher.test(index.getName());
             }
             final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
             final Set<String> mappedRoles = evaluator.mapRoles(user, caller);
