@@ -429,7 +429,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(action, context);
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
         /**
@@ -462,7 +462,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(action, context);
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
         /**
@@ -499,9 +499,9 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             }
 
             if (actions.size() == 1) {
-                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next(), context);
+                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
             } else {
-                return PrivilegesEvaluatorResponse.insufficient("any of " + actions, context);
+                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
             }
         }
     }
@@ -781,10 +781,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             Set<String> availableIndices = checkTable.getCompleteRows();
 
             if (!availableIndices.isEmpty()) {
-                return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable, context).evaluationExceptions(exceptions);
+                return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable).evaluationExceptions(exceptions);
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(checkTable, context)
+            return PrivilegesEvaluatorResponse.insufficient(checkTable)
                 .reason(
                     resolvedIndices.getAllIndices().size() == 1
                         ? "Insufficient permissions for the referenced index"
@@ -829,7 +829,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
 
             if (!CollectionUtils.containsAny(actions, this.explicitlyRequiredIndexActions)) {
-                return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions), context);
+                return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions));
             }
 
             for (String role : context.getMappedRoles()) {
@@ -856,7 +856,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(checkTable, context)
+            return PrivilegesEvaluatorResponse.insufficient(checkTable)
                 .reason("No explicit privileges have been provided for the referenced indices.")
                 .evaluationExceptions(exceptions);
         }
