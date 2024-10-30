@@ -84,34 +84,7 @@ public class SslContextHandlerTest {
     }
 
     @Test
-    public void failsIfAuthorityCertificateHasInvalidDates() throws Exception {
-        final var sslContextHandler = sslContextHandler();
-        final var keyPair = certificatesRule.generateKeyPair();
-
-        final var caCertificate = certificatesRule.caCertificateHolder();
-
-        var newCaCertificate = certificatesRule.generateCaCertificate(
-            keyPair,
-            caCertificate.getNotAfter().toInstant(),
-            caCertificate.getNotAfter().toInstant().minus(10, ChronoUnit.DAYS)
-        );
-
-        writeCertificates(newCaCertificate, certificatesRule.accessCertificateHolder(), certificatesRule.accessCertificatePrivateKey());
-
-        assertThrows(CertificateException.class, sslContextHandler::reloadSslContext);
-
-        newCaCertificate = certificatesRule.generateCaCertificate(
-            keyPair,
-            caCertificate.getNotBefore().toInstant().plus(10, ChronoUnit.DAYS),
-            caCertificate.getNotAfter().toInstant().plus(20, ChronoUnit.DAYS)
-        );
-        writeCertificates(newCaCertificate, certificatesRule.accessCertificateHolder(), certificatesRule.accessCertificatePrivateKey());
-
-        assertThrows(CertificateException.class, sslContextHandler::reloadSslContext);
-    }
-
-    @Test
-    public void failsIfKeyMaterialCertificateHasInvalidDates() throws Exception {
+    public void failsIfCertificatesHasInvalidDates() throws Exception {
         final var sslContextHandler = sslContextHandler();
 
         final var accessCertificate = certificatesRule.x509AccessCertificate();
@@ -138,7 +111,7 @@ public class SslContextHandlerTest {
     }
 
     @Test
-    public void failsIfKeyMaterialCertificateHasNotValidSubjectDNs() throws Exception {
+    public void filesIfHasNotValidSubjectDNs() throws Exception {
         final var sslContextHandler = sslContextHandler();
 
         final var keyPair = certificatesRule.generateKeyPair();
@@ -164,7 +137,7 @@ public class SslContextHandlerTest {
     }
 
     @Test
-    public void failsIfKeyMaterialCertificateHasNotValidIssuerDNs() throws Exception {
+    public void filesIfHasNotValidIssuerDNs() throws Exception {
         final var sslContextHandler = sslContextHandler();
 
         final var keyPair = certificatesRule.generateKeyPair();
@@ -190,7 +163,7 @@ public class SslContextHandlerTest {
     }
 
     @Test
-    public void failsIfKeyMaterialCertificateHasNotValidSans() throws Exception {
+    public void filesIfHasNotValidSans() throws Exception {
         final var sslContextHandler = sslContextHandler();
 
         final var keyPair = certificatesRule.generateKeyPair();

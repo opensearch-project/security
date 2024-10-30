@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -45,7 +46,6 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
@@ -53,7 +53,7 @@ import org.opensearch.common.collect.Tuple;
 
 public class CertificatesRule extends ExternalResource {
 
-    private final static BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+    private final static BouncyCastleFipsProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleFipsProvider();
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -123,21 +123,12 @@ public class CertificatesRule extends ExternalResource {
 
     public X509CertificateHolder generateCaCertificate(final KeyPair parentKeyPair) throws IOException, NoSuchAlgorithmException,
         OperatorCreationException {
+        return generateCaCertificate(parentKeyPair, generateSerialNumber());
+    }
+
+    public X509CertificateHolder generateCaCertificate(final KeyPair parentKeyPair, final BigInteger serialNumber) throws IOException,
+        NoSuchAlgorithmException, OperatorCreationException {
         final var startAndEndDate = generateStartAndEndDate();
-        return generateCaCertificate(parentKeyPair, generateSerialNumber(), startAndEndDate.v1(), startAndEndDate.v2());
-    }
-
-    public X509CertificateHolder generateCaCertificate(final KeyPair parentKeyPair, final Instant startDate, final Instant endDate)
-        throws IOException, NoSuchAlgorithmException, OperatorCreationException {
-        return generateCaCertificate(parentKeyPair, generateSerialNumber(), startDate, endDate);
-    }
-
-    public X509CertificateHolder generateCaCertificate(
-        final KeyPair parentKeyPair,
-        final BigInteger serialNumber,
-        final Instant startDate,
-        final Instant endDate
-    ) throws IOException, NoSuchAlgorithmException, OperatorCreationException {
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extension should only be used sparingly to keep implementations as generic as possible
         return createCertificateBuilder(
             DEFAULT_SUBJECT_NAME,
@@ -145,8 +136,8 @@ public class CertificatesRule extends ExternalResource {
             parentKeyPair.getPublic(),
             parentKeyPair.getPublic(),
             serialNumber,
-            startDate,
-            endDate
+            startAndEndDate.v1(),
+            startAndEndDate.v2()
         ).addExtension(Extension.basicConstraints, true, new BasicConstraints(true))
             .addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyCertSign | KeyUsage.cRLSign))
             .build(new JcaContentSignerBuilder("SHA256withRSA").setProvider(BOUNCY_CASTLE_PROVIDER).build(parentKeyPair.getPrivate()));

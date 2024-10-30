@@ -579,7 +579,7 @@ dependencies {
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.9.0'
-    implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+    implementation "org.bouncycastle:bc-fips:2.0.0"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:9.41.2'
     implementation 'com.rfksystems:blake2b:2.0.0'
@@ -609,26 +609,29 @@ dependencies {
     runtimeOnly 'org.ow2.asm:asm:9.7.1'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.2'
+    implementation 'net.shibboleth.utilities:java-support:7.5.1'
 
     //OpenSAML
-    implementation 'net.shibboleth.utilities:java-support:8.4.2'
+    implementation 'net.shibboleth.utilities:java-support:7.5.1'
     runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.28"
-    implementation "com.onelogin:java-saml:${one_login_java_saml}"
-    implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
-    implementation "org.opensaml:opensaml-core:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
-    implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
+    implementation 'com.onelogin:java-saml:2.5.0'
+    implementation 'com.onelogin:java-saml-core:2.5.0'
+    implementation 'org.opensaml:opensaml-core:3.4.5'
+    implementation 'org.opensaml:opensaml-security-impl:3.4.5'
+    implementation ('org.opensaml:opensaml-security-api:3.4.5') {
+        exclude(group: 'org.bouncycastle', module: 'bcprov-jdk15on')
+    }
+    implementation 'org.opensaml:opensaml-xmlsec-api:3.4.5'
+    implementation 'org.opensaml:opensaml-xmlsec-impl:3.4.5'
+    implementation 'org.opensaml:opensaml-saml-api:3.4.5'
+    implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
         exclude(group: 'org.apache.velocity', module: 'velocity')
     }
-    implementation "org.opensaml:opensaml-messaging-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-profile-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
-    implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
+    implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
+    runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'
+    runtimeOnly 'org.opensaml:opensaml-soap-api:3.4.5'
+    runtimeOnly 'org.opensaml:opensaml-soap-impl:3.4.5'
+    implementation 'org.opensaml:opensaml-storage-api:3.4.5'
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
@@ -648,11 +651,11 @@ dependencies {
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.4'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
     runtimeOnly 'org.checkerframework:checker-qual:3.48.1'
-    runtimeOnly "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+    runtimeOnly "org.bouncycastle:bcpkix-fips:2.0.7"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
-    testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
+    testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
@@ -680,13 +683,13 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.9.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.13'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.3'
     testImplementation('org.awaitility:awaitility:4.2.2') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
-    testImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
-    testImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
+    testImplementation "org.bouncycastle:bcpkix-fips:2.0.7"
+    testImplementation "org.bouncycastle:bcutil-fips:2.0.3"
 
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
@@ -726,8 +729,8 @@ dependencies {
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-    integrationTestImplementation "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
-    integrationTestImplementation "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
+    integrationTestImplementation "org.bouncycastle:bcpkix-fips:2.0.7"
+    integrationTestImplementation "org.bouncycastle:bcutil-fips:2.0.3"
     integrationTestImplementation('org.awaitility:awaitility:4.2.2') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }

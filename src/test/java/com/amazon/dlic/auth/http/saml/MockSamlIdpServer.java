@@ -23,7 +23,6 @@ import java.net.Socket;
 import java.net.URISyntaxException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -33,8 +32,6 @@ import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -61,6 +58,8 @@ import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import net.shibboleth.utilities.java.support.codec.Base64Support;
+import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import org.apache.hc.core5.function.Callback;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -82,13 +81,11 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHttpRequest;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.net.URIBuilder;
+import org.joda.time.DateTime;
 
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
-import net.shibboleth.utilities.java.support.codec.Base64Support;
-import net.shibboleth.utilities.java.support.codec.EncodingException;
-import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -98,6 +95,7 @@ import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.messaging.context.MessageContext;
 import org.opensaml.messaging.decoder.MessageDecodingException;
 import org.opensaml.messaging.handler.MessageHandlerException;
+import org.opensaml.saml.common.SAMLObject;
 import org.opensaml.saml.common.SAMLVersion;
 import org.opensaml.saml.common.messaging.context.SAMLPeerEntityContext;
 import org.opensaml.saml.common.messaging.context.SAMLProtocolContext;
@@ -333,11 +331,11 @@ class MockSamlIdpServer implements Closeable {
 
             HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
             decoder.setParserPool(XMLObjectProviderRegistrySupport.getParserPool());
-            decoder.setHttpServletRequestSupplier(() -> httpServletRequest);
+            decoder.setHttpServletRequest(httpServletRequest);
             decoder.initialize();
             decoder.decode();
 
-            MessageContext messageContext = decoder.getMessageContext();
+            MessageContext<SAMLObject> messageContext = decoder.getMessageContext();
 
             if (!(messageContext.getMessage() instanceof AuthnRequest)) {
                 throw new RuntimeException("Expected AuthnRequest; received: " + messageContext.getMessage());
@@ -359,6 +357,7 @@ class MockSamlIdpServer implements Closeable {
         handleSloGetRequestBase(new BasicHttpRequest("GET", samlRequestURI));
     }
 
+    @SuppressWarnings("unchecked")
     public void handleSloGetRequestBase(HttpRequest request) {
         try {
 
@@ -366,11 +365,11 @@ class MockSamlIdpServer implements Closeable {
 
             HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
             decoder.setParserPool(XMLObjectProviderRegistrySupport.getParserPool());
-            decoder.setHttpServletRequestSupplier(() -> httpServletRequest);
+            decoder.setHttpServletRequest(httpServletRequest);
             decoder.initialize();
             decoder.decode();
 
-            MessageContext messageContext = decoder.getMessageContext();
+            MessageContext<SAMLObject> messageContext = decoder.getMessageContext();
 
             if (!(messageContext.getMessage() instanceof LogoutRequest)) {
                 throw new RuntimeException("Expected LogoutRequest; received: " + messageContext.getMessage());
@@ -392,7 +391,7 @@ class MockSamlIdpServer implements Closeable {
 
             validationParams.setSignatureTrustEngine(buildSignatureTrustEngine(this.spSignatureCertificate));
             securityParametersContext.setSignatureValidationParameters(validationParams);
-            signatureSecurityHandler.setHttpServletRequestSupplier(() -> httpServletRequest);
+            signatureSecurityHandler.setHttpServletRequest(httpServletRequest);
             signatureSecurityHandler.initialize();
             signatureSecurityHandler.invoke(messageContext);
 
@@ -416,18 +415,18 @@ class MockSamlIdpServer implements Closeable {
 
             response.setVersion(SAMLVersion.VERSION_20);
             response.setStatus(createStatus(StatusCode.SUCCESS));
-            response.setIssueInstant(Instant.now());
+            response.setIssueInstant(new DateTime());
 
             Assertion assertion = createSamlElement(Assertion.class);
 
             assertion.setID(nextId());
-            assertion.setIssueInstant(Instant.now());
+            assertion.setIssueInstant(new DateTime());
             assertion.setIssuer(createIssuer());
 
             AuthnStatement authnStatement = createSamlElement(AuthnStatement.class);
             assertion.getAuthnStatements().add(authnStatement);
 
-            authnStatement.setAuthnInstant(Instant.now());
+            authnStatement.setAuthnInstant(new DateTime());
             authnStatement.setSessionIndex(nextId());
             authnStatement.setAuthnContext(createAuthnCotext());
 
@@ -441,7 +440,7 @@ class MockSamlIdpServer implements Closeable {
                     .add(
                         createSubjectConfirmation(
                             "urn:oasis:names:tc:SAML:2.0:cm:bearer",
-                            Instant.now().plus(1, ChronoUnit.MINUTES),
+                            new DateTime().plusMinutes(1),
                             authnRequest.getID(),
                             authnRequest.getAssertionConsumerServiceURL()
                         )
@@ -451,7 +450,7 @@ class MockSamlIdpServer implements Closeable {
                     .add(
                         createSubjectConfirmation(
                             "urn:oasis:names:tc:SAML:2.0:cm:bearer",
-                            Instant.now().plus(1, ChronoUnit.MINUTES),
+                            new DateTime().plusMinutes(1),
                             null,
                             defaultAssertionConsumerService
                         )
@@ -461,8 +460,8 @@ class MockSamlIdpServer implements Closeable {
             Conditions conditions = createSamlElement(Conditions.class);
             assertion.setConditions(conditions);
 
-            conditions.setNotBefore(Instant.now());
-            conditions.setNotOnOrAfter(Instant.now().plus(1, ChronoUnit.MINUTES));
+            conditions.setNotBefore(new DateTime());
+            conditions.setNotOnOrAfter(new DateTime().plusMinutes(1));
 
             if (authenticateUserRoles != null) {
                 AttributeStatement attributeStatement = createSamlElement(AttributeStatement.class);
@@ -502,9 +501,9 @@ class MockSamlIdpServer implements Closeable {
 
             String marshalledXml = marshallSamlXml(response);
 
-            return Base64Support.encode(marshalledXml.getBytes(StandardCharsets.UTF_8), Base64Support.UNCHUNKED);
+            return Base64Support.encode(marshalledXml.getBytes("UTF-8"), Base64Support.UNCHUNKED);
 
-        } catch (MarshallingException | SignatureException | EncryptionException | EncodingException e) {
+        } catch (MarshallingException | SignatureException | UnsupportedEncodingException | EncryptionException e) {
             throw new RuntimeException(e);
         }
     }
@@ -548,7 +547,7 @@ class MockSamlIdpServer implements Closeable {
 
         NameIDFormat nameIdFormat = createSamlElement(NameIDFormat.class);
 
-        nameIdFormat.setURI("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
+        nameIdFormat.setFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
 
         return nameIdFormat;
     }
@@ -568,7 +567,7 @@ class MockSamlIdpServer implements Closeable {
         return nameID;
     }
 
-    private SubjectConfirmation createSubjectConfirmation(String method, Instant notOnOrAfter, String inResponseTo, String recipient) {
+    private SubjectConfirmation createSubjectConfirmation(String method, DateTime notOnOrAfter, String inResponseTo, String recipient) {
         SubjectConfirmation result = createSamlElement(SubjectConfirmation.class);
         result.setMethod(method);
 
@@ -592,7 +591,7 @@ class MockSamlIdpServer implements Closeable {
     private AuthnContext createAuthnCotext() {
         AuthnContext authnContext = createSamlElement(AuthnContext.class);
         AuthnContextClassRef authnContextClassRef = createSamlElement(AuthnContextClassRef.class);
-        authnContextClassRef.setURI(AuthnContext.UNSPECIFIED_AUTHN_CTX);
+        authnContextClassRef.setAuthnContextClassRef(AuthnContext.UNSPECIFIED_AUTHN_CTX);
         authnContext.setAuthnContextClassRef(authnContextClassRef);
         return authnContext;
     }
