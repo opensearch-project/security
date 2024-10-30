@@ -700,6 +700,22 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
         }
 
+        /**
+         * Checks whether this instance provides privileges for the combination of the provided action,
+         * the provided indices and the provided roles.
+         * <p>
+         * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
+         * <p>
+         * If privileges are only available for a sub-set of indices, isPartiallyOk() will return true
+         * and the indices for which privileges are available are returned by getAvailableIndices(). This allows the
+         * do_not_fail_on_forbidden behaviour.
+         * <p>
+         * This method will only verify privileges for the index/action combinations which are un-checked in
+         * the checkTable instance provided to this method. Checked index/action combinations are considered to be
+         * "already fulfilled by other means" - usually that comes from the stateful data structure.
+         * As a side-effect, this method will further mark the available index/action combinations in the provided
+         * checkTable instance as checked.
+         */
         PrivilegesEvaluatorResponse providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
