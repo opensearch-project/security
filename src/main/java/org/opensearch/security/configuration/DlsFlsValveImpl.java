@@ -170,15 +170,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 doFilterLevelDls = false;
             } else { // mode == Mode.ADAPTIVE
                 Mode modeByHeader = getDlsModeHeader();
+                dlsRestrictionMap = config.getDocumentPrivileges()
+                    .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
 
                 if (modeByHeader == Mode.FILTER_LEVEL) {
                     doFilterLevelDls = true;
                     log.debug("Doing filter-level DLS due to header");
-                    dlsRestrictionMap = config.getDocumentPrivileges()
-                        .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
                 } else {
-                    dlsRestrictionMap = config.getDocumentPrivileges()
-                        .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
                     doFilterLevelDls = dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery);
 
                     if (doFilterLevelDls) {
