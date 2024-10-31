@@ -48,7 +48,7 @@ while getopts ":h:b:p:s:c:v:n:t:m:u:" arg; do
             CLUSTER_NAME=$OPTARG
             ;;
         v)
-            # Do nothing as we're not consuming this param.
+            OPENSEARCH_VERSION=$OPTARG
             ;;
         n)
             # Do nothing as we're not consuming this param.
@@ -82,11 +82,6 @@ fi
 if [ -z "$SECURITY_ENABLED" ]
 then
   SECURITY_ENABLED="true"
-fi
-
-if [ -z "$CREDENTIAL" ]
-then
-  CREDENTIAL="admin:admin"
 fi
 
 OPENSEARCH_REQUIRED_VERSION="2.12.0"
