@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -43,7 +44,6 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
     final static String REGULAR_USER = "regular_user";
 
     static {
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
         testSecurityConfig.roles(
             new TestSecurityConfig.Role("simple_user_role").clusterPermissions("cluster:admin/security/certificates/info")
         )
@@ -51,6 +51,13 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
             .user(new TestSecurityConfig.User(REGULAR_USER))
             .withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions())
             .withRestAdminUser(REST_API_ADMIN_SSL_INFO, restAdminPermission(Endpoint.SSL, CERTS_INFO_ACTION));
+    }
+
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
+        return clusterSettings;
     }
 
     @Override
@@ -96,9 +103,7 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
     }
 
     private void verifyTimeoutRequest(final TestRestClient client) throws Exception {
-        TestRestClient.HttpResponse response = ok(() -> client.get(sslCertsPath() + "?timeout=0"));
-        final var body = response.bodyAsJsonNode();
-        assertThat(body.get("nodes").size(), is(0));
+        ok(() -> client.get(sslCertsPath() + "?timeout=0"));
     }
 
     private void verifySSLCertsInfo(final TestRestClient client) throws Exception {

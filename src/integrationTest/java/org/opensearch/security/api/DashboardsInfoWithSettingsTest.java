@@ -12,6 +12,7 @@
 package org.opensearch.security.api;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -32,13 +33,19 @@ public class DashboardsInfoWithSettingsTest extends AbstractApiIntegrationTest {
         "Password must be minimum 5 characters long and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
 
     static {
-        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, CUSTOM_PASSWORD_REGEX)
-            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, CUSTOM_PASSWORD_MESSAGE);
         testSecurityConfig.user(
             new TestSecurityConfig.User("dashboards_user").roles(
                 new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
             )
         );
+    }
+
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, CUSTOM_PASSWORD_REGEX);
+        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, CUSTOM_PASSWORD_MESSAGE);
+        return clusterSettings;
     }
 
     private String apiPath() {

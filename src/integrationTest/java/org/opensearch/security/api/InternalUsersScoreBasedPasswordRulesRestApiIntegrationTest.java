@@ -11,6 +11,7 @@
 
 package org.opensearch.security.api;
 
+import java.util.Map;
 import java.util.StringJoiner;
 
 import org.junit.Test;
@@ -24,8 +25,11 @@ import static org.opensearch.security.api.PatchPayloadHelper.patch;
 
 public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
-    static {
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
         clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 9);
+        return clusterSettings;
     }
 
     String internalUsers(String... path) {
