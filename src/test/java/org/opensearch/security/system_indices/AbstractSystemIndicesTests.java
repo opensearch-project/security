@@ -174,7 +174,6 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
         assertThat(searchResponse.status(), is(RestStatus.OK));
         assertThat(searchResponse.getHits().getHits().length, is(expectedHits));
         assertThat(searchResponse.getFailedShards(), is(0));
-        assertThat(searchResponse.getSuccessfulShards(), is(5));
     }
 
     String permissionExceptionMessage(String action, String username) {

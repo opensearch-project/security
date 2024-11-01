@@ -10,6 +10,8 @@
  */
 package org.opensearch.security.api;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Test;
 
@@ -26,9 +28,15 @@ public class SslCertsRestApiIntegrationTest extends AbstractApiIntegrationTest {
     final static String REST_API_ADMIN_SSL_INFO = "rest-api-admin-ssl-info";
 
     static {
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
         testSecurityConfig.withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions())
             .withRestAdminUser(REST_API_ADMIN_SSL_INFO, restAdminPermission(Endpoint.SSL, CERTS_INFO_ACTION));
+    }
+
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
+        return clusterSettings;
     }
 
     protected String sslCertsPath() {

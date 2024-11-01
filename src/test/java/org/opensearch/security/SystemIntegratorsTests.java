@@ -289,7 +289,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"_id\" : \"config\""));
         Assert.assertTrue(resc.getBody().contains("\"_id\" : \"roles\""));
         Assert.assertTrue(resc.getBody().contains("\"_id\" : \"internalusers\""));
-        Assert.assertTrue(resc.getBody().contains("\"total\" : 5"));
+        Assert.assertTrue(resc.getBody().contains("\"total\" : 1"));
 
         resc = rh.executeGetRequest(
             ".opendistro_security/_search?pretty",

@@ -39,8 +39,14 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_A
 public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApiIntegrationTest {
 
     static {
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
         testSecurityConfig.withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions());
+    }
+
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
+        return clusterSettings;
     }
 
     interface TestDescriptor {
