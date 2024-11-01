@@ -10,6 +10,7 @@
  */
 package org.opensearch.security.api;
 
+import java.util.Map;
 import java.util.StringJoiner;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,9 +31,16 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
     final static String REST_API_ADMIN_CONFIG_UPDATE = "rest-api-admin-config-update";
 
     static {
-        clusterSettings.put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
         testSecurityConfig.withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions())
             .withRestAdminUser(REST_API_ADMIN_CONFIG_UPDATE, restAdminPermission(Endpoint.CONFIG, SECURITY_CONFIG_UPDATE));
+    }
+
+    @Override
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = super.getClusterSettings();
+        clusterSettings.put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true);
+        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
+        return clusterSettings;
     }
 
     private String securityConfigPath(final String... path) {
@@ -80,6 +88,7 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
         badRequest(() -> client.putJson(securityConfigPath("xxx"), EMPTY_BODY));
         verifyNotAllowedMethods(client);
 
+        TestRestClient.HttpResponse resp = client.get(securityConfigPath());
         final var configJson = ok(() -> client.get(securityConfigPath())).bodyAsJsonNode();
         final var authFailureListeners = DefaultObjectMapper.objectMapper.createObjectNode();
         authFailureListeners.set(

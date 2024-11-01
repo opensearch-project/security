@@ -13,19 +13,20 @@ package org.opensearch.security.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.runner.RunWith;
 
 import org.opensearch.common.CheckedConsumer;
@@ -86,22 +87,22 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
 
     public static Path configurationFolder;
 
-    public static ImmutableMap.Builder<String, Object> clusterSettings = ImmutableMap.builder();
-
     protected static TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
 
     public static LocalCluster localCluster;
 
-    @BeforeClass
-    public static void startCluster() throws IOException {
+    private Class<? extends AbstractApiIntegrationTest> testClass;
+
+    @Before
+    public void startCluster() throws IOException {
+        if (this.getClass().equals(testClass)) {
+            return;
+        }
         configurationFolder = ConfigurationFiles.createConfigurationDirectory();
         extendConfiguration();
-        clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
-            .put(PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS))
-            .put(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, randomBoolean());
         final var clusterManager = randomFrom(List.of(ClusterManager.THREE_CLUSTER_MANAGERS, ClusterManager.SINGLENODE));
         final var localClusterBuilder = new LocalCluster.Builder().clusterManager(clusterManager)
-            .nodeSettings(clusterSettings.buildKeepingLast())
+            .nodeSettings(getClusterSettings())
             .defaultConfigurationInitDirectory(configurationFolder.toString())
             .loadConfigurationIntoIndex(false);
         localCluster = localClusterBuilder.build();
@@ -111,6 +112,15 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
         }
+        testClass = this.getClass();
+    }
+
+    protected Map<String, Object> getClusterSettings() {
+        Map<String, Object> clusterSettings = new HashMap<>();
+        clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true);
+        clusterSettings.put(PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS));
+        clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, randomBoolean());
+        return clusterSettings;
     }
 
     private static void extendConfiguration() throws IOException {
