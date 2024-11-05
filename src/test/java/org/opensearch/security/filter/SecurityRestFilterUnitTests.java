@@ -15,6 +15,8 @@ import java.nio.file.Path;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
 
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
@@ -41,6 +43,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+@RunWith(Enclosed.class)
 public class SecurityRestFilterUnitTests {
 
     SecurityRestFilter sf;
@@ -99,5 +102,88 @@ public class SecurityRestFilterUnitTests {
         wrappedRestHandler.handleRequest(mock(RestRequest.class), mock(RestChannel.class), mock(NodeClient.class));
 
         verify(testRestHandlerSpy).handleRequest(any(), any(), any());
+    }
+
+    // Mini Test Suite for restPathMatches
+    public static class RestPathMatchesTests {
+
+        private SecurityRestFilter sf;
+
+        @Before
+        public void setUp() {
+            sf = new SecurityRestFilter(
+                mock(BackendRegistry.class),
+                mock(RestLayerPrivilegesEvaluator.class),
+                mock(AuditLog.class),
+                mock(ThreadPool.class),
+                mock(PrincipalExtractor.class),
+                Settings.EMPTY,
+                mock(Path.class),
+                mock(CompatConfig.class)
+            );
+        }
+
+        @Test
+        public void testExactPathMatch() {
+            String requestPath = "/api/v1/resource";
+            String handlerPath = "/api/v1/resource";
+            assertTrue(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testPathsDoNotMatch() {
+            String requestPath = "/api/v1/resource";
+            String handlerPath = "/api/v2/resource";
+            assertFalse(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testMatchWithLeadingSlashDifference() {
+            String requestPath = "api/v1/resource";
+            String handlerPath = "/api/v1/resource";
+            assertTrue(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testMatchWithTrailingSlashDifference() {
+            String requestPath = "/api/v1/resource/";
+            String handlerPath = "/api/v1/resource";
+            assertTrue(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testPathsMatchWithNamedParameter() {
+            String requestPath = "/api/v1/resource/123";
+            String handlerPath = "/api/v1/resource/{id}";
+            assertTrue(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testPathsDoNotMatchWithDifferentNamedParameter() {
+            String requestPath = "/api/v1/resource/123";
+            String handlerPath = "/api/v1/resource/{name}";
+            assertTrue(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testDifferentSegmentCount() {
+            String requestPath = "/api/v1/resource/123/extra";
+            String handlerPath = "/api/v1/resource/{id}";
+            assertFalse(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testPathsMatchWithMultipleNamedParameters() {
+            String requestPath = "/api/v1/resource/123/details";
+            String handlerPath = "/api/v1/resource/{id}/details";
+            assertTrue(sf.restPathMatches(requestPath, handlerPath));
+        }
+
+        @Test
+        public void testPathsDoNotMatchWithNonMatchingNamedParameterSegment() {
+            String requestPath = "/api/v1/resource/123/details";
+            String handlerPath = "/api/v1/resource/{id}/summary";
+            assertFalse(sf.restPathMatches(requestPath, handlerPath));
+        }
     }
 }

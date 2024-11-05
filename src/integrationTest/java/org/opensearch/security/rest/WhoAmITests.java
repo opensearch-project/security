@@ -37,14 +37,13 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.RestClientException;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import joptsimple.internal.Strings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.*;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
@@ -52,6 +51,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.grantedPrivilege;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateRESTLayer;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticatedPredicate;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -135,6 +135,18 @@ public class WhoAmITests {
             );
 
             assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
+        }
+    }
+
+    @Test
+    public void testWhoAmIWithoutGetPermissionsWithoutLeadingSlashInPath() {
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
+            Exception exception = assertThrows(
+                RestClientException.class,
+                () -> { client.getWithoutLeadingSlash(WHOAMI_PROTECTED_ENDPOINT); }
+            );
+
+            assertThat(exception.getMessage(), containsString("Error occured during HTTP request execution"));
         }
     }
 
