@@ -36,6 +36,8 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.common.unit.ByteSizeUnit;
+import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -439,17 +441,24 @@ public class ActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA;
 
+                Settings settings = Settings.EMPTY;
+                if (statefulness == Statefulness.STATEFUL_LIMITED) {
+                    settings = Settings.builder()
+                        .put(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(), new ByteSizeValue(10, ByteSizeUnit.BYTES))
+                        .build();
+                }
+
                 this.subject = new ActionPrivileges(
                     roles,
                     FlattenedActionGroups.EMPTY,
                     () -> INDEX_METADATA,
-                    Settings.EMPTY,
+                    settings,
                     WellKnownActions.CLUSTER_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS
                 );
 
-                if (statefulness == Statefulness.STATEFUL) {
+                if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA, 1);
                 }
             }
@@ -612,9 +621,16 @@ public class ActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA;
 
-                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA, Settings.EMPTY);
+                Settings settings = Settings.EMPTY;
+                if (statefulness == Statefulness.STATEFUL_LIMITED) {
+                    settings = Settings.builder()
+                        .put(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(), new ByteSizeValue(10, ByteSizeUnit.BYTES))
+                        .build();
+                }
 
-                if (statefulness == Statefulness.STATEFUL) {
+                this.subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, () -> INDEX_METADATA, settings);
+
+                if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     this.subject.updateStatefulIndexPrivileges(INDEX_METADATA, 1);
                 }
             }
@@ -767,6 +783,7 @@ public class ActionPrivilegesTest {
 
         enum Statefulness {
             STATEFUL,
+            STATEFUL_LIMITED,
             NON_STATEFUL
         }
     }
