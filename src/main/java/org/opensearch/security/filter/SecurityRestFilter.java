@@ -335,7 +335,7 @@ public class SecurityRestFilter {
      * @param handlerPath The path from the {@link RestHandler.Route}
      * @return true if the request path matches the route
      */
-    boolean restPathMatches(String requestPath, String handlerPath) {
+    private boolean restPathMatches(String requestPath, String handlerPath) {
         // Trim leading and trailing slashes
         requestPath = requestPath.replaceAll("^/+", "").replaceAll("/+$", "");
         handlerPath = handlerPath.replaceAll("^/+", "").replaceAll("/+$", "");
