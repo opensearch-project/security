@@ -364,6 +364,15 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 return;
             }
 
+            if (dlsFlsBaseContext.isPrivilegedConfigRequest()) {
+                // Requests with the header OPENDISTRO_SECURITY_CONF_REQUEST_HEADER set bypass any access controls.
+                // This follows the logic from
+                // https://github.com/opensearch-project/security/blob/1c898dcc4a92e8d4aa8b18c3fed761b5f6e52d4f/src/main/java/org/opensearch/security/filter/SecurityFilter.java#L209
+                // In the old DLS/FLS implementation, that check in SecurityFilter would also affect this code.
+                // Now it does not any more, thus we need this additional check here.
+                return;
+            }
+
             PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
             if (privilegesEvaluationContext == null) {
                 return;
