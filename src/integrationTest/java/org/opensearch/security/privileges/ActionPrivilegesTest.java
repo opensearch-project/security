@@ -41,7 +41,6 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
 
@@ -784,7 +783,7 @@ public class ActionPrivilegesTest {
 
             assertTrue(
                 "relevantOnly() returned identical object",
-                ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, null) == metadata
+                ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata) == metadata
             );
         }
 
@@ -798,7 +797,7 @@ public class ActionPrivilegesTest {
             assertNotNull("Original metadata contains index_open_1", metadata.get("index_open_1"));
             assertNotNull("Original metadata contains index_closed", metadata.get("index_closed"));
 
-            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, null);
+            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata);
 
             assertNotNull("Filtered metadata contains index_open_1", filteredMetadata.get("index_open_1"));
             assertNull("Filtered metadata does not contain index_closed", filteredMetadata.get("index_closed"));
@@ -811,33 +810,10 @@ public class ActionPrivilegesTest {
             assertNotNull("Original metadata contains backing index", metadata.get(".ds-data_stream_1-000001"));
             assertNotNull("Original metadata contains data stream", metadata.get("data_stream_1"));
 
-            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata, null);
+            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(metadata);
 
             assertNull("Filtered metadata does not contain backing index", filteredMetadata.get(".ds-data_stream_1-000001"));
             assertNotNull("Filtered metadata contains data stream", filteredMetadata.get("data_stream_1"));
-        }
-
-        @Test
-        public void relevantOnly_includePattern() throws Exception {
-            Map<String, IndexAbstraction> metadata = //
-                indices("index_a11", "index_a12", "index_b1")//
-                    .alias("alias_a")
-                    .of("index_a11")//
-                    .build()
-                    .getIndicesLookup();
-
-            assertNotNull("Original metadata contains index_a11", metadata.get("index_a11"));
-            assertNotNull("Original metadata contains index_b1", metadata.get("index_b1"));
-            assertNotNull("Original metadata contains alias_a", metadata.get("alias_a"));
-
-            Map<String, IndexAbstraction> filteredMetadata = ActionPrivileges.StatefulIndexPrivileges.relevantOnly(
-                metadata,
-                WildcardMatcher.from("index_a*", "alias_a*")
-            );
-
-            assertNotNull("Filtered metadata contains index_a11", filteredMetadata.get("index_a11"));
-            assertNull("Filtered metadata does not contain index_b1", filteredMetadata.get("index_b1"));
-            assertNotNull("Filtered metadata contains alias_a", filteredMetadata.get("alias_a"));
         }
 
         @Test
