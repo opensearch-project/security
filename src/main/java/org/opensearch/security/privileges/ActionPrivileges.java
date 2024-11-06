@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.collections4.CollectionUtils;
@@ -64,26 +63,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
      * This settings defaults to 10 MB. This is a generous limit. Experiments have shown that an example setup with
      * 10,000 indices and 1,000 roles requires about 1 MB of heap. 100,000 indices and 100 roles require about 9 MB of heap.
      * (Of course, these numbers can vary widely based on the actual role configuration).
-     * <p>
-     * The setting plugins.security.privileges_evaluation.precomputed_privileges.include_indices can be used to control
-     * for which indices the precomputed privileges shall be created. This allows to lower the heap utilization.
      */
     public static Setting<ByteSizeValue> PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE = Setting.memorySizeSetting(
         "plugins.security.privileges_evaluation.precomputed_privileges.max_heap_size",
         new ByteSizeValue(10, ByteSizeUnit.MB),
-        Setting.Property.NodeScope
-    );
-
-    /**
-     * Determines the indices which shall be included in the precomputed index privileges. Included indices get
-     * the fasted privilege evaluation.
-     * <p>
-     * You can use patterns like "index_*".
-     * <p>
-     * Defaults to all indices.
-     */
-    public static Setting<String> PRECOMPUTED_PRIVILEGES_INCLUDE_INDICES = Setting.simpleString(
-        "plugins.security.privileges_evaluation.precomputed_privileges.include_indices",
         Setting.Property.NodeScope
     );
 
@@ -97,7 +80,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
     private final ImmutableSet<String> wellKnownIndexActions;
     private final Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier;
     private final ByteSizeValue statefulIndexMaxHeapSize;
-    private final WildcardMatcher statefulIndexIncludeIndices;
 
     private final AtomicReference<StatefulIndexPrivileges> statefulIndex = new AtomicReference<>();
 
@@ -118,10 +100,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         this.wellKnownIndexActions = wellKnownIndexActions;
         this.indexMetadataSupplier = indexMetadataSupplier;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
-        String statefulIndexIncludeIndices = PRECOMPUTED_PRIVILEGES_INCLUDE_INDICES.get(settings);
-        this.statefulIndexIncludeIndices = Strings.isNullOrEmpty(statefulIndexIncludeIndices)
-            ? null
-            : WildcardMatcher.from(statefulIndexIncludeIndices);
     }
 
     public ActionPrivileges(
@@ -241,7 +219,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
     void updateStatefulIndexPrivileges(Map<String, IndexAbstraction> indices, long metadataVersion) {
         StatefulIndexPrivileges statefulIndex = this.statefulIndex.get();
 
-        indices = StatefulIndexPrivileges.relevantOnly(indices, statefulIndexIncludeIndices);
+        indices = StatefulIndexPrivileges.relevantOnly(indices);
 
         if (statefulIndex == null || !statefulIndex.indices.equals(indices)) {
             long start = System.currentTimeMillis();
@@ -1004,10 +982,9 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                                         .getEstimatedByteSize() > statefulIndexMaxHeapSize.getBytes()) {
                                         log.info(
                                             "Size of precomputed index privileges exceeds configured limit ({}). Using capped data structure."
-                                                + "This might lead to slightly lower performance during privilege evaluation. Consider raising {} or limiting the performance critical indices using {}.",
+                                                + "This might lead to slightly lower performance during privilege evaluation. Consider raising {}.",
                                             statefulIndexMaxHeapSize,
-                                            PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey(),
-                                            PRECOMPUTED_PRIVILEGES_INCLUDE_INDICES.getKey()
+                                            PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.getKey()
                                         );
                                         break top;
                                     }
@@ -1125,16 +1102,11 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          *     <li>Indices which are not matched by includeIndices
          * </ul>
          */
-        static Map<String, IndexAbstraction> relevantOnly(Map<String, IndexAbstraction> indices, WildcardMatcher includeIndices) {
+        static Map<String, IndexAbstraction> relevantOnly(Map<String, IndexAbstraction> indices) {
             // First pass: Check if we need to filter at all
             boolean doFilter = false;
 
             for (IndexAbstraction indexAbstraction : indices.values()) {
-                if (includeIndices != null && !includeIndices.test(indexAbstraction.getName())) {
-                    doFilter = true;
-                    break;
-                }
-
                 if (indexAbstraction instanceof IndexAbstraction.Index) {
                     if (indexAbstraction.getParentDataStream() != null
                         || indexAbstraction.getWriteIndex().getState() == IndexMetadata.State.CLOSE) {
@@ -1152,10 +1124,6 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             ImmutableMap.Builder<String, IndexAbstraction> builder = ImmutableMap.builder();
 
             for (IndexAbstraction indexAbstraction : indices.values()) {
-                if (includeIndices != null && !includeIndices.test(indexAbstraction.getName())) {
-                    continue;
-                }
-
                 if (indexAbstraction instanceof IndexAbstraction.Index) {
                     if (indexAbstraction.getParentDataStream() == null
                         && indexAbstraction.getWriteIndex().getState() != IndexMetadata.State.CLOSE) {
