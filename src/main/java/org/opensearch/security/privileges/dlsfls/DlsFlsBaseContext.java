@@ -15,6 +15,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
 
 /**
@@ -51,5 +52,17 @@ public class DlsFlsBaseContext {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Returns true for requests that have raised privileges. This corresponds to the check in SecurityFilter:
+     * https://github.com/opensearch-project/security/blob/1c898dcc4a92e8d4aa8b18c3fed761b5f6e52d4f/src/main/java/org/opensearch/security/filter/SecurityFilter.java#L209
+     * <p>
+     * In earlier versions the check in SecurityFilter would automatically bypass any DLS/FLS logic if it was true,
+     * because no DLS/FLS thread context headers were written. As these are no longer used and the DLS/FLS components
+     * do the access control checks by themselves, we now need to do that check at these particular locations.
+     */
+    public boolean isPrivilegedConfigRequest() {
+        return "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER));
     }
 }
