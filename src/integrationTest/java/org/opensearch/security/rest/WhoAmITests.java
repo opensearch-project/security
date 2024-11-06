@@ -43,7 +43,10 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import joptsimple.internal.Strings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
