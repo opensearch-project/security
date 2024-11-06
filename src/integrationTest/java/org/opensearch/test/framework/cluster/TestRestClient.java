@@ -110,6 +110,10 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(new HttpGet(getHttpServerUri() + "/" + path), headers);
     }
 
+    public void getWithoutLeadingSlash(String path, Header... headers) {
+        executeRequest(new HttpGet(getHttpServerUri() + path), headers);
+    }
+
     public HttpResponse getAuthInfo(Header... headers) {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
