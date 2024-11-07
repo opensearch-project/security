@@ -26,13 +26,11 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.RestClientException;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.testplugins.dummy.CustomLegacyTestPlugin;
 import org.opensearch.test.framework.testplugins.dummyprotected.CustomRestProtectedTestPlugin;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -42,7 +40,6 @@ import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVIL
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateRESTLayer;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateTransportLayer;
-import static org.junit.Assert.assertThrows;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -119,9 +116,7 @@ public class AuthZinRestLayerTests {
         try (TestRestClient client = cluster.getRestClient(NO_PERM)) {
 
             // Protected Routes plugin
-            Exception exception = assertThrows(RestClientException.class, () -> { client.getWithoutLeadingSlash(PROTECTED_API); });
-
-            assertThat(exception.getMessage(), containsString("Error occured during HTTP request execution"));
+            assertThat(client.getWithoutLeadingSlash(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
         }
     }
 
