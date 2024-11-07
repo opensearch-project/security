@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -24,7 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.dlic.rest.api.ssl.CertificateType;
+import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
@@ -107,21 +108,13 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
     }
 
     private void verifySSLCertsInfo(final TestRestClient client) throws Exception {
-        assertSSLCertsInfo(
-            localCluster.nodes(),
-            Set.of(CertificateType.HTTP, CertificateType.TRANSPORT),
-            ok(() -> client.get(sslCertsPath()))
-        );
+        assertSSLCertsInfo(localCluster.nodes(), CertType.TYPES, ok(() -> client.get(sslCertsPath())));
         if (localCluster.nodes().size() > 1) {
             final var randomNodes = randomNodes();
             final var nodeIds = randomNodes.stream().map(n -> n.esNode().getNodeEnvironment().nodeId()).collect(Collectors.joining(","));
-            assertSSLCertsInfo(
-                randomNodes,
-                Set.of(CertificateType.HTTP, CertificateType.TRANSPORT),
-                ok(() -> client.get(sslCertsPath(nodeIds)))
-            );
+            assertSSLCertsInfo(randomNodes, CertType.TYPES, ok(() -> client.get(sslCertsPath(nodeIds))));
         }
-        final var randomCertType = randomFrom(List.of(CertificateType.HTTP, CertificateType.TRANSPORT));
+        final var randomCertType = randomFrom(List.copyOf(CertType.TYPES));
         assertSSLCertsInfo(
             localCluster.nodes(),
             Set.of(randomCertType),
@@ -132,7 +125,7 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
 
     private void assertSSLCertsInfo(
         final List<LocalOpenSearchCluster.Node> expectedNode,
-        final Set<CertificateType> expectedCertTypes,
+        final Set<String> expectedCertTypes,
         final TestRestClient.HttpResponse response
     ) {
         final var body = response.bodyAsJsonNode();
@@ -152,14 +145,14 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
             assertThat(prettyStringBody, node.get("name").asText(), is(n.getNodeName()));
             assertThat(prettyStringBody, node.has("certificates"));
             final var certificates = node.get("certificates");
-            if (expectedCertTypes.contains(CertificateType.HTTP)) {
-                final var httpCertificates = certificates.get(CertificateType.HTTP.value());
+            if (expectedCertTypes.contains(CertType.HTTP.name().toUpperCase(Locale.ROOT))) {
+                final var httpCertificates = certificates.get(CertType.HTTP.name().toUpperCase(Locale.ROOT));
                 assertThat(prettyStringBody, httpCertificates.isArray());
                 assertThat(prettyStringBody, httpCertificates.size(), is(1));
                 verifyCertsJson(n.nodeNumber(), httpCertificates.get(0));
             }
-            if (expectedCertTypes.contains(CertificateType.TRANSPORT)) {
-                final var transportCertificates = certificates.get(CertificateType.TRANSPORT.value());
+            if (expectedCertTypes.contains(CertType.TRANSPORT_CLIENT.name().toUpperCase(Locale.ROOT))) {
+                final var transportCertificates = certificates.get(CertType.TRANSPORT.name().toUpperCase(Locale.ROOT));
                 assertThat(prettyStringBody, transportCertificates.isArray());
                 assertThat(prettyStringBody, transportCertificates.size(), is(1));
                 verifyCertsJson(n.nodeNumber(), transportCertificates.get(0));
