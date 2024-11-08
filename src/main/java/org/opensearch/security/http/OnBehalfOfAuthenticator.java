@@ -14,6 +14,7 @@ package org.opensearch.security.http;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
@@ -204,7 +206,22 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             final AuthCredentials ac = new AuthCredentials(subject, roles, backendRoles).markComplete();
 
             for (Entry<String, Object> claim : claims.entrySet()) {
-                ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
+                String key = "attr.jwt." + claim.getKey();
+                Object value = claim.getValue();
+
+                if (value instanceof Collection<?>) {
+                    try {
+                        // Convert the list to a JSON array string
+                        String jsonValue = DefaultObjectMapper.writeValueAsString(value, false);
+                        ac.addAttribute(key, jsonValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to convert list claim to JSON for key: " + key, e);
+                        // Fallback to string representation
+                        ac.addAttribute(key, String.valueOf(value));
+                    }
+                } else {
+                    ac.addAttribute(key, String.valueOf(value));
+                }
             }
 
             return ac;

@@ -189,7 +189,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                     String key = "attr.jwt." + claim.getKey();
                     Object value = claim.getValue();
 
-                    if (value instanceof List) {
+                    if (value instanceof Collection<?>) {
                         try {
                             // Convert the list to a JSON array string
                             String jsonValue = DefaultObjectMapper.writeValueAsString(value, false);
