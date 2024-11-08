@@ -200,7 +200,6 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                             ac.addAttribute(key, String.valueOf(value));
                         }
                     } else {
-                        // For non-list values, continue with the current approach
                         ac.addAttribute(key, String.valueOf(value));
                     }
                 }
