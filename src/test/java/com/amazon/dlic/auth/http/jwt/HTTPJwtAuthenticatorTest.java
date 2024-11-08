@@ -18,6 +18,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -132,6 +133,39 @@ public class HTTPJwtAuthenticatorTest {
         String jwsToken = Jwts.builder()
             .setSubject("Leonard McCoy")
             .claim("list", List.of("a", "b", "c"))
+            .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
+            .compact();
+
+        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getAttributes(), equalTo(expectedAttributes));
+    }
+
+    @Test
+    public void testJwtAttributeParsingMixedDataType() throws Exception {
+        Map<String, String> expectedAttributes = new HashMap<>();
+        expectedAttributes.put("attr.jwt.sub", "Leonard McCoy");
+        expectedAttributes.put("attr.jwt.list", "[\"a\",1,null,2.0]");
+
+        List<Object> elements = new ArrayList<>();
+        elements.add("a");
+        elements.add(1);
+        elements.add(null);
+        elements.add(2.0);
+        String jwsToken = Jwts.builder()
+            .setSubject("Leonard McCoy")
+            .claim("list", elements)
             .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
             .compact();
 
