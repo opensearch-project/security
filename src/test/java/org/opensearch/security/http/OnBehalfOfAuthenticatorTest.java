@@ -267,7 +267,7 @@ public class OnBehalfOfAuthenticatorTest {
         Map<String, String> expectedAttributes = new HashMap<>();
         expectedAttributes.put("attr.jwt.iss", "cluster_0");
         expectedAttributes.put("attr.jwt.sub", "Leonard McCoy");
-        expectedAttributes.put("attr.jwt.aud", "[ext_0]");
+        expectedAttributes.put("attr.jwt.aud", "[\"ext_0\"]");
 
         String jwsToken = Jwts.builder()
             .setIssuer(clusterName)

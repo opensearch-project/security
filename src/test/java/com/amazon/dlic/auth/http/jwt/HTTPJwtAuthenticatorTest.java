@@ -21,6 +21,7 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.crypto.SecretKey;
 
@@ -40,7 +41,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -118,6 +121,34 @@ public class HTTPJwtAuthenticatorTest {
             null
         );
         Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testJwtAttributeParsing() throws Exception {
+        Map<String, String> expectedAttributes = new HashMap<>();
+        expectedAttributes.put("attr.jwt.sub", "Leonard McCoy");
+        expectedAttributes.put("attr.jwt.list", "[\"a\",\"b\",\"c\"]");
+
+        String jwsToken = Jwts.builder()
+            .setSubject("Leonard McCoy")
+            .claim("list", List.of("a", "b", "c"))
+            .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
+            .compact();
+
+        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<String, String>()).asSecurityRequest(),
+            null
+        );
+
+        assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getAttributes(), equalTo(expectedAttributes));
     }
 
     /** Here is the original encoded jwt token generation with cxf library:
