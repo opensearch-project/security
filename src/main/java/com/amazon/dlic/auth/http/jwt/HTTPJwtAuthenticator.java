@@ -33,6 +33,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
@@ -185,7 +186,22 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
                 for (Entry<String, Object> claim : claims.entrySet()) {
-                    ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
+                    String key = "attr.jwt." + claim.getKey();
+                    Object value = claim.getValue();
+
+                    if (value instanceof Collection<?>) {
+                        try {
+                            // Convert the list to a JSON array string
+                            String jsonValue = DefaultObjectMapper.writeValueAsString(value, false);
+                            ac.addAttribute(key, jsonValue);
+                        } catch (Exception e) {
+                            log.warn("Failed to convert list claim to JSON for key: " + key, e);
+                            // Fallback to string representation
+                            ac.addAttribute(key, String.valueOf(value));
+                        }
+                    } else {
+                        ac.addAttribute(key, String.valueOf(value));
+                    }
                 }
 
                 return ac;
