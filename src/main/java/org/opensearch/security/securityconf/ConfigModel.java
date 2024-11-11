@@ -38,7 +38,5 @@ public abstract class ConfigModel {
 
     public abstract Set<String> mapSecurityRoles(User user, TransportAddress caller);
 
-    public abstract SecurityRoles getSecurityRoles();
-
     public abstract Set<String> getAllConfiguredTenantNames();
 }
