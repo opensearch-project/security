@@ -699,8 +699,8 @@ dependencies {
 
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
-        testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"
-        testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.61.Final:${osdetector.classifier}"
+        testImplementation "io.netty:netty-tcnative-classes:2.0.66.Final"
+        testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.66.Final:${osdetector.classifier}"
     }
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
@@ -711,7 +711,7 @@ dependencies {
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.15'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
-    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.2') {
+    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.3') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
     }
