@@ -320,6 +320,7 @@ public class SecurityFilter implements ActionFilter {
             if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                 && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                 && (injectedRoles == null)
+                && (user == null)
                 && !enforcePrivilegesEvaluation) {
 
                 chain.proceed(task, action, request, listener);
@@ -526,6 +527,10 @@ public class SecurityFilter implements ActionFilter {
         }
 
         return false;
+    }
+
+    public void updatePluginToClusterAction(String pluginIdentifier, Set<String> clusterActions) {
+        evalp.updatePluginToClusterActions(pluginIdentifier, clusterActions);
     }
 
     private boolean isRequestIndexImmutable(Object request) {

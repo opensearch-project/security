@@ -62,7 +62,6 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
         String indexName = request.getIndexName();
         String runAs = request.getRunAs();
         Subject userSubject = identityService.getCurrentSubject();
-        System.out.println("User Subject: " + userSubject);
         try {
             contextSwitcher.runAs(() -> {
                 client.admin().indices().create(new CreateIndexRequest(indexName), ActionListener.wrap(r -> {
@@ -84,7 +83,6 @@ public class TransportIndexDocumentIntoSystemIndexAction extends HandledTranspor
                                 .source("{\"content\":1}", XContentType.JSON),
                             ActionListener.wrap(r2 -> {
                                 User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                                System.out.println("Test User: " + user);
                                 actionListener.onResponse(new IndexDocumentIntoSystemIndexResponse(true, user.getName()));
                             }, actionListener::onFailure)
                         );
