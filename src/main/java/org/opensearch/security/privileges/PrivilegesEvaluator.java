@@ -400,11 +400,7 @@ public class PrivilegesEvaluator {
         // Security index access
         if (systemIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, context, actionPrivileges, user)
             .isComplete()) {
-            if (!presponse.isAllowed()) {
-                return PrivilegesEvaluatorResponse.insufficient(action0);
-            } else {
-                return presponse;
-            }
+            return presponse;
         }
 
         // Protected index access

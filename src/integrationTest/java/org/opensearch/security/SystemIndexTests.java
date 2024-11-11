@@ -111,9 +111,7 @@ public class SystemIndexTests {
             assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
                 response.getBody(),
-                containsString(
-                    "no permissions for [indices:admin/create] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
-                )
+                containsString("no permissions for [] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1")
             );
         }
     }
@@ -124,7 +122,7 @@ public class SystemIndexTests {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1 + "?runAs=user");
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
-            assertThat(response.getBody(), containsString("no permissions for [indices:data/write/index] and User [name=admin"));
+            assertThat(response.getBody(), containsString("no permissions for [] and User [name=admin"));
         }
     }
 
@@ -136,9 +134,7 @@ public class SystemIndexTests {
             assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
                 response.getBody(),
-                containsString(
-                    "no permissions for [cluster:monitor/health] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
-                )
+                containsString("no permissions for [] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1")
             );
         }
     }
@@ -181,9 +177,7 @@ public class SystemIndexTests {
 
             assertThat(
                 response.getBody(),
-                containsString(
-                    "no permissions for [indices:data/write/bulk[s]] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1"
-                )
+                containsString("no permissions for [] and User [name=plugin:org.opensearch.security.plugin.SystemIndexPlugin1")
             );
         }
     }
