@@ -153,7 +153,7 @@ public class ConfigurationRepositoryTest {
     }
 
     @Test
-    public void createApiTokenIndex_createsApiTokenIndex() {
+    public void createApiTokenIndex_shouldCreateApiTokenIndex() {
         Settings settings = Settings.builder().put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
         ClusterState mockClusterState = mock(ClusterState.class);
         ClusterBlocks mockClusterBlocks = mock(ClusterBlocks.class);
@@ -166,7 +166,7 @@ public class ConfigurationRepositoryTest {
 
         configRepository.createApiTokenIndex();
 
-        verify(configRepository, times(1)).createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+        verify(configRepository, times(1)).createIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
     }
 
     @Test

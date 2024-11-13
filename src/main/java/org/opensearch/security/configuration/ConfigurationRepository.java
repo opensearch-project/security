@@ -201,8 +201,8 @@ public class ConfigurationRepository implements ClusterStateListener {
                         try (StoredContext ctx = threadContext.stashContext()) {
                             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                            createSecurityIndexIfAbsent(securityIndex);
-                            waitForSecurityIndexToBeAtLeastYellow(securityIndex);
+                            createIndexIfAbsent(securityIndex);
+                            waitForIndexToBeAtLeastYellow(securityIndex);
 
                             final int initializationDelaySeconds = settings.getAsInt(
                                 ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
@@ -324,7 +324,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         }
     }
 
-    boolean createSecurityIndexIfAbsent(String indexName) {
+    boolean createIndexIfAbsent(String indexName) {
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
@@ -337,7 +337,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         }
     }
 
-    void waitForSecurityIndexToBeAtLeastYellow(String index) {
+    void waitForIndexToBeAtLeastYellow(String index) {
         LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
@@ -444,8 +444,8 @@ public class ConfigurationRepository implements ClusterStateListener {
                 try (StoredContext ctx = threadContext.stashContext()) {
                     threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                    createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-                    waitForSecurityIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                    createIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                    waitForIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
                 }
 
             } catch (Exception e) {
