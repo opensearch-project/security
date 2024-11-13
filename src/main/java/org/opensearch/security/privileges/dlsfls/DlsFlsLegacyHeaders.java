@@ -45,7 +45,7 @@ public class DlsFlsLegacyHeaders {
      * Defines the first OpenSearch version which does not need the legacy headers
      * TODO this needs to be adapted
      */
-    static final Version LEGACY_HEADERS_UNNECESSARY_AS_OF = Version.V_EMPTY;
+    static final Version LEGACY_HEADERS_UNNECESSARY_AS_OF = Version.V_2_19_0;
 
     /**
      * Returns true if the current cluster still contains nodes which are on an OpenSearch version which
