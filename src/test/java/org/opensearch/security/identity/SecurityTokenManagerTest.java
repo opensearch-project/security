@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -69,9 +70,14 @@ public class SecurityTokenManagerTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private Settings settings;
+    @Mock
+    private Client client;
+
     @Before
     public void setup() {
-        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService));
+        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService, settings, client));
     }
 
     @After

@@ -201,8 +201,12 @@ public class ConfigurationRepository implements ClusterStateListener {
                         try (StoredContext ctx = threadContext.stashContext()) {
                             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                            createSecurityIndexIfAbsent();
+                            createSecurityIndexIfAbsent(securityIndex);
+                            if (true) {
+                                createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                            }
                             waitForSecurityIndexToBeAtLeastYellow();
+
 
                             final int initializationDelaySeconds = settings.getAsInt(
                                 ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
@@ -324,15 +328,15 @@ public class ConfigurationRepository implements ClusterStateListener {
         }
     }
 
-    private boolean createSecurityIndexIfAbsent() {
+    private boolean createSecurityIndexIfAbsent(String indexName) {
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex).settings(indexSettings);
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
             final boolean ok = client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
-            LOGGER.info("Index {} created?: {}", securityIndex, ok);
+            LOGGER.info("Index {} created?: {}", indexName, ok);
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
-            LOGGER.info("Index {} already exists", securityIndex);
+            LOGGER.info("Index {} already exists", indexName);
             return false;
         }
     }

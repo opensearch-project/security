@@ -19,8 +19,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.client.Client;
+import org.opensearch.client.Response;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.noop.NoopSubject;
@@ -32,6 +35,7 @@ import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexHandler;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
@@ -52,8 +56,8 @@ public class SecurityTokenManager implements TokenManager {
 
     private JwtVendor jwtVendor = null;
     private ConfigModel configModel = null;
-
-    public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
+    private SecurityIndexHandler securityIndexHandler;
+    public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService, final Settings settings, final Client client) {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;

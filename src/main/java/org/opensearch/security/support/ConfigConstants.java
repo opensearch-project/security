@@ -370,6 +370,9 @@ public class ConfigConstants {
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
 
+    // API Tokens index
+    public static final String OPENSEARCH_API_TOKENS_INDEX = ".opensearch_security_api_tokens";
+
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,

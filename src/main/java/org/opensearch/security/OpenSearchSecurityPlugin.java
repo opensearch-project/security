@@ -1093,7 +1093,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService);
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService, settings, localClient);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
