@@ -202,9 +202,7 @@ public class ConfigurationRepository implements ClusterStateListener {
                             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
                             createSecurityIndexIfAbsent(securityIndex);
-                            createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
                             waitForSecurityIndexToBeAtLeastYellow(securityIndex);
-                            waitForSecurityIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
 
                             final int initializationDelaySeconds = settings.getAsInt(
                                 ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
@@ -326,7 +324,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         }
     }
 
-    private boolean createSecurityIndexIfAbsent(String indexName) {
+    boolean createSecurityIndexIfAbsent(String indexName) {
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
@@ -339,7 +337,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         }
     }
 
-    private void waitForSecurityIndexToBeAtLeastYellow(String index) {
+    void waitForSecurityIndexToBeAtLeastYellow(String index) {
         LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
@@ -431,6 +429,32 @@ public class ConfigurationRepository implements ClusterStateListener {
             }
         }
         return CompletableFuture.completedFuture(null);
+    }
+
+    public void createApiTokenIndex() {
+        try {
+            // wait for the cluster here until it will finish managed node election
+            while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+                LOGGER.info("Wait for cluster to be available ...");
+                TimeUnit.SECONDS.sleep(1);
+            }
+
+            try {
+                final ThreadContext threadContext = threadPool.getThreadContext();
+                try (StoredContext ctx = threadContext.stashContext()) {
+                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
+                    createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                    waitForSecurityIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                }
+
+            } catch (Exception e) {
+                LOGGER.error("Cannot create API token index (this is maybe not an error!)", e);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Unexpected exception while initializing node " + e, e);
+        }
+
     }
 
     @Deprecated

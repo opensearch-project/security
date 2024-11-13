@@ -2064,6 +2064,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.localNode.set(localNode);
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
+            cr.createApiTokenIndex();
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);

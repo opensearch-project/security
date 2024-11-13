@@ -24,12 +24,14 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateUpdateTask;
+import org.opensearch.cluster.block.ClusterBlocks;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Priority;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -60,6 +62,8 @@ import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -146,6 +150,23 @@ public class ConfigurationRepositoryTest {
         final var result = configRepository.initOnNodeStart();
 
         assertThat(result.join(), is(false));
+    }
+
+    @Test
+    public void createApiTokenIndex_createsApiTokenIndex() {
+        Settings settings = Settings.builder().put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
+        ClusterState mockClusterState = mock(ClusterState.class);
+        ClusterBlocks mockClusterBlocks = mock(ClusterBlocks.class);
+
+        when(clusterService.state()).thenReturn(mockClusterState);
+        when(mockClusterState.blocks()).thenReturn(mockClusterBlocks);
+        when(mockClusterBlocks.hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)).thenReturn(false);
+
+        ConfigurationRepository configRepository = spy(createConfigurationRepository(settings));
+
+        configRepository.createApiTokenIndex();
+
+        verify(configRepository, times(1)).createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
     }
 
     @Test
