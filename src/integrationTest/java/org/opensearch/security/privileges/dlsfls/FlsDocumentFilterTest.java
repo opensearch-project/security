@@ -22,28 +22,26 @@ public class FlsDocumentFilterTest {
 
     @Test
     public void identity() throws Exception {
-        String sourceDocument = """
-            {
-                "big_integer": 12345678901234567890123456789012345678901234567890,
-                "string": "x",
-                "big_float": 12345678901234567890123456789012345678901234567890.123456789,
-                "object": {
-                   "attribute": "x",
-                   "nested_object": {
-                      "x": "y"
-                   },
-                   "nested_array": [1,2,3]
-                },
-                "array": [
-                   1,
-                   "x",
-                   {
-                      "foo": "bar"
-                   },
-                   [1,2,3,4]
-                ]
-            }
-            """;
+        String sourceDocument = "{\n"
+            + "    \"big_integer\": 12345678901234567890123456789012345678901234567890,\n"
+            + "    \"string\": \"x\",\n"
+            + "    \"big_float\": 12345678901234567890123456789012345678901234567890.123456789,\n"
+            + "    \"object\": {\n"
+            + "       \"attribute\": \"x\",\n"
+            + "       \"nested_object\": {\n"
+            + "          \"x\": \"y\"\n"
+            + "       },\n"
+            + "       \"nested_array\": [1,2,3]\n"
+            + "    },\n"
+            + "    \"array\": [\n"
+            + "       1,\n"
+            + "       \"x\",\n"
+            + "       {\n"
+            + "          \"foo\": \"bar\"\n"
+            + "       },\n"
+            + "       [1,2,3,4]\n"
+            + "    ]\n"
+            + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -57,13 +55,7 @@ public class FlsDocumentFilterTest {
 
     @Test
     public void filterSimpleAttribute_exclusion() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": 42,
-                "c": 43
-            }
-            """;
+        String sourceDocument = "{\n" + "    \"a\": 41,\n" + "    \"b\": 42,\n" + "    \"c\": 43\n" + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -72,25 +64,14 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "a": 41,
-                "c": 43
-            }
-            """;
+        String expectedDocument = "{\n" + "    \"a\": 41,\n" + "    \"c\": 43\n" + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void filterSimpleAttribute_inclusion() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": 42,
-                "c": 43
-            }
-            """;
+        String sourceDocument = "{\n" + "    \"a\": 41,\n" + "    \"b\": 42,\n" + "    \"c\": 43\n" + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -99,27 +80,21 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "b": 42
-            }
-            """;
+        String expectedDocument = "{\n" + "    \"b\": 42\n" + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void filterObject_exclusion() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": {
-                    "x": 123,
-                    "y": 456
-                },
-                "c": 43
-            }
-            """;
+        String sourceDocument = "{\n"
+            + "    \"a\": 41,\n"
+            + "    \"b\": {\n"
+            + "        \"x\": 123,\n"
+            + "        \"y\": 456\n"
+            + "    },\n"
+            + "    \"c\": 43\n"
+            + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -128,28 +103,21 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "a": 41,
-                "c": 43
-            }
-            """;
+        String expectedDocument = "{\n" + "    \"a\": 41,\n" + "    \"c\": 43\n" + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void filterObjectAttribute_exclusion() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": {
-                    "x": 123,
-                    "y": 456
-                },
-                "c": 43
-            }
-            """;
+        String sourceDocument = "{\n"
+            + "    \"a\": 41,\n"
+            + "    \"b\": {\n"
+            + "        \"x\": 123,\n"
+            + "        \"y\": 456\n"
+            + "    },\n"
+            + "    \"c\": 43\n"
+            + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -158,32 +126,28 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "a": 41,
-                "b": {
-                    "y": 456
-                },
-                "c": 43
-            }
-            """;
+        String expectedDocument = "{\n"
+            + "    \"a\": 41,\n"
+            + "    \"b\": {\n"
+            + "        \"y\": 456\n"
+            + "    },\n"
+            + "    \"c\": 43\n"
+            + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void filterObjectAttribute_inclusion() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": {
-                    "x": 123,
-                    "y": 456
-                },
-                "c": 43,
-                "d": {}
-            }
-            """;
+        String sourceDocument = "{\n"
+            + "    \"a\": 41,\n"
+            + "    \"b\": {\n"
+            + "        \"x\": 123,\n"
+            + "        \"y\": 456\n"
+            + "    },\n"
+            + "    \"c\": 43,\n"
+            + "    \"d\": {}\n"
+            + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -192,30 +156,26 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "b": {
-                    "x": 123
-                },
-                "c": 43
-            }
-            """;
+        String expectedDocument = "{\n"
+            + "                \"b\": {\n"
+            + "                    \"x\": 123\n"
+            + "                },\n"
+            + "                \"c\": 43\n"
+            + "            }";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void filterArrayContainingObject_exclusion() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": [
-                    {"x": 12, "y": 34},
-                    {"x": 56, "y": 78}
-                ],
-                "c": 43
-            }
-            """;
+        String sourceDocument = "{\n"
+            + "    \"a\": 41,\n"
+            + "    \"b\": [\n"
+            + "        {\"x\": 12, \"y\": 34},\n"
+            + "        {\"x\": 56, \"y\": 78}\n"
+            + "    ],\n"
+            + "    \"c\": 43\n"
+            + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -224,32 +184,28 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "a": 41,
-                "b": [
-                    {"y": 34},
-                    {"y": 78}
-                ],
-                "c": 43
-            }
-            """;
+        String expectedDocument = "{\n"
+            + "    \"a\": 41,\n"
+            + "    \"b\": [\n"
+            + "        {\"y\": 34},\n"
+            + "        {\"y\": 78}\n"
+            + "    ],\n"
+            + "    \"c\": 43\n"
+            + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void filterArrayContainingObject_inclusion() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": [
-                    {"x": 12, "y": 34},
-                    {"x": 56, "y": 78}
-                ],
-                "c": 43
-            }
-            """;
+        String sourceDocument = "{\n"
+            + "    \"a\": 41,\n"
+            + "    \"b\": [\n"
+            + "        {\"x\": 12, \"y\": 34},\n"
+            + "        {\"x\": 56, \"y\": 78}\n"
+            + "    ],\n"
+            + "    \"c\": 43\n"
+            + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -258,28 +214,20 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "b": [
-                    {"y": 34},
-                    {"y": 78}
-                ],
-                "c": 43
-            }
-            """;
+        String expectedDocument = "{\n"
+            + "    \"b\": [\n"
+            + "        {\"y\": 34},\n"
+            + "        {\"y\": 78}\n"
+            + "    ],\n"
+            + "    \"c\": 43\n"
+            + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void keepMetadata() throws Exception {
-        String sourceDocument = """
-            {
-                "a": 41,
-                "b": 42,
-                "c": 43
-            }
-            """;
+        String sourceDocument = "{\n" + "    \"a\": 41,\n" + "    \"b\": 42,\n" + "    \"c\": 43\n" + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -288,26 +236,14 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of("b")
         );
 
-        String expectedDocument = """
-            {
-                "a": 41,
-                "b": 42,
-                "c": 43
-            }
-            """;
+        String expectedDocument = "{\n" + "    \"a\": 41,\n" + "    \"b\": 42,\n" + "    \"c\": 43\n" + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void maskSimpleAttribute() throws Exception {
-        String sourceDocument = """
-            {
-                "a": "x",
-                "b": "y",
-                "c": "z"
-            }
-            """;
+        String sourceDocument = "{\n" + "    \"a\": \"x\",\n" + "    \"b\": \"y\",\n" + "    \"c\": \"z\"\n" + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -316,29 +252,25 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "a": "x",
-                "b": "1147ddc9246d856b1ce322f1dc9eeda895b56d545c324510c2eca47a9dcc5d3f",
-                "c": "z"
-            }
-            """;
+        String expectedDocument = "{\n"
+            + "    \"a\": \"x\",\n"
+            + "    \"b\": \"1147ddc9246d856b1ce322f1dc9eeda895b56d545c324510c2eca47a9dcc5d3f\",\n"
+            + "    \"c\": \"z\"\n"
+            + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
 
     @Test
     public void maskObjectAttribute() throws Exception {
-        String sourceDocument = """
-            {
-                "a": "x",
-                "b": {
-                   "b1": "y1",
-                   "b2": "y2"
-                },
-                "c": "z"
-            }
-            """;
+        String sourceDocument = "{\n"
+            + "    \"a\": \"x\",\n"
+            + "    \"b\": {\n"
+            + "       \"b1\": \"y1\",\n"
+            + "       \"b2\": \"y2\"\n"
+            + "    },\n"
+            + "    \"c\": \"z\"\n"
+            + "}\n";
 
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
@@ -347,16 +279,14 @@ public class FlsDocumentFilterTest {
             ImmutableSet.of()
         );
 
-        String expectedDocument = """
-            {
-                "a": "x",
-                "b": {
-                   "b1": "19937da9d0b0fb38c3ce369bed130b647fa547914d675e09a62ba260a6d7811b",
-                   "b2": "y2"
-                },
-                "c": "z"
-            }
-            """;
+        String expectedDocument = "{\n"
+            + "    \"a\": \"x\",\n"
+            + "    \"b\": {\n"
+            + "       \"b1\": \"19937da9d0b0fb38c3ce369bed130b647fa547914d675e09a62ba260a6d7811b\",\n"
+            + "       \"b2\": \"y2\"\n"
+            + "    },\n"
+            + "    \"c\": \"z\"\n"
+            + "}\n";
 
         assertJsonStructurallyEquivalent(expectedDocument, result);
     }
