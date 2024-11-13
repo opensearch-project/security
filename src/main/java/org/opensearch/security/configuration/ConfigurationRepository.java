@@ -202,11 +202,9 @@ public class ConfigurationRepository implements ClusterStateListener {
                             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
                             createSecurityIndexIfAbsent(securityIndex);
-                            if (true) {
-                                createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-                            }
-                            waitForSecurityIndexToBeAtLeastYellow();
-
+                            createSecurityIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                            waitForSecurityIndexToBeAtLeastYellow(securityIndex);
+                            waitForSecurityIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
 
                             final int initializationDelaySeconds = settings.getAsInt(
                                 ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
@@ -341,13 +339,13 @@ public class ConfigurationRepository implements ClusterStateListener {
         }
     }
 
-    private void waitForSecurityIndexToBeAtLeastYellow() {
+    private void waitForSecurityIndexToBeAtLeastYellow(String index) {
         LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
             response = client.admin()
                 .cluster()
-                .health(new ClusterHealthRequest(securityIndex).waitForActiveShards(1).waitForYellowStatus())
+                .health(new ClusterHealthRequest(index).waitForActiveShards(1).waitForYellowStatus())
                 .actionGet();
         } catch (Exception e) {
             LOGGER.debug("Caught a {} but we just try again ...", e.toString());
@@ -356,7 +354,7 @@ public class ConfigurationRepository implements ClusterStateListener {
         while (response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
             LOGGER.debug(
                 "index '{}' not healthy yet, we try again ... (Reason: {})",
-                securityIndex,
+                index,
                 response == null ? "no response" : (response.isTimedOut() ? "timeout" : "other, maybe red cluster")
             );
             try {
@@ -366,7 +364,7 @@ public class ConfigurationRepository implements ClusterStateListener {
                 Thread.currentThread().interrupt();
             }
             try {
-                response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex).waitForYellowStatus()).actionGet();
+                response = client.admin().cluster().health(new ClusterHealthRequest(index).waitForYellowStatus()).actionGet();
             } catch (Exception e) {
                 LOGGER.debug("Caught again a {} but we just try again ...", e.toString());
             }
