@@ -433,33 +433,33 @@ public class ConfigurationRepository implements ClusterStateListener {
     }
 
     public CompletableFuture<Boolean> createApiTokenIndex() {
-        return CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<Boolean> apiTokenIndexTask = new CompletableFuture<>();
+
+        new Thread(() -> {
             try {
-                // wait for the cluster here until it will finish managed node election
+                // Wait until the cluster is ready
                 while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
-                    LOGGER.info("Wait for cluster to be available ...");
+                    LOGGER.info("Waiting for cluster to be available...");
                     TimeUnit.SECONDS.sleep(1);
                 }
 
-                try {
-                    final ThreadContext threadContext = threadPool.getThreadContext();
-                    try (StoredContext ctx = threadContext.stashContext()) {
-                        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+                final ThreadContext threadContext = threadPool.getThreadContext();
+                try (StoredContext ctx = threadContext.stashContext()) {
+                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                        createIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-                        waitForIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-                    }
-                    return true;
-
-                } catch (Exception e) {
-                    LOGGER.error("Cannot create API token index (this is maybe not an error!)", e);
-                    return true;
+                    createIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                    waitForIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
                 }
+
+                LOGGER.info("API token index created successfully.");
+                apiTokenIndexTask.complete(true);
             } catch (Exception e) {
-                LOGGER.error("Unexpected exception while initializing node " + e, e);
-                return true;
+                LOGGER.error("Error while creating API token index", e);
+                apiTokenIndexTask.completeExceptionally(e);
             }
-        });
+        }).start();
+
+        return apiTokenIndexTask;
     }
 
     @Deprecated
