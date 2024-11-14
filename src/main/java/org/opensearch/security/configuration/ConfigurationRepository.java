@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -431,30 +432,34 @@ public class ConfigurationRepository implements ClusterStateListener {
         return CompletableFuture.completedFuture(null);
     }
 
-    public void createApiTokenIndex() {
-        try {
-            // wait for the cluster here until it will finish managed node election
-            while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
-                LOGGER.info("Wait for cluster to be available ...");
-                TimeUnit.SECONDS.sleep(1);
-            }
-
+    public CompletableFuture<Boolean> createApiTokenIndex() {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-                final ThreadContext threadContext = threadPool.getThreadContext();
-                try (StoredContext ctx = threadContext.stashContext()) {
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-
-                    createIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-                    waitForIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                // wait for the cluster here until it will finish managed node election
+                while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+                    LOGGER.info("Wait for cluster to be available ...");
+                    TimeUnit.SECONDS.sleep(1);
                 }
 
-            } catch (Exception e) {
-                LOGGER.error("Cannot create API token index (this is maybe not an error!)", e);
-            }
-        } catch (Exception e) {
-            LOGGER.error("Unexpected exception while initializing node " + e, e);
-        }
+                try {
+                    final ThreadContext threadContext = threadPool.getThreadContext();
+                    try (StoredContext ctx = threadContext.stashContext()) {
+                        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
+                        createIndexIfAbsent(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                        waitForIndexToBeAtLeastYellow(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                    }
+                    return true;
+
+                } catch (Exception e) {
+                    LOGGER.error("Cannot create API token index (this is maybe not an error!)", e);
+                    throw new CompletionException(e);
+                }
+            } catch (Exception e) {
+                LOGGER.error("Unexpected exception while initializing node " + e, e);
+                throw new CompletionException(e);
+            }
+        });
     }
 
     @Deprecated
