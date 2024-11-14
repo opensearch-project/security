@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.common.Booleans;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.security.ssl.config.CertType;
@@ -374,10 +375,23 @@ public class SslSettingsManager {
 
             LOGGER.debug("OpenSSL available ciphers {}", OpenSsl.availableOpenSslCipherSuites());
         } else {
-            LOGGER.warn(
-                "OpenSSL not available (this is not an error, we simply fallback to built-in JDK SSL) because of {}",
-                OpenSsl.unavailabilityCause()
-            );
+            boolean openSslIsEnabled = false;
+
+            if (settings.hasValue(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
+                openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE));
+            }
+
+            if (settings.hasValue(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE) == true) {
+                openSslIsEnabled |= Booleans.parseBoolean(settings.get(SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE));
+            }
+
+            if (openSslIsEnabled == true) {
+                /* only print warning if OpenSsl is enabled explicitly but not available */
+                LOGGER.warn(
+                    "OpenSSL not available (this is not an error, we simply fallback to built-in JDK SSL) because of ",
+                    OpenSsl.unavailabilityCause()
+                );
+            }
         }
     }
 
