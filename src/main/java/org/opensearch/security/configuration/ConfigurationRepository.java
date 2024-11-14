@@ -453,11 +453,11 @@ public class ConfigurationRepository implements ClusterStateListener {
 
                 } catch (Exception e) {
                     LOGGER.error("Cannot create API token index (this is maybe not an error!)", e);
-                    throw new CompletionException(e);
+                    return true;
                 }
             } catch (Exception e) {
                 LOGGER.error("Unexpected exception while initializing node " + e, e);
-                throw new CompletionException(e);
+                return true;
             }
         });
     }
