@@ -137,10 +137,15 @@ public class BackendRegistry {
             .build();
 
         apiTokensCache = CacheBuilder.newBuilder()
-                    .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                    .removalListener((RemovalListener<AuthCredentials, User>) notification -> log.debug("Clear api token cache for {} due to {}", notification.getKey(), notification.getCause()))
-                    .build();
-
+            .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+            .removalListener(
+                (RemovalListener<AuthCredentials, User>) notification -> log.debug(
+                    "Clear api token cache for {} due to {}",
+                    notification.getKey(),
+                    notification.getCause()
+                )
+            )
+            .build();
 
     }
 
