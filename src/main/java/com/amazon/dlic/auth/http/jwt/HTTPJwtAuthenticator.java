@@ -215,7 +215,9 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 }
             }
         }
-        log.error("Failed to parse JWT token using any of the available parsers");
+        if (log.isDebugEnabled()) {
+            log.debug("Unable to authenticate JWT Token with any configured signing key");
+        }
         return null;
     }
 
