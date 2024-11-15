@@ -110,6 +110,10 @@ public abstract class DynamicConfigModel {
 
     public abstract Settings getDynamicOnBehalfOfSettings();
 
+    public abstract Settings getDynamicApiTokenSettings();
+
+
+
     protected final Map<String, String> authImplMap = new HashMap<>();
 
     public DynamicConfigModel() {
@@ -142,5 +146,4 @@ public abstract class DynamicConfigModel {
         authImplMap.put("ip_authFailureListener", AddressBasedRateLimiter.class.getName());
         authImplMap.put("username_authFailureListener", UserNameBasedRateLimiter.class.getName());
     }
-
 }
