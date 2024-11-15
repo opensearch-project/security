@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.ConfigConstants;
@@ -33,7 +34,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ApiTokenApiAction extends AbstractApiAction {
 
-    public static final String NAME_JSON_PROPERTY = "ip";
+    public static final String NAME_JSON_PROPERTY = "name";
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(GET, "/apitokens"), new Route(PUT, "/apitokens/{name}")
@@ -43,7 +44,7 @@ public class ApiTokenApiAction extends AbstractApiAction {
 
     protected ApiTokenApiAction(ClusterService clusterService, ThreadPool threadPool, SecurityApiDependencies securityApiDependencies) {
         super(Endpoint.APITOKENS, clusterService, threadPool, securityApiDependencies);
-        this.requestHandlersBuilder.configureRequestHandlers(this::authFailureConfigApiRequestHandlers);
+        this.requestHandlersBuilder.configureRequestHandlers(this::apiTokenApiRequestHandlers);
     }
 
     @Override
@@ -61,7 +62,7 @@ public class ApiTokenApiAction extends AbstractApiAction {
         return CType.CONFIG;
     }
 
-    private void authFailureConfigApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void apiTokenApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
 
         requestHandlersBuilder.override(
             GET,
@@ -91,11 +92,18 @@ public class ApiTokenApiAction extends AbstractApiAction {
 
     public void createApiTokenIndexIfAbsent(Client client) {
         if (!apiTokenIndexExists()) {
-            final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
-                indexSettings
-            );
-            logger.info(client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged());
+            try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+                final Map<String, Object> indexSettings = ImmutableMap.of(
+                    "index.number_of_shards",
+                    1,
+                    "index.auto_expand_replicas",
+                    "0-all"
+                );
+                final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
+                    indexSettings
+                );
+                logger.info(client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged());
+            }
         }
     }
 }
