@@ -215,9 +215,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 }
             }
         }
-        if (log.isDebugEnabled()) {
-            log.debug("Unable to authenticate JWT Token with any configured signing key");
-        }
+        log.debug("Unable to authenticate JWT Token with any configured signing key");
         return null;
     }
 
