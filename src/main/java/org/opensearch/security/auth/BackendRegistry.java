@@ -136,6 +136,7 @@ public class BackendRegistry {
             })
             .build();
 
+        /* TODO: Listen in to index events on API Tokens index */
         apiTokensCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
             .removalListener(

@@ -26,8 +26,10 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -37,9 +39,7 @@ public class ApiTokenApiAction extends AbstractApiAction {
     public static final String NAME_JSON_PROPERTY = "name";
 
     private static final List<Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(new Route(GET, "/apitokens"), new Route(PUT, "/apitokens/{name}")
-        // new Route(DELETE, "/apitokens/{name}"),
-        )
+        ImmutableList.of(new Route(GET, "/apitokens"), new Route(PUT, "/apitokens/{name}"), new Route(DELETE, "/apitokens/{name}"))
     );
 
     protected ApiTokenApiAction(ClusterService clusterService, ThreadPool threadPool, SecurityApiDependencies securityApiDependencies) {
@@ -58,6 +58,7 @@ public class ApiTokenApiAction extends AbstractApiAction {
     }
 
     @Override
+    /* TODO: Alternative to CType for new index */
     protected CType<ConfigV7> getConfigType() {
         return CType.CONFIG;
     }
@@ -68,21 +69,34 @@ public class ApiTokenApiAction extends AbstractApiAction {
             GET,
             (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
                 if (!apiTokenIndexExists()) {
+                    /** TODO: Return empty list */
                     ok(channel, "empty list");
                 } else {
+                    /** TODO: Return list of documents from API Tokens index */
                     ok(channel, "non-empty list");
                 }
             }).error((status, toXContent) -> response(channel, status, toXContent))
         ).override(PUT, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
             String token = createApiToken(request.param(NAME_JSON_PROPERTY), client);
             ok(channel, token + " created successfully");
-        }).error((status, toXContent) -> response(channel, status, toXContent)));
+        }).error((status, toXContent) -> response(channel, status, toXContent)))
+            .override(DELETE, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
+                String token = createApiToken(request.param(NAME_JSON_PROPERTY), client);
+                if (!apiTokenIndexExists()) {
+                    /** TODO: Return error indicating token doesn't exist  */
+                    internalServerError(channel, token + " doesn't exist");
+                } else {
+                    /** TODO: Delete document from API Tokens index if it exists, otherwise return error */
+                    ok(channel, token + " deleted successfully");
+                }
+
+            }).error((status, toXContent) -> response(channel, status, toXContent)));
 
     }
 
     public String createApiToken(String name, Client client) {
         createApiTokenIndexIfAbsent(client);
-
+        /* TODO: Create document representing the API token */
         return "test-token";
     }
 
