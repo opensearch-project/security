@@ -110,8 +110,6 @@ public abstract class DynamicConfigModel {
 
     public abstract Settings getDynamicOnBehalfOfSettings();
 
-    public abstract Settings getDynamicApiTokenSettings();
-
     protected final Map<String, String> authImplMap = new HashMap<>();
 
     public DynamicConfigModel() {

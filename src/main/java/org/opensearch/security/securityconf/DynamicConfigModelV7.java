@@ -234,13 +234,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             .build();
     }
 
-    @Override
-    public Settings getDynamicApiTokenSettings() {
-        return Settings.builder()
-            .put(Settings.builder().loadFromSource(config.dynamic.api_tokens.configAsJson(), XContentType.JSON).build())
-            .build();
-    }
-
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
@@ -385,17 +378,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          */
         Settings oboSettings = getDynamicOnBehalfOfSettings();
         if (!isKeyNull(oboSettings, "signing_key") && !isKeyNull(oboSettings, "encryption_key")) {
-            final AuthDomain _ad = new AuthDomain(
-                new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),
-                false,
-                -1
-            );
-            restAuthDomains0.add(_ad);
-        }
-
-        Settings apiTokenSettings = getDynamicApiTokenSettings();
-        if (!isKeyNull(apiTokenSettings, "signing_key") && !isKeyNull(apiTokenSettings, "encryption_key")) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
                 new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),
