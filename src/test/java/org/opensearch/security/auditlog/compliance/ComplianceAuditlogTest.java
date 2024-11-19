@@ -46,6 +46,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThrows;
@@ -442,5 +444,67 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         });
         Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 1);
+    }
+
+    @Test
+    public void testWriteLogDiffsEnabledAndLogRequestBodyDisabled() throws Exception {
+        Settings additionalSettings = Settings.builder().put("plugins.security.audit.type", TestAuditlogImpl.class.getName()).build();
+
+        setup(additionalSettings);
+
+        rh.sendAdminCertificate = true;
+        rh.keystore = "auditlog/kirk-keystore.jks";
+
+        // watch emp for write
+        AuditConfig auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(Settings.builder().put("plugins.security.audit.config.log_request_body", false).build()),
+            ComplianceConfig.from(
+                ImmutableMap.of(
+                    "enabled",
+                    true,
+                    "write_watched_indices",
+                    Collections.singletonList("emp"),
+                    "write_log_diffs",
+                    true,
+                    "write_metadata_only",
+                    false
+                ),
+                additionalSettings
+            )
+        );
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            try (Client tc = getClient()) {
+                rh.executePutRequest("emp/_doc/0?refresh", "{\"name\" : \"Criag\", \"title\" : \"Software Engineer\"}");
+            }
+        }, 7);
+
+        AuditMessage complianceDocWriteMessage = messages.stream()
+            .filter(m -> m.getCategory().equals(AuditCategory.COMPLIANCE_DOC_WRITE))
+            .findFirst()
+            .orElse(null);
+        assertThat(complianceDocWriteMessage, notNullValue());
+        assertThat(
+            (String) complianceDocWriteMessage.getAsMap().get("audit_compliance_diff_content"),
+            containsString(
+                "[{\"op\":\"add\",\"path\":\"/name\",\"value\":\"Criag\"},{\"op\":\"add\",\"path\":\"/title\",\"value\":\"Software Engineer\"}]"
+            )
+        );
+        assertThat(complianceDocWriteMessage.getRequestBody(), nullValue());
+
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            try (Client tc = getClient()) {
+                rh.executePutRequest("emp/_doc/0?refresh", "{\"name\" : \"Craig\", \"title\" : \"Software Engineer\"}");
+            }
+        }, 1);
+
+        complianceDocWriteMessage = messages.get(0);
+        assertThat(
+            (String) complianceDocWriteMessage.getAsMap().get("audit_compliance_diff_content"),
+            containsString("[{\"op\":\"replace\",\"path\":\"/name\",\"value\":\"Craig\"}]")
+        );
+        assertThat(complianceDocWriteMessage.getRequestBody(), nullValue());
     }
 }
