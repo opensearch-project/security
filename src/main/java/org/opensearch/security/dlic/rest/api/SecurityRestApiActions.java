@@ -96,7 +96,6 @@ public class SecurityRestApiActions {
             new AuditApiAction(clusterService, threadPool, securityApiDependencies),
             new MultiTenancyConfigApiAction(clusterService, threadPool, securityApiDependencies),
             new RateLimitersApiAction(clusterService, threadPool, securityApiDependencies),
-            new ApiTokenApiAction(clusterService, threadPool, securityApiDependencies),
             new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies),
             new SecuritySSLCertsApiAction(
                 clusterService,

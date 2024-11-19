@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.dlic.rest.api;
+package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.time.Instant;

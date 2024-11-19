@@ -131,6 +131,7 @@ import org.opensearch.search.internal.InternalScrollSearchRequest;
 import org.opensearch.search.internal.ReaderContext;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.security.action.apitokens.ApiTokenAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
@@ -635,6 +636,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
+                handlers.add(new ApiTokenAction(cs, threadPool));
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
