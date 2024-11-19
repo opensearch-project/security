@@ -96,7 +96,7 @@ public class ApiTokenApiAction extends AbstractApiAction {
 
     public String createApiToken(String name, Client client) {
         createApiTokenIndexIfAbsent(client);
-        /* TODO: Create document representing the API token */
+        new ApiTokenIndexManager(client).indexToken(new ApiToken(name, "test-token", List.of()));
         return "test-token";
     }
 
