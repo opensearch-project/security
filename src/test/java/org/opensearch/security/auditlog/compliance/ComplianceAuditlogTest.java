@@ -476,14 +476,14 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
 
         try (Client tc = getClient()) {
-            rh.executePutRequest("emp", "{}");
+            rh.executePutRequest("emp", "{\"settings\": {\"index\": {\"number_of_shards\": 1, \"number_of_replicas\": 0}}}");
         }
 
         List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try (Client tc = getClient()) {
                 rh.executePutRequest("emp/_doc/0?refresh", "{\"name\" : \"Criag\", \"title\" : \"Software Engineer\"}");
             }
-        }, 5);
+        }, 3);
 
         AuditMessage complianceDocWriteMessage = messages.stream()
             .filter(m -> m.getCategory().equals(AuditCategory.COMPLIANCE_DOC_WRITE))
