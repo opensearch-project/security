@@ -2130,7 +2130,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         Set<String> clusterActions = new HashSet<>();
         clusterActions.add(BulkAction.NAME);
         PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
-        sf.updatePluginToClusterAction(subject.getPrincipal().getName(), clusterActions);
+        sf.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
         return subject;
     }
 

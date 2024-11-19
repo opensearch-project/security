@@ -529,7 +529,7 @@ public class SecurityFilter implements ActionFilter {
         return false;
     }
 
-    public void updatePluginToClusterAction(String pluginIdentifier, Set<String> clusterActions) {
+    public void updatePluginToClusterActions(String pluginIdentifier, Set<String> clusterActions) {
         evalp.updatePluginToClusterActions(pluginIdentifier, clusterActions);
     }
 
