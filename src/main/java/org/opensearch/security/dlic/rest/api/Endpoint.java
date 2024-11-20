@@ -25,7 +25,6 @@ public enum Endpoint {
     AUTHTOKEN,
     TENANTS,
     RATELIMITERS,
-    APITOKENS,
     MIGRATE,
     VALIDATE,
     WHITELIST,

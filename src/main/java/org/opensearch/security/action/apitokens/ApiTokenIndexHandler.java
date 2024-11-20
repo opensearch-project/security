@@ -124,7 +124,7 @@ public class ApiTokenIndexHandler {
                 final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
                     indexSettings
                 );
-                LOGGER.info(client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged());
+                client.admin().indices().create(createIndexRequest);
             }
         }
     }
