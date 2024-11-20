@@ -11,4 +11,22 @@
 
 package org.opensearch.security.action.apitokens;
 
-public class ApiTokenRepository {}
+import java.util.List;
+
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+
+public class ApiTokenRepository {
+    private ApiTokenIndexHandler apiTokenIndexHandler;
+
+    public ApiTokenRepository(Client client, ClusterService clusterService) {
+        apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
+    }
+
+    public String createApiToken(String name) {
+        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
+        String token = apiTokenIndexHandler.indexToken(new ApiToken(name, "test-token", List.of()));
+        return token;
+    }
+
+}
