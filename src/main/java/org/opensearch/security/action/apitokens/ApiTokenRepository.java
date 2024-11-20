@@ -12,6 +12,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.util.List;
+import java.util.Map;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -25,8 +26,17 @@ public class ApiTokenRepository {
 
     public String createApiToken(String name) {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
-        String token = apiTokenIndexHandler.indexToken(new ApiToken(name, "test-token", List.of()));
-        return token;
+        return apiTokenIndexHandler.indexToken(new ApiToken(name, "test-token", List.of()));
+    }
+
+    public void deleteApiToken(String name) throws ApiTokenException {
+        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
+        apiTokenIndexHandler.deleteToken(name);
+    }
+
+    public List<Map<String, Object>> getApiTokens() {
+        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
+        return apiTokenIndexHandler.getApiTokens();
     }
 
 }
