@@ -79,6 +79,7 @@ public class ConfigModelV7 extends ConfigModel {
     private RoleMappingHolder roleMappingHolder;
     private SecurityDynamicConfiguration<RoleV7> roles;
     private SecurityDynamicConfiguration<TenantV7> tenants;
+    private final static Set<String> ALL_INDICES = Set.of("*");
 
     public ConfigModelV7(
         SecurityDynamicConfiguration<RoleV7> roles,
@@ -1000,12 +1001,12 @@ public class ConfigModelV7 extends ConfigModel {
         if (resolved.isLocalAll()) {
             indexMatcherAndPermissions = ipatterns.stream()
                 .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
-                .map(p -> new IndexMatcherAndPermissions(Set.of("*"), p.perms))
+                .map(p -> new IndexMatcherAndPermissions(ALL_INDICES, p.perms))
                 .toArray(IndexMatcherAndPermissions[]::new);
         } else {
             indexMatcherAndPermissions = ipatterns.stream().map(p -> {
                 if ("*".equals(p.getUnresolvedIndexPattern(user))) {
-                    return new IndexMatcherAndPermissions(Set.of("*"), p.perms);
+                    return new IndexMatcherAndPermissions(ALL_INDICES, p.perms);
                 }
                 return new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms);
             }).toArray(IndexMatcherAndPermissions[]::new);
