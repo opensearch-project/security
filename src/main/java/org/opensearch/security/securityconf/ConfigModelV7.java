@@ -1000,12 +1000,15 @@ public class ConfigModelV7 extends ConfigModel {
         if (resolved.isLocalAll()) {
             indexMatcherAndPermissions = ipatterns.stream()
                 .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
-                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms))
+                .map(p -> new IndexMatcherAndPermissions(Set.of("*"), p.perms))
                 .toArray(IndexMatcherAndPermissions[]::new);
         } else {
-            indexMatcherAndPermissions = ipatterns.stream()
-                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms))
-                .toArray(IndexMatcherAndPermissions[]::new);
+            indexMatcherAndPermissions = ipatterns.stream().map(p -> {
+                if ("*".equals(p.getUnresolvedIndexPattern(user))) {
+                    return new IndexMatcherAndPermissions(Set.of("*"), p.perms);
+                }
+                return new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms);
+            }).toArray(IndexMatcherAndPermissions[]::new);
         }
         return resolvedRequestedIndices.stream()
             .allMatch(
