@@ -11,11 +11,15 @@
 
 package org.opensearch.security.ssl;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.crypto.Cipher;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +33,9 @@ import org.opensearch.env.Environment;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.config.SslCertificatesLoader;
 import org.opensearch.security.ssl.config.SslParameters;
+import org.opensearch.watcher.FileChangesListener;
+import org.opensearch.watcher.FileWatcher;
+import org.opensearch.watcher.ResourceWatcherService;
 
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.OpenSsl;
@@ -108,13 +115,13 @@ public class SslSettingsManager {
 
     public synchronized void reloadSslContext(final CertType certType) {
         sslContextHandler(certType).ifPresentOrElse(sscContextHandler -> {
-            LOGGER.info("Reloading {} SSL context", certType.name());
             try {
-                sscContextHandler.reloadSslContext();
+                if (sscContextHandler.reloadSslContext()) {
+                    LOGGER.info("{} SSL context reloaded", certType.name());
+                }
             } catch (CertificateException e) {
                 throw new OpenSearchException(e);
             }
-            LOGGER.info("{} SSL context reloaded", certType.name());
         }, () -> LOGGER.error("Missing SSL Context for {}", certType.name()));
     }
 
@@ -178,6 +185,50 @@ public class SslSettingsManager {
             LOGGER.info("Enabled TLS protocols for Transport layer : {}", transportSslParameters.allowedProtocols());
         }
         return configurationBuilder.build();
+    }
+
+    public void addSslConfigurationsChangeListener(final ResourceWatcherService resourceWatcherService) {
+        for (final var directoryToMonitor : directoriesToMonitor()) {
+            final var fileWatcher = new FileWatcher(directoryToMonitor);
+            fileWatcher.addListener(new FileChangesListener() {
+                @Override
+                public void onFileCreated(final Path file) {
+                    onFileChanged(file);
+                }
+
+                @Override
+                public void onFileDeleted(final Path file) {
+                    onFileChanged(file);
+                }
+
+                @Override
+                public void onFileChanged(final Path file) {
+                    for (final var e : sslSettingsContexts.entrySet()) {
+                        final var certType = e.getKey();
+                        final var sslConfiguration = e.getValue().sslConfiguration();
+                        if (sslConfiguration.dependentFiles().contains(file)) {
+                            SslSettingsManager.this.reloadSslContext(certType);
+                        }
+                    }
+                }
+            });
+            try {
+                resourceWatcherService.add(fileWatcher, ResourceWatcherService.Frequency.HIGH);
+                LOGGER.info("Added SSL configuration change listener for: {}", directoryToMonitor);
+            } catch (IOException e) {
+                // TODO: should we fail here, or are error logs sufficient?
+                throw new OpenSearchException("Couldn't add SSL configurations change listener", e);
+            }
+        }
+    }
+
+    private Set<Path> directoriesToMonitor() {
+        return sslSettingsContexts.values()
+            .stream()
+            .map(SslContextHandler::sslConfiguration)
+            .flatMap(c -> c.dependentFiles().stream())
+            .map(Path::getParent)
+            .collect(Collectors.toSet());
     }
 
     private boolean clientNode(final Settings settings) {
