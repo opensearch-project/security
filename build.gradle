@@ -749,7 +749,7 @@ dependencies {
     integrationTestImplementation "org.mockito:mockito-core:5.14.2"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.24.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.25.0') {
         exclude group: 'com.google.guava'
     }
 }
