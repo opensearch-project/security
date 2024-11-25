@@ -289,7 +289,7 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     Path createKeyStore(final String type, final String password, final Map<String, Tuple<PrivateKey, X509Certificate>> keysAndCertificates)
         throws Exception {
         final var keyStore = keyStore(type);
-        final var keyStorePath = path(String.format("keystore.%s", isNull(type) ? "jsk" : type));
+        final var keyStorePath = path(String.format("keystore.%s", isNull(type) ? "jks" : type));
         for (final var alias : keysAndCertificates.keySet()) {
             final var keyAndCertificate = keysAndCertificates.get(alias);
             keyStore.setKeyEntry(
