@@ -709,6 +709,10 @@ public class PrivilegesEvaluator {
             || (action0.equals(RenderSearchTemplateAction.NAME)));
     }
 
+    public static boolean isIndexPerm(String action0) {
+        return (action0.startsWith("indices:") && !isClusterPerm(action0));
+    }
+
     @SuppressWarnings("unchecked")
     private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {
         final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;

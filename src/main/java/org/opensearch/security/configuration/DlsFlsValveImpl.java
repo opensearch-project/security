@@ -83,6 +83,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.privileges.PrivilegesEvaluator.isIndexPerm;
+
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     private static final String MAP_EXECUTION_HINT = "map";
@@ -135,6 +137,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
+        if (!isIndexPerm(context.getAction())) {
+            return true;
+        }
+
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
