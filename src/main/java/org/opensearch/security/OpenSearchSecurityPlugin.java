@@ -726,7 +726,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             log.info("Indices to listen to: {}", this.indicesToListen);
             if (this.indicesToListen.contains(indexModule.getIndex().getName())) {
-                indexModule.addIndexOperationListener(ResourceSharingIndexListener.getInstance());
+                ResourceSharingIndexListener resourceSharingIndexListener = ResourceSharingIndexListener.getInstance();
+                resourceSharingIndexListener.initialize(threadPool, localClient);
+                indexModule.addIndexOperationListener(resourceSharingIndexListener);
                 log.warn("Security plugin started listening to operations on index {}", indexModule.getIndex().getName());
             }
 
@@ -1205,7 +1207,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // NOTE: We need to create DefaultInterClusterRequestEvaluator before creating ConfigurationRepository since the latter requires
         // security index to be accessible which means
-        // communciation with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence
+        // communication with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence
         // the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
         if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
@@ -1217,7 +1219,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
 
-        rmr = ResourceManagementRepository.create(settings, threadPool, localClient, rsIndexHandler);
+        rmr = ResourceManagementRepository.create(rsIndexHandler);
 
         components.add(adminDns);
         components.add(cr);

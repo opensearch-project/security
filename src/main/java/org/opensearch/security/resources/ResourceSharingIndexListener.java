@@ -14,11 +14,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.accesscontrol.resources.CreatedBy;
+import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.client.Client;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -36,8 +38,6 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
 
     private ThreadPool threadPool;
 
-    private Client client;
-
     private ResourceSharingIndexListener() {}
 
     public static ResourceSharingIndexListener getInstance() {
@@ -53,16 +53,12 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
         }
 
         initialized = true;
-
         this.threadPool = threadPool;
-
-        this.client = client;
         this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
             client,
             threadPool
         );
-        ;
 
     }
 
@@ -73,27 +69,41 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
     @Override
     public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
 
-        // implement a check to see if a resource was updated
-        log.info("postIndex called on {}", shardId.getIndexName());
+        String resourceIndex = shardId.getIndexName();
+        log.info("postIndex called on {}", resourceIndex);
 
         String resourceId = index.id();
 
-        String resourceIndex = shardId.getIndexName();
+        User user = threadPool.getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         try {
-            this.resourceSharingIndexHandler.indexResourceSharing(resourceId, resourceIndex, new CreatedBy("bleh", ""), null);
-            log.info("successfully indexed resource {}", resourceId);
+            ResourceSharing sharing = this.resourceSharingIndexHandler.indexResourceSharing(
+                resourceId,
+                resourceIndex,
+                new CreatedBy(user.getName()),
+                null
+            );
+            log.info("Successfully created a resource sharing entry {}", sharing);
         } catch (IOException e) {
-            log.info("failed to index resource {}", resourceId);
-            throw new RuntimeException(e);
+            log.info("Failed to create a resource sharing entry for resource: {}", resourceId);
         }
     }
 
     @Override
     public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
 
-        // implement a check to see if a resource was deleted
-        log.warn("postDelete called on " + shardId.getIndexName());
+        String resourceIndex = shardId.getIndexName();
+        log.info("postDelete called on {}", resourceIndex);
+
+        String resourceId = delete.id();
+
+        boolean success = this.resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, resourceIndex);
+        if (success) {
+            log.info("Successfully deleted resource sharing entries for resource {}", resourceId);
+        } else {
+            log.info("Failed to delete resource sharing entry for resource {}", resourceId);
+        }
+
     }
 
 }

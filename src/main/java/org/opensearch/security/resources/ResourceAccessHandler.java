@@ -49,41 +49,41 @@ public class ResourceAccessHandler {
         this.adminDNs = adminDns;
     }
 
-    public List<String> listAccessibleResourcesInPlugin(String systemIndex) {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+    public List<String> listAccessibleResourcesInPlugin(String pluginIndex) {
+        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             LOGGER.info("Unable to fetch user details ");
             return Collections.emptyList();
         }
 
-        LOGGER.info("Listing accessible resource within a system index {} for : {}", systemIndex, user.getName());
+        LOGGER.info("Listing accessible resource within a system index {} for : {}", pluginIndex, user.getName());
 
-        // TODO check if user is admin, if yes all resources should be accessible
+        // check if user is admin, if yes all resources should be accessible
         if (adminDNs.isAdmin(user)) {
-            return loadAllResources(systemIndex);
+            return loadAllResources(pluginIndex);
         }
 
         Set<String> result = new HashSet<>();
 
         // 0. Own resources
-        result.addAll(loadOwnResources(systemIndex, user.getName()));
+        result.addAll(loadOwnResources(pluginIndex, user.getName()));
 
         // 1. By username
-        result.addAll(loadSharedWithResources(systemIndex, Set.of(user.getName()), "users"));
+        result.addAll(loadSharedWithResources(pluginIndex, Set.of(user.getName()), EntityType.USERS.toString()));
 
         // 2. By roles
         Set<String> roles = user.getSecurityRoles();
-        result.addAll(loadSharedWithResources(systemIndex, roles, "roles"));
+        result.addAll(loadSharedWithResources(pluginIndex, roles, EntityType.ROLES.toString()));
 
         // 3. By backend_roles
         Set<String> backendRoles = user.getRoles();
-        result.addAll(loadSharedWithResources(systemIndex, backendRoles, "backend_roles"));
+        result.addAll(loadSharedWithResources(pluginIndex, backendRoles, EntityType.BACKEND_ROLES.toString()));
 
         return result.stream().toList();
     }
 
     public boolean hasPermission(String resourceId, String systemIndexName, String scope) {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Checking if {} has {} permission to resource {}", user.getName(), scope, resourceId);
 
         Set<String> userRoles = user.getSecurityRoles();
@@ -109,24 +109,22 @@ public class ResourceAccessHandler {
     }
 
     public ResourceSharing shareWith(String resourceId, String systemIndexName, ShareWith shareWith) {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user, shareWith.toString());
 
-        // TODO fix this to fetch user-name correctly, need to hydrate user context since context might have been stashed.
-        // (persistentHeader?)
-        CreatedBy createdBy = new CreatedBy("", "");
+        CreatedBy createdBy = new CreatedBy(user.getName());
         return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, systemIndexName, createdBy, shareWith);
     }
 
     public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> revokeAccess) {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Revoking access to resource {} created by {} for {}", resourceId, user.getName(), revokeAccess);
 
         return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess);
     }
 
     public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Deleting resource sharing record for resource {} in {} created by {}", resourceId, systemIndexName, user.getName());
 
         ResourceSharing document = this.resourceSharingIndexHandler.fetchDocumentById(systemIndexName, resourceId);
@@ -142,7 +140,7 @@ public class ResourceAccessHandler {
     }
 
     public boolean deleteAllResourceSharingRecordsForCurrentUser() {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Deleting all resource sharing records for resource {}", user.getName());
 
         return this.resourceSharingIndexHandler.deleteAllRecordsForUser(user.getName());
@@ -159,8 +157,8 @@ public class ResourceAccessHandler {
         return this.resourceSharingIndexHandler.fetchDocumentsByField(systemIndex, "created_by.user", username);
     }
 
-    private List<String> loadSharedWithResources(String systemIndex, Set<String> accessWays, String shareWithType) {
-        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(systemIndex, accessWays, shareWithType);
+    private List<String> loadSharedWithResources(String systemIndex, Set<String> entities, String shareWithType) {
+        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(systemIndex, entities, shareWithType);
     }
 
     private boolean isOwnerOfResource(ResourceSharing document, String userName) {

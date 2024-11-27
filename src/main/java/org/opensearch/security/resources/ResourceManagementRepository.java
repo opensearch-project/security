@@ -11,44 +11,25 @@
 
 package org.opensearch.security.resources;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.opensearch.client.Client;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.threadpool.ThreadPool;
-
 public class ResourceManagementRepository {
-
-    private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
-
-    private final Client client;
-
-    private final ThreadPool threadPool;
 
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
 
-    protected ResourceManagementRepository(
-        final ThreadPool threadPool,
-        final Client client,
-        final ResourceSharingIndexHandler resourceSharingIndexHandler
-    ) {
-        this.client = client;
-        this.threadPool = threadPool;
+    protected ResourceManagementRepository(final ResourceSharingIndexHandler resourceSharingIndexHandler) {
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
     }
 
-    public static ResourceManagementRepository create(
-        Settings settings,
-        final ThreadPool threadPool,
-        Client client,
-        ResourceSharingIndexHandler resourceSharingIndexHandler
-    ) {
+    public static ResourceManagementRepository create(ResourceSharingIndexHandler resourceSharingIndexHandler) {
 
-        return new ResourceManagementRepository(threadPool, client, resourceSharingIndexHandler);
+        return new ResourceManagementRepository(resourceSharingIndexHandler);
     }
 
+    /**
+     * Creates the resource sharing index if it doesn't already exist.
+     * This method is called during the initialization phase of the repository.
+     * It ensures that the index is set up with the necessary mappings and settings
+     * before any operations are performed on the index.
+     */
     public void createResourceSharingIndexIfAbsent() {
         // TODO check if this should be wrapped in an atomic completable future
 
