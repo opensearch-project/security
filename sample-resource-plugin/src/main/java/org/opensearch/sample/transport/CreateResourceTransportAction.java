@@ -14,7 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
@@ -72,14 +71,12 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
             log.info("Index Request: {}", ir.toString());
 
-            nodeClient.index(ir, getIndexResponseActionListener(listener));
+            nodeClient.index(
+                ir,
+                ActionListener.wrap(idxResponse -> { log.info("Created resource: {}", idxResponse.toString()); }, listener::onFailure)
+            );
         } catch (IOException e) {
             listener.onFailure(new RuntimeException(e));
         }
     }
-
-    private static ActionListener<IndexResponse> getIndexResponseActionListener(ActionListener<CreateResourceResponse> listener) {
-        return ActionListener.wrap(idxResponse -> { log.info("Created resource: {}", idxResponse.toString()); }, listener::onFailure);
-    }
-
 }
