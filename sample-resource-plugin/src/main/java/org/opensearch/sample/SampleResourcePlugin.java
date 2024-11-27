@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -70,9 +69,6 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
 
     public static final String RESOURCE_INDEX_NAME = ".sample_resource_sharing_plugin";
-
-    public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
-
     private Client client;
 
     @Override

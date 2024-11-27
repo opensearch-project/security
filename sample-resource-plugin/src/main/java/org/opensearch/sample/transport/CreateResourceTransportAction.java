@@ -9,15 +9,10 @@
 package org.opensearch.sample.transport;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.ResourceService;
-import org.opensearch.accesscontrol.resources.ResourceSharing;
-import org.opensearch.accesscontrol.resources.ShareWith;
-import org.opensearch.accesscontrol.resources.SharedWithScope;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
@@ -28,9 +23,8 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.Resource;
-import org.opensearch.sample.SampleResourcePlugin;
-import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.actions.create.CreateResourceAction;
 import org.opensearch.sample.actions.create.CreateResourceRequest;
 import org.opensearch.sample.actions.create.CreateResourceResponse;
@@ -58,7 +52,8 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
     @Override
     protected void doExecute(Task task, CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
-        try (ThreadContext.StoredContext ignore = transportService.getThreadPool().getThreadContext().stashContext()) {
+        ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
+        try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             createResource(request, listener);
             listener.onResponse(new CreateResourceResponse("Resource " + request.getResource() + " created successfully."));
         } catch (Exception e) {
@@ -69,31 +64,22 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
     private void createResource(CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
         Resource sample = request.getResource();
-        try {
+        try (XContentBuilder builder = jsonBuilder()) {
             IndexRequest ir = nodeClient.prepareIndex(RESOURCE_INDEX_NAME)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .setSource(sample.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .setSource(sample.toXContent(builder, ToXContent.EMPTY_PARAMS))
                 .request();
 
-            log.warn("Index Request: {}", ir.toString());
+            log.info("Index Request: {}", ir.toString());
 
-            ActionListener<IndexResponse> irListener = getIndexResponseActionListener(listener);
-            nodeClient.index(ir, irListener);
+            nodeClient.index(ir, getIndexResponseActionListener(listener));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            listener.onFailure(new RuntimeException(e));
         }
     }
 
     private static ActionListener<IndexResponse> getIndexResponseActionListener(ActionListener<CreateResourceResponse> listener) {
-        SharedWithScope.SharedWithPerScope sharedWithPerScope = new SharedWithScope.SharedWithPerScope(List.of(), List.of(), List.of());
-        SharedWithScope sharedWithScope = new SharedWithScope(SampleResourceScope.SAMPLE_FULL_ACCESS.getName(), sharedWithPerScope);
-        ShareWith shareWith = new ShareWith(List.of(sharedWithScope));
-        return ActionListener.wrap(idxResponse -> {
-            log.info("Created resource: {}", idxResponse.toString());
-            ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
-            ResourceSharing sharing = rs.getResourceAccessControlPlugin().shareWith(idxResponse.getId(), idxResponse.getIndex(), shareWith);
-            log.info("Created resource sharing entry: {}", sharing.toString());
-        }, listener::onFailure);
+        return ActionListener.wrap(idxResponse -> { log.info("Created resource: {}", idxResponse.toString()); }, listener::onFailure);
     }
 
 }
