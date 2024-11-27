@@ -38,6 +38,7 @@ import org.opensearch.action.admin.indices.shrink.ResizeRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.update.UpdateAction;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -135,10 +136,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        if (!context.getAction().startsWith("indices:")) {
-            return true;
-        }
-
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         ActionRequest request = context.getRequest();
         IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
@@ -268,7 +265,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 }
             }
 
-            if (request instanceof UpdateRequest) {
+            if (UpdateAction.NAME.equals(context.getAction())) {
                 listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
                 return false;
             }
