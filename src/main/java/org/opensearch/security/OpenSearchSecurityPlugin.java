@@ -724,7 +724,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 )
             );
 
-            log.info("Indices to listen to: {}", this.indicesToListen);
             if (this.indicesToListen.contains(indexModule.getIndex().getName())) {
                 ResourceSharingIndexListener resourceSharingIndexListener = ResourceSharingIndexListener.getInstance();
                 resourceSharingIndexListener.initialize(threadPool, localClient);
@@ -2099,12 +2098,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // create resource sharing index if absent
         rmr.createResourceSharingIndexIfAbsent();
 
-        log.info("Loading resource plugins");
         for (ResourcePlugin resourcePlugin : OpenSearchSecurityPlugin.GuiceHolder.getResourceService().listResourcePlugins()) {
             String resourceIndex = resourcePlugin.getResourceIndex();
 
             this.indicesToListen.add(resourceIndex);
-            log.info("Loaded resource plugin: {}, index: {}", resourcePlugin, resourceIndex);
+            log.info("Preparing to listen to index: {} of plugin: {}", resourceIndex, resourcePlugin);
         }
 
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
