@@ -679,7 +679,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     public void updateConfiguration(SecurityDynamicConfiguration<RoleV7> rolesConfiguration) {
         try {
             if (rolesConfiguration != null) {
-                DlsFlsProcessedConfig oldConfig = this.dlsFlsProcessedConfig.getAndSet(
+                this.dlsFlsProcessedConfig.set(
                     new DlsFlsProcessedConfig(
                         DynamicConfigFactory.addStatics(rolesConfiguration.clone()),
                         clusterService.state().metadata().getIndicesLookup(),
@@ -688,10 +688,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         fieldMaskingConfig
                     )
                 );
-
-                if (oldConfig != null) {
-                    oldConfig.shutdown();
-                }
             }
         } catch (Exception e) {
             log.error("Error while updating DLS/FLS configuration with {}", rolesConfiguration, e);
