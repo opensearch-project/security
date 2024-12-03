@@ -721,7 +721,7 @@ public class ConfigModelV7 extends ConfigModel {
             IndexNameExpressionResolver resolver,
             ClusterService cs
         ) {
-            if ("*".equals(getUnresolvedIndexPattern(user))) {
+            if ("*".equals(indexPattern)) {
                 return new IndexMatcherAndPermissions(ALL_INDICES, perms);
             }
             return new IndexMatcherAndPermissions(attemptResolveIndexNames(user, resolver, cs), perms);
@@ -1011,7 +1011,7 @@ public class ConfigModelV7 extends ConfigModel {
         IndexMatcherAndPermissions[] indexMatcherAndPermissions;
         if (resolved.isLocalAll()) {
             indexMatcherAndPermissions = ipatterns.stream()
-                .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
+                .filter(indexPattern -> "*".equals(indexPattern.indexPattern))
                 .map(p -> p.getIndexMatcherAndPermissions(user, resolver, cs))
                 .toArray(IndexMatcherAndPermissions[]::new);
         } else {
