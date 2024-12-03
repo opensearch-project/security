@@ -25,11 +25,8 @@ import org.opensearch.sample.actions.list.ListAccessibleResourcesResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import static org.opensearch.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
-/**
- * Transport action for ListSampleResource.
- */
 public class ListAccessibleResourcesTransportAction extends HandledTransportAction<
     ListAccessibleResourcesRequest,
     ListAccessibleResourcesResponse> {
@@ -45,7 +42,7 @@ public class ListAccessibleResourcesTransportAction extends HandledTransportActi
         try {
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
             List<String> resourceIds = rs.getResourceAccessControlPlugin().listAccessibleResourcesInPlugin(RESOURCE_INDEX_NAME);
-            log.info("Successfully fetched accessible resources for current user");
+            log.info("Successfully fetched accessible resources for current user : {}", resourceIds);
             listener.onResponse(new ListAccessibleResourcesResponse(resourceIds));
         } catch (Exception e) {
             log.info("Failed to list accessible resources for current user: ", e);

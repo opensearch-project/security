@@ -14,6 +14,8 @@ package org.opensearch.sample;
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.xcontent.ToXContentFragment;
 
-public abstract class Resource implements NamedWriteable, ToXContentFragment {
-    protected abstract String getResourceIndex();
+public interface Resource extends NamedWriteable, ToXContentFragment {
+    String getResourceIndex();
+
+    String getResourceName();
 }

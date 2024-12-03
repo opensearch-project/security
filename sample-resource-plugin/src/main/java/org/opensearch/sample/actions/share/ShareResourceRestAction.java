@@ -14,13 +14,17 @@ import java.util.Map;
 
 import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 
 import static java.util.Collections.singletonList;
-import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.POST;
 
 public class ShareResourceRestAction extends BaseRestHandler {
 
@@ -28,7 +32,7 @@ public class ShareResourceRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(GET, "/_plugins/sample_resource_sharing/share/{resource_id}"));
+        return singletonList(new Route(POST, "/_plugins/sample_resource_sharing/share"));
     }
 
     @Override
@@ -44,8 +48,28 @@ public class ShareResourceRestAction extends BaseRestHandler {
         }
 
         String resourceId = (String) source.get("resource_id");
-        ShareWith shareWith = (ShareWith) source.get("share_with");
+
+        ShareWith shareWith = parseShareWith(source);
         final ShareResourceRequest shareResourceRequest = new ShareResourceRequest(resourceId, shareWith);
         return channel -> client.executeLocally(ShareResourceAction.INSTANCE, shareResourceRequest, new RestToXContentListener<>(channel));
+    }
+
+    private ShareWith parseShareWith(Map<String, Object> source) throws IOException {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> shareWithMap = (Map<String, Object>) source.get("share_with");
+        if (shareWithMap == null || shareWithMap.isEmpty()) {
+            throw new IllegalArgumentException("share_with is required and cannot be empty");
+        }
+
+        String jsonString = XContentFactory.jsonBuilder().map(shareWithMap).toString();
+
+        try (
+            XContentParser parser = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, jsonString)
+        ) {
+            return ShareWith.fromXContent(parser);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid share_with structure: " + e.getMessage(), e);
+        }
     }
 }

@@ -48,17 +48,18 @@ import org.opensearch.sample.actions.create.CreateResourceAction;
 import org.opensearch.sample.actions.create.CreateResourceRestAction;
 import org.opensearch.sample.actions.list.ListAccessibleResourcesAction;
 import org.opensearch.sample.actions.list.ListAccessibleResourcesRestAction;
+import org.opensearch.sample.actions.revoke.RevokeResourceAccessAction;
+import org.opensearch.sample.actions.revoke.RevokeResourceAccessRestAction;
 import org.opensearch.sample.actions.share.ShareResourceAction;
 import org.opensearch.sample.actions.share.ShareResourceRestAction;
 import org.opensearch.sample.actions.verify.VerifyResourceAccessAction;
 import org.opensearch.sample.actions.verify.VerifyResourceAccessRestAction;
-import org.opensearch.sample.transport.CreateResourceTransportAction;
-import org.opensearch.sample.transport.ListAccessibleResourcesTransportAction;
-import org.opensearch.sample.transport.ShareResourceTransportAction;
-import org.opensearch.sample.transport.VerifyResourceAccessTransportAction;
+import org.opensearch.sample.transport.*;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
+
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
 /**
  * Sample Resource plugin.
@@ -68,7 +69,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, ResourcePlugin {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
 
-    public static final String RESOURCE_INDEX_NAME = ".sample_resource_sharing_plugin";
     private Client client;
 
     @Override
@@ -104,6 +104,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
             new CreateResourceRestAction(),
             new ListAccessibleResourcesRestAction(),
             new VerifyResourceAccessRestAction(),
+            new RevokeResourceAccessRestAction(),
             new ShareResourceRestAction()
         );
     }
@@ -114,6 +115,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
             new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
             new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, ListAccessibleResourcesTransportAction.class),
             new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class),
+            new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class),
             new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, VerifyResourceAccessTransportAction.class)
         );
     }

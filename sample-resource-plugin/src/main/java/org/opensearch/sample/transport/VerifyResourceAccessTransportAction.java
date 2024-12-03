@@ -24,6 +24,8 @@ import org.opensearch.sample.actions.verify.VerifyResourceAccessResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+
 public class VerifyResourceAccessTransportAction extends HandledTransportAction<VerifyResourceAccessRequest, VerifyResourceAccessResponse> {
     private static final Logger log = LogManager.getLogger(VerifyResourceAccessTransportAction.class);
 
@@ -37,12 +39,12 @@ public class VerifyResourceAccessTransportAction extends HandledTransportAction<
         try {
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
             boolean hasRequestedScopeAccess = rs.getResourceAccessControlPlugin()
-                .hasPermission(request.getResourceId(), request.getSourceIdx(), request.getScope());
+                .hasPermission(request.getResourceId(), RESOURCE_INDEX_NAME, request.getScope());
 
             StringBuilder sb = new StringBuilder();
-            sb.append("User does");
-            sb.append(hasRequestedScopeAccess ? " " : " not ");
-            sb.append("have requested scope ");
+            sb.append("User ");
+            sb.append(hasRequestedScopeAccess ? "has" : "does not have");
+            sb.append(" requested scope ");
             sb.append(request.getScope());
             sb.append(" access to ");
             sb.append(request.getResourceId());

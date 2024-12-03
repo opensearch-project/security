@@ -18,9 +18,9 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.Resource;
 
-import static org.opensearch.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
-public class SampleResource extends Resource {
+public class SampleResource implements Resource {
 
     private String name;
 
@@ -33,6 +33,11 @@ public class SampleResource extends Resource {
     @Override
     public String getResourceIndex() {
         return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public String getResourceName() {
+        return this.name;
     }
 
     @Override

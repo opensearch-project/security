@@ -31,11 +31,8 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
-import static org.opensearch.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
-/**
- * Transport action for CreateSampleResource.
- */
 public class CreateResourceTransportAction extends HandledTransportAction<CreateResourceRequest, CreateResourceResponse> {
     private static final Logger log = LogManager.getLogger(CreateResourceTransportAction.class);
 
@@ -54,7 +51,9 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
         ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             createResource(request, listener);
-            listener.onResponse(new CreateResourceResponse("Resource " + request.getResource() + " created successfully."));
+            listener.onResponse(
+                new CreateResourceResponse("Resource " + request.getResource().getResourceName() + " created successfully.")
+            );
         } catch (Exception e) {
             log.info("Failed to create resource", e);
             listener.onFailure(e);
@@ -65,6 +64,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
         Resource sample = request.getResource();
         try (XContentBuilder builder = jsonBuilder()) {
             IndexRequest ir = nodeClient.prepareIndex(RESOURCE_INDEX_NAME)
+                .setWaitForActiveShards(1)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setSource(sample.toXContent(builder, ToXContent.EMPTY_PARAMS))
                 .request();

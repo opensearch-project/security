@@ -27,7 +27,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(POST, "/_plugins/sample_resource_sharing/resource"));
+        return singletonList(new Route(POST, "/_plugins/sample_resource_sharing/create"));
     }
 
     @Override

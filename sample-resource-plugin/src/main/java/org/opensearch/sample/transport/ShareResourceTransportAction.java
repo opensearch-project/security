@@ -8,14 +8,11 @@
 
 package org.opensearch.sample.transport;
 
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
-import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -27,11 +24,8 @@ import org.opensearch.sample.actions.share.ShareResourceResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import static org.opensearch.sample.SampleResourcePlugin.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
-/**
- * Transport action for CreateSampleResource.
- */
 public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
     private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
 
@@ -52,10 +46,9 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
 
     private void shareResource(ShareResourceRequest request) {
         try {
-            ShareWith shareWith = new ShareWith(List.of());
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
             ResourceSharing sharing = rs.getResourceAccessControlPlugin()
-                .shareWith(request.getResourceId(), RESOURCE_INDEX_NAME, shareWith);
+                .shareWith(request.getResourceId(), RESOURCE_INDEX_NAME, request.getShareWith());
             log.info("Shared resource : {} with {}", request.getResourceId(), sharing.toString());
         } catch (Exception e) {
             log.info("Failed to share resource {}", request.getResourceId(), e);
