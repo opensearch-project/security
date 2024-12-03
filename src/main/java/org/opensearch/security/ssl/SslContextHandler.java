@@ -21,6 +21,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLEngine;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.security.ssl.config.Certificate;
 import org.opensearch.transport.NettyAllocator;
 
@@ -29,6 +32,8 @@ import io.netty.handler.ssl.SslContext;
 import static java.util.function.Predicate.not;
 
 public class SslContextHandler {
+
+    private final static Logger LOGGER = LogManager.getLogger(SslContextHandler.class);
 
     private SslContext sslContext;
 
@@ -78,7 +83,7 @@ public class SslContextHandler {
         return certificates.stream().filter(Certificate::hasKey);
     }
 
-    void reloadSslContext() throws CertificateException {
+    boolean reloadSslContext() throws CertificateException {
         final var newCertificates = sslConfiguration.certificates();
 
         boolean hasChanges = false;
@@ -89,11 +94,13 @@ public class SslContextHandler {
         final var newKeyMaterialCertificates = keyMaterialCertificates(newCertificates).collect(Collectors.toList());
 
         if (notSameCertificates(loadedAuthorityCertificates, newAuthorityCertificates)) {
+            LOGGER.debug("Certification authority has changed");
             hasChanges = true;
             validateDates(newAuthorityCertificates);
         }
 
         if (notSameCertificates(loadedKeyMaterialCertificates, newKeyMaterialCertificates)) {
+            LOGGER.debug("Key material and access certificate has changed");
             hasChanges = true;
             validateNewKeyMaterialCertificates(
                 loadedKeyMaterialCertificates,
@@ -111,6 +118,7 @@ public class SslContextHandler {
             loadedCertificates.clear();
             loadedCertificates.addAll(newCertificates);
         }
+        return hasChanges;
     }
 
     private boolean notSameCertificates(final List<Certificate> loadedCertificates, final List<Certificate> newCertificates) {
