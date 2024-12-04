@@ -216,7 +216,7 @@ public class ResourceSharingIndexHandler {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
 
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.termQuery("source_idx", pluginIndex));
+            searchSourceBuilder.query(QueryBuilders.termQuery("source_idx.keyword", pluginIndex));
             searchSourceBuilder.size(10000); // TODO check what size should be set here.
 
             searchSourceBuilder.fetchSource(new String[] { "resource_id" }, null);
@@ -312,7 +312,84 @@ public class ResourceSharingIndexHandler {
     */
 
     public List<String> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String entityType) {
-        LOGGER.debug("Fetching documents from index: {}, where share_with.*.{} contains any of {}", pluginIndex, entityType, entities);
+        // "*" must match all scopes
+        return fetchDocumentsForAGivenScope(pluginIndex, entities, entityType, "*");
+    }
+
+    /**
+     * Fetches documents that match the specified system index and have specific access type values for a given scope.
+     * This method uses scroll API to handle large result sets efficiently.
+     *
+     * <p>The method executes the following steps:
+     * <ol>
+     *   <li>Validates the entityType parameter</li>
+     *   <li>Creates a scrolling search request with a compound query</li>
+     *   <li>Processes results in batches using scroll API</li>
+     *   <li>Collects all matching resource IDs</li>
+     *   <li>Cleans up scroll context</li>
+     * </ol>
+     *
+     * <p>Example query structure:
+     * <pre>
+     * {
+     *   "query": {
+     *     "bool": {
+     *       "must": [
+     *         { "term": { "source_idx": "system_index_name" } },
+     *         {
+     *           "bool": {
+     *             "should": [
+     *               {
+     *                 "nested": {
+     *                   "path": "share_with.scope.entityType",
+     *                   "query": {
+     *                     "term": { "share_with.scope.entityType": "entity_value" }
+     *                   }
+     *                 }
+     *               }
+     *             ],
+     *             "minimum_should_match": 1
+     *           }
+     *         }
+     *       ]
+     *     }
+     *   },
+     *   "_source": ["resource_id"],
+     *   "size": 1000
+     * }
+     * </pre>
+     *
+     * @param pluginIndex The source index to match against the source_idx field
+     * @param entities Set of values to match in the specified entityType field
+     * @param entityType The type of association with the resource. Must be one of:
+     *                  <ul>
+     *                    <li>"users" - for user-based access</li>
+     *                    <li>"roles" - for role-based access</li>
+     *                    <li>"backend_roles" - for backend role-based access</li>
+     *                  </ul>
+     * @param scope The scope of the access. Should be implementation of {@link org.opensearch.accesscontrol.resources.ResourceAccessScope}
+     * @return List<String> List of resource IDs that match the criteria. The list may be empty
+     *         if no matches are found
+     *
+     * @throws RuntimeException if the search operation fails
+     *
+     * @apiNote This method:
+     * <ul>
+     *   <li>Uses scroll API with 1-minute timeout</li>
+     *   <li>Processes results in batches of 1000 documents</li>
+     *   <li>Performs source filtering for optimization</li>
+     *   <li>Uses nested queries for accessing array elements</li>
+     *   <li>Properly cleans up scroll context after use</li>
+     * </ul>
+     */
+    public List<String> fetchDocumentsForAGivenScope(String pluginIndex, Set<String> entities, String entityType, String scope) {
+        LOGGER.debug(
+            "Fetching documents from index: {}, where share_with.{}.{} contains any of {}",
+            pluginIndex,
+            scope,
+            entityType,
+            entities
+        );
 
         List<String> resourceIds = new ArrayList<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
@@ -321,49 +398,23 @@ public class ResourceSharingIndexHandler {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
-            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("source_idx", pluginIndex));
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex));
 
             BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
             for (String entity : entities) {
                 shouldQuery.should(
                     QueryBuilders.nestedQuery(
-                        "share_with.*." + entityType,
-                        QueryBuilders.termQuery("share_with.*." + entityType, entity),
+                        "share_with." + scope + "." + entityType,
+                        QueryBuilders.termQuery("share_with." + scope + "." + entityType, entity),
                         ScoreMode.None
                     )
                 );
             }
             shouldQuery.minimumShouldMatch(1);
-            boolQuery.must(shouldQuery);
 
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
-                .size(1000)
-                .fetchSource(new String[] { "resource_id" }, null);
+            boolQuery.must(QueryBuilders.existsQuery("share_with")).must(shouldQuery);
 
-            searchRequest.source(searchSourceBuilder);
-
-            SearchResponse searchResponse = client.search(searchRequest).actionGet();
-            String scrollId = searchResponse.getScrollId();
-            SearchHit[] hits = searchResponse.getHits().getHits();
-
-            while (hits != null && hits.length > 0) {
-                for (SearchHit hit : hits) {
-                    Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                    if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
-                        resourceIds.add(sourceAsMap.get("resource_id").toString());
-                    }
-                }
-
-                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-                scrollRequest.scroll(scroll);
-                searchResponse = client.execute(SearchScrollAction.INSTANCE, scrollRequest).actionGet();
-                scrollId = searchResponse.getScrollId();
-                hits = searchResponse.getHits().getHits();
-            }
-
-            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-            clearScrollRequest.addScrollId(scrollId);
-            client.clearScroll(clearScrollRequest).actionGet();
+            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery);
 
             LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
 
@@ -371,9 +422,10 @@ public class ResourceSharingIndexHandler {
 
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to fetch documents from {} for criteria - systemIndex: {}, shareWithType: {}, accessWays: {}",
+                "Failed to fetch documents from {} for criteria - systemIndex: {}, scope: {}, entityType: {}, entities: {}",
                 resourceSharingIndex,
                 pluginIndex,
+                scope,
                 entityType,
                 entities,
                 e
@@ -435,7 +487,6 @@ public class ResourceSharingIndexHandler {
      * List<String> resources = fetchDocumentsByField("myIndex", "status", "active");
      * </pre>
      */
-
     public List<String> fetchDocumentsByField(String systemIndex, String field, String value) {
         if (StringUtils.isBlank(systemIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
             throw new IllegalArgumentException("systemIndex, field, and value must not be null or empty");
@@ -447,48 +498,16 @@ public class ResourceSharingIndexHandler {
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try {
-            // Create initial search request
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
-            // Build the query
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx", systemIndex))
-                .must(QueryBuilders.termQuery(field, value));
+                .must(QueryBuilders.termQuery("source_idx.keyword", systemIndex))
+                .must(QueryBuilders.termQuery(field + ".keyword", value));
 
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
-                .size(1000)
-                .fetchSource(new String[] { "resource_id" }, null);
+            executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery);
 
-            searchRequest.source(searchSourceBuilder);
-
-            // Execute initial search
-            SearchResponse searchResponse = client.search(searchRequest).actionGet();
-            String scrollId = searchResponse.getScrollId();
-            SearchHit[] hits = searchResponse.getHits().getHits();
-
-            // Process results in batches
-            while (hits != null && hits.length > 0) {
-                for (SearchHit hit : hits) {
-                    Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                    if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
-                        resourceIds.add(sourceAsMap.get("resource_id").toString());
-                    }
-                }
-
-                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-                scrollRequest.scroll(scroll);
-                searchResponse = client.execute(SearchScrollAction.INSTANCE, scrollRequest).actionGet();
-                scrollId = searchResponse.getScrollId();
-                hits = searchResponse.getHits().getHits();
-            }
-
-            // Clear scroll
-            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-            clearScrollRequest.addScrollId(scrollId);
-            client.clearScroll(clearScrollRequest).actionGet();
-
-            LOGGER.debug("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
+            LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
 
             return resourceIds;
 
@@ -565,8 +584,8 @@ public class ResourceSharingIndexHandler {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
 
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx", pluginIndex))
-                .must(QueryBuilders.termQuery("resource_id", resourceId));
+                .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
+                .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
 
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery).size(1); // We only need one document since
                                                                                                           // a resource must have only one
@@ -601,6 +620,44 @@ public class ResourceSharingIndexHandler {
             LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
             throw new RuntimeException("Failed to fetch document: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Helper method to execute a search request and collect resource IDs from the results.
+     * @param resourceIds List to collect resource IDs
+     * @param scroll Search Scroll
+     * @param searchRequest Request to execute
+     * @param boolQuery Query to execute with the request
+     */
+    private void executeSearchRequest(List<String> resourceIds, Scroll scroll, SearchRequest searchRequest, BoolQueryBuilder boolQuery) {
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
+            .size(1000)
+            .fetchSource(new String[] { "resource_id" }, null);
+
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse searchResponse = client.search(searchRequest).actionGet();
+        String scrollId = searchResponse.getScrollId();
+        SearchHit[] hits = searchResponse.getHits().getHits();
+
+        while (hits != null && hits.length > 0) {
+            for (SearchHit hit : hits) {
+                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                if (sourceAsMap != null && sourceAsMap.containsKey("resource_id")) {
+                    resourceIds.add(sourceAsMap.get("resource_id").toString());
+                }
+            }
+
+            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+            scrollRequest.scroll(scroll);
+            searchResponse = client.execute(SearchScrollAction.INSTANCE, scrollRequest).actionGet();
+            scrollId = searchResponse.getScrollId();
+            hits = searchResponse.getHits().getHits();
+        }
+
+        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+        clearScrollRequest.addScrollId(scrollId);
+        client.clearScroll(clearScrollRequest).actionGet();
     }
 
     /**
@@ -660,8 +717,8 @@ public class ResourceSharingIndexHandler {
         try {
             // Create a bool query to match both fields
             BoolQueryBuilder query = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx", sourceIdx))
-                .must(QueryBuilders.termQuery("resource_id", resourceId));
+                .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
+                .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
 
             UpdateByQueryRequest ubq = new UpdateByQueryRequest(resourceSharingIndex).setQuery(query).setScript(updateScript);
 
@@ -710,7 +767,7 @@ public class ResourceSharingIndexHandler {
         Script updateScript = new Script(
             ScriptType.INLINE,
             "painless",
-            "ctx._source.shareWith = params.newShareWith",
+            "ctx._source.share_with = params.newShareWith",
             Collections.singletonMap("newShareWith", shareWith)
         );
 
@@ -737,7 +794,7 @@ public class ResourceSharingIndexHandler {
      *   "source_idx": "system_index_name",
      *   "resource_id": "resource_id",
      *   "share_with": {
-     *     "group_name": {
+     *     "scope": {
      *       "users": ["user1", "user2"],
      *       "roles": ["role1", "role2"],
      *       "backend_roles": ["backend_role1"]
@@ -767,11 +824,9 @@ public class ResourceSharingIndexHandler {
      * ResourceSharing updated = revokeAccess("resourceId", "systemIndex", revokeAccess);
      * </pre>
      */
-
     public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> revokeAccess) {
         // TODO; check if this needs to be done per scope rather than for all scopes
 
-        // Input validation
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(systemIndexName) || revokeAccess == null || revokeAccess.isEmpty()) {
             throw new IllegalArgumentException("resourceId, systemIndexName, and revokeAccess must not be null or empty");
         }
@@ -779,7 +834,6 @@ public class ResourceSharingIndexHandler {
         LOGGER.debug("Revoking access for resource {} in {} for entities: {}", resourceId, systemIndexName, revokeAccess);
 
         try {
-            // First fetch the existing document
             ResourceSharing existingResource = fetchDocumentById(systemIndexName, resourceId);
             if (existingResource == null) {
                 LOGGER.warn("No document found for resourceId: {} in index: {}", resourceId, systemIndexName);
@@ -880,7 +934,7 @@ public class ResourceSharingIndexHandler {
         try {
             DeleteByQueryRequest dbq = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
                 QueryBuilders.boolQuery()
-                    .must(QueryBuilders.termQuery("source_idx", sourceIdx))
+                    .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
                     .must(QueryBuilders.termQuery("resource_id", resourceId))
             ).setRefresh(true);
 
@@ -959,7 +1013,6 @@ public class ResourceSharingIndexHandler {
         * </pre>
         */
     public boolean deleteAllRecordsForUser(String name) {
-        // Input validation
         if (StringUtils.isBlank(name)) {
             throw new IllegalArgumentException("Username must not be null or empty");
         }

@@ -11,17 +11,17 @@
 
 package org.opensearch.security.resources;
 
-public class ResourceManagementRepository {
+public class ResourceSharingIndexManagementRepository {
 
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
 
-    protected ResourceManagementRepository(final ResourceSharingIndexHandler resourceSharingIndexHandler) {
+    protected ResourceSharingIndexManagementRepository(final ResourceSharingIndexHandler resourceSharingIndexHandler) {
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
     }
 
-    public static ResourceManagementRepository create(ResourceSharingIndexHandler resourceSharingIndexHandler) {
+    public static ResourceSharingIndexManagementRepository create(ResourceSharingIndexHandler resourceSharingIndexHandler) {
 
-        return new ResourceManagementRepository(resourceSharingIndexHandler);
+        return new ResourceSharingIndexManagementRepository(resourceSharingIndexHandler);
     }
 
     /**

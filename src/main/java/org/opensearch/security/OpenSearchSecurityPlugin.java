@@ -181,9 +181,9 @@ import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.resources.ResourceManagementRepository;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
 import org.opensearch.security.resources.ResourceSharingIndexListener;
+import org.opensearch.security.resources.ResourceSharingIndexManagementRepository;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -280,7 +280,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
-    private ResourceManagementRepository rmr;
+    private ResourceSharingIndexManagementRepository rmr;
     private ResourceAccessHandler resourceAccessHandler;
     private final Set<String> indicesToListen = new HashSet<>();
 
@@ -1218,7 +1218,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
 
-        rmr = ResourceManagementRepository.create(rsIndexHandler);
+        rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler);
 
         components.add(adminDns);
         components.add(cr);
