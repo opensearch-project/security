@@ -83,6 +83,7 @@ configurations.all {
         force "org.apache.commons:commons-lang3:3.4"
         force "org.springframework:spring-core:5.3.39"
         force "org.springframework:spring-expression:5.3.39"
+        force "org.springframework:spring-context:5.3.39"
         force "com.google.guava:guava:32.1.1-jre"
         force "com.fasterxml.woodstox:woodstox-core:6.4.0"
         force "org.scala-lang:scala-library:2.13.9"
