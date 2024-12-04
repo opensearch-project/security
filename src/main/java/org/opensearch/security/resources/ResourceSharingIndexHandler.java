@@ -935,7 +935,7 @@ public class ResourceSharingIndexHandler {
             DeleteByQueryRequest dbq = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
                 QueryBuilders.boolQuery()
                     .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
-                    .must(QueryBuilders.termQuery("resource_id", resourceId))
+                    .must(QueryBuilders.termQuery("resource_id.keyword", resourceId))
             ).setRefresh(true);
 
             BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, dbq).actionGet();
