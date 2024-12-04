@@ -258,7 +258,7 @@ public class LocalOpenSearchCluster {
 
                 if (threadsActive && retryCount < maxRetries - 1) {
                     // Add a small delay between retries
-                    Thread.sleep(1000);
+                    Thread.sleep(3000);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
