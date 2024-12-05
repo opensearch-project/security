@@ -128,15 +128,15 @@ public class SslSettingsManager {
     private Map<CertType, SslConfiguration> loadConfigurations(final Environment environment) {
         final var settings = environment.settings();
         final var httpSettings = settings.getByPrefix(CertType.HTTP.sslConfigPrefix());
-        final var transpotSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
-        if (httpSettings.isEmpty() && transpotSettings.isEmpty()) {
+        final var transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslConfigPrefix());
+        if (httpSettings.isEmpty() && transportSettings.isEmpty()) {
             throw new OpenSearchException("No SSL configuration found");
         }
         jceWarnings();
         openSslWarnings(settings);
 
         final var httpEnabled = httpSettings.getAsBoolean(ENABLED, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
-        final var transportEnabled = transpotSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
+        final var transportEnabled = transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
 
         final var configurationBuilder = ImmutableMap.<CertType, SslConfiguration>builder();
         if (httpEnabled && !clientNode(settings)) {
@@ -150,10 +150,10 @@ public class SslSettingsManager {
             LOGGER.info("TLS HTTP Provider                    : {}", httpSslParameters.provider());
             LOGGER.info("Enabled TLS protocols for HTTP layer : {}", httpSslParameters.allowedProtocols());
         }
-        final var transportSslParameters = SslParameters.loader(transpotSettings).load(false);
+        final var transportSslParameters = SslParameters.loader(transportSettings).load(false);
         if (transportEnabled) {
-            if (hasExtendedKeyUsageEnabled(transpotSettings)) {
-                validateTransportSettings(transpotSettings);
+            if (hasExtendedKeyUsageEnabled(transportSettings)) {
+                validateTransportSettings(transportSettings);
                 final var transportServerTrustAndKeyStore = new SslCertificatesLoader(
                     CertType.TRANSPORT.sslConfigPrefix(),
                     SSL_TRANSPORT_SERVER_EXTENDED_PREFIX
@@ -171,7 +171,7 @@ public class SslSettingsManager {
                     new SslConfiguration(transportSslParameters, transportClientTrustAndKeyStore.v1(), transportClientTrustAndKeyStore.v2())
                 );
             } else {
-                validateTransportSettings(transpotSettings);
+                validateTransportSettings(transportSettings);
                 final var transportTrustAndKeyStore = new SslCertificatesLoader(CertType.TRANSPORT.sslConfigPrefix()).loadConfiguration(
                     environment
                 );
