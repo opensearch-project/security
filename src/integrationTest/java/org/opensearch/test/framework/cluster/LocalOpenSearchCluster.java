@@ -227,6 +227,9 @@ public class LocalOpenSearchCluster {
         Client client = clientNode().getInternalNodeClient();
         AdminClient adminClient = client.admin();
 
+        adminClient.indices().prepareFlush().get();
+        adminClient.indices().prepareRefresh().get();
+
         if (checkActiveThreads) {
             int maxRetries = 3;
             int retryCount = 0;
