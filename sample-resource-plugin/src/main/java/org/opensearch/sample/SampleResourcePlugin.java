@@ -44,17 +44,24 @@ import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.sample.actions.create.CreateResourceAction;
-import org.opensearch.sample.actions.create.CreateResourceRestAction;
-import org.opensearch.sample.actions.list.ListAccessibleResourcesAction;
-import org.opensearch.sample.actions.list.ListAccessibleResourcesRestAction;
-import org.opensearch.sample.actions.revoke.RevokeResourceAccessAction;
-import org.opensearch.sample.actions.revoke.RevokeResourceAccessRestAction;
-import org.opensearch.sample.actions.share.ShareResourceAction;
-import org.opensearch.sample.actions.share.ShareResourceRestAction;
-import org.opensearch.sample.actions.verify.VerifyResourceAccessAction;
-import org.opensearch.sample.actions.verify.VerifyResourceAccessRestAction;
-import org.opensearch.sample.transport.*;
+import org.opensearch.sample.actions.access.list.ListAccessibleResourcesAction;
+import org.opensearch.sample.actions.access.list.ListAccessibleResourcesRestAction;
+import org.opensearch.sample.actions.access.revoke.RevokeResourceAccessAction;
+import org.opensearch.sample.actions.access.revoke.RevokeResourceAccessRestAction;
+import org.opensearch.sample.actions.access.share.ShareResourceAction;
+import org.opensearch.sample.actions.access.share.ShareResourceRestAction;
+import org.opensearch.sample.actions.access.verify.VerifyResourceAccessAction;
+import org.opensearch.sample.actions.access.verify.VerifyResourceAccessRestAction;
+import org.opensearch.sample.actions.resource.create.CreateResourceAction;
+import org.opensearch.sample.actions.resource.create.CreateResourceRestAction;
+import org.opensearch.sample.actions.resource.delete.DeleteResourceAction;
+import org.opensearch.sample.actions.resource.delete.DeleteResourceRestAction;
+import org.opensearch.sample.transport.access.ListAccessibleResourcesTransportAction;
+import org.opensearch.sample.transport.access.RevokeResourceAccessTransportAction;
+import org.opensearch.sample.transport.access.ShareResourceTransportAction;
+import org.opensearch.sample.transport.access.VerifyResourceAccessTransportAction;
+import org.opensearch.sample.transport.resource.CreateResourceTransportAction;
+import org.opensearch.sample.transport.resource.DeleteResourceTransportAction;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -105,7 +112,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
             new ListAccessibleResourcesRestAction(),
             new VerifyResourceAccessRestAction(),
             new RevokeResourceAccessRestAction(),
-            new ShareResourceRestAction()
+            new ShareResourceRestAction(),
+            new DeleteResourceRestAction()
         );
     }
 
@@ -116,7 +124,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
             new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, ListAccessibleResourcesTransportAction.class),
             new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class),
             new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class),
-            new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, VerifyResourceAccessTransportAction.class)
+            new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, VerifyResourceAccessTransportAction.class),
+            new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class)
         );
     }
 
