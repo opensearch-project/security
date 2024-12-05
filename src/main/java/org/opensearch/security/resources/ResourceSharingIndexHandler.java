@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,10 +42,12 @@ import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -58,6 +61,7 @@ import org.opensearch.script.ScriptType;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -661,6 +665,88 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
+     * Updates the sharing configuration for an existing resource in the resource sharing index.
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map)}
+     * This method modifies the sharing permissions for a specific resource identified by its
+     * resource ID and source index.
+     *
+     * @param resourceId The unique identifier of the resource whose sharing configuration needs to be updated
+     * @param sourceIdx The source index where the original resource is stored
+     * @param shareWith Updated sharing configuration object containing access control settings:
+     *                 {
+     *                     "scope": {
+     *                         "users": ["user1", "user2"],
+     *                         "roles": ["role1", "role2"],
+     *                         "backend_roles": ["backend_role1"]
+     *                     }
+     *                 }
+     * @return ResourceSharing Returns resourceSharing object if the update was successful, null otherwise
+     * @throws RuntimeException if there's an error during the update operation
+     */
+    public ResourceSharing updateResourceSharingInfo(String resourceId, String sourceIdx, CreatedBy createdBy, ShareWith shareWith) {
+        XContentBuilder builder;
+        Map<String, Object> shareWithMap;
+        try {
+            builder = XContentFactory.jsonBuilder();
+            shareWith.toXContent(builder, ToXContent.EMPTY_PARAMS);
+            String json = builder.toString();
+            shareWithMap = DefaultObjectMapper.readValue(json, new TypeReference<>() {
+            });
+
+        } catch (IOException e) {
+            LOGGER.error("Failed to build json content", e);
+            return null;
+        }
+
+        // Atomic operation
+        Script updateScript = new Script(ScriptType.INLINE, "painless", """
+            if (ctx._source.share_with == null) {
+                ctx._source.share_with = [:];
+            }
+            for (def entry : params.shareWith.entrySet()) {
+                def scopeName = entry.getKey();
+                def newScope = entry.getValue();
+                if (ctx._source.share_with.containsKey(scopeName)) {
+                    def existingScope = ctx._source.share_with.get(scopeName);
+                    if (newScope.users != null) {
+                        if (existingScope.users == null) {
+                            existingScope.users = new HashSet();
+                        }
+                        existingScope.users.addAll(newScope.users);
+                    }
+                    if (newScope.roles != null) {
+                        if (existingScope.roles == null) {
+                            existingScope.roles = new HashSet();
+                        }
+                        existingScope.roles.addAll(newScope.roles);
+                    }
+                    if (newScope.backend_roles != null) {
+                        if (existingScope.backend_roles == null) {
+                            existingScope.backend_roles = new HashSet();
+                        }
+                        existingScope.backend_roles.addAll(newScope.backend_roles);
+                    }
+                } else {
+                    def newScopeEntry = [:];
+                    if (newScope.users != null) {
+                        newScopeEntry.users = new HashSet(newScope.users);
+                    }
+                    if (newScope.roles != null) {
+                        newScopeEntry.roles = new HashSet(newScope.roles);
+                    }
+                    if (newScope.backend_roles != null) {
+                        newScopeEntry.backend_roles = new HashSet(newScope.backend_roles);
+                    }
+                    ctx._source.share_with.put(scopeName, newScopeEntry);
+                }
+            }
+            """, Collections.singletonMap("shareWith", shareWithMap));
+
+        boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, updateScript);
+        return success ? new ResourceSharing(resourceId, sourceIdx, createdBy, shareWith) : null;
+    }
+
+    /**
      * Updates resource sharing entries that match the specified source index and resource ID
      * using the provided update script. This method performs an update-by-query operation
      * in the resource sharing index.
@@ -715,14 +801,15 @@ public class ResourceSharingIndexHandler {
      */
     private boolean updateByQueryResourceSharing(String sourceIdx, String resourceId, Script updateScript) {
         try {
-            // Create a bool query to match both fields
             BoolQueryBuilder query = QueryBuilders.boolQuery()
                 .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
                 .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
 
-            UpdateByQueryRequest ubq = new UpdateByQueryRequest(resourceSharingIndex).setQuery(query).setScript(updateScript);
+            UpdateByQueryRequest ubq = new UpdateByQueryRequest(resourceSharingIndex).setQuery(query)
+                .setScript(updateScript)
+                .setRefresh(true);
 
-            LOGGER.info("Update By Query Request: {}", ubq.toString());
+            LOGGER.debug("Update By Query Request: {}", ubq.toString());
 
             BulkByScrollResponse response = client.execute(UpdateByQueryAction.INSTANCE, ubq).actionGet();
 
@@ -743,36 +830,6 @@ public class ResourceSharingIndexHandler {
             LOGGER.error("Failed to update documents in {}.", resourceSharingIndex, e);
             return false;
         }
-    }
-
-    /**
-     * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * This method modifies the sharing permissions for a specific resource identified by its
-     * resource ID and source index.
-     *
-     * @param resourceId The unique identifier of the resource whose sharing configuration needs to be updated
-     * @param sourceIdx The source index where the original resource is stored
-     * @param shareWith Updated sharing configuration object containing access control settings:
-     *                 {
-     *                     "scope": {
-     *                         "users": ["user1", "user2"],
-     *                         "roles": ["role1", "role2"],
-     *                         "backend_roles": ["backend_role1"]
-     *                     }
-     *                 }
-     * @return ResourceSharing Returns resourceSharing object if the update was successful, null otherwise
-     * @throws RuntimeException if there's an error during the update operation
-     */
-    public ResourceSharing updateResourceSharingInfo(String resourceId, String sourceIdx, CreatedBy createdBy, ShareWith shareWith) {
-        Script updateScript = new Script(
-            ScriptType.INLINE,
-            "painless",
-            "ctx._source.share_with = params.newShareWith",
-            Collections.singletonMap("newShareWith", shareWith)
-        );
-
-        boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, updateScript);
-        return success ? new ResourceSharing(resourceId, sourceIdx, createdBy, shareWith) : null;
     }
 
     /**
