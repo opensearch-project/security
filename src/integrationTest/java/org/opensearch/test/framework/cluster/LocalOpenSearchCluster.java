@@ -55,6 +55,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.cluster.node.hotthreads.NodesHotThreadsResponse;
 import org.opensearch.action.admin.cluster.node.stats.NodeStats;
 import org.opensearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.opensearch.action.admin.cluster.node.stats.NodesStatsResponse;
@@ -254,6 +255,13 @@ public class LocalOpenSearchCluster {
                             }
                         }
                         if (threadsActive) {
+                            // TODO Hot Threads added for debugging
+                            NodesHotThreadsResponse hotThreadsResponse = adminClient.cluster().prepareNodesHotThreads().get();
+                            if (hotThreadsResponse.getNodes().isEmpty()) {
+                                log.warn("Hot threads response is empty");
+                                break;
+                            }
+                            log.warn("Hot threads stack trace: {}", hotThreadsResponse.getNodes().get(0).getHotThreads());
                             break;
                         }
                     }
