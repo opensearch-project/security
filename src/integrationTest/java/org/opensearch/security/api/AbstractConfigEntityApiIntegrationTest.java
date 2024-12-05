@@ -46,7 +46,6 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     protected Map<String, Object> getClusterSettings() {
         Map<String, Object> clusterSettings = super.getClusterSettings();
         clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
-        clusterSettings.put("monitor.fs.health.enabled", false);
         return clusterSettings;
     }
 

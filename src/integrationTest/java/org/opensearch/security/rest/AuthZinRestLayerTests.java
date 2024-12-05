@@ -11,8 +11,6 @@
 
 package org.opensearch.security.rest;
 
-import java.util.Map;
-
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
@@ -74,7 +72,6 @@ public class AuthZinRestLayerTests {
         .users(REST_ONLY, REST_PLUS_TRANSPORT, TRANSPORT_ONLY, NO_PERM)
         .plugin(CustomLegacyTestPlugin.class)
         .plugin(CustomRestProtectedTestPlugin.class)
-        .nodeSettings(Map.of("monitor.fs.health.enabled", false))
         .audit(
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
                 .filters(new AuditFilters().enabledRest(true).enabledTransport(true).resolveBulkRequests(true))

@@ -120,7 +120,6 @@ public abstract class AbstractApiIntegrationTest extends RandomizedTest {
         clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true);
         clusterSettings.put(PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS));
         clusterSettings.put(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, randomBoolean());
-        clusterSettings.put("monitor.fs.health.enabled", false);
         return clusterSettings;
     }
 

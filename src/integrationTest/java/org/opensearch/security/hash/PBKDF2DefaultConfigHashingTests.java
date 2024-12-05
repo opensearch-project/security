@@ -48,9 +48,7 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
                 ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-                ConfigConstants.PBKDF2,
-                "monitor.fs.health.enabled",
-                false
+                ConfigConstants.PBKDF2
             )
         )
         .build();

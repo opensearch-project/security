@@ -134,9 +134,7 @@ public class OnBehalfOfJwtAuthenticationTest {
                 SECURITY_RESTAPI_ADMIN_ENABLED,
                 true,
                 "plugins.security.unsupported.restapi.allow_securityconfig_modification",
-                true,
-                "monitor.fs.health.enabled",
-                false
+                true
             )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)

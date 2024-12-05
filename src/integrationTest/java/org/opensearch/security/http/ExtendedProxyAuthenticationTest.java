@@ -69,7 +69,6 @@ public class ExtendedProxyAuthenticationTest extends CommonProxyAuthenticationTe
             ).backend(new AuthenticationBackend("noop"))
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .nodeSettings(Map.of("monitor.fs.health.enabled", false))
         .users(USER_ADMIN)
         .roles(ROLE_ALL_INDEX_SEARCH, ROLE_PERSONAL_INDEX_SEARCH)
         .rolesMapping(ROLES_MAPPING_CAPTAIN, ROLES_MAPPING_FIRST_MATE)

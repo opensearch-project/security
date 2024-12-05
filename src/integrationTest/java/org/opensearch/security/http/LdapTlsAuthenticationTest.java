@@ -122,9 +122,7 @@ public class LdapTlsAuthenticationTest {
 
     private static final Map<String, Object> USER_IMPERSONATION_CONFIGURATION = Map.of(
         "plugins.security.authcz.rest_impersonation_user." + USER_KIRK,
-        List.of(USER_SPOCK),
-        "monitor.fs.health.enabled",
-        false
+        List.of(USER_SPOCK)
     );
 
     private static final LocalCluster cluster = new LocalCluster.Builder().testCertificates(TEST_CERTIFICATES)

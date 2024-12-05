@@ -85,12 +85,7 @@ public class JwtAuthenticationWithUrlParamTests {
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .nodeSettings(
-            Map.of(
-                "plugins.security.restapi.roles_enabled",
-                List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
-                "monitor.fs.health.enabled",
-                false
-            )
+            Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
         )
         .audit(
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))

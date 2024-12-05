@@ -90,7 +90,6 @@ public class WhoAmITests {
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
                 .filters(new AuditFilters().enabledRest(true).enabledTransport(true).resolveBulkRequests(true))
         )
-        .nodeSettings(Map.of("monitor.fs.health.enabled", false))
         .build();
 
     @Rule
