@@ -47,7 +47,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
 
         String resourceId = (String) source.get("resource_id");
         @SuppressWarnings("unchecked")
-        Map<String, List<String>> revokeSource = (Map<String, List<String>>) source.get("revoke");
+        Map<String, List<String>> revokeSource = (Map<String, List<String>>) source.get("entities");
         Map<EntityType, List<String>> revoke = revokeSource.entrySet().stream().collect(Collectors.toMap(entry -> {
             try {
                 return EntityType.fromValue(entry.getKey());
@@ -57,8 +57,9 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
                 );
             }
         }, Map.Entry::getValue));
-
-        final RevokeResourceAccessRequest revokeResourceAccessRequest = new RevokeResourceAccessRequest(resourceId, revoke);
+        @SuppressWarnings("unchecked")
+        List<String> scopes = source.containsKey("scopes") ? (List<String>) source.get("scopes") : List.of();
+        final RevokeResourceAccessRequest revokeResourceAccessRequest = new RevokeResourceAccessRequest(resourceId, revoke, scopes);
         return channel -> client.executeLocally(
             RevokeResourceAccessAction.INSTANCE,
             revokeResourceAccessRequest,

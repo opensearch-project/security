@@ -22,15 +22,18 @@ public class RevokeResourceAccessRequest extends ActionRequest {
 
     private final String resourceId;
     private final Map<EntityType, List<String>> revokeAccess;
+    private final List<String> scopes;
 
-    public RevokeResourceAccessRequest(String resourceId, Map<EntityType, List<String>> revokeAccess) {
+    public RevokeResourceAccessRequest(String resourceId, Map<EntityType, List<String>> revokeAccess, List<String> scopes) {
         this.resourceId = resourceId;
         this.revokeAccess = revokeAccess;
+        this.scopes = scopes;
     }
 
     public RevokeResourceAccessRequest(StreamInput in) throws IOException {
         this.resourceId = in.readString();
         this.revokeAccess = in.readMap(input -> EntityType.valueOf(input.readString()), StreamInput::readStringList);
+        this.scopes = in.readStringList();
     }
 
     @Override
@@ -41,6 +44,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
             (streamOutput, entityType) -> streamOutput.writeString(entityType.name()),
             StreamOutput::writeStringCollection
         );
+        out.writeStringCollection(scopes);
     }
 
     @Override
@@ -54,5 +58,9 @@ public class RevokeResourceAccessRequest extends ActionRequest {
 
     public Map<EntityType, List<String>> getRevokeAccess() {
         return revokeAccess;
+    }
+
+    public List<String> getScopes() {
+        return scopes;
     }
 }

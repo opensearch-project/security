@@ -48,7 +48,7 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
         try {
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
             ResourceSharing revoke = rs.getResourceAccessControlPlugin()
-                .revokeAccess(request.getResourceId(), RESOURCE_INDEX_NAME, request.getRevokeAccess());
+                .revokeAccess(request.getResourceId(), RESOURCE_INDEX_NAME, request.getRevokeAccess(), request.getScopes());
             log.info("Revoked resource access for resource: {} with {}", request.getResourceId(), revoke.toString());
         } catch (Exception e) {
             log.info("Failed to revoke access for resource {}", request.getResourceId(), e);
