@@ -9,13 +9,13 @@
 package org.opensearch.sample.actions.access.verify;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Set;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sample.SampleResourceScope;
+import org.opensearch.sample.utils.Validation;
 
 public class VerifyResourceAccessRequest extends ActionRequest {
 
@@ -49,16 +49,7 @@ public class VerifyResourceAccessRequest extends ActionRequest {
 
     @Override
     public ActionRequestValidationException validate() {
-        try {
-            SampleResourceScope.valueOf(scope);
-        } catch (IllegalArgumentException | NullPointerException e) {
-            ActionRequestValidationException exception = new ActionRequestValidationException();
-            exception.addValidationError(
-                "Invalid scope: " + scope + ". Scope must be one of: " + Arrays.toString(SampleResourceScope.values())
-            );
-            return exception;
-        }
-        return null;
+        return Validation.validateScopes(Set.of(scope));
     }
 
     public String getResourceId() {

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.opensearch.accesscontrol.resources.EntityType;
@@ -47,8 +48,8 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
 
         String resourceId = (String) source.get("resource_id");
         @SuppressWarnings("unchecked")
-        Map<String, List<String>> revokeSource = (Map<String, List<String>>) source.get("entities");
-        Map<EntityType, List<String>> revoke = revokeSource.entrySet().stream().collect(Collectors.toMap(entry -> {
+        Map<String, Set<String>> revokeSource = (Map<String, Set<String>>) source.get("entities");
+        Map<EntityType, Set<String>> revoke = revokeSource.entrySet().stream().collect(Collectors.toMap(entry -> {
             try {
                 return EntityType.fromValue(entry.getKey());
             } catch (IllegalArgumentException e) {
@@ -58,7 +59,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
             }
         }, Map.Entry::getValue));
         @SuppressWarnings("unchecked")
-        List<String> scopes = source.containsKey("scopes") ? (List<String>) source.get("scopes") : List.of();
+        Set<String> scopes = source.containsKey("scopes") ? (Set<String>) source.get("scopes") : Set.of();
         final RevokeResourceAccessRequest revokeResourceAccessRequest = new RevokeResourceAccessRequest(resourceId, revoke, scopes);
         return channel -> client.executeLocally(
             RevokeResourceAccessAction.INSTANCE,

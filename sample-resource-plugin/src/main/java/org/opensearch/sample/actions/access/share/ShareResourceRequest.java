@@ -9,7 +9,7 @@
 package org.opensearch.sample.actions.access.share;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.accesscontrol.resources.SharedWithScope;
@@ -17,7 +17,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sample.SampleResourceScope;
+import org.opensearch.sample.utils.Validation;
 
 public class ShareResourceRequest extends ActionRequest {
 
@@ -43,19 +43,9 @@ public class ShareResourceRequest extends ActionRequest {
     @Override
     public ActionRequestValidationException validate() {
 
-        for (SharedWithScope s : shareWith.getSharedWithScopes()) {
-            try {
-                SampleResourceScope.valueOf(s.getScope());
-            } catch (IllegalArgumentException | NullPointerException e) {
-                ActionRequestValidationException exception = new ActionRequestValidationException();
-                exception.addValidationError(
-                    "Invalid scope: " + s.getScope() + ". Scope must be one of: " + Arrays.toString(SampleResourceScope.values())
-                );
-                return exception;
-            }
-            return null;
-        }
-        return null;
+        return Validation.validateScopes(
+            shareWith.getSharedWithScopes().stream().map(SharedWithScope::getScope).collect(Collectors.toSet())
+        );
     }
 
     public String getResourceId() {

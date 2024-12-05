@@ -9,7 +9,7 @@
 package org.opensearch.sample.actions.access.list;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Set;
 
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -21,9 +21,9 @@ import org.opensearch.core.xcontent.XContentBuilder;
  * Response to a ListAccessibleResourcesRequest
  */
 public class ListAccessibleResourcesResponse extends ActionResponse implements ToXContentObject {
-    private final List<String> resourceIds;
+    private final Set<String> resourceIds;
 
-    public ListAccessibleResourcesResponse(List<String> resourceIds) {
+    public ListAccessibleResourcesResponse(Set<String> resourceIds) {
         this.resourceIds = resourceIds;
     }
 
@@ -33,7 +33,7 @@ public class ListAccessibleResourcesResponse extends ActionResponse implements T
     }
 
     public ListAccessibleResourcesResponse(final StreamInput in) throws IOException {
-        resourceIds = in.readStringList();
+        resourceIds = in.readSet(StreamInput::readString);
     }
 
     @Override
