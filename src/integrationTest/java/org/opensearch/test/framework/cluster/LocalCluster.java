@@ -382,8 +382,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
 
         public Builder nodeSettings(Map<String, Object> settings) {
-            settings.put("monitor.fs.health.enabled", false);
-            settings.forEach((key, value) -> {
+            HashMap<String, Object> settingsCopy = new HashMap<>(settings);
+            settingsCopy.put("monitor.fs.health.enabled", false);
+            settingsCopy.forEach((key, value) -> {
                 if (value instanceof List) {
                     List<String> values = ((List<?>) value).stream().map(String::valueOf).collect(Collectors.toList());
                     nodeOverrideSettingsBuilder.putList(key, values);
