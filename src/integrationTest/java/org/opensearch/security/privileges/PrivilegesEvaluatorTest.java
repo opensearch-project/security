@@ -11,6 +11,8 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Map;
+
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
@@ -75,6 +77,7 @@ public class PrivilegesEvaluatorTest {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .nodeSettings(Map.of("monitor.fs.health.enabled", false))
         .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, RENDER_SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN)
         .plugin(MustacheModulePlugin.class)
         .indices(R, T)

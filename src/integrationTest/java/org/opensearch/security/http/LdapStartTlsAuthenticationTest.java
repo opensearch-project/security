@@ -10,6 +10,7 @@
 package org.opensearch.security.http;
 
 import java.util.List;
+import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
@@ -64,6 +65,7 @@ public class LdapStartTlsAuthenticationTest {
     public static LocalCluster cluster = new LocalCluster.Builder().testCertificates(TEST_CERTIFICATES)
         .clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
+        .nodeSettings(Map.of("monitor.fs.health.enabled", false))
         .authc(
             new AuthcDomain("ldap-config-id", BASIC_AUTH_DOMAIN_ORDER + 1, true).httpAuthenticator(
                 new HttpAuthenticator("basic").challenge(false)
