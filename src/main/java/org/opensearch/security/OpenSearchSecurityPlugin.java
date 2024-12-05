@@ -2208,7 +2208,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public List<String> listAccessibleResourcesInPlugin(String systemIndexName) {
+    public Set<String> listAccessibleResourcesInPlugin(String systemIndexName) {
         return this.resourceAccessHandler.listAccessibleResourcesInPlugin(systemIndexName);
     }
 
@@ -2226,8 +2226,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public ResourceSharing revokeAccess(
         String resourceId,
         String systemIndexName,
-        Map<EntityType, List<String>> entities,
-        List<String> scopes
+        Map<EntityType, Set<String>> entities,
+        Set<String> scopes
     ) {
         return this.resourceAccessHandler.revokeAccess(resourceId, systemIndexName, entities, scopes);
     }

@@ -10,11 +10,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -195,7 +191,7 @@ public class ResourceSharingIndexHandler {
         * </pre>
         *
         * @param pluginIndex The source index to match against the source_idx field
-        * @return List<String> containing resource IDs that belong to the specified system index.
+        * @return Set<String> containing resource IDs that belong to the specified system index.
         *         Returns an empty list if:
         *         <ul>
         *           <li>No matching documents are found</li>
@@ -210,7 +206,7 @@ public class ResourceSharingIndexHandler {
         *   <li>Returns an empty list instead of throwing exceptions</li>
         * </ul>
         */
-    public List<String> fetchAllDocuments(String pluginIndex) {
+    public Set<String> fetchAllDocuments(String pluginIndex) {
         LOGGER.debug("Fetching all documents from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
 
         try {
@@ -226,7 +222,7 @@ public class ResourceSharingIndexHandler {
 
             SearchResponse searchResponse = client.search(searchRequest).actionGet();
 
-            List<String> resourceIds = new ArrayList<>();
+            Set<String> resourceIds = new HashSet<>();
 
             SearchHit[] hits = searchResponse.getHits().getHits();
             for (SearchHit hit : hits) {
@@ -242,7 +238,7 @@ public class ResourceSharingIndexHandler {
 
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
-            return List.of();
+            return Set.of();
         }
     }
 
@@ -297,7 +293,7 @@ public class ResourceSharingIndexHandler {
     *                    <li>"roles" - for role-based access</li>
     *                    <li>"backend_roles" - for backend role-based access</li>
     *                  </ul>
-    * @return List<String> List of resource IDs that match the criteria. The list may be empty
+    * @return Set<String> List of resource IDs that match the criteria. The list may be empty
     *         if no matches are found
     *
     * @throws RuntimeException if the search operation fails
@@ -312,7 +308,7 @@ public class ResourceSharingIndexHandler {
     * </ul>
     */
 
-    public List<String> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String entityType) {
+    public Set<String> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String entityType) {
         // "*" must match all scopes
         return fetchDocumentsForAGivenScope(pluginIndex, entities, entityType, "*");
     }
@@ -369,7 +365,7 @@ public class ResourceSharingIndexHandler {
      *                    <li>"backend_roles" - for backend role-based access</li>
      *                  </ul>
      * @param scope The scope of the access. Should be implementation of {@link org.opensearch.accesscontrol.resources.ResourceAccessScope}
-     * @return List<String> List of resource IDs that match the criteria. The list may be empty
+     * @return Set<String> List of resource IDs that match the criteria. The list may be empty
      *         if no matches are found
      *
      * @throws RuntimeException if the search operation fails
@@ -383,7 +379,7 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public List<String> fetchDocumentsForAGivenScope(String pluginIndex, Set<String> entities, String entityType, String scope) {
+    public Set<String> fetchDocumentsForAGivenScope(String pluginIndex, Set<String> entities, String entityType, String scope) {
         LOGGER.debug(
             "Fetching documents from index: {}, where share_with.{}.{} contains any of {}",
             pluginIndex,
@@ -392,7 +388,7 @@ public class ResourceSharingIndexHandler {
             entities
         );
 
-        List<String> resourceIds = new ArrayList<>();
+        Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try {
@@ -473,7 +469,7 @@ public class ResourceSharingIndexHandler {
      * @param systemIndex The source index to match against the source_idx field
      * @param field The field name to search in. Must be a valid field in the index mapping
      * @param value The value to match for the specified field. Performs exact term matching
-     * @return List<String> List of resource IDs that match the criteria. Returns an empty list
+     * @return Set<String> List of resource IDs that match the criteria. Returns an empty list
      *         if no matches are found
      *
      * @throws IllegalArgumentException if any parameter is null or empty
@@ -490,17 +486,17 @@ public class ResourceSharingIndexHandler {
      *
      * Example usage:
      * <pre>
-     * List<String> resources = fetchDocumentsByField("myIndex", "status", "active");
+     * Set<String> resources = fetchDocumentsByField("myIndex", "status", "active");
      * </pre>
      */
-    public List<String> fetchDocumentsByField(String systemIndex, String field, String value) {
+    public Set<String> fetchDocumentsByField(String systemIndex, String field, String value) {
         if (StringUtils.isBlank(systemIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
             throw new IllegalArgumentException("systemIndex, field, and value must not be null or empty");
         }
 
         LOGGER.debug("Fetching documents from index: {}, where {} = {}", systemIndex, field, value);
 
-        List<String> resourceIds = new ArrayList<>();
+        Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
         try {
@@ -635,7 +631,7 @@ public class ResourceSharingIndexHandler {
      * @param searchRequest Request to execute
      * @param boolQuery Query to execute with the request
      */
-    private void executeSearchRequest(List<String> resourceIds, Scroll scroll, SearchRequest searchRequest, BoolQueryBuilder boolQuery) {
+    private void executeSearchRequest(Set<String> resourceIds, Scroll scroll, SearchRequest searchRequest, BoolQueryBuilder boolQuery) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery)
             .size(1000)
             .fetchSource(new String[] { "resource_id" }, null);
@@ -668,7 +664,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, List)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -878,17 +874,17 @@ public class ResourceSharingIndexHandler {
      *          entities don't exist in the current configuration), the original document is returned unchanged.
      * &#064;example
      * <pre>
-     * Map<EntityType, List<String>> revokeAccess = new HashMap<>();
-     * revokeAccess.put(EntityType.USER, Arrays.asList("user1", "user2"));
-     * revokeAccess.put(EntityType.ROLE, Arrays.asList("role1"));
+     * Map<EntityType, Set<String>> revokeAccess = new HashMap<>();
+     * revokeAccess.put(EntityType.USER, Set.of("user1", "user2"));
+     * revokeAccess.put(EntityType.ROLE, Set.of("role1"));
      * ResourceSharing updated = revokeAccess("resourceId", "systemIndex", revokeAccess);
      * </pre>
      */
     public ResourceSharing revokeAccess(
         String resourceId,
         String sourceIdx,
-        Map<EntityType, List<String>> revokeAccess,
-        List<String> scopes
+        Map<EntityType, Set<String>> revokeAccess,
+        Set<String> scopes
     ) {
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null || revokeAccess.isEmpty()) {
             throw new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty");
@@ -903,7 +899,7 @@ public class ResourceSharingIndexHandler {
                 "painless",
                 """
                         if (ctx._source.share_with != null) {
-                            List scopesToProcess = params.scopes == null || params.scopes.isEmpty() ? new ArrayList(ctx._source.share_with.keySet()) : params.scopes;
+                            Set scopesToProcess = params.scopes == null || params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes;
 
                             for (def scopeName : scopesToProcess) {
                                 if (ctx._source.share_with.containsKey(scopeName)) {

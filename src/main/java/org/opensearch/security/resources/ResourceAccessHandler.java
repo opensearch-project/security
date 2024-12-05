@@ -13,7 +13,6 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,11 +48,11 @@ public class ResourceAccessHandler {
         this.adminDNs = adminDns;
     }
 
-    public List<String> listAccessibleResourcesInPlugin(String pluginIndex) {
+    public Set<String> listAccessibleResourcesInPlugin(String pluginIndex) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             LOGGER.info("Unable to fetch user details ");
-            return Collections.emptyList();
+            return Collections.emptySet();
         }
 
         LOGGER.info("Listing accessible resource within a system index {} for : {}", pluginIndex, user.getName());
@@ -79,7 +78,7 @@ public class ResourceAccessHandler {
         Set<String> backendRoles = user.getRoles();
         result.addAll(loadSharedWithResources(pluginIndex, backendRoles, EntityType.BACKEND_ROLES.toString()));
 
-        return result.stream().toList();
+        return result;
     }
 
     public boolean hasPermission(String resourceId, String systemIndexName, String scope) {
@@ -119,8 +118,8 @@ public class ResourceAccessHandler {
     public ResourceSharing revokeAccess(
         String resourceId,
         String systemIndexName,
-        Map<EntityType, List<String>> revokeAccess,
-        List<String> scopes
+        Map<EntityType, Set<String>> revokeAccess,
+        Set<String> scopes
     ) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Revoking access to resource {} created by {} for {}", resourceId, user.getName(), revokeAccess);
@@ -153,16 +152,16 @@ public class ResourceAccessHandler {
 
     // Helper methods
 
-    private List<String> loadAllResources(String systemIndex) {
+    private Set<String> loadAllResources(String systemIndex) {
         return this.resourceSharingIndexHandler.fetchAllDocuments(systemIndex);
     }
 
-    private List<String> loadOwnResources(String systemIndex, String username) {
+    private Set<String> loadOwnResources(String systemIndex, String username) {
         // TODO check if this magic variable can be replaced
         return this.resourceSharingIndexHandler.fetchDocumentsByField(systemIndex, "created_by.user", username);
     }
 
-    private List<String> loadSharedWithResources(String systemIndex, Set<String> entities, String shareWithType) {
+    private Set<String> loadSharedWithResources(String systemIndex, Set<String> entities, String shareWithType) {
         return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(systemIndex, entities, shareWithType);
     }
 
