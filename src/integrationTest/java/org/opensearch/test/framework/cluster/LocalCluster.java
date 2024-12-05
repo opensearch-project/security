@@ -554,11 +554,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                     testCertificates = new TestCertificates(clusterManager.getNodes());
                 }
                 clusterName += "_" + num.incrementAndGet();
-                nodeOverrideSettingsBuilder.put("monitor.fs.health.enabled", true);
+                nodeOverrideSettingsBuilder.put("monitor.fs.health.enabled", "true");
                 Settings settings = nodeOverrideSettingsBuilder.build();
                 Map<Integer, Settings> nodeSpecificSettings = new HashMap<>();
                 for (Map.Entry<Integer, Settings.Builder> entry : nodeSpecificOverrideSettingsBuilder.entrySet()) {
-                    entry.getValue().put("monitor.fs.health.enabled", true);
+                    entry.getValue().put("monitor.fs.health.enabled", "true");
                     nodeSpecificSettings.put(entry.getKey(), entry.getValue().build());
                 }
                 return new LocalCluster(
