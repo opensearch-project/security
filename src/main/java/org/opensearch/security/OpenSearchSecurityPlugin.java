@@ -2223,8 +2223,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> entities) {
-        return this.resourceAccessHandler.revokeAccess(resourceId, systemIndexName, entities);
+    public ResourceSharing revokeAccess(
+        String resourceId,
+        String systemIndexName,
+        Map<EntityType, List<String>> entities,
+        List<String> scopes
+    ) {
+        return this.resourceAccessHandler.revokeAccess(resourceId, systemIndexName, entities, scopes);
     }
 
     @Override

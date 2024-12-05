@@ -21,13 +21,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.join.ScoreMode;
 
 import org.opensearch.accesscontrol.resources.CreatedBy;
 import org.opensearch.accesscontrol.resources.EntityType;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
-import org.opensearch.accesscontrol.resources.SharedWithScope;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -50,6 +48,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
@@ -155,8 +154,6 @@ public class ResourceSharingIndexHandler {
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setSource(entry.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .request();
-
-            LOGGER.info("Index Request: {}", ir.toString());
 
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 LOGGER.info("Successfully created {} entry.", resourceSharingIndex);
@@ -405,14 +402,19 @@ public class ResourceSharingIndexHandler {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex));
 
             BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
-            for (String entity : entities) {
-                shouldQuery.should(
-                    QueryBuilders.nestedQuery(
-                        "share_with." + scope + "." + entityType,
-                        QueryBuilders.termQuery("share_with." + scope + "." + entityType, entity),
-                        ScoreMode.None
-                    )
-                );
+            if ("*".equals(scope)) {
+                // Wildcard behavior: Match any scope dynamically
+                for (String entity : entities) {
+                    shouldQuery.should(
+                        QueryBuilders.multiMatchQuery(entity, "share_with.*." + entityType + ".keyword")
+                            .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
+                    );
+                }
+            } else {
+                // Match the specific scope
+                for (String entity : entities) {
+                    shouldQuery.should(QueryBuilders.termQuery("share_with." + scope + "." + entityType + ".keyword", entity));
+                }
             }
             shouldQuery.minimumShouldMatch(1);
 
@@ -666,7 +668,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, List)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -861,11 +863,12 @@ public class ResourceSharingIndexHandler {
      * </pre>
      *
      * @param resourceId The ID of the resource from which to revoke access
-     * @param systemIndexName The name of the system index where the resource exists
+     * @param sourceIdx The name of the system index where the resource exists
      * @param revokeAccess A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                     values to be removed from the sharing configuration
+     * @param scopes A list of scopes to revoke access from. If null or empty, access is revoked from all scopes
      * @return The updated ResourceSharing object after revoking access, or null if the document doesn't exist
-     * @throws IllegalArgumentException if resourceId, systemIndexName is null/empty, or if revokeAccess is null/empty
+     * @throws IllegalArgumentException if resourceId, sourceIdx is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException if the update operation fails or encounters an error
      *
      * @see EntityType
@@ -881,65 +884,58 @@ public class ResourceSharingIndexHandler {
      * ResourceSharing updated = revokeAccess("resourceId", "systemIndex", revokeAccess);
      * </pre>
      */
-    public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> revokeAccess) {
-        // TODO; check if this needs to be done per scope rather than for all scopes
-
-        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(systemIndexName) || revokeAccess == null || revokeAccess.isEmpty()) {
-            throw new IllegalArgumentException("resourceId, systemIndexName, and revokeAccess must not be null or empty");
+    public ResourceSharing revokeAccess(
+        String resourceId,
+        String sourceIdx,
+        Map<EntityType, List<String>> revokeAccess,
+        List<String> scopes
+    ) {
+        if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null || revokeAccess.isEmpty()) {
+            throw new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty");
         }
 
-        LOGGER.debug("Revoking access for resource {} in {} for entities: {}", resourceId, systemIndexName, revokeAccess);
+        LOGGER.debug("Revoking access for resource {} in {} for entities: {} and scopes: {}", resourceId, sourceIdx, revokeAccess, scopes);
 
         try {
-            ResourceSharing existingResource = fetchDocumentById(systemIndexName, resourceId);
-            if (existingResource == null) {
-                LOGGER.warn("No document found for resourceId: {} in index: {}", resourceId, systemIndexName);
-                return null;
-            }
+            // Revoke resource access
+            Script revokeScript = new Script(
+                ScriptType.INLINE,
+                "painless",
+                """
+                        if (ctx._source.share_with != null) {
+                            List scopesToProcess = params.scopes == null || params.scopes.isEmpty() ? new ArrayList(ctx._source.share_with.keySet()) : params.scopes;
 
-            ShareWith shareWith = existingResource.getShareWith();
-            boolean modified = false;
+                            for (def scopeName : scopesToProcess) {
+                                if (ctx._source.share_with.containsKey(scopeName)) {
+                                    def existingScope = ctx._source.share_with.get(scopeName);
 
-            if (shareWith != null) {
-                for (SharedWithScope sharedWithScope : shareWith.getSharedWithScopes()) {
-                    SharedWithScope.SharedWithPerScope sharedWithPerScope = sharedWithScope.getSharedWithPerScope();
+                                    for (def entry : params.revokeAccess.entrySet()) {
+                                        def entityType = entry.getKey();
+                                        def entitiesToRemove = entry.getValue();
 
-                    for (Map.Entry<EntityType, List<String>> entry : revokeAccess.entrySet()) {
-                        EntityType entityType = entry.getKey();
-                        List<String> entities = entry.getValue();
+                                        if (existingScope.containsKey(entityType) && existingScope[entityType] != null) {
+                                            existingScope[entityType].removeAll(entitiesToRemove);
+                                            if (existingScope[entityType].isEmpty()) {
+                                                existingScope.remove(entityType);
+                                            }
+                                        }
+                                    }
 
-                        // Check if the entity type exists in the share_with configuration
-                        switch (entityType) {
-                            case USERS:
-                                if (sharedWithPerScope.getUsers() != null) {
-                                    modified = sharedWithPerScope.getUsers().removeAll(entities) || modified;
+                                    if (existingScope.isEmpty()) {
+                                        ctx._source.share_with.remove(scopeName);
+                                    }
                                 }
-                                break;
-                            case ROLES:
-                                if (sharedWithPerScope.getRoles() != null) {
-                                    modified = sharedWithPerScope.getRoles().removeAll(entities) || modified;
-                                }
-                                break;
-                            case BACKEND_ROLES:
-                                if (sharedWithPerScope.getBackendRoles() != null) {
-                                    modified = sharedWithPerScope.getBackendRoles().removeAll(entities) || modified;
-                                }
-                                break;
+                            }
                         }
-                    }
-                }
-            }
+                    """,
+                Map.of("revokeAccess", revokeAccess, "scopes", scopes)
+            );
 
-            if (!modified) {
-                LOGGER.debug("No modifications needed for resource: {}", resourceId);
-                return existingResource;
-            }
-
-            // Update resource sharing info
-            return updateResourceSharingInfo(resourceId, systemIndexName, existingResource.getCreatedBy(), shareWith);
+            boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, revokeScript);
+            return success ? fetchDocumentById(sourceIdx, resourceId) : null;
 
         } catch (Exception e) {
-            LOGGER.error("Failed to revoke access for resource: {} in index: {}", resourceId, systemIndexName, e);
+            LOGGER.error("Failed to revoke access for resource: {} in index: {}", resourceId, sourceIdx, e);
             throw new RuntimeException("Failed to revoke access: " + e.getMessage(), e);
         }
     }
@@ -986,7 +982,7 @@ public class ResourceSharingIndexHandler {
      * </pre>
      */
     public boolean deleteResourceSharingRecord(String resourceId, String sourceIdx) {
-        LOGGER.info("Deleting documents from {} where source_idx = {} and resource_id = {}", resourceSharingIndex, sourceIdx, resourceId);
+        LOGGER.debug("Deleting documents from {} where source_idx = {} and resource_id = {}", resourceSharingIndex, sourceIdx, resourceId);
 
         try {
             DeleteByQueryRequest dbq = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
@@ -1074,7 +1070,7 @@ public class ResourceSharingIndexHandler {
             throw new IllegalArgumentException("Username must not be null or empty");
         }
 
-        LOGGER.info("Deleting all records for user {}", name);
+        LOGGER.debug("Deleting all records for user {}", name);
 
         try {
             DeleteByQueryRequest deleteRequest = new DeleteByQueryRequest(resourceSharingIndex).setQuery(

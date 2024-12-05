@@ -116,11 +116,16 @@ public class ResourceAccessHandler {
         return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, systemIndexName, createdBy, shareWith);
     }
 
-    public ResourceSharing revokeAccess(String resourceId, String systemIndexName, Map<EntityType, List<String>> revokeAccess) {
+    public ResourceSharing revokeAccess(
+        String resourceId,
+        String systemIndexName,
+        Map<EntityType, List<String>> revokeAccess,
+        List<String> scopes
+    ) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Revoking access to resource {} created by {} for {}", resourceId, user.getName(), revokeAccess);
 
-        return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess);
+        return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess, scopes);
     }
 
     public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {
