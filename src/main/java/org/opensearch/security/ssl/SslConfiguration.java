@@ -85,7 +85,7 @@ public class SslConfiguration {
                     .build()
             );
         } catch (PrivilegedActionException e) {
-            throw new OpenSearchException("Filed to build server SSL context", e);
+            throw new OpenSearchException("Failed to build server SSL context", e);
         }
     }
 
@@ -106,7 +106,7 @@ public class SslConfiguration {
                     .build()
             );
         } catch (PrivilegedActionException e) {
-            throw new OpenSearchException("Filed to build client SSL context", e);
+            throw new OpenSearchException("Failed to build client SSL context", e);
         }
     }
 
