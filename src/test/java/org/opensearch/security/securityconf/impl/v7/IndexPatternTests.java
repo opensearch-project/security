@@ -28,6 +28,7 @@ import org.opensearch.cluster.metadata.IndexAbstraction.Type;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.security.securityconf.ConfigModelV7.IndexPattern;
 import org.opensearch.security.user.User;
 
@@ -37,6 +38,7 @@ import org.mockito.quality.Strictness;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,6 +47,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -74,6 +77,37 @@ public class IndexPatternTests {
     @Test
     public void testCtor() {
         assertThrows(NullPointerException.class, () -> new IndexPattern(null));
+    }
+
+    @Test
+    public void testGetIndexMatcherAndPermissionsWithAllIndices() {
+        IndexPattern testIp = new IndexPattern("*");
+        testIp.addPerm(Set.of("indices:data/write/*"));
+        User user = new User("test-user");
+        ConfigModelV7.IndexMatcherAndPermissions matcher = testIp.getIndexMatcherAndPermissions(user, resolver, clusterService);
+        verifyNoInteractions(resolver);
+        verifyNoInteractions(clusterService);
+        assertThat(matcher.matches("testPattern", "indices:data/write/index"), is(true));
+        assertThat(matcher.matches("testPattern", "indices:data/read/index"), is(false));
+        assertThat(matcher.matches("otherPattern", "indices:data/write/index"), is(true));
+        assertThat(matcher.matches("otherPattern", "indices:data/read/index"), is(false));
+    }
+
+    @Test
+    public void testGetIndexMatcherAndPermissionsWithScopedIndex() {
+        IndexPattern testIp = new IndexPattern("testPattern");
+        testIp.addPerm(Set.of("indices:data/write/*"));
+        User user = new User("test-user");
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("testPattern"))).thenReturn(
+            new String[] { "testPattern" }
+        );
+        ConfigModelV7.IndexMatcherAndPermissions matcher = testIp.getIndexMatcherAndPermissions(user, resolver, clusterService);
+        verify(resolver, times(1)).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("testPattern"));
+        verify(clusterService, times(1)).state();
+        assertThat(matcher.matches("testPattern", "indices:data/write/index"), is(true));
+        assertThat(matcher.matches("testPattern", "indices:data/read/index"), is(false));
+        assertThat(matcher.matches("otherPattern", "indices:data/write/index"), is(false));
+        assertThat(matcher.matches("otherPattern", "indices:data/read/index"), is(false));
     }
 
     /** Ensure that concreteIndexNames sends correct parameters are sent to getResolvedIndexPattern */

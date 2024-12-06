@@ -79,6 +79,7 @@ public class ConfigModelV7 extends ConfigModel {
     private RoleMappingHolder roleMappingHolder;
     private SecurityDynamicConfiguration<RoleV7> roles;
     private SecurityDynamicConfiguration<TenantV7> tenants;
+    private final static Set<String> ALL_INDICES = Set.of("*");
 
     public ConfigModelV7(
         SecurityDynamicConfiguration<RoleV7> roles,
@@ -660,6 +661,20 @@ public class ConfigModelV7 extends ConfigModel {
 
     }
 
+    public static final class IndexMatcherAndPermissions {
+        private WildcardMatcher matcher;
+        private WildcardMatcher perms;
+
+        public IndexMatcherAndPermissions(Set<String> patterns, Set<String> perms) {
+            this.matcher = WildcardMatcher.from(patterns);
+            this.perms = WildcardMatcher.from(perms);
+        }
+
+        public boolean matches(String index, String action) {
+            return matcher.test(index) && perms.test(action);
+        }
+    }
+
     // sg roles
     public static class IndexPattern {
         private final String indexPattern;
@@ -699,6 +714,17 @@ public class ConfigModelV7 extends ConfigModel {
                 this.dlsQuery = dlsQuery;
             }
             return this;
+        }
+
+        public IndexMatcherAndPermissions getIndexMatcherAndPermissions(
+            User user,
+            IndexNameExpressionResolver resolver,
+            ClusterService cs
+        ) {
+            if ("*".equals(indexPattern)) {
+                return new IndexMatcherAndPermissions(ALL_INDICES, perms);
+            }
+            return new IndexMatcherAndPermissions(attemptResolveIndexNames(user, resolver, cs), perms);
         }
 
         @Override
@@ -973,20 +999,6 @@ public class ConfigModelV7 extends ConfigModel {
         }
     }
 
-    private static final class IndexMatcherAndPermissions {
-        private WildcardMatcher matcher;
-        private WildcardMatcher perms;
-
-        public IndexMatcherAndPermissions(Set<String> patterns, Set<String> perms) {
-            this.matcher = WildcardMatcher.from(patterns);
-            this.perms = WildcardMatcher.from(perms);
-        }
-
-        public boolean matches(String index, String action) {
-            return matcher.test(index) && perms.test(action);
-        }
-    }
-
     private static boolean impliesTypePerm(
         Set<IndexPattern> ipatterns,
         Resolved resolved,
@@ -999,12 +1011,12 @@ public class ConfigModelV7 extends ConfigModel {
         IndexMatcherAndPermissions[] indexMatcherAndPermissions;
         if (resolved.isLocalAll()) {
             indexMatcherAndPermissions = ipatterns.stream()
-                .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
-                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms))
+                .filter(indexPattern -> "*".equals(indexPattern.indexPattern))
+                .map(p -> p.getIndexMatcherAndPermissions(user, resolver, cs))
                 .toArray(IndexMatcherAndPermissions[]::new);
         } else {
             indexMatcherAndPermissions = ipatterns.stream()
-                .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms))
+                .map(p -> p.getIndexMatcherAndPermissions(user, resolver, cs))
                 .toArray(IndexMatcherAndPermissions[]::new);
         }
         return resolvedRequestedIndices.stream()
