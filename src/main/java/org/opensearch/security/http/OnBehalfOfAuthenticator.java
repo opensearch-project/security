@@ -166,7 +166,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private AuthCredentials extractCredentials0(final SecurityRequest request) {
         if (!oboEnabled) {
-            log.error("On-behalf-of authentication is disabled");
+            log.debug("On-behalf-of authentication is disabled");
             return null;
         }
 
