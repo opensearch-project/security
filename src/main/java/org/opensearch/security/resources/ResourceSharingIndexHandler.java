@@ -10,8 +10,11 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -702,50 +705,45 @@ public class ResourceSharingIndexHandler {
         // Atomic operation
         // TODO check if this script can be updated to replace magic identifiers (i.e. users, roles and backend_roles) with the ones
         // supplied in shareWith
-        Script updateScript = new Script(ScriptType.INLINE, """
+        Script updateScript = new Script(ScriptType.INLINE, "painless", """
             if (ctx._source.share_with == null) {
                 ctx._source.share_with = [:];
             }
+
             for (def entry : params.shareWith.entrySet()) {
                 def scopeName = entry.getKey();
                 def newScope = entry.getValue();
-                if (ctx._source.share_with.containsKey(scopeName)) {
-                    def existingScope = ctx._source.share_with.get(scopeName);
-                    if (newScope.users != null) {
-                        if (existingScope.users == null) {
-                            existingScope.users = new HashSet();
-                        }
-                        existingScope.users = new HashSet<>(existingScope.users);
-                        existingScope.users.addAll(newScope.users);
-                    }
-                        if (existingScope.roles == null) {
-                            existingScope.roles = new HashSet();
-                        }
-                        existingScope.roles = new HashSet<>(existingScope.roles);
-                        existingScope.roles.addAll(newScope.roles);
-                    }
-                    if (newScope.backend_roles != null) {
-                        if (existingScope.backend_roles == null) {
-                            existingScope.backend_roles = new HashSet();
-                        }
-                        existingScope.backend_roles = new HashSet<>(existingScope.backend_roles);
-                        existingScope.backend_roles.addAll(newScope.backend_roles);
-                    }
-                } else {
+
+                if (!ctx._source.share_with.containsKey(scopeName)) {
                     def newScopeEntry = [:];
-                    if (newScope.users != null) {
-                        newScopeEntry.users = new HashSet(newScope.users);
+                    for (def field : newScope.entrySet()) {
+                        if (field.getValue() != null && !field.getValue().isEmpty()) {
+                            newScopeEntry[field.getKey()] = new HashSet(field.getValue());
+                        }
                     }
-                    if (newScope.roles != null) {
-                        newScopeEntry.roles = new HashSet(newScope.roles);
+                    ctx._source.share_with[scopeName] = newScopeEntry;
+                } else {
+                    def existingScope = ctx._source.share_with[scopeName];
+
+                    for (def field : newScope.entrySet()) {
+                        def fieldName = field.getKey();
+                        def newValues = field.getValue();
+
+                        if (newValues != null && !newValues.isEmpty()) {
+                            if (!existingScope.containsKey(fieldName)) {
+                                existingScope[fieldName] = new HashSet();
+                            }
+
+                            for (def value : newValues) {
+                                if (!existingScope[fieldName].contains(value)) {
+                                    existingScope[fieldName].add(value);
+                                }
+                            }
+                        }
                     }
-                    if (newScope.backend_roles != null) {
-                        newScopeEntry.backend_roles = new HashSet(newScope.backend_roles);
-                    }
-                    ctx._source.share_with.put(scopeName, newScopeEntry);
                 }
             }
-            """, "painless", Collections.singletonMap("shareWith", shareWithMap));
+            """, Collections.singletonMap("shareWith", shareWithMap));
 
         boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, updateScript);
         return success ? new ResourceSharing(resourceId, sourceIdx, createdBy, shareWith) : null;
@@ -900,34 +898,49 @@ public class ResourceSharingIndexHandler {
         LOGGER.debug("Revoking access for resource {} in {} for entities: {} and scopes: {}", resourceId, sourceIdx, revokeAccess, scopes);
 
         try {
-            // Revoke resource access
-            Script revokeScript = new Script(
-                ScriptType.INLINE,
-                "painless",
-                """
-                        if (ctx._source.share_with != null) {
-                            Set scopesToProcess = new HashSet(params.scopes == null || params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes);
+            Map<String, Object> revoke = new HashMap<>();
+            for (Map.Entry<EntityType, Set<String>> entry : revokeAccess.entrySet()) {
+                revoke.put(entry.getKey().name().toLowerCase(), new ArrayList<>(entry.getValue()));
+            }
 
-                            for (def scopeName : scopesToProcess) {
-                                if (ctx._source.share_with.containsKey(scopeName)) {
-                                    def existingScope = ctx._source.share_with.get(scopeName);
+            List<String> scopesToUse = scopes != null ? new ArrayList<>(scopes) : new ArrayList<>();
 
-                                    for (def entry : params.revokeAccess.entrySet()) {
-                                        def entityType = entry.getKey();
-                                        def entitiesToRemove = entry.getValue();
+            Script revokeScript = new Script(ScriptType.INLINE, "painless", """
+                if (ctx._source.share_with != null) {
+                    Set scopesToProcess = new HashSet(params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes);
 
-                                        if (existingScope.containsKey(entityType) && existingScope[entityType] != null) {
-                                            existingScope[entityType].removeAll(entitiesToRemove);
-                                        }
+                    for (def scopeName : scopesToProcess) {
+                        if (ctx._source.share_with.containsKey(scopeName)) {
+                            def existingScope = ctx._source.share_with.get(scopeName);
+
+                            for (def entry : params.revokeAccess.entrySet()) {
+                                def entityType = entry.getKey();
+                                def entitiesToRemove = entry.getValue();
+
+                                if (existingScope.containsKey(entityType) && existingScope[entityType] != null) {
+                                    if (!(existingScope[entityType] instanceof HashSet)) {
+                                        existingScope[entityType] = new HashSet(existingScope[entityType]);
+                                    }
+
+                                    existingScope[entityType].removeAll(entitiesToRemove);
+
+                                    if (existingScope[entityType].isEmpty()) {
+                                        existingScope.remove(entityType);
                                     }
                                 }
                             }
-                        }
-                    """,
-                Map.of("revokeAccess", revokeAccess, "scopes", scopes)
-            );
 
+                            if (existingScope.isEmpty()) {
+                                ctx._source.share_with.remove(scopeName);
+                            }
+                        }
+                    }
+                }
+                """, Map.of("revokeAccess", revoke, "scopes", scopesToUse));
+
+            // Execute updateByQuery
             boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, revokeScript);
+
             return success ? fetchDocumentById(sourceIdx, resourceId) : null;
 
         } catch (Exception e) {
