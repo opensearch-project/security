@@ -55,10 +55,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.opensearch.action.admin.cluster.node.hotthreads.NodesHotThreadsResponse;
-import org.opensearch.action.admin.cluster.node.stats.NodeStats;
-import org.opensearch.action.admin.cluster.node.stats.NodesStatsRequest;
-import org.opensearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.opensearch.client.AdminClient;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
@@ -71,7 +67,6 @@ import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager.NodeSettings;
-import org.opensearch.threadpool.ThreadPoolStats;
 import org.opensearch.transport.BindTransportException;
 
 import static java.util.Objects.requireNonNull;
@@ -224,64 +219,7 @@ public class LocalOpenSearchCluster {
         return started;
     }
 
-    public void stop(boolean checkActiveThreads) throws IOException {
-        Client client = clientNode().getInternalNodeClient();
-        AdminClient adminClient = client.admin();
-
-        adminClient.indices().prepareFlush().get();
-        adminClient.indices().prepareRefresh().get();
-
-        if (checkActiveThreads) {
-            int maxRetries = 3;
-            int retryCount = 0;
-            boolean threadsActive = true;
-
-            while (retryCount < maxRetries && threadsActive) {
-                try {
-                    threadsActive = false;
-                    final NodesStatsResponse nodesStatsResponse = adminClient.cluster()
-                        .nodesStats(new NodesStatsRequest().addMetric(NodesStatsRequest.Metric.THREAD_POOL.metricName()))
-                        .actionGet();
-
-                    for (NodeStats stats : nodesStatsResponse.getNodes()) {
-                        for (ThreadPoolStats.Stats stat : requireNonNull(stats.getThreadPool())) {
-                            if ("management".equals(stat.getName())) {
-                                continue;
-                            }
-                            if (stat.getActive() > 0) {
-                                log.warn("Thread pool {} has {} active threads", stat.getName(), stat.getActive());
-                                threadsActive = true;
-                                break;
-                            }
-                        }
-                        if (threadsActive) {
-                            // TODO Hot Threads added for debugging
-                            NodesHotThreadsResponse hotThreadsResponse = adminClient.cluster().prepareNodesHotThreads().get();
-                            if (hotThreadsResponse.getNodes().isEmpty()) {
-                                log.warn("Hot threads response is empty");
-                                break;
-                            }
-                            log.warn("Hot threads stack trace: {}", hotThreadsResponse.getNodes().get(0).getHotThreads());
-                            break;
-                        }
-                    }
-
-                    if (threadsActive && retryCount < maxRetries - 1) {
-                        // Add a small delay between retries
-                        Thread.sleep(1000);
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("Interrupted while waiting between retries", e);
-                }
-                retryCount++;
-            }
-
-            if (threadsActive) {
-                throw new IOException("Thread pools still have active threads after " + maxRetries + " attempts");
-            }
-        }
-
+    public void stop() {
         List<CompletableFuture<Boolean>> stopFutures = new ArrayList<>();
         for (Node node : nodes) {
             stopFutures.add(node.stop(2, TimeUnit.SECONDS));
@@ -289,9 +227,9 @@ public class LocalOpenSearchCluster {
         CompletableFuture.allOf(stopFutures.toArray(CompletableFuture[]::new)).join();
     }
 
-    public void destroy() throws IOException {
+    public void destroy() {
         try {
-            stop(true);
+            stop();
             nodes.clear();
         } finally {
             try {
@@ -336,7 +274,7 @@ public class LocalOpenSearchCluster {
             throw new RuntimeException("Detected port collisions for cluster manager node. Giving up.");
         }
 
-        stop(false);
+        stop();
 
         this.nodes.clear();
         this.seedHosts = null;

@@ -29,7 +29,9 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -50,7 +52,7 @@ public class ThreadPoolTests {
         .build();
 
     @Test
-    public void testEnsureNoThreadLeftRunningInGenericThreadPool() throws IOException {
+    public void testEnsureNoThreadLeftRunningInGenericThreadPool() throws IOException, InterruptedException {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             client.put("test-index");
 
@@ -75,6 +77,12 @@ public class ThreadPoolTests {
             assertThat(updateDocResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
 
             client.delete("test-index");
+
+            Thread.sleep(2000);
+
+            HttpResponse hotThreadsResponse = client.get("_nodes/hot_threads");
+
+            assertThat(hotThreadsResponse.getBody(), not(containsString("ClusterStateMetadataDependentPrivileges")));
         }
     }
 }
