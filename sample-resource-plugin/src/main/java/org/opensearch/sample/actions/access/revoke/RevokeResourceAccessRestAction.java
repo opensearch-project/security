@@ -9,10 +9,7 @@
 package org.opensearch.sample.actions.access.revoke;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.opensearch.accesscontrol.resources.EntityType;
@@ -59,7 +56,7 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
             }
         }, Map.Entry::getValue));
         @SuppressWarnings("unchecked")
-        Set<String> scopes = source.containsKey("scopes") ? (Set<String>) source.get("scopes") : Set.of();
+        Set<String> scopes = new HashSet<>(source.containsKey("scopes") ? (List<String>) source.get("scopes") : List.of());
         final RevokeResourceAccessRequest revokeResourceAccessRequest = new RevokeResourceAccessRequest(resourceId, revoke, scopes);
         return channel -> client.executeLocally(
             RevokeResourceAccessAction.INSTANCE,
