@@ -29,8 +29,6 @@ package org.opensearch.security.support;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,25 +64,6 @@ public final class SecurityUtils {
         }
 
         return Locale.getDefault();
-    }
-
-    public static String evalMap(final Map<String, Set<String>> map, final String index) {
-
-        if (map == null) {
-            return null;
-        }
-
-        // TODO: check what to do with _all
-        /*if (map.get(index) != null) {
-            return index;
-        } else if (map.get("*") != null) {
-            return "*";
-        }
-        if (map.get("_all") != null) {
-            return "_all";
-        }*/
-
-        return map.keySet().stream().filter(key -> WildcardMatcher.from(key).test(index)).findAny().orElse(null);
     }
 
     public static String replaceEnvVars(String in, Settings settings) {

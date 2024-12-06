@@ -400,7 +400,7 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiRoleSpan() throws Exception {
 
-        setup();
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_multirolespan.yml"), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -411,24 +411,8 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
-        assertThat(res.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
-        Assert.assertFalse(res.getBody().contains("\"content\":1"));
-        Assert.assertFalse(res.getBody().contains("\"content\":2"));
-
-        try (Client tc = getClient()) {
-            tc.index(
-                new IndexRequest(".opendistro_security").id("config")
-                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source("config", FileHelper.readYamlContent("config_multirolespan.yml"))
-            ).actionGet();
-
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[] { "config" }))
-                .actionGet();
-            assertThat(cur.getNodes().size(), is(clusterInfo.numNodes));
-        }
-
-        res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
         assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"content\":1"));
         Assert.assertTrue(res.getBody().contains("\"content\":2"));
 
