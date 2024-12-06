@@ -8,22 +8,26 @@
 
 package org.opensearch.sample.utils;
 
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
+import org.opensearch.accesscontrol.resources.ResourceAccessScope;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.sample.SampleResourceScope;
 
 public class Validation {
     public static ActionRequestValidationException validateScopes(Set<String> scopes) {
+        Set<String> validScopes = new HashSet<>();
+        for (SampleResourceScope scope : SampleResourceScope.values()) {
+            validScopes.add(scope.name());
+        }
+        validScopes.add(ResourceAccessScope.READ_ONLY);
+        validScopes.add(ResourceAccessScope.READ_WRITE);
+
         for (String s : scopes) {
-            try {
-                SampleResourceScope.valueOf(s);
-            } catch (IllegalArgumentException | NullPointerException e) {
+            if (!validScopes.contains(s)) {
                 ActionRequestValidationException exception = new ActionRequestValidationException();
-                exception.addValidationError(
-                    "Invalid scope: " + s + ". Scope must be one of: " + Arrays.toString(SampleResourceScope.values())
-                );
+                exception.addValidationError("Invalid scope: " + s + ". Scope must be one of: " + validScopes);
                 return exception;
             }
         }
