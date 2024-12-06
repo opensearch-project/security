@@ -616,6 +616,10 @@ dependencies {
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
     runtimeOnly 'org.ow2.asm:asm:9.7.1'
 
+    implementation 'com.nimbusds:oauth2-oidc-sdk:11.18'
+    implementation 'net.minidev:json-smart:2.5.1'
+    implementation 'com.nimbusds:content-type:2.3'
+
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.2'
 
     //OpenSAML
