@@ -10,7 +10,10 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -697,7 +700,9 @@ public class ResourceSharingIndexHandler {
         }
 
         // Atomic operation
-        Script updateScript = new Script(ScriptType.INLINE, "painless", """
+        // TODO check if this script can be updated to replace magic identifiers (i.e. users, roles and backend_roles) with the ones
+        // supplied in shareWith
+        Script updateScript = new Script(ScriptType.INLINE, """
             if (ctx._source.share_with == null) {
                 ctx._source.share_with = [:];
             }
@@ -710,18 +715,20 @@ public class ResourceSharingIndexHandler {
                         if (existingScope.users == null) {
                             existingScope.users = new HashSet();
                         }
+                        existingScope.users = new HashSet<>(existingScope.users);
                         existingScope.users.addAll(newScope.users);
                     }
-                    if (newScope.roles != null) {
                         if (existingScope.roles == null) {
                             existingScope.roles = new HashSet();
                         }
+                        existingScope.roles = new HashSet<>(existingScope.roles);
                         existingScope.roles.addAll(newScope.roles);
                     }
                     if (newScope.backend_roles != null) {
                         if (existingScope.backend_roles == null) {
                             existingScope.backend_roles = new HashSet();
                         }
+                        existingScope.backend_roles = new HashSet<>(existingScope.backend_roles);
                         existingScope.backend_roles.addAll(newScope.backend_roles);
                     }
                 } else {
@@ -738,7 +745,7 @@ public class ResourceSharingIndexHandler {
                     ctx._source.share_with.put(scopeName, newScopeEntry);
                 }
             }
-            """, Collections.singletonMap("shareWith", shareWithMap));
+            """, "painless", Collections.singletonMap("shareWith", shareWithMap));
 
         boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, updateScript);
         return success ? new ResourceSharing(resourceId, sourceIdx, createdBy, shareWith) : null;
@@ -899,7 +906,7 @@ public class ResourceSharingIndexHandler {
                 "painless",
                 """
                         if (ctx._source.share_with != null) {
-                            Set scopesToProcess = params.scopes == null || params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes;
+                            Set scopesToProcess = new HashSet(params.scopes == null || params.scopes.isEmpty() ? ctx._source.share_with.keySet() : params.scopes);
 
                             for (def scopeName : scopesToProcess) {
                                 if (ctx._source.share_with.containsKey(scopeName)) {
