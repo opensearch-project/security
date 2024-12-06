@@ -918,14 +918,7 @@ public class ResourceSharingIndexHandler {
 
                                         if (existingScope.containsKey(entityType) && existingScope[entityType] != null) {
                                             existingScope[entityType].removeAll(entitiesToRemove);
-                                            if (existingScope[entityType].isEmpty()) {
-                                                existingScope.remove(entityType);
-                                            }
                                         }
-                                    }
-
-                                    if (existingScope.isEmpty()) {
-                                        ctx._source.share_with.remove(scopeName);
                                     }
                                 }
                             }
