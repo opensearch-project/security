@@ -405,7 +405,6 @@ public class ResourceSharingIndexHandler {
 
             BoolQueryBuilder shouldQuery = QueryBuilders.boolQuery();
             if ("*".equals(scope)) {
-                // Wildcard behavior: Match any scope dynamically
                 for (String entity : entities) {
                     shouldQuery.should(
                         QueryBuilders.multiMatchQuery(entity, "share_with.*." + entityType + ".keyword")
@@ -413,7 +412,6 @@ public class ResourceSharingIndexHandler {
                     );
                 }
             } else {
-                // Match the specific scope
                 for (String entity : entities) {
                     shouldQuery.should(QueryBuilders.termQuery("share_with." + scope + "." + entityType + ".keyword", entity));
                 }
@@ -938,7 +936,6 @@ public class ResourceSharingIndexHandler {
                 }
                 """, Map.of("revokeAccess", revoke, "scopes", scopesToUse));
 
-            // Execute updateByQuery
             boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, revokeScript);
 
             return success ? fetchDocumentById(sourceIdx, resourceId) : null;

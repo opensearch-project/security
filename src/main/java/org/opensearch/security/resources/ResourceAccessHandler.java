@@ -96,9 +96,9 @@ public class ResourceAccessHandler {
 
         if (isSharedWithEveryone(document)
             || isOwnerOfResource(document, user.getName())
-            || isSharedWithUser(document, user.getName(), scope)
-            || isSharedWithGroup(document, userRoles, scope)
-            || isSharedWithGroup(document, userBackendRoles, scope)) {
+            || isSharedWithEntity(document, EntityType.USERS, Set.of(user.getName()), scope)
+            || isSharedWithEntity(document, EntityType.ROLES, userRoles, scope)
+            || isSharedWithEntity(document, EntityType.BACKEND_ROLES, userBackendRoles, scope)) {
             LOGGER.info("User {} has {} access to {}", user.getName(), scope, resourceId);
             return true;
         }
@@ -122,7 +122,7 @@ public class ResourceAccessHandler {
         Set<String> scopes
     ) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        LOGGER.info("Revoking access to resource {} created by {} for {}", resourceId, user.getName(), revokeAccess);
+        LOGGER.info("User {} revoking access to resource {} for {} for scopes {} ", user.getName(), resourceId, revokeAccess, scopes);
 
         return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess, scopes);
     }
@@ -169,13 +169,9 @@ public class ResourceAccessHandler {
         return document.getCreatedBy() != null && document.getCreatedBy().getUser().equals(userName);
     }
 
-    private boolean isSharedWithUser(ResourceSharing document, String userName, String scope) {
-        return checkSharing(document, "users", userName, scope);
-    }
-
-    private boolean isSharedWithGroup(ResourceSharing document, Set<String> roles, String scope) {
+    private boolean isSharedWithEntity(ResourceSharing document, EntityType entityType, Set<String> roles, String scope) {
         for (String role : roles) {
-            if (checkSharing(document, "roles", role, scope)) {
+            if (checkSharing(document, entityType, role, scope)) {
                 return true;
             }
         }
@@ -187,7 +183,7 @@ public class ResourceAccessHandler {
             && document.getShareWith().getSharedWithScopes().stream().anyMatch(sharedWithScope -> sharedWithScope.getScope().equals("*"));
     }
 
-    private boolean checkSharing(ResourceSharing document, String sharingType, String identifier, String scope) {
+    private boolean checkSharing(ResourceSharing document, EntityType entityType, String identifier, String scope) {
         if (document.getShareWith() == null) {
             return false;
         }
@@ -200,11 +196,10 @@ public class ResourceAccessHandler {
             .map(sharedWithScope -> {
                 SharedWithScope.SharedWithPerScope scopePermissions = sharedWithScope.getSharedWithPerScope();
 
-                return switch (sharingType) {
-                    case "users" -> scopePermissions.getUsers().contains(identifier);
-                    case "roles" -> scopePermissions.getRoles().contains(identifier);
-                    case "backend_roles" -> scopePermissions.getBackendRoles().contains(identifier);
-                    default -> false;
+                return switch (entityType) {
+                    case EntityType.USERS -> scopePermissions.getUsers().contains(identifier);
+                    case EntityType.ROLES -> scopePermissions.getRoles().contains(identifier);
+                    case EntityType.BACKEND_ROLES -> scopePermissions.getBackendRoles().contains(identifier);
                 };
             })
             .orElse(false); // Return false if no matching scope is found
