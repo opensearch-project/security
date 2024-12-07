@@ -19,7 +19,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.CreatedBy;
 import org.opensearch.accesscontrol.resources.EntityType;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
@@ -109,10 +108,9 @@ public class ResourceAccessHandler {
 
     public ResourceSharing shareWith(String resourceId, String systemIndexName, ShareWith shareWith) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user, shareWith.toString());
+        LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
 
-        CreatedBy createdBy = new CreatedBy(user.getName());
-        return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, systemIndexName, createdBy, shareWith);
+        return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, systemIndexName, user.getName(), shareWith);
     }
 
     public ResourceSharing revokeAccess(
@@ -124,7 +122,7 @@ public class ResourceAccessHandler {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("User {} revoking access to resource {} for {} for scopes {} ", user.getName(), resourceId, revokeAccess, scopes);
 
-        return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess, scopes);
+        return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess, scopes, user.getName());
     }
 
     public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {

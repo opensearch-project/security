@@ -148,7 +148,6 @@ public class ResourceSharingIndexHandler {
 
     public ResourceSharing indexResourceSharing(String resourceId, String resourceIndex, CreatedBy createdBy, ShareWith shareWith)
         throws IOException {
-
         try {
             ResourceSharing entry = new ResourceSharing(resourceIndex, resourceId, createdBy, shareWith);
 
@@ -516,7 +515,6 @@ public class ResourceSharingIndexHandler {
             LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
 
             return resourceIds;
-
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, e);
             throw new RuntimeException("Failed to fetch documents: " + e.getMessage(), e);
@@ -579,7 +577,6 @@ public class ResourceSharingIndexHandler {
     */
 
     public ResourceSharing fetchDocumentById(String pluginIndex, String resourceId) {
-        // Input validation
         if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(resourceId)) {
             throw new IllegalArgumentException("systemIndexName and resourceId must not be null or empty");
         }
@@ -668,12 +665,13 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
      * @param resourceId The unique identifier of the resource whose sharing configuration needs to be updated
      * @param sourceIdx The source index where the original resource is stored
+     * @param requestUserName The user requesting to share the resource
      * @param shareWith Updated sharing configuration object containing access control settings:
      *                 {
      *                     "scope": {
@@ -685,7 +683,7 @@ public class ResourceSharingIndexHandler {
      * @return ResourceSharing Returns resourceSharing object if the update was successful, null otherwise
      * @throws RuntimeException if there's an error during the update operation
      */
-    public ResourceSharing updateResourceSharingInfo(String resourceId, String sourceIdx, CreatedBy createdBy, ShareWith shareWith) {
+    public ResourceSharing updateResourceSharingInfo(String resourceId, String sourceIdx, String requestUserName, ShareWith shareWith) {
         XContentBuilder builder;
         Map<String, Object> shareWithMap;
         try {
@@ -700,9 +698,22 @@ public class ResourceSharingIndexHandler {
             return null;
         }
 
+        // Check if the user requesting to share is the owner of the resource
+        // TODO Add a way for users who are not creators to be able to share the resource
+        ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
+        if (currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
+            LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
+            return null;
+        }
+
+        CreatedBy createdBy;
+        if (currentSharingInfo == null) {
+            createdBy = new CreatedBy(requestUserName);
+        } else {
+            createdBy = currentSharingInfo.getCreatedBy();
+        }
+
         // Atomic operation
-        // TODO check if this script can be updated to replace magic identifiers (i.e. users, roles and backend_roles) with the ones
-        // supplied in shareWith
         Script updateScript = new Script(ScriptType.INLINE, "painless", """
             if (ctx._source.share_with == null) {
                 ctx._source.share_with = [:];
@@ -792,8 +803,8 @@ public class ResourceSharingIndexHandler {
      *   "query": {
      *     "bool": {
      *       "must": [
-     *         { "term": { "source_idx": sourceIdx } },
-     *         { "term": { "resource_id": resourceId } }
+     *         { "term": { "source_idx.keyword": sourceIdx } },
+     *         { "term": { "resource_id.keyword": resourceId } }
      *       ]
      *     }
      *   }
@@ -809,8 +820,6 @@ public class ResourceSharingIndexHandler {
             UpdateByQueryRequest ubq = new UpdateByQueryRequest(resourceSharingIndex).setQuery(query)
                 .setScript(updateScript)
                 .setRefresh(true);
-
-            LOGGER.debug("Update By Query Request: {}", ubq.toString());
 
             BulkByScrollResponse response = client.execute(UpdateByQueryAction.INSTANCE, ubq).actionGet();
 
@@ -866,6 +875,7 @@ public class ResourceSharingIndexHandler {
      * @param revokeAccess A map containing entity types (USER, ROLE, BACKEND_ROLE) and their corresponding
      *                     values to be removed from the sharing configuration
      * @param scopes A list of scopes to revoke access from. If null or empty, access is revoked from all scopes
+     * @param requestUserName The user trying to revoke the accesses
      * @return The updated ResourceSharing object after revoking access, or null if the document doesn't exist
      * @throws IllegalArgumentException if resourceId, sourceIdx is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException if the update operation fails or encounters an error
@@ -887,10 +897,18 @@ public class ResourceSharingIndexHandler {
         String resourceId,
         String sourceIdx,
         Map<EntityType, Set<String>> revokeAccess,
-        Set<String> scopes
+        Set<String> scopes,
+        String requestUserName
     ) {
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null || revokeAccess.isEmpty()) {
             throw new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty");
+        }
+
+        // TODO Check if access can be revoked by non-creator
+        ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
+        if (currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
+            LOGGER.error("User {} is not authorized to revoke access to resource {}", requestUserName, resourceId);
+            return null;
         }
 
         LOGGER.debug("Revoking access for resource {} in {} for entities: {} and scopes: {}", resourceId, sourceIdx, revokeAccess, scopes);
@@ -1019,58 +1037,58 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-        * Deletes all resource sharing records that were created by a specific user.
-        * This method performs a delete-by-query operation to remove all documents where
-        * the created_by.user field matches the specified username.
-        *
-        * <p>The method executes the following steps:
-        * <ol>
-        *   <li>Validates the input username parameter</li>
-        *   <li>Creates a delete-by-query request with term query matching</li>
-        *   <li>Executes the delete operation with immediate refresh</li>
-        *   <li>Returns the operation status based on number of deleted documents</li>
-        * </ol>
-        *
-        * <p>Example query structure:
-        * <pre>
-        * {
-        *   "query": {
-        *     "term": {
-        *       "created_by.user": "username"
-        *     }
-        *   }
-        * }
-        * </pre>
-        *
-        * @param name The username to match against the created_by.user field
-        * @return boolean indicating whether the deletion was successful:
-        *         <ul>
-        *           <li>true - if one or more documents were deleted</li>
-        *           <li>false - if no documents were found</li>
-        *           <li>false - if the operation failed due to an error</li>
-        *         </ul>
-        *
-        * @throws IllegalArgumentException if name is null or empty
-        *
-        *
-        * @implNote Implementation details:
-        * <ul>
-        *   <li>Uses DeleteByQueryRequest for efficient bulk deletion</li>
-        *   <li>Sets refresh=true for immediate consistency</li>
-        *   <li>Uses term query for exact username matching</li>
-        *   <li>Implements comprehensive error handling and logging</li>
-        * </ul>
-        *
-        * Example usage:
-        * <pre>
-        * boolean success = deleteAllRecordsForUser("john.doe");
-        * if (success) {
-        *     // Records were successfully deleted
-        * } else {
-        *     // No matching records found or operation failed
-        * }
-        * </pre>
-        */
+    * Deletes all resource sharing records that were created by a specific user.
+    * This method performs a delete-by-query operation to remove all documents where
+    * the created_by.user field matches the specified username.
+    *
+    * <p>The method executes the following steps:
+    * <ol>
+    *   <li>Validates the input username parameter</li>
+    *   <li>Creates a delete-by-query request with term query matching</li>
+    *   <li>Executes the delete operation with immediate refresh</li>
+    *   <li>Returns the operation status based on number of deleted documents</li>
+    * </ol>
+    *
+    * <p>Example query structure:
+    * <pre>
+    * {
+    *   "query": {
+    *     "term": {
+    *       "created_by.user": "username"
+    *     }
+    *   }
+    * }
+    * </pre>
+    *
+    * @param name The username to match against the created_by.user field
+    * @return boolean indicating whether the deletion was successful:
+    *         <ul>
+    *           <li>true - if one or more documents were deleted</li>
+    *           <li>false - if no documents were found</li>
+    *           <li>false - if the operation failed due to an error</li>
+    *         </ul>
+    *
+    * @throws IllegalArgumentException if name is null or empty
+    *
+    *
+    * @implNote Implementation details:
+    * <ul>
+    *   <li>Uses DeleteByQueryRequest for efficient bulk deletion</li>
+    *   <li>Sets refresh=true for immediate consistency</li>
+    *   <li>Uses term query for exact username matching</li>
+    *   <li>Implements comprehensive error handling and logging</li>
+    * </ul>
+    *
+    * Example usage:
+    * <pre>
+    * boolean success = deleteAllRecordsForUser("john.doe");
+    * if (success) {
+    *     // Records were successfully deleted
+    * } else {
+    *     // No matching records found or operation failed
+    * }
+    * </pre>
+    */
     public boolean deleteAllRecordsForUser(String name) {
         if (StringUtils.isBlank(name)) {
             throw new IllegalArgumentException("Username must not be null or empty");
