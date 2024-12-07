@@ -21,6 +21,7 @@ import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.sample.actions.access.share.ShareResourceAction;
 import org.opensearch.sample.actions.access.share.ShareResourceRequest;
 import org.opensearch.sample.actions.access.share.ShareResourceResponse;
+import org.opensearch.sample.utils.SampleResourcePluginException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -36,26 +37,24 @@ public class ShareResourceTransportAction extends HandledTransportAction<ShareRe
 
     @Override
     protected void doExecute(Task task, ShareResourceRequest request, ActionListener<ShareResourceResponse> listener) {
+        ResourceSharing sharing = null;
         try {
-            shareResource(request);
+            sharing = shareResource(request);
+            if (sharing == null) {
+                log.error("Failed to share resource {}", request.getResourceId());
+                SampleResourcePluginException se = new SampleResourcePluginException("Failed to share resource " + request.getResourceId());
+                listener.onFailure(se);
+                return;
+            }
+            log.info("Shared resource : {} with {}", request.getResourceId(), sharing.toString());
             listener.onResponse(new ShareResourceResponse("Resource " + request.getResourceId() + " shared successfully."));
         } catch (Exception e) {
             listener.onFailure(e);
         }
     }
 
-    private void shareResource(ShareResourceRequest request) throws Exception {
-        try {
-            ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
-            ResourceSharing sharing = rs.getResourceAccessControlPlugin()
-                .shareWith(request.getResourceId(), RESOURCE_INDEX_NAME, request.getShareWith());
-            if (sharing == null) {
-                throw new Exception("Failed to share resource " + request.getResourceId());
-            }
-            log.info("Shared resource : {} with {}", request.getResourceId(), sharing.toString());
-        } catch (Exception e) {
-            log.info("Failed to share resource {}", request.getResourceId(), e);
-            throw e;
-        }
+    private ResourceSharing shareResource(ShareResourceRequest request) throws Exception {
+        ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
+        return rs.getResourceAccessControlPlugin().shareWith(request.getResourceId(), RESOURCE_INDEX_NAME, request.getShareWith());
     }
 }
