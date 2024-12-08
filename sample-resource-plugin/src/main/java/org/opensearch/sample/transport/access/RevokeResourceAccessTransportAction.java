@@ -21,6 +21,7 @@ import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.sample.actions.access.revoke.RevokeResourceAccessAction;
 import org.opensearch.sample.actions.access.revoke.RevokeResourceAccessRequest;
 import org.opensearch.sample.actions.access.revoke.RevokeResourceAccessResponse;
+import org.opensearch.sample.utils.SampleResourcePluginException;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -37,22 +38,25 @@ public class RevokeResourceAccessTransportAction extends HandledTransportAction<
     @Override
     protected void doExecute(Task task, RevokeResourceAccessRequest request, ActionListener<RevokeResourceAccessResponse> listener) {
         try {
-            revokeAccess(request);
+            ResourceSharing revoke = revokeAccess(request);
+            if (revoke == null) {
+                log.error("Failed to revoke access to resource {}", request.getResourceId());
+                SampleResourcePluginException se = new SampleResourcePluginException(
+                    "Failed to revoke access to resource " + request.getResourceId()
+                );
+                listener.onFailure(se);
+                return;
+            }
+            log.info("Revoked resource access for resource: {} with {}", request.getResourceId(), revoke.toString());
             listener.onResponse(new RevokeResourceAccessResponse("Resource " + request.getResourceId() + " access revoked successfully."));
         } catch (Exception e) {
             listener.onFailure(e);
         }
     }
 
-    private void revokeAccess(RevokeResourceAccessRequest request) {
-        try {
-            ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
-            ResourceSharing revoke = rs.getResourceAccessControlPlugin()
-                .revokeAccess(request.getResourceId(), RESOURCE_INDEX_NAME, request.getRevokeAccess(), request.getScopes());
-            log.info("Revoked resource access for resource: {} with {}", request.getResourceId(), revoke.toString());
-        } catch (Exception e) {
-            log.info("Failed to revoke access for resource {}", request.getResourceId(), e);
-            throw e;
-        }
+    private ResourceSharing revokeAccess(RevokeResourceAccessRequest request) {
+        ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
+        return rs.getResourceAccessControlPlugin()
+            .revokeAccess(request.getResourceId(), RESOURCE_INDEX_NAME, request.getRevokeAccess(), request.getScopes());
     }
 }
