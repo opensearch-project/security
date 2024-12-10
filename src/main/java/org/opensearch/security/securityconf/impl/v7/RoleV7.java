@@ -27,11 +27,16 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
@@ -50,7 +55,9 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     }
 
-    public static class Index {
+    @JsonIgnoreProperties(value = { "fragment" }, ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Index implements ToXContent {
 
         private List<String> index_patterns = Collections.emptyList();
         private String dls;
@@ -60,6 +67,31 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
         public Index() {
             super();
+        }
+
+        public Index(List<String> indexPatterns, List<String> allowedActions, String dls, List<String> fls, List<String> maskedFields) {
+            this.index_patterns = indexPatterns;
+            this.allowed_actions = allowedActions;
+            this.dls = dls;
+            this.fls = fls;
+            this.masked_fields = maskedFields;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.startObject();
+
+            builder.field("index_patterns", index_patterns);
+            builder.field("allowed_actions", allowed_actions);
+
+            builder.field("dls", dls);
+
+            builder.field("fls", fls);
+
+            builder.field("masked_fields", masked_fields);
+
+            builder.endObject();
+            return builder;
         }
 
         public List<String> getIndex_patterns() {
