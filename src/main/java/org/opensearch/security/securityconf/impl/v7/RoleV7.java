@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.opensearch.core.xcontent.ToXContent;
@@ -53,6 +54,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Index implements ToXContent {
 
         private List<String> index_patterns = Collections.emptyList();
