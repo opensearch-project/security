@@ -68,10 +68,15 @@ public class RoleV7 implements Hideable, StaticDefinable {
             super();
         }
 
-        @JsonCreator
-        public Index(List<String> indexPattern, List<String> allowedActions, String dls, List<String> fls, List<String> maskedFields) {
-            super();
-            this.index_patterns = indexPattern;
+        @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)  // Add mode = PROPERTIES
+        public Index(
+            @JsonProperty("index_patterns") List<String> indexPatterns,
+            @JsonProperty("allowed_actions") List<String> allowedActions,
+            @JsonProperty("dls") String dls,
+            @JsonProperty("fls") List<String> fls,
+            @JsonProperty("masked_fields") List<String> maskedFields
+        ) {
+            this.index_patterns = indexPatterns;
             this.allowed_actions = allowedActions;
             this.dls = dls;
             this.fls = fls;
