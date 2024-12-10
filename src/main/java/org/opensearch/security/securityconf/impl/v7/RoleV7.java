@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -67,6 +68,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
             super();
         }
 
+        @JsonCreator
         public Index(List<String> indexPattern, List<String> allowedActions, String dls, List<String> fls, List<String> maskedFields) {
             super();
             this.index_patterns = indexPattern;
