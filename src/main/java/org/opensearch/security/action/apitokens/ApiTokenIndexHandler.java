@@ -12,8 +12,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
@@ -31,13 +30,17 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.support.ConfigConstants;
 
 public class ApiTokenIndexHandler {
@@ -92,19 +95,31 @@ public class ApiTokenIndexHandler {
         }
     }
 
-    public List<Map<String, Object>> getApiTokens() {
+    public Map<String, ApiToken> getApiTokens() {
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-
             SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+            searchRequest.source(new SearchSourceBuilder());
 
             SearchResponse response = client.search(searchRequest).actionGet();
 
-            List<Map<String, Object>> tokens = new ArrayList<>();
+            Map<String, ApiToken> tokens = new HashMap<>();
             for (SearchHit hit : response.getHits().getHits()) {
-                tokens.add(hit.getSourceAsMap());
-            }
+                try (
+                    XContentParser parser = XContentType.JSON.xContent()
+                        .createParser(
+                            NamedXContentRegistry.EMPTY,
+                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                            hit.getSourceRef().streamInput()
+                        )
+                ) {
 
+                    ApiToken token = ApiToken.fromXContent(parser);
+                    tokens.put(token.getDescription(), token);  // Assuming description is the key
+                }
+            }
             return tokens;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

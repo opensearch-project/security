@@ -13,10 +13,12 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 
 public class ApiToken implements ToXContent {
@@ -34,6 +36,136 @@ public class ApiToken implements ToXContent {
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
 
+    }
+
+    public ApiToken(
+        String description,
+        String jti,
+        List<String> clusterPermissions,
+        List<RoleV7.Index> indexPermissions,
+        Instant creationTime
+    ) {
+        this.description = description;
+        this.jti = jti;
+        this.clusterPermissions = clusterPermissions;
+        this.indexPermissions = indexPermissions;
+        this.creationTime = creationTime;
+
+    }
+
+    public static ApiToken fromXContent(XContentParser parser) throws IOException {
+        String description = null;
+        String jti = null;
+        List<String> clusterPermissions = new ArrayList<>();
+        List<RoleV7.Index> indexPermissions = new ArrayList<>();
+        Instant creationTime = null;
+
+        XContentParser.Token token;
+        String currentFieldName = null;
+
+        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (token == XContentParser.Token.FIELD_NAME) {
+                currentFieldName = parser.currentName();
+            } else if (token.isValue()) {
+                switch (currentFieldName) {
+                    case "description":
+                        description = parser.text();
+                        break;
+                    case "jti":
+                        jti = parser.text();
+                        break;
+                    case "creation_time":
+                        creationTime = Instant.ofEpochMilli(parser.longValue());
+                        break;
+                }
+            } else if (token == XContentParser.Token.START_ARRAY) {
+                switch (currentFieldName) {
+                    case "cluster_permissions":
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            clusterPermissions.add(parser.text());
+                        }
+                        break;
+                    case "index_permissions":
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
+                                indexPermissions.add(parseIndexPermission(parser));
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Validate required fields
+        if (description == null) {
+            throw new IllegalArgumentException("description is required");
+        }
+        if (jti == null) {
+            throw new IllegalArgumentException("jti is required");
+        }
+        if (creationTime == null) {
+            throw new IllegalArgumentException("creation_time is required");
+        }
+
+        return new ApiToken(description, jti, clusterPermissions, indexPermissions, creationTime);
+    }
+
+    private static RoleV7.Index parseIndexPermission(XContentParser parser) throws IOException {
+        List<String> indexPatterns = new ArrayList<>();
+        List<String> allowedActions = new ArrayList<>();
+        String dls = null;
+        List<String> fls = null;
+        List<String> maskedFields = null;
+
+        String currentFieldName = null;
+        XContentParser.Token token;
+
+        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (token == XContentParser.Token.FIELD_NAME) {
+                currentFieldName = parser.currentName();
+            } else if (token.isValue()) {
+                if ("dls".equals(currentFieldName)) {
+                    dls = parser.text();
+                }
+            } else if (token == XContentParser.Token.START_ARRAY) {
+                switch (currentFieldName) {
+                    case "index_patterns":
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            indexPatterns.add(parser.text());
+                        }
+                        break;
+                    case "allowed_actions":
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            allowedActions.add(parser.text());
+                        }
+                        break;
+                    case "fls":
+                        fls = new ArrayList<>();
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            fls.add(parser.text());
+                        }
+                        break;
+                    case "masked_fields":
+                        maskedFields = new ArrayList<>();
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            maskedFields.add(parser.text());
+                        }
+                        break;
+                }
+            }
+        }
+
+        if (indexPatterns.isEmpty()) {
+            throw new IllegalArgumentException("index_patterns is required for index permission");
+        }
+
+        return new RoleV7.Index(
+            indexPatterns,
+            allowedActions,
+            dls,        // Now passing String instead of List<String>
+            fls,
+            maskedFields
+        );
     }
 
     public String getDescription() {

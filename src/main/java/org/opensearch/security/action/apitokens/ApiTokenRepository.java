@@ -35,7 +35,7 @@ public class ApiTokenRepository {
         apiTokenIndexHandler.deleteToken(name);
     }
 
-    public List<Map<String, Object>> getApiTokens() {
+    public Map<String, ApiToken> getApiTokens() {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
         return apiTokenIndexHandler.getApiTokens();
     }

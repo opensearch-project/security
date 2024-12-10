@@ -80,14 +80,13 @@ public class ApiTokenAction extends BaseRestHandler {
             final XContentBuilder builder = channel.newBuilder();
             BytesRestResponse response;
             try {
-                List<Map<String, Object>> token = apiTokenRepository.getApiTokens();
+                Map<String, ApiToken> tokens = apiTokenRepository.getApiTokens();
 
                 builder.startArray();
-                for (int i = 0; i < token.toArray().length; i++) {
-                    // TODO: refactor this to the helper function
+                for (ApiToken token : tokens.values()) {
                     builder.startObject();
-                    builder.field("name", token.get(i).get("description"));
-                    builder.field("creation_time", token.get(i).get("creation_time"));
+                    builder.field("name", token.getDescription());
+                    builder.field("creation_time", token.getCreationTime().toEpochMilli());
                     builder.endObject();
                 }
                 builder.endArray();
@@ -100,7 +99,6 @@ public class ApiTokenAction extends BaseRestHandler {
             builder.close();
             channel.sendResponse(response);
         };
-
     }
 
     private RestChannelConsumer handlePost(RestRequest request, NodeClient client) {
