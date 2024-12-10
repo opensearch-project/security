@@ -145,7 +145,6 @@ public class ResourceSharingIndexHandler {
      * @return ResourceSharing Returns resourceSharing object if the operation was successful, null otherwise
      * @throws IOException if there are issues with index operations or JSON processing
      */
-
     public ResourceSharing indexResourceSharing(String resourceId, String resourceIndex, CreatedBy createdBy, ShareWith shareWith)
         throws IOException {
         try {
@@ -665,7 +664,7 @@ public class ResourceSharingIndexHandler {
 
     /**
      * Updates the sharing configuration for an existing resource in the resource sharing index.
-     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String)}
+     * NOTE: This method only grants new access. To remove access use {@link #revokeAccess(String, String, Map, Set, String, boolean)}
      * This method modifies the sharing permissions for a specific resource identified by its
      * resource ID and source index.
      *
@@ -680,10 +679,17 @@ public class ResourceSharingIndexHandler {
      *                         "backend_roles": ["backend_role1"]
      *                     }
      *                 }
+     * @param isAdmin Boolean indicating whether the user requesting to share is an admin or not
      * @return ResourceSharing Returns resourceSharing object if the update was successful, null otherwise
      * @throws RuntimeException if there's an error during the update operation
      */
-    public ResourceSharing updateResourceSharingInfo(String resourceId, String sourceIdx, String requestUserName, ShareWith shareWith) {
+    public ResourceSharing updateResourceSharingInfo(
+        String resourceId,
+        String sourceIdx,
+        String requestUserName,
+        ShareWith shareWith,
+        boolean isAdmin
+    ) {
         XContentBuilder builder;
         Map<String, Object> shareWithMap;
         try {
@@ -701,7 +707,7 @@ public class ResourceSharingIndexHandler {
         // Check if the user requesting to share is the owner of the resource
         // TODO Add a way for users who are not creators to be able to share the resource
         ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
-        if (currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
+        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
             LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
             return null;
         }
@@ -876,6 +882,7 @@ public class ResourceSharingIndexHandler {
      *                     values to be removed from the sharing configuration
      * @param scopes A list of scopes to revoke access from. If null or empty, access is revoked from all scopes
      * @param requestUserName The user trying to revoke the accesses
+     * @param isAdmin Boolean indicating whether the user is an admin or not
      * @return The updated ResourceSharing object after revoking access, or null if the document doesn't exist
      * @throws IllegalArgumentException if resourceId, sourceIdx is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException if the update operation fails or encounters an error
@@ -898,7 +905,8 @@ public class ResourceSharingIndexHandler {
         String sourceIdx,
         Map<EntityType, Set<String>> revokeAccess,
         Set<String> scopes,
-        String requestUserName
+        String requestUserName,
+        boolean isAdmin
     ) {
         if (StringUtils.isBlank(resourceId) || StringUtils.isBlank(sourceIdx) || revokeAccess == null || revokeAccess.isEmpty()) {
             throw new IllegalArgumentException("resourceId, sourceIdx, and revokeAccess must not be null or empty");
@@ -906,7 +914,7 @@ public class ResourceSharingIndexHandler {
 
         // TODO Check if access can be revoked by non-creator
         ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
-        if (currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
+        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
             LOGGER.error("User {} is not authorized to revoke access to resource {}", requestUserName, resourceId);
             return null;
         }

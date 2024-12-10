@@ -82,7 +82,13 @@ public class ResourceAccessHandler {
 
     public boolean hasPermission(String resourceId, String systemIndexName, String scope) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+
         LOGGER.info("Checking if {} has {} permission to resource {}", user.getName(), scope, resourceId);
+
+        // check if user is admin, if yes the user has permission
+        if (adminDNs.isAdmin(user)) {
+            return true;
+        }
 
         Set<String> userRoles = user.getSecurityRoles();
         Set<String> userBackendRoles = user.getRoles();
@@ -110,7 +116,10 @@ public class ResourceAccessHandler {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
 
-        return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, systemIndexName, user.getName(), shareWith);
+        // check if user is admin, if yes the user has permission
+        boolean isAdmin = adminDNs.isAdmin(user);
+
+        return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, systemIndexName, user.getName(), shareWith, isAdmin);
     }
 
     public ResourceSharing revokeAccess(
@@ -122,7 +131,10 @@ public class ResourceAccessHandler {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("User {} revoking access to resource {} for {} for scopes {} ", user.getName(), resourceId, revokeAccess, scopes);
 
-        return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess, scopes, user.getName());
+        // check if user is admin, if yes the user has permission
+        boolean isAdmin = adminDNs.isAdmin(user);
+
+        return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess, scopes, user.getName(), isAdmin);
     }
 
     public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {
