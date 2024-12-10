@@ -113,9 +113,9 @@ public class ApiToken implements ToXContent {
     private static RoleV7.Index parseIndexPermission(XContentParser parser) throws IOException {
         List<String> indexPatterns = new ArrayList<>();
         List<String> allowedActions = new ArrayList<>();
-        String dls = null;
-        List<String> fls = null;
-        List<String> maskedFields = null;
+        String dls = "";
+        List<String> fls = new ArrayList<>();
+        List<String> maskedFields = new ArrayList<>();
 
         String currentFieldName = null;
         XContentParser.Token token;
@@ -140,13 +140,11 @@ public class ApiToken implements ToXContent {
                         }
                         break;
                     case "fls":
-                        fls = new ArrayList<>();
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             fls.add(parser.text());
                         }
                         break;
                     case "masked_fields":
-                        maskedFields = new ArrayList<>();
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             maskedFields.add(parser.text());
                         }
@@ -159,13 +157,7 @@ public class ApiToken implements ToXContent {
             throw new IllegalArgumentException("index_patterns is required for index permission");
         }
 
-        return new RoleV7.Index(
-            indexPatterns,
-            allowedActions,
-            dls,        // Now passing String instead of List<String>
-            fls,
-            maskedFields
-        );
+        return new RoleV7.Index(indexPatterns, allowedActions, dls, fls, maskedFields);
     }
 
     public String getDescription() {

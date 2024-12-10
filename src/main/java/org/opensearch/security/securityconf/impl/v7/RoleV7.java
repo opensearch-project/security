@@ -31,8 +31,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.opensearch.core.xcontent.ToXContent;
@@ -55,7 +55,8 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonIgnoreProperties(value = { "fragment" }, ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Index implements ToXContent {
 
         private List<String> index_patterns = Collections.emptyList();
@@ -68,14 +69,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
             super();
         }
 
-        @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)  // Add mode = PROPERTIES
-        public Index(
-            @JsonProperty("index_patterns") List<String> indexPatterns,
-            @JsonProperty("allowed_actions") List<String> allowedActions,
-            @JsonProperty("dls") String dls,
-            @JsonProperty("fls") List<String> fls,
-            @JsonProperty("masked_fields") List<String> maskedFields
-        ) {
+        public Index(List<String> indexPatterns, List<String> allowedActions, String dls, List<String> fls, List<String> maskedFields) {
             this.index_patterns = indexPatterns;
             this.allowed_actions = allowedActions;
             this.dls = dls;
@@ -90,17 +84,11 @@ public class RoleV7 implements Hideable, StaticDefinable {
             builder.field("index_patterns", index_patterns);
             builder.field("allowed_actions", allowed_actions);
 
-            if (dls != null) {
-                builder.field("dls", dls);
-            }
+            builder.field("dls", dls);
 
-            if (fls != null && !fls.isEmpty()) {
-                builder.field("fls", fls);
-            }
+            builder.field("fls", fls);
 
-            if (masked_fields != null && !masked_fields.isEmpty()) {
-                builder.field("masked_fields", masked_fields);
-            }
+            builder.field("masked_fields", masked_fields);
 
             builder.endObject();
             return builder;
