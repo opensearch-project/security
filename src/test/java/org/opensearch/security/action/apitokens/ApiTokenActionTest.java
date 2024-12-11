@@ -26,11 +26,10 @@ import static org.junit.Assert.assertThrows;
 
 public class ApiTokenActionTest {
 
-    private final ApiTokenAction apiTokenAction = new ApiTokenAction(null, null, null); // repository not needed for these tests
+    private final ApiTokenAction apiTokenAction = new ApiTokenAction(null, null, null);
 
     @Test
     public void testSafeStringList() {
-        // Valid case
         List<String> result = apiTokenAction.safeStringList(Arrays.asList("test1", "test2"), "test_field");
         assertThat(result, is(Arrays.asList("test1", "test2")));
 
@@ -45,20 +44,16 @@ public class ApiTokenActionTest {
     public void testCreateIndexPermission() {
         Map<String, Object> validPermission = new HashMap<>();
         validPermission.put("index_pattern", "test-*");
-        validPermission.put("allowed_actions", Arrays.asList("read"));
-        validPermission.put("dls", "");
-        validPermission.put("fls", Arrays.asList("field1", "field2"));
-        validPermission.put("masked_fields", Arrays.asList("sensitive1"));
+        validPermission.put("allowed_actions", List.of("read"));
 
         ApiToken.IndexPermission result = apiTokenAction.createIndexPermission(validPermission);
 
-        assertThat(result.getIndexPatterns(), is(Arrays.asList("test-*")));
-        assertThat(result.getAllowedActions(), is(Arrays.asList("read")));
+        assertThat(result.getIndexPatterns(), is(List.of("test-*")));
+        assertThat(result.getAllowedActions(), is(List.of("read")));
     }
 
     @Test
     public void testValidateRequestParameters() {
-        // Valid case
         Map<String, Object> validRequest = new HashMap<>();
         validRequest.put("name", "test-token");
         validRequest.put("cluster_permissions", Arrays.asList("perm1", "perm2"));
@@ -77,15 +72,14 @@ public class ApiTokenActionTest {
 
     @Test
     public void testValidateIndexPermissionsList() {
-        // Valid case
         Map<String, Object> validPerm = new HashMap<>();
         validPerm.put("index_pattern", "test-*");
-        validPerm.put("allowed_actions", Arrays.asList("read"));
+        validPerm.put("allowed_actions", List.of("read"));
         apiTokenAction.validateIndexPermissionsList(Collections.singletonList(validPerm));
 
         // Missing index_pattern
         Map<String, Object> missingPattern = new HashMap<>();
-        missingPattern.put("allowed_actions", Arrays.asList("read"));
+        missingPattern.put("allowed_actions", List.of("read"));
         assertThrows(
             IllegalArgumentException.class,
             () -> apiTokenAction.validateIndexPermissionsList(Collections.singletonList(missingPattern))
@@ -102,7 +96,7 @@ public class ApiTokenActionTest {
         // Invalid index_pattern type
         Map<String, Object> invalidPattern = new HashMap<>();
         invalidPattern.put("index_pattern", 123);
-        invalidPattern.put("allowed_actions", Arrays.asList("read"));
+        invalidPattern.put("allowed_actions", List.of("read"));
         assertThrows(
             IllegalArgumentException.class,
             () -> apiTokenAction.validateIndexPermissionsList(Collections.singletonList(invalidPattern))
@@ -113,10 +107,8 @@ public class ApiTokenActionTest {
     public void testExtractClusterPermissions() {
         Map<String, Object> requestBody = new HashMap<>();
 
-        // Empty case
         assertThat(apiTokenAction.extractClusterPermissions(requestBody), is(empty()));
 
-        // Valid case
         requestBody.put("cluster_permissions", Arrays.asList("perm1", "perm2"));
         assertThat(apiTokenAction.extractClusterPermissions(requestBody), is(Arrays.asList("perm1", "perm2")));
     }

@@ -55,6 +55,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -133,10 +134,10 @@ public class ApiTokenIndexHandlerTest {
         ArgumentCaptor<DeleteByQueryRequest> captor = ArgumentCaptor.forClass(DeleteByQueryRequest.class);
         verify(client).execute(eq(DeleteByQueryAction.INSTANCE), captor.capture());
 
-        // Verify the captured request has the correct query parameters
+        // Captured request has the correct name
         DeleteByQueryRequest capturedRequest = captor.getValue();
         MatchQueryBuilder query = (MatchQueryBuilder) capturedRequest.getSearchRequest().source().query();
-        assertThat(query.fieldName(), equalTo("description"));
+        assertThat(query.fieldName(), equalTo(NAME_FIELD));
         assertThat(query.value(), equalTo(tokenName));
     }
 
@@ -163,7 +164,7 @@ public class ApiTokenIndexHandlerTest {
     public void testDeleteTokenSucceedsWhenDocumentIsDeleted() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
-        // Mock response with 1 deleted document
+        // 1 deleted document
         PlainActionFuture<BulkByScrollResponse> future = new PlainActionFuture<>();
         BulkByScrollResponse response = mock(BulkByScrollResponse.class);
         when(response.getDeleted()).thenReturn(1L);
@@ -179,10 +180,9 @@ public class ApiTokenIndexHandlerTest {
     }
 
     @Test
-    public void testIndexTokenStoresToken() {
+    public void testIndexTokenStoresTokenPayload() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
-        // Create a real ApiToken
         List<String> clusterPermissions = Arrays.asList("cluster:admin/something");
         List<ApiToken.IndexPermission> indexPermissions = Arrays.asList(
                 new ApiToken.IndexPermission(
@@ -216,7 +216,7 @@ public class ApiTokenIndexHandlerTest {
             return null;
         }).when(client).index(any(IndexRequest.class), listenerCaptor.capture());
 
-        indexHandler.indexToken(token);
+        indexHandler.indexTokenPayload(token);
 
         // Verify the index request
         ArgumentCaptor<IndexRequest> requestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -225,7 +225,7 @@ public class ApiTokenIndexHandlerTest {
         IndexRequest capturedRequest = requestCaptor.getValue();
         assertThat(capturedRequest.index(), equalTo(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX));
 
-        // Convert the source to a string and verify contents
+        // verify contents
         String source = capturedRequest.source().utf8ToString();
         assertThat(source, containsString("test-token-description"));
         assertThat(source, containsString("test-jti"));
@@ -234,7 +234,7 @@ public class ApiTokenIndexHandlerTest {
     }
 
     @Test
-    public void testGetApiTokens() throws IOException {
+    public void testGetTokenPayloads() throws IOException {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
         // Create sample search hits
@@ -286,7 +286,7 @@ public class ApiTokenIndexHandlerTest {
         when(client.search(any(SearchRequest.class))).thenReturn(future);
 
         // Get tokens and verify
-        Map<String, ApiToken> resultTokens = indexHandler.getApiTokens();
+        Map<String, ApiToken> resultTokens = indexHandler.getTokenPayloads();
 
         assertThat(resultTokens.size(), equalTo(2));
         assertThat(resultTokens.containsKey("token1-description"), is(true));

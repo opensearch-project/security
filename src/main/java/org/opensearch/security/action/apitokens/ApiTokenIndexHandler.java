@@ -43,6 +43,8 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.support.ConfigConstants;
 
+import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
+
 public class ApiTokenIndexHandler {
 
     private final Client client;
@@ -54,7 +56,7 @@ public class ApiTokenIndexHandler {
         this.clusterService = clusterService;
     }
 
-    public String indexToken(ApiToken token) {
+    public String indexTokenPayload(ApiToken token) {
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
 
             XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -81,7 +83,7 @@ public class ApiTokenIndexHandler {
     public void deleteToken(String name) throws ApiTokenException {
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
             DeleteByQueryRequest request = new DeleteByQueryRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).setQuery(
-                QueryBuilders.matchQuery("description", name)
+                QueryBuilders.matchQuery(NAME_FIELD, name)
             ).setRefresh(true);
 
             BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, request).actionGet();
@@ -95,7 +97,7 @@ public class ApiTokenIndexHandler {
         }
     }
 
-    public Map<String, ApiToken> getApiTokens() {
+    public Map<String, ApiToken> getTokenPayloads() {
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
             searchRequest.source(new SearchSourceBuilder());

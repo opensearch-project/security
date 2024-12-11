@@ -200,7 +200,7 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     /**
-     * Creates a single RoleV7.Index permission from a permission map
+     * Creates a single index permission from a permission map
      */
     ApiToken.IndexPermission createIndexPermission(Map<String, Object> indexPerm) {
         List<String> indexPatterns;

@@ -103,7 +103,6 @@ public class BackendRegistry {
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
     private Cache<User, Set<String>> restRoleCache; //
-    private Cache<AuthCredentials, User> apiTokensCache;
 
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
@@ -134,18 +133,6 @@ public class BackendRegistry {
                     log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
                 }
             })
-            .build();
-
-        /* TODO: Listen in to index events on API Tokens index */
-        apiTokensCache = CacheBuilder.newBuilder()
-            .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-            .removalListener(
-                (RemovalListener<AuthCredentials, User>) notification -> log.debug(
-                    "Clear api token cache for {} due to {}",
-                    notification.getKey(),
-                    notification.getCause()
-                )
-            )
             .build();
 
     }
@@ -183,7 +170,6 @@ public class BackendRegistry {
         userCache.invalidateAll();
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
-        apiTokensCache.invalidateAll();
     }
 
     @Subscribe
