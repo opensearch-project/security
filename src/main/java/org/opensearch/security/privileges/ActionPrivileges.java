@@ -442,7 +442,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             }
 
             // 4: If plugin is performing the action, check if plugin has permission
-            if (this.usersToActionMatcher.containsKey(context.getUser().getName())) {
+            if (context.getUser().isPluginUser() && this.usersToActionMatcher.containsKey(context.getUser().getName())) {
                 WildcardMatcher matcher = this.usersToActionMatcher.get(context.getUser().getName());
                 if (matcher != null && matcher.test(action)) {
                     return PrivilegesEvaluatorResponse.ok();
