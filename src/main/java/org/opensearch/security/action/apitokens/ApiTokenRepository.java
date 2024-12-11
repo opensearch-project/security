@@ -25,9 +25,10 @@ public class ApiTokenRepository {
         apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
     }
 
-    public String createApiToken(String name) {
+    public String createApiToken(String name, List<String> clusterPermissions, List<RoleV7.Index> indexPermissions) {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
-        return apiTokenIndexHandler.indexToken(new ApiToken(name, "test-token", List.of(), List.of(new RoleV7.Index())));
+        // TODO: Implement logic of creating JTI to match against during authc/z
+        return apiTokenIndexHandler.indexToken(new ApiToken(name, "test-token", clusterPermissions, indexPermissions));
     }
 
     public void deleteApiToken(String name) throws ApiTokenException {
