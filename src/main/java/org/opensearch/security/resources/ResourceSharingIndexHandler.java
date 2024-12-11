@@ -67,6 +67,10 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 
+/**
+ * This class handles the creation and management of the resource sharing index.
+ * It provides methods to create the index, index resource sharing entries along with updates and deletion, retrieve shared resources.
+ */
 public class ResourceSharingIndexHandler {
 
     private static final Logger LOGGER = LogManager.getLogger(ResourceSharingIndexHandler.class);

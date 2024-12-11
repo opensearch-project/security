@@ -29,6 +29,11 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+/**
+ * This class handles resource access permissions for users and roles.
+ * It provides methods to check if a user has permission to access a resource
+ * based on the resource sharing configuration.
+ */
 public class ResourceAccessHandler {
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessHandler.class);
 
@@ -47,40 +52,54 @@ public class ResourceAccessHandler {
         this.adminDNs = adminDns;
     }
 
-    public Set<String> listAccessibleResourcesInPlugin(String pluginIndex) {
+    /**
+     * Returns a set of accessible resources for the current user within the specified resource index.
+     *
+     * @param resourceIndex The resource index to check for accessible resources.
+     * @return A set of accessible resource IDs.
+     */
+    public Set<String> getAccessibleResourcesForCurrentUser(String resourceIndex) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             LOGGER.info("Unable to fetch user details ");
             return Collections.emptySet();
         }
 
-        LOGGER.info("Listing accessible resource within a system index {} for : {}", pluginIndex, user.getName());
+        LOGGER.info("Listing accessible resources within a resource index {} for : {}", resourceIndex, user.getName());
 
         // check if user is admin, if yes all resources should be accessible
         if (adminDNs.isAdmin(user)) {
-            return loadAllResources(pluginIndex);
+            return loadAllResources(resourceIndex);
         }
 
         Set<String> result = new HashSet<>();
 
         // 0. Own resources
-        result.addAll(loadOwnResources(pluginIndex, user.getName()));
+        result.addAll(loadOwnResources(resourceIndex, user.getName()));
 
         // 1. By username
-        result.addAll(loadSharedWithResources(pluginIndex, Set.of(user.getName()), EntityType.USERS.toString()));
+        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), EntityType.USERS.toString()));
 
         // 2. By roles
         Set<String> roles = user.getSecurityRoles();
-        result.addAll(loadSharedWithResources(pluginIndex, roles, EntityType.ROLES.toString()));
+        result.addAll(loadSharedWithResources(resourceIndex, roles, EntityType.ROLES.toString()));
 
         // 3. By backend_roles
         Set<String> backendRoles = user.getRoles();
-        result.addAll(loadSharedWithResources(pluginIndex, backendRoles, EntityType.BACKEND_ROLES.toString()));
+        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, EntityType.BACKEND_ROLES.toString()));
 
         return result;
     }
 
-    public boolean hasPermission(String resourceId, String systemIndexName, String scope) {
+    /**
+     * Checks whether current user has given permission (scope) to access given resource.
+     *
+     * @param resourceId      The resource ID to check access for.
+     * @param resourceIndex   The resource index containing the resource.
+     * @param scope           The permission scope to check.
+     * @return True if the user has the specified permission, false otherwise.
+     */
+    public boolean hasPermission(String resourceId, String resourceIndex, String scope) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         LOGGER.info("Checking if {} has {} permission to resource {}", user.getName(), scope, resourceId);
@@ -93,9 +112,9 @@ public class ResourceAccessHandler {
         Set<String> userRoles = user.getSecurityRoles();
         Set<String> userBackendRoles = user.getRoles();
 
-        ResourceSharing document = this.resourceSharingIndexHandler.fetchDocumentById(systemIndexName, resourceId);
+        ResourceSharing document = this.resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId);
         if (document == null) {
-            LOGGER.warn("Resource {} not found in index {}", resourceId, systemIndexName);
+            LOGGER.warn("Resource {} not found in index {}", resourceId, resourceIndex);
             return false;  // If the document doesn't exist, no permissions can be granted
         }
 
@@ -112,19 +131,34 @@ public class ResourceAccessHandler {
         return false;
     }
 
-    public ResourceSharing shareWith(String resourceId, String systemIndexName, ShareWith shareWith) {
+    /**
+     * Shares a resource with the specified users, roles, and backend roles.
+     * @param resourceId The resource ID to share.
+     * @param resourceIndex  The index where resource is store
+     * @param shareWith The users, roles, and backend roles as well as scope to share the resource with.
+     * @return The updated ResourceSharing document.
+     */
+    public ResourceSharing shareWith(String resourceId, String resourceIndex, ShareWith shareWith) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
 
         // check if user is admin, if yes the user has permission
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, systemIndexName, user.getName(), shareWith, isAdmin);
+        return this.resourceSharingIndexHandler.updateResourceSharingInfo(resourceId, resourceIndex, user.getName(), shareWith, isAdmin);
     }
 
+    /**
+     * Revokes access to a resource for the specified users, roles, and backend roles.
+     * @param resourceId The resource ID to revoke access from.
+     * @param resourceIndex  The index where resource is store
+     * @param revokeAccess The users, roles, and backend roles to revoke access for.
+     * @param scopes The permission scopes to revoke access for.
+     * @return The updated ResourceSharing document.
+     */
     public ResourceSharing revokeAccess(
         String resourceId,
-        String systemIndexName,
+        String resourceIndex,
         Map<EntityType, Set<String>> revokeAccess,
         Set<String> scopes
     ) {
@@ -134,25 +168,35 @@ public class ResourceAccessHandler {
         // check if user is admin, if yes the user has permission
         boolean isAdmin = adminDNs.isAdmin(user);
 
-        return this.resourceSharingIndexHandler.revokeAccess(resourceId, systemIndexName, revokeAccess, scopes, user.getName(), isAdmin);
+        return this.resourceSharingIndexHandler.revokeAccess(resourceId, resourceIndex, revokeAccess, scopes, user.getName(), isAdmin);
     }
 
-    public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {
+    /**
+     * Deletes a resource sharing record by its ID and the resource index it belongs to.
+     * @param resourceId The resource ID to delete.
+     * @param resourceIndex The resource index containing the resource.
+     * @return True if the record was successfully deleted, false otherwise.
+     */
+    public boolean deleteResourceSharingRecord(String resourceId, String resourceIndex) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        LOGGER.info("Deleting resource sharing record for resource {} in {} created by {}", resourceId, systemIndexName, user.getName());
+        LOGGER.info("Deleting resource sharing record for resource {} in {} created by {}", resourceId, resourceIndex, user.getName());
 
-        ResourceSharing document = this.resourceSharingIndexHandler.fetchDocumentById(systemIndexName, resourceId);
+        ResourceSharing document = this.resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId);
         if (document == null) {
-            LOGGER.info("Document {} does not exist in index {}", resourceId, systemIndexName);
+            LOGGER.info("Document {} does not exist in index {}", resourceId, resourceIndex);
             return false;
         }
         if (!(adminDNs.isAdmin(user) || isOwnerOfResource(document, user.getName()))) {
             LOGGER.info("User {} does not have access to delete the record {} ", user.getName(), resourceId);
             return false;
         }
-        return this.resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, systemIndexName);
+        return this.resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, resourceIndex);
     }
 
+    /**
+     * Deletes all resource sharing records for the current user.
+     * @return True if all records were successfully deleted, false otherwise.
+     */
     public boolean deleteAllResourceSharingRecordsForCurrentUser() {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Deleting all resource sharing records for resource {}", user.getName());
@@ -160,39 +204,88 @@ public class ResourceAccessHandler {
         return this.resourceSharingIndexHandler.deleteAllRecordsForUser(user.getName());
     }
 
-    // Helper methods
-
-    private Set<String> loadAllResources(String systemIndex) {
-        return this.resourceSharingIndexHandler.fetchAllDocuments(systemIndex);
+    /**
+     * Loads all resources within the specified resource index.
+     *
+     * @param resourceIndex The resource index to load resources from.
+     * @return A set of resource IDs.
+     */
+    private Set<String> loadAllResources(String resourceIndex) {
+        return this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex);
     }
 
-    private Set<String> loadOwnResources(String systemIndex, String username) {
-        // TODO check if this magic variable can be replaced
-        return this.resourceSharingIndexHandler.fetchDocumentsByField(systemIndex, "created_by.user", username);
+    /**
+     * Loads resources owned by the specified user within the given resource index.
+     *
+     * @param resourceIndex The resource index to load resources from.
+     * @param userName The username of the owner.
+     * @return A set of resource IDs owned by the user.
+     */
+    private Set<String> loadOwnResources(String resourceIndex, String userName) {
+        return this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName);
     }
 
-    private Set<String> loadSharedWithResources(String systemIndex, Set<String> entities, String shareWithType) {
-        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(systemIndex, entities, shareWithType);
+    /**
+     * Loads resources shared with the specified entities within the given resource index.
+     *
+     * @param resourceIndex The resource index to load resources from.
+     * @param entities The set of entities to check for shared resources.
+     * @param entityType The type of entity (e.g., users, roles, backend_roles).
+     * @return A set of resource IDs shared with the specified entities.
+     */
+    private Set<String> loadSharedWithResources(String resourceIndex, Set<String> entities, String entityType) {
+        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, entityType);
     }
 
+    /**
+     * Checks if the given resource is owned by the specified user.
+     *
+     * @param document The ResourceSharing document to check.
+     * @param userName The username to check ownership against.
+     * @return True if the resource is owned by the user, false otherwise.
+     */
     private boolean isOwnerOfResource(ResourceSharing document, String userName) {
         return document.getCreatedBy() != null && document.getCreatedBy().getUser().equals(userName);
     }
 
-    private boolean isSharedWithEntity(ResourceSharing document, EntityType entityType, Set<String> roles, String scope) {
-        for (String role : roles) {
-            if (checkSharing(document, entityType, role, scope)) {
+    /**
+     * Checks if the given resource is shared with the specified entities and scope.
+     *
+     * @param document The ResourceSharing document to check.
+     * @param entityType The type of entity (e.g., users, roles, backend_roles).
+     * @param entities The set of entities to check for sharing.
+     * @param scope The permission scope to check.
+     * @return True if the resource is shared with the entities and scope, false otherwise.
+     */
+    private boolean isSharedWithEntity(ResourceSharing document, EntityType entityType, Set<String> entities, String scope) {
+        for (String entity : entities) {
+            if (checkSharing(document, entityType, entity, scope)) {
                 return true;
             }
         }
         return false;
     }
 
+    /**
+     * Checks if the given resource is shared with everyone.
+     *
+     * @param document The ResourceSharing document to check.
+     * @return True if the resource is shared with everyone, false otherwise.
+     */
     private boolean isSharedWithEveryone(ResourceSharing document) {
         return document.getShareWith() != null
             && document.getShareWith().getSharedWithScopes().stream().anyMatch(sharedWithScope -> sharedWithScope.getScope().equals("*"));
     }
 
+    /**
+     * Checks if the given resource is shared with the specified entity and scope.
+     *
+     * @param document The ResourceSharing document to check.
+     * @param entityType The type of entity (e.g., users, roles, backend_roles).
+     * @param identifier The identifier of the entity to check for sharing.
+     * @param scope The permission scope to check.
+     * @return True if the resource is shared with the entity and scope, false otherwise.
+     */
     private boolean checkSharing(ResourceSharing document, EntityType entityType, String identifier, String scope) {
         if (document.getShareWith() == null) {
             return false;

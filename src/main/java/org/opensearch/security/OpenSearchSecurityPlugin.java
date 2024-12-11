@@ -2208,8 +2208,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public Set<String> listAccessibleResourcesInPlugin(String systemIndexName) {
-        return this.resourceAccessHandler.listAccessibleResourcesInPlugin(systemIndexName);
+    public Set<String> getAccessibleResourcesForCurrentUser(String systemIndexName) {
+        return this.resourceAccessHandler.getAccessibleResourcesForCurrentUser(systemIndexName);
     }
 
     @Override

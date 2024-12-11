@@ -46,6 +46,13 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
 
     }
 
+    /**
+     * Initializes the ResourceSharingIndexListener with the provided ThreadPool and Client.
+     * This method is called during the plugin's initialization process.
+     *
+     * @param threadPool The ThreadPool instance to be used for executing operations.
+     * @param client     The Client instance to be used for interacting with OpenSearch.
+     */
     public void initialize(ThreadPool threadPool, Client client) {
 
         if (initialized) {
@@ -66,6 +73,13 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
         return initialized;
     }
 
+    /**
+     * This method is called after an index operation is performed.
+     * It creates a resource sharing entry in the dedicated resource sharing index.
+     * @param shardId The shard ID of the index where the operation was performed.
+     * @param index The index where the operation was performed.
+     * @param result The result of the index operation.
+     */
     @Override
     public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
 
@@ -89,6 +103,13 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
         }
     }
 
+    /**
+     * This method is called after a delete operation is performed.
+     * It deletes the corresponding resource sharing entry from the dedicated resource sharing index.
+     * @param shardId The shard ID of the index where the delete operation was performed.
+     * @param delete The delete operation that was performed.
+     * @param result The result of the delete operation.
+     */
     @Override
     public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
 
