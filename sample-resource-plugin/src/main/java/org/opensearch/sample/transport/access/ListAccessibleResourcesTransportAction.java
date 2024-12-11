@@ -41,7 +41,7 @@ public class ListAccessibleResourcesTransportAction extends HandledTransportActi
     protected void doExecute(Task task, ListAccessibleResourcesRequest request, ActionListener<ListAccessibleResourcesResponse> listener) {
         try {
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
-            Set<String> resourceIds = rs.getResourceAccessControlPlugin().listAccessibleResourcesInPlugin(RESOURCE_INDEX_NAME);
+            Set<String> resourceIds = rs.getResourceAccessControlPlugin().getAccessibleResourcesForCurrentUser(RESOURCE_INDEX_NAME);
             log.info("Successfully fetched accessible resources for current user : {}", resourceIds);
             listener.onResponse(new ListAccessibleResourcesResponse(resourceIds));
         } catch (Exception e) {

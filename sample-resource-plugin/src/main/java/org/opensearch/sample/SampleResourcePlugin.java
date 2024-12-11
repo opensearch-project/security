@@ -76,8 +76,6 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, ResourcePlugin {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
 
-    private Client client;
-
     @Override
     public Collection<Object> createComponents(
         Client client,
@@ -92,7 +90,6 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        this.client = client;
         log.info("Loaded SampleResourcePlugin components.");
         return Collections.emptyList();
     }
@@ -131,7 +128,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
 
     @Override
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
-        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(RESOURCE_INDEX_NAME, "Example index with resources");
+        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(RESOURCE_INDEX_NAME, "Sample index with resources");
         return Collections.singletonList(systemIndexDescriptor);
     }
 
