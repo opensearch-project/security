@@ -391,16 +391,11 @@ public class BackendRegistry {
 
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadPool.getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser == null ? authenticatedUser : impersonatedUser);
-            UserSubject subject = new SecurityUser(threadPool, impersonatedUser == null ? authenticatedUser : impersonatedUser);
+            final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
+            UserSubject subject = new SecurityUser(threadPool, effectiveUser);
             threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-            auditLog.logSucceededLogin(
-                (impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(),
-                false,
-                authenticatedUser.getName(),
-                request
-            );
+            auditLog.logSucceededLogin(effectiveUser.getName(), false, authenticatedUser.getName(), request);
         } else {
             if (isDebugEnabled) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());

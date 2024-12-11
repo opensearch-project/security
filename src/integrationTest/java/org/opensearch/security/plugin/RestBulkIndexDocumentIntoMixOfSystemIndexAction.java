@@ -18,7 +18,6 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
@@ -61,8 +60,8 @@ public class RestBulkIndexDocumentIntoMixOfSystemIndexAction extends BaseRestHan
             public void accept(RestChannel channel) throws Exception {
                 contextSwitcher.runAs(() -> {
                     BulkRequestBuilder builder = client.prepareBulk();
-                    builder.add(new IndexRequest(SYSTEM_INDEX_1).source("{\"content\":1}", XContentType.JSON));
-                    builder.add(new IndexRequest(SYSTEM_INDEX_2).source("{\"content\":1}", XContentType.JSON));
+                    builder.add(new IndexRequest(SYSTEM_INDEX_1).source("content", 1));
+                    builder.add(new IndexRequest(SYSTEM_INDEX_2).source("content", 1));
                     builder.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                     BulkRequest bulkRequest = builder.request();
                     client.bulk(bulkRequest, ActionListener.wrap(r -> {

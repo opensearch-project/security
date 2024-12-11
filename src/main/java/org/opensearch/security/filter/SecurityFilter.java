@@ -319,9 +319,7 @@ public class SecurityFilter implements ActionFilter {
 
             if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                 && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
-                && (injectedRoles == null)
-                && (user == null)
-                && !enforcePrivilegesEvaluation) {
+                && (user == null)) {
 
                 chain.proceed(task, action, request, listener);
                 return;
