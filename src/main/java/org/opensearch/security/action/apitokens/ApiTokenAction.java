@@ -28,7 +28,6 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -44,9 +43,6 @@ public class ApiTokenAction extends BaseRestHandler {
     private static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
     private static final String INDEX_PATTERN_FIELD = "index_pattern";
     private static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
-    private static final String DLS_FIELD = "dls";
-    private static final String FLS_FIELD = "fls";
-    private static final String MASKED_FIELDS_FIELD = "masked_fields";
 
     private static final List<RestHandler.Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
@@ -95,7 +91,7 @@ public class ApiTokenAction extends BaseRestHandler {
                 builder.startArray();
                 for (ApiToken token : tokens.values()) {
                     builder.startObject();
-                    builder.field("name", token.getDescription());
+                    builder.field("name", token.getName());
                     builder.field("creation_time", token.getCreationTime().toEpochMilli());
                     builder.endObject();
                 }
@@ -120,7 +116,7 @@ public class ApiTokenAction extends BaseRestHandler {
                 validateRequestParameters(requestBody);
 
                 List<String> clusterPermissions = extractClusterPermissions(requestBody);
-                List<RoleV7.Index> indexPermissions = extractIndexPermissions(requestBody);
+                List<ApiToken.IndexPermission> indexPermissions = extractIndexPermissions(requestBody);
 
                 String token = apiTokenRepository.createApiToken(
                     (String) requestBody.get(NAME_JSON_PROPERTY),
@@ -193,7 +189,7 @@ public class ApiTokenAction extends BaseRestHandler {
     /**
      * Extracts and builds index permissions from the request body
      */
-    List<RoleV7.Index> extractIndexPermissions(Map<String, Object> requestBody) {
+    List<ApiToken.IndexPermission> extractIndexPermissions(Map<String, Object> requestBody) {
         if (!requestBody.containsKey(INDEX_PERMISSIONS_FIELD)) {
             return Collections.emptyList();
         }
@@ -206,7 +202,7 @@ public class ApiTokenAction extends BaseRestHandler {
     /**
      * Creates a single RoleV7.Index permission from a permission map
      */
-    RoleV7.Index createIndexPermission(Map<String, Object> indexPerm) {
+    ApiToken.IndexPermission createIndexPermission(Map<String, Object> indexPerm) {
         List<String> indexPatterns;
         Object indexPatternObj = indexPerm.get(INDEX_PATTERN_FIELD);
         if (indexPatternObj instanceof String) {
@@ -217,15 +213,7 @@ public class ApiTokenAction extends BaseRestHandler {
 
         List<String> allowedActions = safeStringList(indexPerm.get(ALLOWED_ACTIONS_FIELD), ALLOWED_ACTIONS_FIELD);
 
-        String dls = (String) indexPerm.getOrDefault(DLS_FIELD, "");
-
-        List<String> fls = indexPerm.containsKey(FLS_FIELD) ? safeStringList(indexPerm.get(FLS_FIELD), FLS_FIELD) : Collections.emptyList();
-
-        List<String> maskedFields = indexPerm.containsKey(MASKED_FIELDS_FIELD)
-            ? safeStringList(indexPerm.get(MASKED_FIELDS_FIELD), MASKED_FIELDS_FIELD)
-            : Collections.emptyList();
-
-        return new RoleV7.Index(indexPatterns, allowedActions, dls, fls, maskedFields);
+        return new ApiToken.IndexPermission(indexPatterns, allowedActions);
     }
 
     /**
@@ -264,10 +252,6 @@ public class ApiTokenAction extends BaseRestHandler {
             Object indexPatternObj = indexPerm.get(INDEX_PATTERN_FIELD);
             if (!(indexPatternObj instanceof String) && !(indexPatternObj instanceof List)) {
                 throw new IllegalArgumentException(INDEX_PATTERN_FIELD + " must be a string or array of strings");
-            }
-
-            if (indexPerm.containsKey(DLS_FIELD) && !(indexPerm.get(DLS_FIELD) instanceof String)) {
-                throw new IllegalArgumentException(DLS_FIELD + " must be a string");
             }
         }
     }

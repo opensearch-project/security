@@ -45,7 +45,6 @@ import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 
 import org.mockito.ArgumentCaptor;
@@ -185,13 +184,10 @@ public class ApiTokenIndexHandlerTest {
 
         // Create a real ApiToken
         List<String> clusterPermissions = Arrays.asList("cluster:admin/something");
-        List<RoleV7.Index> indexPermissions = Arrays.asList(
-                new RoleV7.Index(
+        List<ApiToken.IndexPermission> indexPermissions = Arrays.asList(
+                new ApiToken.IndexPermission(
                         Arrays.asList("test-index-*"),
-                        Arrays.asList("read", "write"),
-                        null,  // dls
-                        null,  // fls
-                        null   // masked_fields
+                        Arrays.asList("read", "write")
                 )
         );
         ApiToken token = new ApiToken(
@@ -249,10 +245,9 @@ public class ApiTokenIndexHandlerTest {
                 "token1-description",
                 "jti1",
                 Arrays.asList("cluster:admin/something"),
-                Arrays.asList(new RoleV7.Index(
+                Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index1-*"),
-                        Arrays.asList("read"),
-                        null, null, null
+                        Arrays.asList("read")
                 )),
                 Instant.now()
         );
@@ -262,10 +257,9 @@ public class ApiTokenIndexHandlerTest {
                 "token2-description",
                 "jti2",
                 Arrays.asList("cluster:admin/other"),
-                Arrays.asList(new RoleV7.Index(
+                Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index2-*"),
-                        Arrays.asList("write"),
-                        null, null, null
+                        Arrays.asList("write")
                 )),
                 Instant.now()
         );

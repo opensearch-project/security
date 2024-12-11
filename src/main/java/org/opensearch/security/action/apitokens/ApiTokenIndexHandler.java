@@ -45,8 +45,8 @@ import org.opensearch.security.support.ConfigConstants;
 
 public class ApiTokenIndexHandler {
 
-    private Client client;
-    private ClusterService clusterService;
+    private final Client client;
+    private final ClusterService clusterService;
     private static final Logger LOGGER = LogManager.getLogger(ApiTokenIndexHandler.class);
 
     public ApiTokenIndexHandler(Client client, ClusterService clusterService) {
@@ -70,7 +70,7 @@ public class ApiTokenIndexHandler {
             });
 
             client.index(request, irListener);
-            return token.getDescription();
+            return token.getName();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -114,7 +114,7 @@ public class ApiTokenIndexHandler {
                 ) {
 
                     ApiToken token = ApiToken.fromXContent(parser);
-                    tokens.put(token.getDescription(), token);  // Assuming description is the key
+                    tokens.put(token.getName(), token);  // Assuming description is the key
                 }
             }
             return tokens;

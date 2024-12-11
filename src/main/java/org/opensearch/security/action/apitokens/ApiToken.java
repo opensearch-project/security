@@ -19,19 +19,17 @@ import java.util.List;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 
 public class ApiToken implements ToXContent {
-    private String description;
-    private String jti;
-
-    private Instant creationTime;
+    private String name;
+    private final String jti;
+    private final Instant creationTime;
     private List<String> clusterPermissions;
-    private List<RoleV7.Index> indexPermissions;
+    private List<IndexPermission> indexPermissions;
 
-    public ApiToken(String description, String jti, List<String> clusterPermissions, List<RoleV7.Index> indexPermissions) {
+    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions) {
         this.creationTime = Instant.now();
-        this.description = description;
+        this.name = name;
         this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
@@ -42,10 +40,10 @@ public class ApiToken implements ToXContent {
         String description,
         String jti,
         List<String> clusterPermissions,
-        List<RoleV7.Index> indexPermissions,
+        List<IndexPermission> indexPermissions,
         Instant creationTime
     ) {
-        this.description = description;
+        this.name = description;
         this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
@@ -53,11 +51,38 @@ public class ApiToken implements ToXContent {
 
     }
 
+    public static class IndexPermission implements ToXContent {
+        private final List<String> indexPatterns;
+        private final List<String> allowedActions;
+
+        public IndexPermission(List<String> indexPatterns, List<String> allowedActions) {
+            this.indexPatterns = indexPatterns;
+            this.allowedActions = allowedActions;
+        }
+
+        public List<String> getAllowedActions() {
+            return allowedActions;
+        }
+
+        public List<String> getIndexPatterns() {
+            return indexPatterns;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.startObject();
+            builder.array("index_patterns", indexPatterns.toArray(new String[0]));
+            builder.array("allowed_actions", allowedActions.toArray(new String[0]));
+            builder.endObject();
+            return builder;
+        }
+    }
+
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
         String description = null;
         String jti = null;
         List<String> clusterPermissions = new ArrayList<>();
-        List<RoleV7.Index> indexPermissions = new ArrayList<>();
+        List<IndexPermission> indexPermissions = new ArrayList<>();
         Instant creationTime = null;
 
         XContentParser.Token token;
@@ -110,12 +135,9 @@ public class ApiToken implements ToXContent {
         return new ApiToken(description, jti, clusterPermissions, indexPermissions, creationTime);
     }
 
-    private static RoleV7.Index parseIndexPermission(XContentParser parser) throws IOException {
+    private static IndexPermission parseIndexPermission(XContentParser parser) throws IOException {
         List<String> indexPatterns = new ArrayList<>();
         List<String> allowedActions = new ArrayList<>();
-        String dls = "";
-        List<String> fls = new ArrayList<>();
-        List<String> maskedFields = new ArrayList<>();
 
         String currentFieldName = null;
         XContentParser.Token token;
@@ -123,10 +145,6 @@ public class ApiToken implements ToXContent {
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
                 currentFieldName = parser.currentName();
-            } else if (token.isValue()) {
-                if ("dls".equals(currentFieldName)) {
-                    dls = parser.text();
-                }
             } else if (token == XContentParser.Token.START_ARRAY) {
                 switch (currentFieldName) {
                     case "index_patterns":
@@ -139,16 +157,7 @@ public class ApiToken implements ToXContent {
                             allowedActions.add(parser.text());
                         }
                         break;
-                    case "fls":
-                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            fls.add(parser.text());
-                        }
-                        break;
-                    case "masked_fields":
-                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            maskedFields.add(parser.text());
-                        }
-                        break;
+
                 }
             }
         }
@@ -157,31 +166,23 @@ public class ApiToken implements ToXContent {
             throw new IllegalArgumentException("index_patterns is required for index permission");
         }
 
-        return new RoleV7.Index(indexPatterns, allowedActions, dls, fls, maskedFields);
+        return new IndexPermission(indexPatterns, allowedActions);
     }
 
-    public String getDescription() {
-        return description;
+    public String getName() {
+        return name;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getJti() {
         return jti;
     }
 
-    public void setJti(String jti) {
-        this.jti = jti;
-    }
-
     public Instant getCreationTime() {
         return creationTime;
-    }
-
-    public void setCreationTime(Instant creationTime) {
-        this.creationTime = creationTime;
     }
 
     public List<String> getClusterPermissions() {
@@ -195,7 +196,7 @@ public class ApiToken implements ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
         xContentBuilder.startObject();
-        xContentBuilder.field("description", description);
+        xContentBuilder.field("name", name);
         xContentBuilder.field("jti", jti);
         xContentBuilder.field("cluster_permissions", clusterPermissions);
         xContentBuilder.field("index_permissions", indexPermissions);
@@ -204,11 +205,11 @@ public class ApiToken implements ToXContent {
         return xContentBuilder;
     }
 
-    public List<RoleV7.Index> getIndexPermissions() {
+    public List<IndexPermission> getIndexPermissions() {
         return indexPermissions;
     }
 
-    public void setIndexPermissions(List<RoleV7.Index> indexPermissions) {
+    public void setIndexPermissions(List<IndexPermission> indexPermissions) {
         this.indexPermissions = indexPermissions;
     }
 }

@@ -19,8 +19,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
@@ -52,13 +50,10 @@ public class ApiTokenActionTest {
         validPermission.put("fls", Arrays.asList("field1", "field2"));
         validPermission.put("masked_fields", Arrays.asList("sensitive1"));
 
-        RoleV7.Index result = apiTokenAction.createIndexPermission(validPermission);
+        ApiToken.IndexPermission result = apiTokenAction.createIndexPermission(validPermission);
 
-        assertThat(result.getIndex_patterns(), is(Arrays.asList("test-*")));
-        assertThat(result.getAllowed_actions(), is(Arrays.asList("read")));
-        assertThat(result.getDls(), is(""));
-        assertThat(result.getFls(), is(Arrays.asList("field1", "field2")));
-        assertThat(result.getMasked_fields(), is(Arrays.asList("sensitive1")));
+        assertThat(result.getIndexPatterns(), is(Arrays.asList("test-*")));
+        assertThat(result.getAllowedActions(), is(Arrays.asList("read")));
     }
 
     @Test
