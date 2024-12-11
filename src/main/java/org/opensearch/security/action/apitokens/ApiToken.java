@@ -21,6 +21,14 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 public class ApiToken implements ToXContent {
+    public static final String NAME_FIELD = "name";
+    public static final String JTI_FIELD = "jti";
+    public static final String CREATION_TIME_FIELD = "creation_time";
+    public static final String CLUSTER_PERMISSIONS_FIELD = "cluster_permissions";
+    public static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
+    public static final String INDEX_PATTERN_FIELD = "index_pattern";
+    public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
+
     private String name;
     private final String jti;
     private final Instant creationTime;
@@ -71,15 +79,15 @@ public class ApiToken implements ToXContent {
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
-            builder.array("index_patterns", indexPatterns.toArray(new String[0]));
-            builder.array("allowed_actions", allowedActions.toArray(new String[0]));
+            builder.array(INDEX_PATTERN_FIELD, indexPatterns.toArray(new String[0]));
+            builder.array(ALLOWED_ACTIONS_FIELD, allowedActions.toArray(new String[0]));
             builder.endObject();
             return builder;
         }
     }
 
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
-        String description = null;
+        String name = null;
         String jti = null;
         List<String> clusterPermissions = new ArrayList<>();
         List<IndexPermission> indexPermissions = new ArrayList<>();
@@ -93,24 +101,24 @@ public class ApiToken implements ToXContent {
                 currentFieldName = parser.currentName();
             } else if (token.isValue()) {
                 switch (currentFieldName) {
-                    case "description":
-                        description = parser.text();
+                    case NAME_FIELD:
+                        name = parser.text();
                         break;
-                    case "jti":
+                    case JTI_FIELD:
                         jti = parser.text();
                         break;
-                    case "creation_time":
+                    case CREATION_TIME_FIELD:
                         creationTime = Instant.ofEpochMilli(parser.longValue());
                         break;
                 }
             } else if (token == XContentParser.Token.START_ARRAY) {
                 switch (currentFieldName) {
-                    case "cluster_permissions":
+                    case CLUSTER_PERMISSIONS_FIELD:
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             clusterPermissions.add(parser.text());
                         }
                         break;
-                    case "index_permissions":
+                    case INDEX_PERMISSIONS_FIELD:
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
                                 indexPermissions.add(parseIndexPermission(parser));
@@ -121,18 +129,17 @@ public class ApiToken implements ToXContent {
             }
         }
 
-        // Validate required fields
-        if (description == null) {
-            throw new IllegalArgumentException("description is required");
+        if (name == null) {
+            throw new IllegalArgumentException(NAME_FIELD + " is required");
         }
         if (jti == null) {
-            throw new IllegalArgumentException("jti is required");
+            throw new IllegalArgumentException(JTI_FIELD + " is required");
         }
         if (creationTime == null) {
-            throw new IllegalArgumentException("creation_time is required");
+            throw new IllegalArgumentException(CREATION_TIME_FIELD + " is required");
         }
 
-        return new ApiToken(description, jti, clusterPermissions, indexPermissions, creationTime);
+        return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime);
     }
 
     private static IndexPermission parseIndexPermission(XContentParser parser) throws IOException {
@@ -147,12 +154,12 @@ public class ApiToken implements ToXContent {
                 currentFieldName = parser.currentName();
             } else if (token == XContentParser.Token.START_ARRAY) {
                 switch (currentFieldName) {
-                    case "index_patterns":
+                    case INDEX_PATTERN_FIELD:
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             indexPatterns.add(parser.text());
                         }
                         break;
-                    case "allowed_actions":
+                    case ALLOWED_ACTIONS_FIELD:
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             allowedActions.add(parser.text());
                         }
@@ -163,7 +170,7 @@ public class ApiToken implements ToXContent {
         }
 
         if (indexPatterns.isEmpty()) {
-            throw new IllegalArgumentException("index_patterns is required for index permission");
+            throw new IllegalArgumentException(INDEX_PATTERN_FIELD + " is required for index permission");
         }
 
         return new IndexPermission(indexPatterns, allowedActions);
@@ -196,11 +203,11 @@ public class ApiToken implements ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
         xContentBuilder.startObject();
-        xContentBuilder.field("name", name);
-        xContentBuilder.field("jti", jti);
-        xContentBuilder.field("cluster_permissions", clusterPermissions);
-        xContentBuilder.field("index_permissions", indexPermissions);
-        xContentBuilder.field("creation_time", creationTime.toEpochMilli());
+        xContentBuilder.field(NAME_FIELD, name);
+        xContentBuilder.field(JTI_FIELD, jti);
+        xContentBuilder.field(CLUSTER_PERMISSIONS_FIELD, clusterPermissions);
+        xContentBuilder.field(INDEX_PERMISSIONS_FIELD, indexPermissions);
+        xContentBuilder.field(CREATION_TIME_FIELD, creationTime.toEpochMilli());
         xContentBuilder.endObject();
         return xContentBuilder;
     }

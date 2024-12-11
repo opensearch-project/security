@@ -82,7 +82,7 @@ public class ApiTokenIndexHandler {
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
             DeleteByQueryRequest request = new DeleteByQueryRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).setQuery(
                 QueryBuilders.matchQuery("description", name)
-            ).setRefresh(true);  // This will refresh the index after deletion
+            ).setRefresh(true);
 
             BulkByScrollResponse response = client.execute(DeleteByQueryAction.INSTANCE, request).actionGet();
 
@@ -114,7 +114,7 @@ public class ApiTokenIndexHandler {
                 ) {
 
                     ApiToken token = ApiToken.fromXContent(parser);
-                    tokens.put(token.getName(), token);  // Assuming description is the key
+                    tokens.put(token.getName(), token);
                 }
             }
             return tokens;

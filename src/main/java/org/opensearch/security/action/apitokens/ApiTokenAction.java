@@ -33,16 +33,16 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.security.action.apitokens.ApiToken.ALLOWED_ACTIONS_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.CLUSTER_PERMISSIONS_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.CREATION_TIME_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PATTERN_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ApiTokenAction extends BaseRestHandler {
     private final ApiTokenRepository apiTokenRepository;
-
-    private static final String NAME_JSON_PROPERTY = "name";
-    private static final String CLUSTER_PERMISSIONS_FIELD = "cluster_permissions";
-    private static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
-    private static final String INDEX_PATTERN_FIELD = "index_pattern";
-    private static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
 
     private static final List<RestHandler.Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
@@ -91,8 +91,8 @@ public class ApiTokenAction extends BaseRestHandler {
                 builder.startArray();
                 for (ApiToken token : tokens.values()) {
                     builder.startObject();
-                    builder.field("name", token.getName());
-                    builder.field("creation_time", token.getCreationTime().toEpochMilli());
+                    builder.field(NAME_FIELD, token.getName());
+                    builder.field(CREATION_TIME_FIELD, token.getCreationTime().toEpochMilli());
                     builder.endObject();
                 }
                 builder.endArray();
@@ -119,7 +119,7 @@ public class ApiTokenAction extends BaseRestHandler {
                 List<ApiToken.IndexPermission> indexPermissions = extractIndexPermissions(requestBody);
 
                 String token = apiTokenRepository.createApiToken(
-                    (String) requestBody.get(NAME_JSON_PROPERTY),
+                    (String) requestBody.get(NAME_FIELD),
                     clusterPermissions,
                     indexPermissions
                 );
@@ -220,8 +220,8 @@ public class ApiTokenAction extends BaseRestHandler {
      * Validates the request parameters
      */
     void validateRequestParameters(Map<String, Object> requestBody) {
-        if (!requestBody.containsKey(NAME_JSON_PROPERTY)) {
-            throw new IllegalArgumentException("Missing required parameter: " + NAME_JSON_PROPERTY);
+        if (!requestBody.containsKey(NAME_FIELD)) {
+            throw new IllegalArgumentException("Missing required parameter: " + NAME_FIELD);
         }
 
         if (requestBody.containsKey(CLUSTER_PERMISSIONS_FIELD)) {
@@ -264,10 +264,10 @@ public class ApiTokenAction extends BaseRestHandler {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
 
                 validateRequestParameters(requestBody);
-                apiTokenRepository.deleteApiToken((String) requestBody.get(NAME_JSON_PROPERTY));
+                apiTokenRepository.deleteApiToken((String) requestBody.get(NAME_FIELD));
 
                 builder.startObject();
-                builder.field("message", "token " + requestBody.get(NAME_JSON_PROPERTY) + " deleted successfully.");
+                builder.field("message", "token " + requestBody.get(NAME_FIELD) + " deleted successfully.");
                 builder.endObject();
 
                 response = new BytesRestResponse(RestStatus.OK, builder);
