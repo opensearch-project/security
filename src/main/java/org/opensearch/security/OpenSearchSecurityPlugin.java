@@ -225,7 +225,10 @@ import static org.opensearch.security.setting.DeprecatedSettings.checkForDepreca
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
+
 // CS-ENFORCE-SINGLE
 
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
@@ -315,7 +318,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
      * @return true if ssl cert reload is enabled else false
      */
     private static boolean isSslCertReloadEnabled(final Settings settings) {
-        return settings.getAsBoolean(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, false);
+        return settings.getAsBoolean(SECURITY_SSL_CERT_RELOAD_ENABLED, false);
+    }
+
+    private boolean sslCertificatesHotReloadEnabled(final Settings settings) {
+        return settings.getAsBoolean(SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED, false);
     }
 
     @SuppressWarnings("removal")
@@ -1205,6 +1212,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(passwordHasher);
 
         components.add(sslSettingsManager);
+        if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
+            throw new OpenSearchException(
+                "Either "
+                    + SECURITY_SSL_CERT_RELOAD_ENABLED
+                    + " or "
+                    + SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED
+                    + " can be set to true, but not both."
+            );
+        }
+
+        if (sslCertificatesHotReloadEnabled(settings) && !isSslCertReloadEnabled(settings)) {
+            sslSettingsManager.addSslConfigurationsChangeListener(resourceWatcherService);
+        }
 
         final var allowDefaultInit = settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
         final var useClusterState = useClusterStateToInitSecurityConfig(settings);

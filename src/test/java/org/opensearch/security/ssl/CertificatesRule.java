@@ -69,16 +69,28 @@ public class CertificatesRule extends ExternalResource {
 
     private PrivateKey accessCertificatePrivateKey;
 
+    private final boolean generateDefaultCertificates;
+
+    public CertificatesRule() {
+        this(true);
+    }
+
+    public CertificatesRule(final boolean generateDefaultCertificates) {
+        this.generateDefaultCertificates = generateDefaultCertificates;
+    }
+
     @Override
     protected void before() throws Throwable {
         super.before();
         temporaryFolder.create();
         configRootFolder = temporaryFolder.newFolder("esHome").toPath();
-        final var keyPair = generateKeyPair();
-        caCertificateHolder = generateCaCertificate(keyPair);
-        final var keyAndCertificate = generateAccessCertificate(keyPair);
-        accessCertificatePrivateKey = keyAndCertificate.v1();
-        accessCertificateHolder = keyAndCertificate.v2();
+        if (generateDefaultCertificates) {
+            final var keyPair = generateKeyPair();
+            caCertificateHolder = generateCaCertificate(keyPair);
+            final var keyAndCertificate = generateAccessCertificate(keyPair);
+            accessCertificatePrivateKey = keyAndCertificate.v1();
+            accessCertificateHolder = keyAndCertificate.v2();
+        }
     }
 
     @Override
