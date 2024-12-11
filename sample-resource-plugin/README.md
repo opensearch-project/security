@@ -26,116 +26,122 @@ The plugin exposes the following six API endpoints:
 - **Response:**
   ```json
   {
-    "resource_id": "<resource_id>",
-    "status": "created"
+    "message": "Resource <resource_name> created successfully."
   }
   ```
 
 ### 2. Delete Resource
-- **Endpoint:** `DELETE /api/resource/{resource_id}`
+- **Endpoint:** `DELETE /_plugins/sample_resource_sharing/{resource_id}`
 - **Description:** Deletes a specified resource owned by the requesting user.
 - **Response:**
   ```json
   {
-    "resource_id": "<resource_id>",
-    "status": "deleted"
+    "message": "Resource <resource_id> deleted successfully."
   }
   ```
 
 ### 3. Share Resource
-- **Endpoint:** `POST /api/resource/{resource_id}/share`
-- **Description:** Shares a resource with specified users or roles with defined permissions.
+- **Endpoint:** `POST /_plugins/sample_resource_sharing/share`
+- **Description:** Shares a resource with specified users or roles with defined scope.
 - **Request Body:**
   ```json
-  {
-    "share_with": [
-      { "type": "user", "id": "user123", "permission": "read_write" },
-      { "type": "role", "id": "admin", "permission": "read_only" }
-    ]
-  }
+    {
+      "resource_id" :  "{{ADMIN_RESOURCE_ID}}",
+      "share_with" : {
+        "SAMPLE_FULL_ACCESS": {
+            "users": ["test"],
+            "roles": ["test_role"],
+            "backend_roles": ["test_backend_role"]
+        },
+        "READ_ONLY": {
+            "users": ["test"],
+            "roles": ["test_role"],
+            "backend_roles": ["test_backend_role"]
+        },
+        "READ_WRITE": {
+            "users": ["test"],
+            "roles": ["test_role"],
+            "backend_roles": ["test_backend_role"]
+        }
+      }
+    }
   ```
 - **Response:**
   ```json
-  {
-    "resource_id": "<resource_id>",
-    "status": "shared"
-  }
+    {
+    "message": "Resource <resource-id> shared successfully."
+    }
   ```
 
 ### 4. Revoke Access
-- **Endpoint:** `DELETE /api/resource/{resource_id}/revoke`
+- **Endpoint:** `POST /_plugins/sample_resource_sharing/revoke`
 - **Description:** Revokes access to a resource for specified users or roles.
 - **Request Body:**
   ```json
-  {
-    "revoke_from": [ "user123", "role:admin" ]
-  }
+    {
+      "resource_id" :  "<resource-id>",
+      "entities" : {
+            "users": ["test", "admin"],
+            "roles": ["test_role", "all_access"],
+            "backend_roles": ["test_backend_role", "admin"]
+      },
+      "scopes": ["SAMPLE_FULL_ACCESS", "READ_ONLY", "READ_WRITE"]
+    }
   ```
 - **Response:**
   ```json
-  {
-    "resource_id": "<resource_id>",
-    "status": "access_revoked"
-  }
+    {
+      "message": "Resource <resource-id> access revoked successfully."
+    }
   ```
 
 ### 5. Verify Access
-- **Endpoint:** `GET /api/resource/{resource_id}/verify`
-- **Description:** Verifies if a user or role has access to a specific resource.
-- **Query Parameters:**
-    - `user_id` (optional): ID of the user.
-    - `role` (optional): Role to verify.
+- **Endpoint:** `GET /_plugins/sample_resource_sharing/verify_resource_access`
+- **Description:** Verifies if a user or role has access to a specific resource with a specific scope.
+- **Request Body:**
+    ```json
+    {
+      "resource_id": "<resource-id>",
+      "scope": "SAMPLE_FULL_ACCESS"
+    }
+    ```
 - **Response:**
   ```json
   {
-    "resource_id": "<resource_id>",
-    "access": true,
-    "permissions": "read_only"
+    "message": "User has requested scope SAMPLE_FULL_ACCESS access to <resource-id>"
   }
   ```
 
 ### 6. List Accessible Resources
-- **Endpoint:** `GET /api/resources/accessible`
+- **Endpoint:** `GET /_plugins/sample_resource_sharing/list`
 - **Description:** Lists all resources accessible to the requesting user or role.
 - **Response:**
   ```json
-  [
-    {
-      "resource_id": "<resource_id>",
-      "name": "<resource_name>",
-      "permissions": "read_write"
-    },
-    {
-      "resource_id": "<resource_id>",
-      "name": "<resource_name>",
-      "permissions": "read_only"
-    }
-  ]
+  {
+    "resource-ids": [
+        "<resource-id-1>",
+        "<resource-id-2>"
+    ]
+  }
   ```
 
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone <repository_url>
+   git clone git@github.com:opensearch-project/security.git
    ```
 
 2. Navigate to the project directory:
    ```bash
-   cd resource-access-plugin
+   cd sample-resource-plugin
    ```
 
 3. Build and deploy the plugin:
    ```bash
-   <build_command>
+   $ ./gradlew clean build -x test -x integrationTest -x spotbugsIntegrationTest
+   $ ./bin/opensearch-plugin install file: <path-to-this-plugin>/sample-resource-plugin/build/distributions/opensearch-sample-resource-plugin-3.0.0.0-SNAPSHOT.zip
    ```
-
-4. Configure the plugin in your environment.
-
-## Configuration
-
-- Ensure that the appropriate access control settings are enabled in your system.
-- Define user roles and permissions to match your use case.
 
 ## License
 
