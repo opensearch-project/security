@@ -24,7 +24,7 @@ public class ListAccessibleResourcesRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(GET, "/_plugins/sample_resource_sharing/resource"));
+        return singletonList(new Route(GET, "/_plugins/sample_resource_sharing/list"));
     }
 
     @Override
