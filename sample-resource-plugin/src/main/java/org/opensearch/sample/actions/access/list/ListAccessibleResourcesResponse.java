@@ -16,30 +16,31 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.sample.SampleResource;
 
 /**
  * Response to a ListAccessibleResourcesRequest
  */
 public class ListAccessibleResourcesResponse extends ActionResponse implements ToXContentObject {
-    private final Set<String> resourceIds;
+    private final Set<SampleResource> resources;
 
-    public ListAccessibleResourcesResponse(Set<String> resourceIds) {
-        this.resourceIds = resourceIds;
+    public ListAccessibleResourcesResponse(Set<SampleResource> resources) {
+        this.resources = resources;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeStringArray(resourceIds.toArray(new String[0]));
+        out.writeCollection(resources);
     }
 
     public ListAccessibleResourcesResponse(final StreamInput in) throws IOException {
-        resourceIds = in.readSet(StreamInput::readString);
+        this.resources = in.readSet(SampleResource::new);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.field("resource-ids", resourceIds);
+        builder.field("resources", resources);
         builder.endObject();
         return builder;
     }

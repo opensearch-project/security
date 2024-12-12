@@ -9,14 +9,13 @@
  * GitHub history for details.
  */
 
-package org.opensearch.sample.actions.resource.create;
+package org.opensearch.sample;
 
 import java.io.IOException;
 
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.sample.Resource;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
@@ -26,7 +25,7 @@ public class SampleResource implements Resource {
 
     public SampleResource() {}
 
-    SampleResource(StreamInput in) throws IOException {
+    public SampleResource(StreamInput in) throws IOException {
         this.name = in.readString();
     }
 

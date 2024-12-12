@@ -18,6 +18,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.SampleResourcePlugin;
 import org.opensearch.sample.actions.access.list.ListAccessibleResourcesAction;
 import org.opensearch.sample.actions.access.list.ListAccessibleResourcesRequest;
@@ -41,9 +42,10 @@ public class ListAccessibleResourcesTransportAction extends HandledTransportActi
     protected void doExecute(Task task, ListAccessibleResourcesRequest request, ActionListener<ListAccessibleResourcesResponse> listener) {
         try {
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
-            Set<String> resourceIds = rs.getResourceAccessControlPlugin().getAccessibleResourcesForCurrentUser(RESOURCE_INDEX_NAME);
-            log.info("Successfully fetched accessible resources for current user : {}", resourceIds);
-            listener.onResponse(new ListAccessibleResourcesResponse(resourceIds));
+            Set<SampleResource> resources = rs.getResourceAccessControlPlugin()
+                .getAccessibleResourcesForCurrentUser(RESOURCE_INDEX_NAME, SampleResource.class);
+            log.info("Successfully fetched accessible resources for current user : {}", resources);
+            listener.onResponse(new ListAccessibleResourcesResponse(resources));
         } catch (Exception e) {
             log.info("Failed to list accessible resources for current user: ", e);
             listener.onFailure(e);
