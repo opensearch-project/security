@@ -58,7 +58,7 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to check for accessible resources.
      * @return A set of accessible resource IDs.
      */
-    public Set<String> getAccessibleResourcesForCurrentUser(String resourceIndex) {
+    public <T> Set<T> getAccessibleResourcesForCurrentUser(String resourceIndex, Class<T> clazz) {
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             LOGGER.info("Unable to fetch user details ");
@@ -69,24 +69,24 @@ public class ResourceAccessHandler {
 
         // check if user is admin, if yes all resources should be accessible
         if (adminDNs.isAdmin(user)) {
-            return loadAllResources(resourceIndex);
+            return loadAllResources(resourceIndex, clazz);
         }
 
-        Set<String> result = new HashSet<>();
+        Set<T> result = new HashSet<>();
 
         // 0. Own resources
-        result.addAll(loadOwnResources(resourceIndex, user.getName()));
+        result.addAll(loadOwnResources(resourceIndex, user.getName(), clazz));
 
         // 1. By username
-        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), EntityType.USERS.toString()));
+        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), EntityType.USERS.toString(), clazz));
 
         // 2. By roles
         Set<String> roles = user.getSecurityRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, roles, EntityType.ROLES.toString()));
+        result.addAll(loadSharedWithResources(resourceIndex, roles, EntityType.ROLES.toString(), clazz));
 
         // 3. By backend_roles
         Set<String> backendRoles = user.getRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, EntityType.BACKEND_ROLES.toString()));
+        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, EntityType.BACKEND_ROLES.toString(), clazz));
 
         return result;
     }
@@ -210,8 +210,8 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to load resources from.
      * @return A set of resource IDs.
      */
-    private Set<String> loadAllResources(String resourceIndex) {
-        return this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex);
+    private <T> Set<T> loadAllResources(String resourceIndex, Class<T> clazz) {
+        return this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex, clazz);
     }
 
     /**
@@ -221,8 +221,8 @@ public class ResourceAccessHandler {
      * @param userName The username of the owner.
      * @return A set of resource IDs owned by the user.
      */
-    private Set<String> loadOwnResources(String resourceIndex, String userName) {
-        return this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName);
+    private <T> Set<T> loadOwnResources(String resourceIndex, String userName, Class<T> clazz) {
+        return this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName, clazz);
     }
 
     /**
@@ -233,8 +233,8 @@ public class ResourceAccessHandler {
      * @param entityType The type of entity (e.g., users, roles, backend_roles).
      * @return A set of resource IDs shared with the specified entities.
      */
-    private Set<String> loadSharedWithResources(String resourceIndex, Set<String> entities, String entityType) {
-        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, entityType);
+    private <T> Set<T> loadSharedWithResources(String resourceIndex, Set<String> entities, String entityType, Class<T> clazz) {
+        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, entityType, clazz);
     }
 
     /**

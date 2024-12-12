@@ -30,6 +30,9 @@ import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.ClearScrollRequest;
@@ -214,7 +217,7 @@ public class ResourceSharingIndexHandler {
         *   <li>Returns an empty list instead of throwing exceptions</li>
         * </ul>
         */
-    public Set<String> fetchAllDocuments(String pluginIndex) {
+    public <T> Set<T> fetchAllDocuments(String pluginIndex, Class<T> clazz) {
         LOGGER.debug("Fetching all documents from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
 
         try {
@@ -242,7 +245,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents in {} for source_idx: {}", resourceIds.size(), resourceSharingIndex, pluginIndex);
 
-            return resourceIds;
+            return getResourcesFromIds(resourceIds, pluginIndex, clazz);
 
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
@@ -316,9 +319,9 @@ public class ResourceSharingIndexHandler {
     * </ul>
     */
 
-    public Set<String> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String entityType) {
+    public <T> Set<T> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String entityType, Class<T> clazz) {
         // "*" must match all scopes
-        return fetchDocumentsForAGivenScope(pluginIndex, entities, entityType, "*");
+        return fetchDocumentsForAGivenScope(pluginIndex, entities, entityType, "*", clazz);
     }
 
     /**
@@ -387,7 +390,13 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public Set<String> fetchDocumentsForAGivenScope(String pluginIndex, Set<String> entities, String entityType, String scope) {
+    public <T> Set<T> fetchDocumentsForAGivenScope(
+        String pluginIndex,
+        Set<String> entities,
+        String entityType,
+        String scope,
+        Class<T> clazz
+    ) {
         LOGGER.debug(
             "Fetching documents from index: {}, where share_with.{}.{} contains any of {}",
             pluginIndex,
@@ -426,11 +435,11 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
 
-            return resourceIds;
+            return getResourcesFromIds(resourceIds, pluginIndex, clazz);
 
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to fetch documents from {} for criteria - systemIndex: {}, scope: {}, entityType: {}, entities: {}",
+                "Failed to fetch documents from {} for criteria - pluginIndex: {}, scope: {}, entityType: {}, entities: {}",
                 resourceSharingIndex,
                 pluginIndex,
                 scope,
@@ -472,7 +481,7 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      *
-     * @param systemIndex The source index to match against the source_idx field
+     * @param pluginIndex The source index to match against the source_idx field
      * @param field The field name to search in. Must be a valid field in the index mapping
      * @param value The value to match for the specified field. Performs exact term matching
      * @return Set<String> List of resource IDs that match the criteria. Returns an empty list
@@ -495,12 +504,12 @@ public class ResourceSharingIndexHandler {
      * Set<String> resources = fetchDocumentsByField("myIndex", "status", "active");
      * </pre>
      */
-    public Set<String> fetchDocumentsByField(String systemIndex, String field, String value) {
-        if (StringUtils.isBlank(systemIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
-            throw new IllegalArgumentException("systemIndex, field, and value must not be null or empty");
+    public <T> Set<T> fetchDocumentsByField(String pluginIndex, String field, String value, Class<T> clazz) {
+        if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
+            throw new IllegalArgumentException("pluginIndex, field, and value must not be null or empty");
         }
 
-        LOGGER.debug("Fetching documents from index: {}, where {} = {}", systemIndex, field, value);
+        LOGGER.debug("Fetching documents from index: {}, where {} = {}", pluginIndex, field, value);
 
         Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
@@ -510,14 +519,14 @@ public class ResourceSharingIndexHandler {
             searchRequest.scroll(scroll);
 
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("source_idx.keyword", systemIndex))
+                .must(QueryBuilders.termQuery("source_idx.keyword", pluginIndex))
                 .must(QueryBuilders.termQuery(field + ".keyword", value));
 
             executeSearchRequest(resourceIds, scroll, searchRequest, boolQuery);
 
             LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
 
-            return resourceIds;
+            return getResourcesFromIds(resourceIds, pluginIndex, clazz);
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, e);
             throw new RuntimeException("Failed to fetch documents: " + e.getMessage(), e);
@@ -557,7 +566,7 @@ public class ResourceSharingIndexHandler {
     * @return ResourceSharing object if a matching document is found, null if no document
     *         matches the criteria
     *
-    * @throws IllegalArgumentException if systemIndexName or resourceId is null or empty
+    * @throws IllegalArgumentException if pluginIndexName or resourceId is null or empty
     * @throws RuntimeException if the search operation fails or parsing errors occur,
     *         wrapping the underlying exception
     *
@@ -581,7 +590,7 @@ public class ResourceSharingIndexHandler {
 
     public ResourceSharing fetchDocumentById(String pluginIndex, String resourceId) {
         if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(resourceId)) {
-            throw new IllegalArgumentException("systemIndexName and resourceId must not be null or empty");
+            throw new IllegalArgumentException("pluginIndexName and resourceId must not be null or empty");
         }
 
         LOGGER.debug("Fetching document from index: {}, with resourceId: {}", pluginIndex, resourceId);
@@ -901,7 +910,7 @@ public class ResourceSharingIndexHandler {
      * Map<EntityType, Set<String>> revokeAccess = new HashMap<>();
      * revokeAccess.put(EntityType.USER, Set.of("user1", "user2"));
      * revokeAccess.put(EntityType.ROLE, Set.of("role1"));
-     * ResourceSharing updated = revokeAccess("resourceId", "systemIndex", revokeAccess);
+     * ResourceSharing updated = revokeAccess("resourceId", "pluginIndex", revokeAccess);
      * </pre>
      */
     public ResourceSharing revokeAccess(
@@ -1131,4 +1140,35 @@ public class ResourceSharingIndexHandler {
         }
     }
 
+    /**
+     * Fetches all documents from the specified resource index and deserializes them into the specified class.
+     *
+     * @param resourceIndex The resource index to fetch documents from.
+     * @param clazz The class to deserialize the documents into.
+     * @return A set of deserialized documents.
+     */
+    private <T> Set<T> getResourcesFromIds(Set<String> resourceIds, String resourceIndex, Class<T> clazz) {
+
+        Set<T> result = new HashSet<>();
+        try {
+            MultiGetRequest request = new MultiGetRequest();
+            for (String id : resourceIds) {
+                request.add(new MultiGetRequest.Item(resourceIndex, id));
+            }
+
+            MultiGetResponse response = client.multiGet(request).actionGet();
+
+            for (MultiGetItemResponse itemResponse : response.getResponses()) {
+                if (!itemResponse.isFailed() && itemResponse.getResponse().isExists()) {
+                    String sourceAsString = itemResponse.getResponse().getSourceAsString();
+                    T resource = DefaultObjectMapper.readValue(sourceAsString, clazz);
+                    result.add(resource);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to fetch resources with ids {} from index {}", resourceIds, resourceIndex, e);
+        }
+
+        return result;
+    }
 }
