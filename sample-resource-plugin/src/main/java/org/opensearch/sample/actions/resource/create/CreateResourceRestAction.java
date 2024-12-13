@@ -44,8 +44,12 @@ public class CreateResourceRestAction extends BaseRestHandler {
         }
 
         String name = (String) source.get("name");
+        String description = source.containsKey("description") ? (String) source.get("description") : null;
+        Map<String, String> attributes = source.containsKey("attributes") ? (Map<String, String>) source.get("attributes") : null;
         SampleResource resource = new SampleResource();
         resource.setName(name);
+        resource.setDescription(description);
+        resource.setAttributes(attributes);
         final CreateResourceRequest createSampleResourceRequest = new CreateResourceRequest(resource);
         return channel -> client.executeLocally(
             CreateResourceAction.INSTANCE,
