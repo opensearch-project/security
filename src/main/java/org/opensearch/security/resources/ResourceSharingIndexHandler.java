@@ -245,7 +245,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents in {} for source_idx: {}", resourceIds.size(), resourceSharingIndex, pluginIndex);
 
-            return getResourcesFromIds(resourceIds, pluginIndex, clazz);
+            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, clazz);
 
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
@@ -435,7 +435,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
 
-            return getResourcesFromIds(resourceIds, pluginIndex, clazz);
+            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, clazz);
 
         } catch (Exception e) {
             LOGGER.error(
@@ -526,7 +526,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
 
-            return getResourcesFromIds(resourceIds, pluginIndex, clazz);
+            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, clazz);
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, e);
             throw new RuntimeException("Failed to fetch documents: " + e.getMessage(), e);
