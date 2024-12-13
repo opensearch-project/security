@@ -636,7 +636,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
-                handlers.add(new ApiTokenAction(cs, threadPool, localClient));
+                handlers.add(new ApiTokenAction(cs, localClient, settings));
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,

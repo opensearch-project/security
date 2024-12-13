@@ -22,13 +22,13 @@ import com.google.common.collect.ImmutableList;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -36,6 +36,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.action.apitokens.ApiToken.ALLOWED_ACTIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.CLUSTER_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.CREATION_TIME_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.EXPIRATION_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PATTERN_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
@@ -52,8 +53,8 @@ public class ApiTokenAction extends BaseRestHandler {
         )
     );
 
-    public ApiTokenAction(ClusterService clusterService, ThreadPool threadPool, Client client) {
-        this.apiTokenRepository = new ApiTokenRepository(client, clusterService);
+    public ApiTokenAction(ClusterService clusterService, Client client, Settings settings) {
+        this.apiTokenRepository = new ApiTokenRepository(client, clusterService, settings);
     }
 
     @Override
@@ -121,7 +122,9 @@ public class ApiTokenAction extends BaseRestHandler {
                 String token = apiTokenRepository.createApiToken(
                     (String) requestBody.get(NAME_FIELD),
                     clusterPermissions,
-                    indexPermissions
+                    indexPermissions,
+                    (Long) requestBody.getOrDefault(EXPIRATION_FIELD, Long.MAX_VALUE)
+
                 );
 
                 builder.startObject();
@@ -222,6 +225,13 @@ public class ApiTokenAction extends BaseRestHandler {
     void validateRequestParameters(Map<String, Object> requestBody) {
         if (!requestBody.containsKey(NAME_FIELD)) {
             throw new IllegalArgumentException("Missing required parameter: " + NAME_FIELD);
+        }
+
+        if (requestBody.containsKey(EXPIRATION_FIELD)) {
+            Object permissions = requestBody.get(EXPIRATION_FIELD);
+            if (!(permissions instanceof Long)) {
+                throw new IllegalArgumentException(EXPIRATION_FIELD + " must be an long");
+            }
         }
 
         if (requestBody.containsKey(CLUSTER_PERMISSIONS_FIELD)) {

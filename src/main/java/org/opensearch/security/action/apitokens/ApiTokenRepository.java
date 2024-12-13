@@ -16,19 +16,25 @@ import java.util.Map;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 
 public class ApiTokenRepository {
     private final ApiTokenIndexHandler apiTokenIndexHandler;
 
-    public ApiTokenRepository(Client client, ClusterService clusterService) {
+    public ApiTokenRepository(Client client, ClusterService clusterService, Settings settings) {
         apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
     }
 
-    public String createApiToken(String name, List<String> clusterPermissions, List<ApiToken.IndexPermission> indexPermissions) {
+    public String createApiToken(
+        String name,
+        List<String> clusterPermissions,
+        List<ApiToken.IndexPermission> indexPermissions,
+        Long expiration
+    ) {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
         // TODO: Implement logic of creating JTI to match against during authc/z
         // TODO: Add validation on whether user is creating a token with a subset of their permissions
-        return apiTokenIndexHandler.indexTokenPayload(new ApiToken(name, "test-token", clusterPermissions, indexPermissions));
+        return apiTokenIndexHandler.indexTokenPayload(new ApiToken(name, "test-token", clusterPermissions, indexPermissions, expiration));
     }
 
     public void deleteApiToken(String name) throws ApiTokenException {

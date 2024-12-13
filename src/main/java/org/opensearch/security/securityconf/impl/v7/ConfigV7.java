@@ -86,6 +86,7 @@ public class ConfigV7 {
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
         public OnBehalfOfSettings on_behalf_of = new OnBehalfOfSettings();
+        public ApiTokenSettings api_token_settings = new ApiTokenSettings();
 
         @Override
         public String toString() {
@@ -101,6 +102,8 @@ public class ConfigV7 {
                 + authz
                 + ", on_behalf_of="
                 + on_behalf_of
+                + ", api_tokens="
+                + api_token_settings
                 + "]";
         }
     }
@@ -493,6 +496,54 @@ public class ConfigV7 {
         public String toString() {
             return "OnBehalfOfSettings [ enabled=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
+    }
+
+    public static class ApiTokenSettings {
+        @JsonProperty("enabled")
+        private Boolean enabled = Boolean.FALSE;
+        @JsonProperty("signing_key")
+        private String signingKey;
+        @JsonProperty("encryption_key")
+        private String encryptionKey;
+
+        @JsonIgnore
+        public String configAsJson() {
+            try {
+                return DefaultObjectMapper.writeValueAsString(this, false);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Boolean oboEnabled) {
+            this.enabled = oboEnabled;
+        }
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public void setSigningKey(String signingKey) {
+            this.signingKey = signingKey;
+        }
+
+        public String getEncryptionKey() {
+            return encryptionKey;
+        }
+
+        public void setEncryptionKey(String encryptionKey) {
+            this.encryptionKey = encryptionKey;
+        }
+
+        @Override
+        public String toString() {
+            return "ApiTokens [ enabled=" + enabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+        }
+
     }
 
 }

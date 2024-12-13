@@ -195,7 +195,8 @@ public class ApiTokenIndexHandlerTest {
                 "test-jti",
                 clusterPermissions,
                 indexPermissions,
-                Instant.now()
+                Instant.now(),
+                Long.MAX_VALUE
         );
 
         // Mock the index method with ActionListener
@@ -249,7 +250,8 @@ public class ApiTokenIndexHandlerTest {
                         Arrays.asList("index1-*"),
                         Arrays.asList("read")
                 )),
-                Instant.now()
+                Instant.now(),
+                Long.MAX_VALUE
         );
 
         // Second token
@@ -261,7 +263,8 @@ public class ApiTokenIndexHandlerTest {
                         Arrays.asList("index2-*"),
                         Arrays.asList("write")
                 )),
-                Instant.now()
+                Instant.now(),
+                Long.MAX_VALUE
         );
 
         // Convert tokens to XContent and create SearchHits

@@ -28,20 +28,22 @@ public class ApiToken implements ToXContent {
     public static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
     public static final String INDEX_PATTERN_FIELD = "index_pattern";
     public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
+    public static final String EXPIRATION_FIELD = "expiration";
 
     private String name;
     private final String jti;
     private final Instant creationTime;
     private List<String> clusterPermissions;
     private List<IndexPermission> indexPermissions;
+    private final long expiration;
 
-    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions) {
+    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions, Long expiration) {
         this.creationTime = Instant.now();
         this.name = name;
         this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
-
+        this.expiration = expiration;
     }
 
     public ApiToken(
@@ -49,13 +51,15 @@ public class ApiToken implements ToXContent {
         String jti,
         List<String> clusterPermissions,
         List<IndexPermission> indexPermissions,
-        Instant creationTime
+        Instant creationTime,
+        Long expiration
     ) {
         this.name = description;
         this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
         this.creationTime = creationTime;
+        this.expiration = expiration;
 
     }
 
@@ -92,6 +96,7 @@ public class ApiToken implements ToXContent {
         List<String> clusterPermissions = new ArrayList<>();
         List<IndexPermission> indexPermissions = new ArrayList<>();
         Instant creationTime = null;
+        Long expiration = Long.MAX_VALUE;
 
         XContentParser.Token token;
         String currentFieldName = null;
@@ -109,6 +114,9 @@ public class ApiToken implements ToXContent {
                         break;
                     case CREATION_TIME_FIELD:
                         creationTime = Instant.ofEpochMilli(parser.longValue());
+                        break;
+                    case EXPIRATION_FIELD:
+                        expiration = parser.longValue();
                         break;
                 }
             } else if (token == XContentParser.Token.START_ARRAY) {
@@ -139,7 +147,7 @@ public class ApiToken implements ToXContent {
             throw new IllegalArgumentException(CREATION_TIME_FIELD + " is required");
         }
 
-        return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime);
+        return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime, expiration);
     }
 
     private static IndexPermission parseIndexPermission(XContentParser parser) throws IOException {
