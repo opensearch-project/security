@@ -304,6 +304,7 @@ public class ResourceSharingIndexHandler {
     *                    <li>"roles" - for role-based access</li>
     *                    <li>"backend_roles" - for backend role-based access</li>
     *                  </ul>
+     * @param clazz Class to deserialize each document from Response into
     * @return Set<String> List of resource IDs that match the criteria. The list may be empty
     *         if no matches are found
     *
@@ -376,6 +377,7 @@ public class ResourceSharingIndexHandler {
      *                    <li>"backend_roles" - for backend role-based access</li>
      *                  </ul>
      * @param scope The scope of the access. Should be implementation of {@link org.opensearch.accesscontrol.resources.ResourceAccessScope}
+     * @param clazz Class to deserialize each document from Response into
      * @return Set<String> List of resource IDs that match the criteria. The list may be empty
      *         if no matches are found
      *
@@ -484,6 +486,7 @@ public class ResourceSharingIndexHandler {
      * @param pluginIndex The source index to match against the source_idx field
      * @param field The field name to search in. Must be a valid field in the index mapping
      * @param value The value to match for the specified field. Performs exact term matching
+     * @param clazz Class to deserialize each document from Response into
      * @return Set<String> List of resource IDs that match the criteria. Returns an empty list
      *         if no matches are found
      *
