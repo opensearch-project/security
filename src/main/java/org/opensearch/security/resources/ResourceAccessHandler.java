@@ -59,6 +59,9 @@ public class ResourceAccessHandler {
      * @return A set of accessible resource IDs.
      */
     public <T> Set<T> getAccessibleResourcesForCurrentUser(String resourceIndex, Class<T> clazz) {
+        if (areArgumentsInvalid(resourceIndex, clazz)) {
+            return Collections.emptySet();
+        }
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             LOGGER.info("Unable to fetch user details ");
@@ -100,6 +103,9 @@ public class ResourceAccessHandler {
      * @return True if the user has the specified permission, false otherwise.
      */
     public boolean hasPermission(String resourceId, String resourceIndex, String scope) {
+        if (areArgumentsInvalid(resourceId, resourceIndex, scope)) {
+            return false;
+        }
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         LOGGER.info("Checking if {} has {} permission to resource {}", user.getName(), scope, resourceId);
@@ -139,6 +145,9 @@ public class ResourceAccessHandler {
      * @return The updated ResourceSharing document.
      */
     public ResourceSharing shareWith(String resourceId, String resourceIndex, ShareWith shareWith) {
+        if (areArgumentsInvalid(resourceId, resourceIndex, shareWith)) {
+            return null;
+        }
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
 
@@ -162,6 +171,9 @@ public class ResourceAccessHandler {
         Map<EntityType, Set<String>> revokeAccess,
         Set<String> scopes
     ) {
+        if (areArgumentsInvalid(resourceId, resourceIndex, revokeAccess, scopes)) {
+            return null;
+        }
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("User {} revoking access to resource {} for {} for scopes {} ", user.getName(), resourceId, revokeAccess, scopes);
 
@@ -178,6 +190,9 @@ public class ResourceAccessHandler {
      * @return True if the record was successfully deleted, false otherwise.
      */
     public boolean deleteResourceSharingRecord(String resourceId, String resourceIndex) {
+        if (areArgumentsInvalid(resourceId, resourceIndex)) {
+            return false;
+        }
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Deleting resource sharing record for resource {} in {} created by {}", resourceId, resourceIndex, user.getName());
 
@@ -198,6 +213,7 @@ public class ResourceAccessHandler {
      * @return True if all records were successfully deleted, false otherwise.
      */
     public boolean deleteAllResourceSharingRecordsForCurrentUser() {
+
         final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Deleting all resource sharing records for resource {}", user.getName());
 
@@ -306,6 +322,22 @@ public class ResourceAccessHandler {
                 };
             })
             .orElse(false); // Return false if no matching scope is found
+    }
+
+    private boolean areArgumentsInvalid(Object... args) {
+        if (args == null) {
+            return true;
+        }
+        for (Object arg : args) {
+            if (arg == null) {
+                return true;
+            }
+            // Additional check for String type arguments
+            if (arg instanceof String && ((String) arg).trim().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

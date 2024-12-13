@@ -1151,7 +1151,6 @@ public class ResourceSharingIndexHandler {
      * @return A set of deserialized documents.
      */
     private <T> Set<T> getResourcesFromIds(Set<String> resourceIds, String resourceIndex, Class<T> clazz) {
-
         Set<T> result = new HashSet<>();
         // stashing Context to avoid permission issues in-case resourceIndex is a system index
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
