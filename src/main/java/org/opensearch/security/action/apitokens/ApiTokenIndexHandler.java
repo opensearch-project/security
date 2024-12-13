@@ -56,7 +56,7 @@ public class ApiTokenIndexHandler {
         this.clusterService = clusterService;
     }
 
-    public String indexTokenPayload(ApiToken token) {
+    public String indexTokenMetadata(ApiToken token) {
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
 
             XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -97,7 +97,7 @@ public class ApiTokenIndexHandler {
         }
     }
 
-    public Map<String, ApiToken> getTokenPayloads() {
+    public Map<String, ApiToken> getTokenMetadatas() {
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
             searchRequest.source(new SearchSourceBuilder());

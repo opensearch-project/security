@@ -216,7 +216,7 @@ public class ApiTokenIndexHandlerTest {
             return null;
         }).when(client).index(any(IndexRequest.class), listenerCaptor.capture());
 
-        indexHandler.indexTokenPayload(token);
+        indexHandler.indexTokenMetadata(token);
 
         // Verify the index request
         ArgumentCaptor<IndexRequest> requestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -286,7 +286,7 @@ public class ApiTokenIndexHandlerTest {
         when(client.search(any(SearchRequest.class))).thenReturn(future);
 
         // Get tokens and verify
-        Map<String, ApiToken> resultTokens = indexHandler.getTokenPayloads();
+        Map<String, ApiToken> resultTokens = indexHandler.getTokenMetadatas();
 
         assertThat(resultTokens.size(), equalTo(2));
         assertThat(resultTokens.containsKey("token1-description"), is(true));

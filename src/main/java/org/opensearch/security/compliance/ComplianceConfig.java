@@ -508,7 +508,8 @@ public class ComplianceConfig {
             return false;
         }
         // if security index (internal index) check if internal config logging is enabled
-        if (securityIndex.equals(index)) {
+        // TODO: Add support for custom api token index?
+        if (securityIndex.equals(index) || securityIndex.equals(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)) {
             return logInternalConfig;
         }
         // if the index is used for audit logging, return false

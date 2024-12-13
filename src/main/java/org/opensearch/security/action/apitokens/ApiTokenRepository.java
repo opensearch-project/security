@@ -28,7 +28,7 @@ public class ApiTokenRepository {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
         // TODO: Implement logic of creating JTI to match against during authc/z
         // TODO: Add validation on whether user is creating a token with a subset of their permissions
-        return apiTokenIndexHandler.indexTokenPayload(new ApiToken(name, "test-token", clusterPermissions, indexPermissions));
+        return apiTokenIndexHandler.indexTokenMetadata(new ApiToken(name, "test-token", clusterPermissions, indexPermissions));
     }
 
     public void deleteApiToken(String name) throws ApiTokenException {
@@ -38,7 +38,7 @@ public class ApiTokenRepository {
 
     public Map<String, ApiToken> getApiTokens() {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
-        return apiTokenIndexHandler.getTokenPayloads();
+        return apiTokenIndexHandler.getTokenMetadatas();
     }
 
 }
