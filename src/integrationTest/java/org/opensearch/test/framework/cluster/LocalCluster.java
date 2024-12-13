@@ -423,15 +423,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        /**
-        * Adds additional plugins to the cluster
-        */
-        public Builder plugin(Class<? extends Plugin> plugin) {
-            this.plugins.add(plugin);
-
-            return this;
-        }
-
         public Builder authFailureListeners(AuthFailureListeners listener) {
             testSecurityConfig.authFailureListeners(listener);
             return this;
