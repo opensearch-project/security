@@ -55,7 +55,6 @@ public class ApiTokenAction extends BaseRestHandler {
         )
     );
 
-
     public ApiTokenAction(ClusterService clusterService, ThreadPool threadPool, Client client) {
         this.apiTokenRepository = new ApiTokenRepository(client, clusterService);
     }
@@ -146,8 +145,6 @@ public class ApiTokenAction extends BaseRestHandler {
         };
     }
 
-
-
     /**
      * Extracts cluster permissions from the request body
      */
@@ -176,7 +173,6 @@ public class ApiTokenAction extends BaseRestHandler {
         }
 
         List<String> allowedActions = safeStringList(indexPerm.get(ALLOWED_ACTIONS_FIELD), ALLOWED_ACTIONS_FIELD);
-
 
         return new ApiToken.IndexPermission(indexPatterns, allowedActions);
     }

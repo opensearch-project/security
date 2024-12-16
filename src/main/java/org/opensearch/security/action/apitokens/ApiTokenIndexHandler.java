@@ -108,7 +108,6 @@ public class ApiTokenIndexHandler {
         }
     }
 
-
     public Map<String, ApiToken> getTokenMetadatas() {
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
