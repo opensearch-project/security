@@ -65,13 +65,13 @@ public final class SafeSerializationUtils {
     );
 
     private static final Set<String> SAFE_CLASS_NAMES = Collections.singleton("org.ldaptive.LdapAttribute$LdapAttributeValues");
-    private static final Map<Class<?>, Boolean> safeClassCache = new ConcurrentHashMap<>();
+    static final Map<Class<?>, Boolean> safeClassCache = new ConcurrentHashMap<>();
 
     static boolean isSafeClass(Class<?> cls) {
         return safeClassCache.computeIfAbsent(cls, SafeSerializationUtils::computeIsSafeClass);
     }
 
-    private static boolean computeIsSafeClass(Class<?> cls) {
+    static boolean computeIsSafeClass(Class<?> cls) {
         return cls.isArray() || SAFE_CLASSES.contains(cls) || SAFE_CLASS_NAMES.contains(cls.getName()) || isAssignableFromSafeClass(cls);
     }
 

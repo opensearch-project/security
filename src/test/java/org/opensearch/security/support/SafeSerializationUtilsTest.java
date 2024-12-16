@@ -96,4 +96,24 @@ public class SafeSerializationUtilsTest {
         class CustomMap extends HashMap<String, Integer> {}
         assertTrue(SafeSerializationUtils.isSafeClass(CustomMap.class));
     }
+
+    @Test
+    public void testCaching() {
+        // First call should compute the result
+        boolean result1 = SafeSerializationUtils.isSafeClass(String.class);
+        assertTrue(result1);
+
+        // Second call should use cached result
+        boolean result2 = SafeSerializationUtils.isSafeClass(String.class);
+        assertTrue(result2);
+
+        // Verify that the cache was used (size should be 1)
+        assertEquals(1, SafeSerializationUtils.safeClassCache.size());
+
+        // Third call for a different class
+        boolean result3 = SafeSerializationUtils.isSafeClass(Integer.class);
+        assertTrue(result3);
+        // Verify that the cache was updated
+        assertEquals(2, SafeSerializationUtils.safeClassCache.size());
+    }
 }
