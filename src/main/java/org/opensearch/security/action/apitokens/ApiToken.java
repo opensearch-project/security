@@ -86,6 +86,23 @@ public class ApiToken implements ToXContent {
         }
     }
 
+    /**
+     * Class represents an API token.
+     * Expected class structure
+     * {
+     *   name: "token_name",
+     *   jti: "encrypted_token",
+     *   creation_time: 1234567890,
+     *   cluster_permissions: ["cluster_permission1", "cluster_permission2"],
+     *   index_permissions: [
+     *     {
+     *       index_pattern: ["index_pattern1", "index_pattern2"],
+     *       allowed_actions: ["allowed_action1", "allowed_action2"]
+     *     }
+     *   ],
+     *   expiration: 1234567890
+     * }
+     */
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
         String name = null;
         String jti = null;
