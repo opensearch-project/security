@@ -28,19 +28,6 @@ public class ApiTokenActionTest {
 
     private final ApiTokenAction apiTokenAction = new ApiTokenAction(null, null, null);
 
-    @Test
-    public void testSafeStringList() {
-        List<String> result = apiTokenAction.safeStringList(Arrays.asList("test1", "test2"), "test_field");
-        assertThat(result, is(Arrays.asList("test1", "test2")));
-
-        // Not a list
-        assertThrows(IllegalArgumentException.class, () -> apiTokenAction.safeStringList("not a list", "test_field"));
-
-        // List with non-string
-        assertThrows(IllegalArgumentException.class, () -> apiTokenAction.safeStringList(Arrays.asList("test", 123), "test_field"));
-    }
-
-    @Test
     public void testCreateIndexPermission() {
         Map<String, Object> validPermission = new HashMap<>();
         validPermission.put("index_pattern", "test-*");

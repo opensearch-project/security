@@ -16,12 +16,12 @@ import java.util.Map;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
+import org.opensearch.index.IndexNotFoundException;
 
 public class ApiTokenRepository {
     private final ApiTokenIndexHandler apiTokenIndexHandler;
 
-    public ApiTokenRepository(Client client, ClusterService clusterService, Settings settings) {
+    public ApiTokenRepository(Client client, ClusterService clusterService) {
         apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
     }
 
@@ -34,17 +34,15 @@ public class ApiTokenRepository {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
         // TODO: Implement logic of creating JTI to match against during authc/z
         // TODO: Add validation on whether user is creating a token with a subset of their permissions
-        return apiTokenIndexHandler.indexTokenPayload(new ApiToken(name, "test-token", clusterPermissions, indexPermissions, expiration));
+        return apiTokenIndexHandler.indexTokenMetadata(new ApiToken(name, "test-token", clusterPermissions, indexPermissions, expiration));
     }
 
-    public void deleteApiToken(String name) throws ApiTokenException {
-        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
+    public void deleteApiToken(String name) throws ApiTokenException, IndexNotFoundException {
         apiTokenIndexHandler.deleteToken(name);
     }
 
-    public Map<String, ApiToken> getApiTokens() {
-        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
-        return apiTokenIndexHandler.getTokenPayloads();
+    public Map<String, ApiToken> getApiTokens() throws IndexNotFoundException {
+        return apiTokenIndexHandler.getTokenMetadatas();
     }
 
 }

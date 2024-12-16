@@ -46,15 +46,24 @@ public class ApiToken implements ToXContent {
         this.expiration = expiration;
     }
 
+    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions) {
+        this.creationTime = Instant.now();
+        this.name = name;
+        this.jti = jti;
+        this.clusterPermissions = clusterPermissions;
+        this.indexPermissions = indexPermissions;
+        this.expiration = Long.MAX_VALUE;
+    }
+
     public ApiToken(
-        String description,
+        String name,
         String jti,
         List<String> clusterPermissions,
         List<IndexPermission> indexPermissions,
         Instant creationTime,
         Long expiration
     ) {
-        this.name = description;
+        this.name = name;
         this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
@@ -90,13 +99,30 @@ public class ApiToken implements ToXContent {
         }
     }
 
+    /**
+     * Class represents an API token.
+     * Expected class structure
+     * {
+     *   name: "token_name",
+     *   jti: "encrypted_token",
+     *   creation_time: 1234567890,
+     *   cluster_permissions: ["cluster_permission1", "cluster_permission2"],
+     *   index_permissions: [
+     *     {
+     *       index_pattern: ["index_pattern1", "index_pattern2"],
+     *       allowed_actions: ["allowed_action1", "allowed_action2"]
+     *     }
+     *   ],
+     *   expiration: 1234567890
+     * }
+     */
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
         String name = null;
         String jti = null;
         List<String> clusterPermissions = new ArrayList<>();
         List<IndexPermission> indexPermissions = new ArrayList<>();
         Instant creationTime = null;
-        Long expiration = Long.MAX_VALUE;
+        long expiration = Long.MAX_VALUE;
 
         XContentParser.Token token;
         String currentFieldName = null;
@@ -137,16 +163,6 @@ public class ApiToken implements ToXContent {
             }
         }
 
-        if (name == null) {
-            throw new IllegalArgumentException(NAME_FIELD + " is required");
-        }
-        if (jti == null) {
-            throw new IllegalArgumentException(JTI_FIELD + " is required");
-        }
-        if (creationTime == null) {
-            throw new IllegalArgumentException(CREATION_TIME_FIELD + " is required");
-        }
-
         return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime, expiration);
     }
 
@@ -172,15 +188,9 @@ public class ApiToken implements ToXContent {
                             allowedActions.add(parser.text());
                         }
                         break;
-
                 }
             }
         }
-
-        if (indexPatterns.isEmpty()) {
-            throw new IllegalArgumentException(INDEX_PATTERN_FIELD + " is required for index permission");
-        }
-
         return new IndexPermission(indexPatterns, allowedActions);
     }
 
