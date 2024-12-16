@@ -73,6 +73,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -92,6 +93,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Settings settings;
     private volatile AuditConfig.Filter auditConfigFilter;
     private final String securityIndex;
+    private final WildcardMatcher securityIndicesMatcher;
     private volatile ComplianceConfig complianceConfig;
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
@@ -123,6 +125,13 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
+        // TODO: support custom api tokens index?
+        this.securityIndicesMatcher = WildcardMatcher.from(
+            List.of(
+                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+                ConfigConstants.OPENSEARCH_API_TOKENS_INDEX
+            )
         );
         this.environment = environment;
     }
@@ -477,7 +486,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(index)
+        AuditCategory category = securityIndicesMatcher.test(index)
             ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ
             : AuditCategory.COMPLIANCE_DOC_READ;
 
@@ -510,7 +519,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                         log.error(e.toString());
                     }
                 } else {
-                    if (securityIndex.equals(index) && !"tattr".equals(id)) {
+                    if (securityIndicesMatcher.test(index) && !"tattr".equals(id)) {
                         try {
                             Map<String, String> map = fieldNameValues.entrySet()
                                 .stream()
@@ -544,7 +553,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(shardId.getIndexName())
+        AuditCategory category = securityIndicesMatcher.test(shardId.getIndexName())
             ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE
             : AuditCategory.COMPLIANCE_DOC_WRITE;
 
@@ -573,7 +582,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             try {
                 String originalSource = null;
                 String currentSource = null;
-                if (securityIndex.equals(shardId.getIndexName())) {
+                if (securityIndicesMatcher.test(shardId.getIndexName())) {
                     try (
                         XContentParser parser = XContentHelper.createParser(
                             NamedXContentRegistry.EMPTY,
@@ -629,7 +638,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if (!complianceConfig.shouldLogWriteMetadataOnly()) {
-            if (securityIndex.equals(shardId.getIndexName())) {
+            if (securityIndicesMatcher.test(shardId.getIndexName())) {
                 // current source, normally not null or empty
                 try (
                     XContentParser parser = XContentHelper.createParser(
