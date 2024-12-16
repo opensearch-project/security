@@ -16,6 +16,7 @@ import java.util.Map;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.index.IndexNotFoundException;
 
 public class ApiTokenRepository {
     private final ApiTokenIndexHandler apiTokenIndexHandler;
@@ -31,13 +32,11 @@ public class ApiTokenRepository {
         return apiTokenIndexHandler.indexTokenMetadata(new ApiToken(name, "test-token", clusterPermissions, indexPermissions));
     }
 
-    public void deleteApiToken(String name) throws ApiTokenException {
-        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
+    public void deleteApiToken(String name) throws ApiTokenException, IndexNotFoundException {
         apiTokenIndexHandler.deleteToken(name);
     }
 
-    public Map<String, ApiToken> getApiTokens() {
-        apiTokenIndexHandler.createApiTokenIndexIfAbsent();
+    public Map<String, ApiToken> getApiTokens() throws IndexNotFoundException {
         return apiTokenIndexHandler.getTokenMetadatas();
     }
 

@@ -146,16 +146,6 @@ public class ApiToken implements ToXContent {
             }
         }
 
-        if (name == null) {
-            throw new IllegalArgumentException(NAME_FIELD + " is required");
-        }
-        if (jti == null) {
-            throw new IllegalArgumentException(JTI_FIELD + " is required");
-        }
-        if (creationTime == null) {
-            throw new IllegalArgumentException(CREATION_TIME_FIELD + " is required");
-        }
-
         return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime);
     }
 

@@ -58,7 +58,7 @@ public class ApiTokenAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "Actions to get and create API tokens.";
+        return "api_token_action";
     }
 
     @Override
@@ -99,7 +99,7 @@ public class ApiTokenAction extends BaseRestHandler {
 
                 response = new BytesRestResponse(RestStatus.OK, builder);
             } catch (final Exception exception) {
-                builder.startObject().field("error", "An unexpected error occurred. Please check the input and try again.").endObject();
+                builder.startObject().field("error", exception.getMessage()).endObject();
                 response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
             }
             builder.close();
@@ -275,7 +275,7 @@ public class ApiTokenAction extends BaseRestHandler {
                 builder.startObject().field("error", exception.getMessage()).endObject();
                 response = new BytesRestResponse(RestStatus.NOT_FOUND, builder);
             } catch (final Exception exception) {
-                builder.startObject().field("error", "An unexpected error occurred. Please check the input and try again.").endObject();
+                builder.startObject().field("error", exception.getMessage()).endObject();
                 response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
             }
             builder.close();
