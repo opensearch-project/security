@@ -171,13 +171,8 @@ public class ApiToken implements ToXContent {
                             allowedActions.add(parser.text());
                         }
                         break;
-
                 }
             }
-        }
-
-        if (indexPatterns.isEmpty()) {
-            throw new IllegalArgumentException(INDEX_PATTERN_FIELD + " is required for index permission");
         }
 
         return new IndexPermission(indexPatterns, allowedActions);

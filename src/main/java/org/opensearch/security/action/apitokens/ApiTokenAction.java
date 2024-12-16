@@ -28,6 +28,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.util.ParsingUtils;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -142,40 +143,6 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     /**
-     * Safely casts an Object to List<String> with validation
-     */
-    List<String> safeStringList(Object obj, String fieldName) {
-        if (!(obj instanceof List<?> list)) {
-            throw new IllegalArgumentException(fieldName + " must be an array");
-        }
-
-        for (Object item : list) {
-            if (!(item instanceof String)) {
-                throw new IllegalArgumentException(fieldName + " must contain only strings");
-            }
-        }
-
-        return list.stream().map(String.class::cast).collect(Collectors.toList());
-    }
-
-    /**
-     * Safely casts an Object to List<Map<String, Object>> with validation
-     */
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> safeMapList(Object obj, String fieldName) {
-        if (!(obj instanceof List<?> list)) {
-            throw new IllegalArgumentException(fieldName + " must be an array");
-        }
-
-        for (Object item : list) {
-            if (!(item instanceof Map)) {
-                throw new IllegalArgumentException(fieldName + " must contain object entries");
-            }
-        }
-        return list.stream().map(item -> (Map<String, Object>) item).collect(Collectors.toList());
-    }
-
-    /**
      * Extracts cluster permissions from the request body
      */
     List<String> extractClusterPermissions(Map<String, Object> requestBody) {
@@ -183,7 +150,7 @@ public class ApiTokenAction extends BaseRestHandler {
             return Collections.emptyList();
         }
 
-        return safeStringList(requestBody.get(CLUSTER_PERMISSIONS_FIELD), CLUSTER_PERMISSIONS_FIELD);
+        return ParsingUtils.safeStringList(requestBody.get(CLUSTER_PERMISSIONS_FIELD), CLUSTER_PERMISSIONS_FIELD);
     }
 
     /**
@@ -194,7 +161,7 @@ public class ApiTokenAction extends BaseRestHandler {
             return Collections.emptyList();
         }
 
-        List<Map<String, Object>> indexPerms = safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
+        List<Map<String, Object>> indexPerms = ParsingUtils.safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
 
         return indexPerms.stream().map(this::createIndexPermission).collect(Collectors.toList());
     }
@@ -208,10 +175,10 @@ public class ApiTokenAction extends BaseRestHandler {
         if (indexPatternObj instanceof String) {
             indexPatterns = Collections.singletonList((String) indexPatternObj);
         } else {
-            indexPatterns = safeStringList(indexPatternObj, INDEX_PATTERN_FIELD);
+            indexPatterns = ParsingUtils.safeStringList(indexPatternObj, INDEX_PATTERN_FIELD);
         }
 
-        List<String> allowedActions = safeStringList(indexPerm.get(ALLOWED_ACTIONS_FIELD), ALLOWED_ACTIONS_FIELD);
+        List<String> allowedActions = ParsingUtils.safeStringList(indexPerm.get(ALLOWED_ACTIONS_FIELD), ALLOWED_ACTIONS_FIELD);
 
         return new ApiToken.IndexPermission(indexPatterns, allowedActions);
     }
@@ -232,7 +199,10 @@ public class ApiTokenAction extends BaseRestHandler {
         }
 
         if (requestBody.containsKey(INDEX_PERMISSIONS_FIELD)) {
-            List<Map<String, Object>> indexPermsList = safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
+            List<Map<String, Object>> indexPermsList = ParsingUtils.safeMapList(
+                requestBody.get(INDEX_PERMISSIONS_FIELD),
+                INDEX_PERMISSIONS_FIELD
+            );
             validateIndexPermissionsList(indexPermsList);
         }
     }
