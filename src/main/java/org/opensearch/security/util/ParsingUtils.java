@@ -11,6 +11,7 @@
 
 package org.opensearch.security.util;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +22,9 @@ public class ParsingUtils {
      * Safely casts an Object to List<String> with validation
      */
     public static List<String> safeStringList(Object obj, String fieldName) {
+        if (obj == null) {
+            return Collections.emptyList();
+        }
         if (!(obj instanceof List<?> list)) {
             throw new IllegalArgumentException(fieldName + " must be an array");
         }
@@ -39,6 +43,9 @@ public class ParsingUtils {
      */
     @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> safeMapList(Object obj, String fieldName) {
+        if (obj == null) {
+            return Collections.emptyList();
+        }
         if (!(obj instanceof List<?> list)) {
             throw new IllegalArgumentException(fieldName + " must be an array");
         }

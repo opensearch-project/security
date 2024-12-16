@@ -12,6 +12,7 @@
 package org.opensearch.security.util;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,9 @@ public class ParsingUtilsTest {
 
     @Test
     public void testSafeStringList() {
+        List<String> emptyResult = safeStringList(null, "test_field");
+        assertThat(emptyResult, is(Collections.emptyList()));
+
         List<String> result = safeStringList(Arrays.asList("test1", "test2"), "test_field");
         assertThat(result, is(Arrays.asList("test1", "test2")));
 
@@ -40,7 +44,9 @@ public class ParsingUtilsTest {
 
     @Test
     public void testSafeMapList() {
-        // Test valid map list
+        List<Map<String, Object>> emptyResult = safeMapList(null, "test_field");
+        assertThat(emptyResult, is(Collections.emptyList()));
+
         Map<String, Object> map1 = new HashMap<>();
         map1.put("key1", "value1");
         map1.put("key2", 123);

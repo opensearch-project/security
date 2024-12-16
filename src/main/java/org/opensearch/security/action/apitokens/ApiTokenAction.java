@@ -146,10 +146,6 @@ public class ApiTokenAction extends BaseRestHandler {
      * Extracts cluster permissions from the request body
      */
     List<String> extractClusterPermissions(Map<String, Object> requestBody) {
-        if (!requestBody.containsKey(CLUSTER_PERMISSIONS_FIELD)) {
-            return Collections.emptyList();
-        }
-
         return ParsingUtils.safeStringList(requestBody.get(CLUSTER_PERMISSIONS_FIELD), CLUSTER_PERMISSIONS_FIELD);
     }
 
@@ -157,12 +153,7 @@ public class ApiTokenAction extends BaseRestHandler {
      * Extracts and builds index permissions from the request body
      */
     List<ApiToken.IndexPermission> extractIndexPermissions(Map<String, Object> requestBody) {
-        if (!requestBody.containsKey(INDEX_PERMISSIONS_FIELD)) {
-            return Collections.emptyList();
-        }
-
         List<Map<String, Object>> indexPerms = ParsingUtils.safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
-
         return indexPerms.stream().map(this::createIndexPermission).collect(Collectors.toList());
     }
 
