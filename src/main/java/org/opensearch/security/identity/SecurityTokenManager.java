@@ -27,6 +27,7 @@ import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -132,6 +133,27 @@ public class SecurityTokenManager implements TokenManager {
                 mappedRoles.stream().collect(Collectors.toList()),
                 user.getRoles().stream().collect(Collectors.toList()),
                 false
+            );
+        } catch (final Exception ex) {
+            logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);
+            throw new OpenSearchSecurityException("Unable to generate OnBehalfOfToken");
+        }
+    }
+
+    public ExpiringBearerAuthToken issueApiToken(final ApiToken apiToken) {
+        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null) {
+            throw new OpenSearchSecurityException("Unsupported user to generate Api Token");
+        }
+
+        try {
+            return apiTokenJwtVendor.createJwt(
+                cs.getClusterName().value(),
+                apiToken.getName(),
+                apiToken.getName(),
+                apiToken.getExpiration(),
+                apiToken.getClusterPermissions(),
+                apiToken.getIndexPermissions()
             );
         } catch (final Exception ex) {
             logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);

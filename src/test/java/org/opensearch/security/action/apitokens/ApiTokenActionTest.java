@@ -28,6 +28,7 @@ public class ApiTokenActionTest {
 
     private final ApiTokenAction apiTokenAction = new ApiTokenAction(null, null, null);
 
+    @Test
     public void testCreateIndexPermission() {
         Map<String, Object> validPermission = new HashMap<>();
         validPermission.put("index_pattern", "test-*");

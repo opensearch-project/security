@@ -107,6 +107,7 @@ public class SecurityTokenManagerTest {
         final Settings settings = Settings.builder().put("enabled", false).build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
 
         assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(false));
@@ -119,6 +120,7 @@ public class SecurityTokenManagerTest {
         final Settings settings = Settings.builder().put("enabled", true).build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
         doAnswer((invocation) -> jwtVendor).when(tokenManager).createJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;

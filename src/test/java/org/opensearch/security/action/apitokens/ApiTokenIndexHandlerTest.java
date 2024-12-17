@@ -192,12 +192,12 @@ public class ApiTokenIndexHandlerTest {
         );
         ApiToken token = new ApiToken(
                 "test-token-description",
-                "test-jti",
                 clusterPermissions,
                 indexPermissions,
                 Instant.now(),
                 Long.MAX_VALUE
         );
+        token.setJti("test-token-jti");
 
         // Mock the index method with ActionListener
         @SuppressWarnings("unchecked")
@@ -230,8 +230,8 @@ public class ApiTokenIndexHandlerTest {
         // verify contents
         String source = capturedRequest.source().utf8ToString();
         assertThat(source, containsString("test-token-description"));
-        assertThat(source, containsString("test-jti"));
         assertThat(source, containsString("cluster:admin/something"));
+        assertThat(source, containsString("test-token-jti"));
         assertThat(source, containsString("test-index-*"));
     }
 
@@ -245,7 +245,6 @@ public class ApiTokenIndexHandlerTest {
         // First token
         ApiToken token1 = new ApiToken(
                 "token1-description",
-                "jti1",
                 Arrays.asList("cluster:admin/something"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index1-*"),
@@ -258,7 +257,6 @@ public class ApiTokenIndexHandlerTest {
         // Second token
         ApiToken token2 = new ApiToken(
                 "token2-description",
-                "jti2",
                 Arrays.asList("cluster:admin/other"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index2-*"),
@@ -297,11 +295,9 @@ public class ApiTokenIndexHandlerTest {
         assertThat(resultTokens.containsKey("token2-description"), is(true));
 
         ApiToken resultToken1 = resultTokens.get("token1-description");
-        assertThat(resultToken1.getJti(), equalTo("jti1"));
         assertThat(resultToken1.getClusterPermissions(), contains("cluster:admin/something"));
 
         ApiToken resultToken2 = resultTokens.get("token2-description");
-        assertThat(resultToken2.getJti(), equalTo("jti2"));
         assertThat(resultToken2.getClusterPermissions(), contains("cluster:admin/other"));
     }
 

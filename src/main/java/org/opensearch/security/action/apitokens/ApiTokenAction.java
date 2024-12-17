@@ -28,7 +28,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.security.identity.SecurityTokenManager;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -55,8 +55,8 @@ public class ApiTokenAction extends BaseRestHandler {
         )
     );
 
-    public ApiTokenAction(ClusterService clusterService, ThreadPool threadPool, Client client) {
-        this.apiTokenRepository = new ApiTokenRepository(client, clusterService);
+    public ApiTokenAction(ClusterService clusterService, Client client, SecurityTokenManager securityTokenManager) {
+        this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
     }
 
     @Override
@@ -96,6 +96,9 @@ public class ApiTokenAction extends BaseRestHandler {
                     builder.startObject();
                     builder.field(NAME_FIELD, token.getName());
                     builder.field(CREATION_TIME_FIELD, token.getCreationTime().toEpochMilli());
+                    builder.field(EXPIRATION_FIELD, token.getExpiration());
+                    builder.field(CLUSTER_PERMISSIONS_FIELD, token.getClusterPermissions());
+                    builder.field(INDEX_PERMISSIONS_FIELD, token.getIndexPermissions());
                     builder.endObject();
                 }
                 builder.endArray();
