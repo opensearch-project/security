@@ -107,7 +107,7 @@ config:
           type: basic
           challenge: true
         authentication_backend:
-          type: intern
+          type: internal
       proxy_auth_domain:
         description: "Authenticate via proxy"
         http_enabled: false
@@ -242,7 +242,7 @@ config:
   #        max_tracked_clients: 100000
   #      internal_authentication_backend_limiting:
   #        type: username
-  #        authentication_backend: intern
+  #        authentication_backend: internal
   #        allowed_tries: 10
   #        time_window_seconds: 3600
   #        block_expiry_seconds: 600
