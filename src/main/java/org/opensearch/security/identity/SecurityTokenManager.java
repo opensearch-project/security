@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.identity.Subject;
@@ -140,7 +141,7 @@ public class SecurityTokenManager implements TokenManager {
         }
     }
 
-    public ExpiringBearerAuthToken issueApiToken(final ApiToken apiToken) {
+    public Tuple<ExpiringBearerAuthToken, String> issueApiToken(final ApiToken apiToken) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             throw new OpenSearchSecurityException("Unsupported user to generate Api Token");

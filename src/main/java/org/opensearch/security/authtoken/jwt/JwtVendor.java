@@ -153,7 +153,7 @@ public class JwtVendor {
     }
 
     @SuppressWarnings("removal")
-    public ExpiringBearerAuthToken createJwt(
+    public Tuple<ExpiringBearerAuthToken, String> createJwt(
         final String issuer,
         final String subject,
         final String audience,
@@ -199,6 +199,9 @@ public class JwtVendor {
             );
         }
 
-        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime);
+        return Tuple.tuple(
+            new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime),
+            encryptionDecryptionUtil.encrypt(signedJwt.serialize())
+        );
     }
 }

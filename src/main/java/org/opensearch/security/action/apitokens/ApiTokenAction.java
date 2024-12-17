@@ -132,7 +132,7 @@ public class ApiTokenAction extends BaseRestHandler {
                 );
 
                 builder.startObject();
-                builder.field("token", token);
+                builder.field("Api Token: ", token);
                 builder.endObject();
 
                 response = new BytesRestResponse(RestStatus.OK, builder);

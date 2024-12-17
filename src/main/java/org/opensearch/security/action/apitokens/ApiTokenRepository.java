@@ -16,6 +16,7 @@ import java.util.Map;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.collect.Tuple;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.identity.SecurityTokenManager;
@@ -39,9 +40,11 @@ public class ApiTokenRepository {
         // TODO: Implement logic of creating JTI to match against during authc/z
         // TODO: Add validation on whether user is creating a token with a subset of their permissions
         ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, expiration);
-        ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(apiToken);
-        apiToken.setJti(token.getCompleteToken());
-        return apiTokenIndexHandler.indexTokenMetadata(apiToken);
+        Tuple<ExpiringBearerAuthToken, String> token = securityTokenManager.issueApiToken(apiToken);
+        apiToken.setJti(token.v2());
+        apiTokenIndexHandler.indexTokenMetadata(apiToken);
+
+        return token.v1().getCompleteToken();
     }
 
     public void deleteApiToken(String name) throws ApiTokenException, IndexNotFoundException {
