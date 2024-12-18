@@ -20,7 +20,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.identity.Subject;
@@ -141,7 +140,7 @@ public class SecurityTokenManager implements TokenManager {
         }
     }
 
-    public Tuple<ExpiringBearerAuthToken, String> issueApiToken(final ApiToken apiToken) {
+    public ExpiringBearerAuthToken issueApiToken(final ApiToken apiToken) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             throw new OpenSearchSecurityException("Unsupported user to generate Api Token");
@@ -157,9 +156,17 @@ public class SecurityTokenManager implements TokenManager {
                 apiToken.getIndexPermissions()
             );
         } catch (final Exception ex) {
-            logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);
-            throw new OpenSearchSecurityException("Unable to generate OnBehalfOfToken");
+            logger.error("Error creating Api Token for " + user.getName(), ex);
+            throw new OpenSearchSecurityException("Unable to generate Api Token");
         }
+    }
+
+    public String encryptToken(final String token) {
+        return apiTokenJwtVendor.encryptString(token);
+    }
+
+    public String decryptString(final String input) {
+        return apiTokenJwtVendor.decryptString(input);
     }
 
     @Override

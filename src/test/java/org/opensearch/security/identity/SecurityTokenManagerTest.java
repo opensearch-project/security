@@ -28,6 +28,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -81,6 +82,7 @@ public class SecurityTokenManagerTest {
         verifyNoMoreInteractions(userService);
     }
 
+    @Test
     public void onConfigModelChanged_oboNotSupported() {
         final ConfigModel configModel = mock(ConfigModel.class);
 
@@ -246,5 +248,64 @@ public class SecurityTokenManagerTest {
 
         verify(cs).getClusterName();
         verify(threadPool).getThreadContext();
+    }
+
+    @Test
+    public void issueApiToken_success() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> true).when(tokenManager).issueApiTokenAllowed();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
+
+        createMockJwtVendorInTokenManager();
+
+        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
+        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueApiToken(new ApiToken("elmo", List.of("*"), List.of()));
+
+        assertThat(returnedToken, equalTo(authToken));
+
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
+    }
+
+    @Test
+    public void encryptCallsJwtEncrypt() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> true).when(tokenManager).issueApiTokenAllowed();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+        when(configModel.mapSecurityRoles(any(), any())).thenReturn(Set.of());
+
+        createMockJwtVendorInTokenManager();
+
+        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
+        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueApiToken(new ApiToken("elmo", List.of("*"), List.of()));
+
+        assertThat(returnedToken, equalTo(authToken));
+
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
+    }
+
+    @Test
+    public void testEncryptTokenCallsJwtEncrypt() throws Exception {
+        String tokenToEncrypt = "test-token";
+        String encryptedToken = "encrypted-test-token";
+        createMockJwtVendorInTokenManager();
+        when(jwtVendor.encryptString(tokenToEncrypt)).thenReturn(encryptedToken);
+
+        String result = tokenManager.encryptToken(tokenToEncrypt);
+
+        assertThat(result, equalTo(encryptedToken));
+        verify(jwtVendor).encryptString(tokenToEncrypt);
     }
 }

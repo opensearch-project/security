@@ -14,6 +14,7 @@ package org.opensearch.security.authtoken.jwt;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -153,7 +154,7 @@ public class JwtVendor {
     }
 
     @SuppressWarnings("removal")
-    public Tuple<ExpiringBearerAuthToken, String> createJwt(
+    public ExpiringBearerAuthToken createJwt(
         final String issuer,
         final String subject,
         final String audience,
@@ -180,7 +181,11 @@ public class JwtVendor {
         }
 
         if (indexPermissions != null) {
-            final String listOfIndexPermissions = String.join(", ", indexPermissions.toString());
+            List<String> permissionStrings = new ArrayList<>();
+            for (ApiToken.IndexPermission permission : indexPermissions) {
+                permissionStrings.add(permission.toString());
+            }
+            final String listOfIndexPermissions = String.join(",", permissionStrings);
             claimsBuilder.claim("ip", encryptionDecryptionUtil.encrypt(listOfIndexPermissions));
         }
 
@@ -199,9 +204,16 @@ public class JwtVendor {
             );
         }
 
-        return Tuple.tuple(
-            new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime),
-            encryptionDecryptionUtil.encrypt(signedJwt.serialize())
-        );
+        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime);
+    }
+
+    /* Returns the encrypted string based on encryption settings  */
+    public String encryptString(final String input) {
+        return encryptionDecryptionUtil.encrypt(input);
+    }
+
+    /* Returns the decrypted string based on encryption settings  */
+    public String decryptString(final String input) {
+        return encryptionDecryptionUtil.decrypt(input);
     }
 }

@@ -22,6 +22,12 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
+import com.nimbusds.jose.shaded.gson.JsonArray;
+import com.nimbusds.jose.shaded.gson.JsonElement;
+import com.nimbusds.jose.shaded.gson.JsonObject;
+import com.nimbusds.jose.shaded.gson.JsonParseException;
+import com.nimbusds.jose.shaded.gson.JsonParser;
+
 public class ApiToken implements ToXContent {
     public static final String NAME_FIELD = "name";
     public static final String JTI_FIELD = "jti";
@@ -98,6 +104,37 @@ public class ApiToken implements ToXContent {
             builder.array(ALLOWED_ACTIONS_FIELD, allowedActions.toArray(new String[0]));
             builder.endObject();
             return builder;
+        }
+
+        @Override
+        public String toString() {
+            JsonObject json = new JsonObject();
+            JsonArray patternsArray = new JsonArray();
+            JsonArray actionsArray = new JsonArray();
+
+            for (String pattern : indexPatterns) {
+                patternsArray.add(pattern);
+            }
+            for (String action : allowedActions) {
+                actionsArray.add(action);
+            }
+
+            json.add(INDEX_PATTERN_FIELD, patternsArray);
+            json.add(ALLOWED_ACTIONS_FIELD, actionsArray);
+
+            return json.toString();
+        }
+
+        public static IndexPermission fromString(String str) {
+            try {
+                JsonObject json = JsonParser.parseString(str).getAsJsonObject();
+                return new IndexPermission(
+                    json.get(INDEX_PATTERN_FIELD).getAsJsonArray().asList().stream().map(JsonElement::getAsString).toList(),
+                    json.get(ALLOWED_ACTIONS_FIELD).getAsJsonArray().asList().stream().map(JsonElement::getAsString).toList()
+                );
+            } catch (JsonParseException e) {
+                throw new IllegalArgumentException("Invalid IndexPermission format", e);
+            }
         }
     }
 
