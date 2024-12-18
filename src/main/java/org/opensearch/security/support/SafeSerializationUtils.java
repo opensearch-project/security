@@ -17,12 +17,11 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.security.auth.UserInjector;
@@ -57,7 +56,7 @@ public final class SafeSerializationUtils {
         LdapAttribute.class
     );
 
-    private static final List<Class<?>> SAFE_ASSIGNABLE_FROM_CLASSES = ImmutableList.of(
+    private static final Set<Class<?>> SAFE_ASSIGNABLE_FROM_CLASSES = ImmutableSet.of(
         InetAddress.class,
         Number.class,
         Collection.class,
@@ -66,12 +65,23 @@ public final class SafeSerializationUtils {
     );
 
     private static final Set<String> SAFE_CLASS_NAMES = Collections.singleton("org.ldaptive.LdapAttribute$LdapAttributeValues");
+    static final Map<Class<?>, Boolean> safeClassCache = new ConcurrentHashMap<>();
 
     static boolean isSafeClass(Class<?> cls) {
-        return cls.isArray()
-            || SAFE_CLASSES.contains(cls)
-            || SAFE_CLASS_NAMES.contains(cls.getName())
-            || SAFE_ASSIGNABLE_FROM_CLASSES.stream().anyMatch(c -> c.isAssignableFrom(cls));
+        return safeClassCache.computeIfAbsent(cls, SafeSerializationUtils::computeIsSafeClass);
+    }
+
+    static boolean computeIsSafeClass(Class<?> cls) {
+        return cls.isArray() || SAFE_CLASSES.contains(cls) || SAFE_CLASS_NAMES.contains(cls.getName()) || isAssignableFromSafeClass(cls);
+    }
+
+    private static boolean isAssignableFromSafeClass(Class<?> cls) {
+        for (Class<?> safeClass : SAFE_ASSIGNABLE_FROM_CLASSES) {
+            if (safeClass.isAssignableFrom(cls)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static void prohibitUnsafeClasses(Class<?> clazz) throws IOException {
@@ -79,5 +89,4 @@ public final class SafeSerializationUtils {
             throw new IOException("Unauthorized serialization attempt " + clazz.getName());
         }
     }
-
 }
