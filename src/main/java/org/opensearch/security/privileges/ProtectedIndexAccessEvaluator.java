@@ -24,6 +24,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.support.ActionPatternConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
@@ -55,15 +56,19 @@ public class ProtectedIndexAccessEvaluator {
         this.auditLog = auditLog;
 
         final List<String> indexDeniedActionPatterns = new ArrayList<String>();
-        indexDeniedActionPatterns.add("indices:data/write*");
-        indexDeniedActionPatterns.add("indices:admin/delete*");
-        indexDeniedActionPatterns.add("indices:admin/mapping/delete*");
-        indexDeniedActionPatterns.add("indices:admin/mapping/put*");
-        indexDeniedActionPatterns.add("indices:admin/freeze*");
-        indexDeniedActionPatterns.add("indices:admin/settings/update*");
-        indexDeniedActionPatterns.add("indices:admin/aliases");
-        indexDeniedActionPatterns.add("indices:admin/close*");
-        indexDeniedActionPatterns.add("cluster:admin/snapshot/restore*");
+        indexDeniedActionPatterns.add(ActionPatternConstants.IndicesData.WRITE_ALL);
+        indexDeniedActionPatterns.add(ActionPatternConstants.IndicesAdmin.DELETE_INDEX);
+        // action does not exist in OpenSearch-
+        // https://github.com/opensearch-project/OpenSearch/tree/main/server/src/main/java/org/opensearch/action/admin/indices/mapping
+        //indexDeniedActionPatterns.add("indices:admin/mapping/delete*");
+        indexDeniedActionPatterns.add(ActionPatternConstants.IndicesAdmin.PUT_MAPPING);
+        // action does not exist in OpenSearch-
+        // https://github.com/opensearch-project/OpenSearch/tree/main/server/src/main/java/org/opensearch/action/admin/indices
+        //indexDeniedActionPatterns.add("indices:admin/freeze*");
+        indexDeniedActionPatterns.add(ActionPatternConstants.IndicesAdmin.UPDATE_SETTINGS);
+        indexDeniedActionPatterns.add(ActionPatternConstants.IndicesAdmin.ALIASES);
+        indexDeniedActionPatterns.add(ActionPatternConstants.IndicesAdmin.CLOSE);
+        indexDeniedActionPatterns.add(ActionPatternConstants.ClusterOperations.SNAPSHOT_RESTORE);
         this.deniedActionMatcher = WildcardMatcher.from(indexDeniedActionPatterns);
     }
 

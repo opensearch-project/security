@@ -50,6 +50,7 @@ import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.support.ActionPatternConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -120,17 +121,17 @@ public class SystemIndexAccessEvaluator {
 
     private static List<String> deniedActionPatterns() {
         final List<String> securityIndexDeniedActionPatternsList = new ArrayList<>();
-        securityIndexDeniedActionPatternsList.add(INDICES_DATA_WRITE_ALL_ACTIONS_PATTERN);  // "indices:data/write*"
-        securityIndexDeniedActionPatternsList.add(DeleteIndexAction.NAME + "*");  // "indices:admin/delete*"
+        securityIndexDeniedActionPatternsList.add(ActionPatternConstants.IndicesData.WRITE_ALL);  // "indices:data/write*"
+        securityIndexDeniedActionPatternsList.add(ActionPatternConstants.IndicesAdmin.DELETE_INDEX);  // "indices:admin/delete*"
         // action does not exist in OpenSearch-
         // https://github.com/opensearch-project/OpenSearch/tree/main/server/src/main/java/org/opensearch/action/admin/indices/mapping
         // securityIndexDeniedActionPatternsList.add("indices:admin/mapping/delete*");
-        securityIndexDeniedActionPatternsList.add(PutMappingAction.NAME + "*");  // indices:admin/mapping/put*
+        securityIndexDeniedActionPatternsList.add(ActionPatternConstants.IndicesAdmin.PUT_MAPPING);  // indices:admin/mapping/put*
         // action does not exist in OpenSearch-
         // https://github.com/opensearch-project/OpenSearch/tree/main/server/src/main/java/org/opensearch/action/admin/indices
         // securityIndexDeniedActionPatternsList.add("indices:admin/freeze*");
-        securityIndexDeniedActionPatternsList.add(UpdateSettingsAction.NAME + "*");  // "indices:admin/settings/update*"
-        securityIndexDeniedActionPatternsList.add(IndicesAliasesAction.NAME);  // "indices:admin/aliases"
+        securityIndexDeniedActionPatternsList.add(ActionPatternConstants.IndicesAdmin.UPDATE_SETTINGS);  // "indices:admin/settings/update*"
+        securityIndexDeniedActionPatternsList.add(ActionPatternConstants.IndicesAdmin.ALIASES);  // "indices:admin/aliases"
         return securityIndexDeniedActionPatternsList;
     }
 
