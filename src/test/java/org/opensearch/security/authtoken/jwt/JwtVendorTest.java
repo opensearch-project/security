@@ -366,4 +366,15 @@ public class JwtVendorTest {
         assertThat(jwtVendor.encryptString(indexPermissions), equalTo(encryptedIndexPermissions));
         assertThat(jwtVendor.decryptString(encryptedIndexPermissions), equalTo(indexPermissions));
     }
+
+    @Test
+    public void testKeyTooShortThrowsException() {
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
+        Settings settings = Settings.builder().put("signing_key", tooShortKey).put("encryption_key", claimsEncryptionKey).build();
+        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new JwtVendor(settings, Optional.empty()); });
+
+        assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
+    }
+
 }
