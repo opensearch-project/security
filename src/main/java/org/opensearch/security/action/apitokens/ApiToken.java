@@ -38,46 +38,36 @@ public class ApiToken implements ToXContent {
     public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
     public static final String EXPIRATION_FIELD = "expiration";
 
-    private String name;
+    private final String name;
     private String jti;
     private final Instant creationTime;
-    private List<String> clusterPermissions;
-    private List<IndexPermission> indexPermissions;
+    private final List<String> clusterPermissions;
+    private final List<IndexPermission> indexPermissions;
     private final long expiration;
 
-    public ApiToken(String name, List<String> clusterPermissions, List<IndexPermission> indexPermissions, Long expiration) {
+    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions, Long expiration) {
         this.creationTime = Instant.now();
+        this.jti = jti;
         this.name = name;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
         this.expiration = expiration;
     }
 
-    public ApiToken(String name, List<String> clusterPermissions, List<IndexPermission> indexPermissions) {
-        this.creationTime = Instant.now();
-        this.name = name;
-        this.clusterPermissions = clusterPermissions;
-        this.indexPermissions = indexPermissions;
-        this.expiration = Long.MAX_VALUE;
-    }
-
     public ApiToken(
         String name,
+        String jti,
         List<String> clusterPermissions,
         List<IndexPermission> indexPermissions,
         Instant creationTime,
         Long expiration
     ) {
         this.name = name;
+        this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
         this.creationTime = creationTime;
         this.expiration = expiration;
-
-    }
-
-    public void setJti(String jti) {
-        this.jti = jti;
     }
 
     public static class IndexPermission implements ToXContent {
@@ -106,6 +96,7 @@ public class ApiToken implements ToXContent {
             return builder;
         }
 
+        // TODO: look into integrating with default object mapper
         @Override
         public String toString() {
             JsonObject json = new JsonObject();
@@ -157,6 +148,7 @@ public class ApiToken implements ToXContent {
      */
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
         String name = null;
+        String jti = null;
         List<String> clusterPermissions = new ArrayList<>();
         List<IndexPermission> indexPermissions = new ArrayList<>();
         Instant creationTime = null;
@@ -172,6 +164,9 @@ public class ApiToken implements ToXContent {
                 switch (currentFieldName) {
                     case NAME_FIELD:
                         name = parser.text();
+                        break;
+                    case JTI_FIELD:
+                        jti = parser.text();
                         break;
                     case CREATION_TIME_FIELD:
                         creationTime = Instant.ofEpochMilli(parser.longValue());
@@ -198,7 +193,7 @@ public class ApiToken implements ToXContent {
             }
         }
 
-        return new ApiToken(name, clusterPermissions, indexPermissions, creationTime, expiration);
+        return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime, expiration);
     }
 
     private static IndexPermission parseIndexPermission(XContentParser parser) throws IOException {
@@ -233,10 +228,6 @@ public class ApiToken implements ToXContent {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public Long getExpiration() {
         return expiration;
     }
@@ -254,10 +245,6 @@ public class ApiToken implements ToXContent {
         return clusterPermissions;
     }
 
-    public void setClusterPermissions(List<String> clusterPermissions) {
-        this.clusterPermissions = clusterPermissions;
-    }
-
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
         xContentBuilder.startObject();
@@ -272,9 +259,5 @@ public class ApiToken implements ToXContent {
 
     public List<IndexPermission> getIndexPermissions() {
         return indexPermissions;
-    }
-
-    public void setIndexPermissions(List<IndexPermission> indexPermissions) {
-        this.indexPermissions = indexPermissions;
     }
 }

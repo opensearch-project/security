@@ -192,12 +192,12 @@ public class ApiTokenIndexHandlerTest {
         );
         ApiToken token = new ApiToken(
                 "test-token-description",
+                "test-token-jti",
                 clusterPermissions,
                 indexPermissions,
                 Instant.now(),
                 Long.MAX_VALUE
         );
-        token.setJti("test-token-jti");
 
         // Mock the index method with ActionListener
         @SuppressWarnings("unchecked")
@@ -245,6 +245,7 @@ public class ApiTokenIndexHandlerTest {
         // First token
         ApiToken token1 = new ApiToken(
                 "token1-description",
+                "token1-jti",
                 Arrays.asList("cluster:admin/something"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index1-*"),
@@ -257,6 +258,7 @@ public class ApiTokenIndexHandlerTest {
         // Second token
         ApiToken token2 = new ApiToken(
                 "token2-description",
+                "token2-jti",
                 Arrays.asList("cluster:admin/other"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index2-*"),

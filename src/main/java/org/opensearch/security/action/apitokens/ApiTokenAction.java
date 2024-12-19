@@ -191,7 +191,7 @@ public class ApiTokenAction extends BaseRestHandler {
         if (requestBody.containsKey(EXPIRATION_FIELD)) {
             Object expiration = requestBody.get(EXPIRATION_FIELD);
             if (!(expiration instanceof Long)) {
-                throw new IllegalArgumentException(EXPIRATION_FIELD + " must be an long");
+                throw new IllegalArgumentException(EXPIRATION_FIELD + " must be a long");
             }
         }
 

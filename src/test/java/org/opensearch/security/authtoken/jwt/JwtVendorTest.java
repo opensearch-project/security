@@ -274,7 +274,7 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwtForApiTokenLogsCorrectly() throws Exception {
+    public void testCreateJwtForApiTokenSuccess() throws Exception {
         final String issuer = "cluster_0";
         final String subject = "test-token";
         final String audience = "test-token";
@@ -286,12 +286,7 @@ public class JwtVendorTest {
 
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = "1234567890123456";
-        Settings settings = Settings.builder()
-            .put("signing_key", signingKeyB64Encoded)
-            .put("encryption_key", claimsEncryptionKey)
-            // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-            .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
-            .build();
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
         final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(
             issuer,

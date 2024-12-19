@@ -11,6 +11,7 @@
 
 package org.opensearch.security.identity;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -140,7 +141,7 @@ public class SecurityTokenManager implements TokenManager {
         }
     }
 
-    public ExpiringBearerAuthToken issueApiToken(final ApiToken apiToken) {
+    public ExpiringBearerAuthToken issueApiToken(final String name, final Long expiration, final List<String> clusterPermissions, final List<ApiToken.IndexPermission> indexPermissions) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             throw new OpenSearchSecurityException("Unsupported user to generate Api Token");
@@ -149,11 +150,11 @@ public class SecurityTokenManager implements TokenManager {
         try {
             return apiTokenJwtVendor.createJwt(
                 cs.getClusterName().value(),
-                apiToken.getName(),
-                apiToken.getName(),
-                apiToken.getExpiration(),
-                apiToken.getClusterPermissions(),
-                apiToken.getIndexPermissions()
+                name,
+                name,
+                expiration,
+                clusterPermissions,
+                indexPermissions
             );
         } catch (final Exception ex) {
             logger.error("Error creating Api Token for " + user.getName(), ex);

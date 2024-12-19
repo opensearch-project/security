@@ -177,7 +177,7 @@ public class JwtVendor {
 
         if (clusterPermissions != null) {
             final String listOfClusterPermissions = String.join(",", clusterPermissions);
-            claimsBuilder.claim("cp", encryptionDecryptionUtil.encrypt(listOfClusterPermissions));
+            claimsBuilder.claim("cp", encryptString(listOfClusterPermissions));
         }
 
         if (indexPermissions != null) {
@@ -186,7 +186,7 @@ public class JwtVendor {
                 permissionStrings.add(permission.toString());
             }
             final String listOfIndexPermissions = String.join(",", permissionStrings);
-            claimsBuilder.claim("ip", encryptionDecryptionUtil.encrypt(listOfIndexPermissions));
+            claimsBuilder.claim("ip", encryptString(listOfIndexPermissions));
         }
 
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
