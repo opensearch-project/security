@@ -13,6 +13,7 @@ package org.opensearch.security.dlic.rest.api.ssl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -20,17 +21,18 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.security.ssl.config.CertType;
 
 public class CertificatesInfo implements Writeable, ToXContent {
 
-    private final Map<CertificateType, List<CertificateInfo>> certificates;
+    private final Map<CertType, List<CertificateInfo>> certificates;
 
-    public CertificatesInfo(final Map<CertificateType, List<CertificateInfo>> certificates) {
+    public CertificatesInfo(final Map<CertType, List<CertificateInfo>> certificates) {
         this.certificates = certificates;
     }
 
     public CertificatesInfo(final StreamInput in) throws IOException {
-        certificates = in.readMap(keyIn -> keyIn.readEnum(CertificateType.class), listIn -> listIn.readList(CertificateInfo::new));
+        certificates = in.readMap(keyIn -> keyIn.readEnum(CertType.class), listIn -> listIn.readList(CertificateInfo::new));
     }
 
     @Override
@@ -41,8 +43,9 @@ public class CertificatesInfo implements Writeable, ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         return builder.startObject("certificates")
-            .field(CertificateType.HTTP.value(), certificates.get(CertificateType.HTTP))
-            .field(CertificateType.TRANSPORT.value(), certificates.get(CertificateType.TRANSPORT))
+            .field(CertType.HTTP.name().toLowerCase(Locale.ROOT), certificates.get(CertType.HTTP))
+            .field(CertType.TRANSPORT.name().toLowerCase(Locale.ROOT), certificates.get(CertType.TRANSPORT))
+            .field(CertType.TRANSPORT_CLIENT.name().toLowerCase(Locale.ROOT), certificates.get(CertType.TRANSPORT_CLIENT))
             .endObject();
     }
 }

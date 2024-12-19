@@ -19,9 +19,9 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestActions;
-import org.opensearch.security.dlic.rest.api.ssl.CertificateType;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesInfoNodesRequest;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesNodesResponse;
@@ -82,11 +82,9 @@ public class CertificatesApiAction extends AbstractApiAction {
                 RestRequest.Method.GET,
                 (channel, request, client) -> client.execute(
                     CertificatesActionType.INSTANCE,
-                    new CertificatesInfoNodesRequest(
-                        CertificateType.from(request.param("cert_type")),
-                        true,
-                        request.paramAsStringArrayOrEmptyIfAll("nodeId")
-                    ).timeout(request.param("timeout")),
+                    new CertificatesInfoNodesRequest(certType(request), true, request.paramAsStringArrayOrEmptyIfAll("nodeId")).timeout(
+                        request.param("timeout")
+                    ),
                     new ActionListener<>() {
                         @Override
                         public void onResponse(final CertificatesNodesResponse response) {
@@ -108,6 +106,14 @@ public class CertificatesApiAction extends AbstractApiAction {
                     }
                 )
             );
+    }
+
+    private String certType(final RestRequest request) {
+        final var t = request.param("cert_type");
+        if (!Strings.isEmpty(t) && "all".equals(t)) {
+            return null;
+        }
+        return t;
     }
 
     boolean accessHandler(final RestRequest request) {
