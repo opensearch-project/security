@@ -27,6 +27,7 @@ import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -50,7 +51,8 @@ public class SecurityTokenManager implements TokenManager {
     private final ThreadPool threadPool;
     private final UserService userService;
 
-    private JwtVendor jwtVendor = null;
+    private JwtVendor oboJwtVendor = null;
+    private JwtVendor apiTokenJwtVendor = null;
     private ConfigModel configModel = null;
 
     public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
@@ -67,11 +69,14 @@ public class SecurityTokenManager implements TokenManager {
     @Subscribe
     public void onDynamicConfigModelChanged(final DynamicConfigModel dcm) {
         final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
-        final Boolean enabled = oboSettings.getAsBoolean("enabled", false);
-        if (enabled) {
-            jwtVendor = createJwtVendor(oboSettings);
-        } else {
-            jwtVendor = null;
+        final Boolean oboEnabled = oboSettings.getAsBoolean("enabled", false);
+        if (oboEnabled) {
+            oboJwtVendor = createJwtVendor(oboSettings);
+        }
+        final Settings apiTokenSettings = dcm.getDynamicApiTokenSettings();
+        final Boolean apiTokenEnabled = apiTokenSettings.getAsBoolean("enabled", false);
+        if (apiTokenEnabled) {
+            apiTokenJwtVendor = createJwtVendor(apiTokenSettings);
         }
     }
 
@@ -86,7 +91,11 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     public boolean issueOnBehalfOfTokenAllowed() {
-        return jwtVendor != null && configModel != null;
+        return oboJwtVendor != null && configModel != null;
+    }
+
+    public boolean issueApiTokenAllowed() {
+        return apiTokenJwtVendor != null && configModel != null;
     }
 
     @Override
@@ -116,7 +125,7 @@ public class SecurityTokenManager implements TokenManager {
         final Set<String> mappedRoles = configModel.mapSecurityRoles(user, callerAddress);
 
         try {
-            return jwtVendor.createJwt(
+            return oboJwtVendor.createJwt(
                 cs.getClusterName().value(),
                 user.getName(),
                 claims.getAudience(),
@@ -129,6 +138,35 @@ public class SecurityTokenManager implements TokenManager {
             logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate OnBehalfOfToken");
         }
+    }
+
+    public ExpiringBearerAuthToken issueApiToken(final ApiToken apiToken) {
+        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null) {
+            throw new OpenSearchSecurityException("Unsupported user to generate Api Token");
+        }
+
+        try {
+            return apiTokenJwtVendor.createJwt(
+                cs.getClusterName().value(),
+                apiToken.getName(),
+                apiToken.getName(),
+                apiToken.getExpiration(),
+                apiToken.getClusterPermissions(),
+                apiToken.getIndexPermissions()
+            );
+        } catch (final Exception ex) {
+            logger.error("Error creating Api Token for " + user.getName(), ex);
+            throw new OpenSearchSecurityException("Unable to generate Api Token");
+        }
+    }
+
+    public String encryptToken(final String token) {
+        return apiTokenJwtVendor.encryptString(token);
+    }
+
+    public String decryptString(final String input) {
+        return apiTokenJwtVendor.decryptString(input);
     }
 
     @Override

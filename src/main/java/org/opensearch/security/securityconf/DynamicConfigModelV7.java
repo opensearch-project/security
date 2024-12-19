@@ -234,6 +234,13 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             .build();
     }
 
+    @Override
+    public Settings getDynamicApiTokenSettings() {
+        return Settings.builder()
+            .put(Settings.builder().loadFromSource(config.dynamic.api_tokens.configAsJson(), XContentType.JSON).build())
+            .build();
+    }
+
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();

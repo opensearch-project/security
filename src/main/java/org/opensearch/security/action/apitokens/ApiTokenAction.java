@@ -28,8 +28,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.util.ParsingUtils;
-import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.security.identity.SecurityTokenManager;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -37,10 +36,13 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.action.apitokens.ApiToken.ALLOWED_ACTIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.CLUSTER_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.CREATION_TIME_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.EXPIRATION_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PATTERN_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.util.ParsingUtils.safeMapList;
+import static org.opensearch.security.util.ParsingUtils.safeStringList;
 
 public class ApiTokenAction extends BaseRestHandler {
     private final ApiTokenRepository apiTokenRepository;
@@ -53,8 +55,8 @@ public class ApiTokenAction extends BaseRestHandler {
         )
     );
 
-    public ApiTokenAction(ClusterService clusterService, ThreadPool threadPool, Client client) {
-        this.apiTokenRepository = new ApiTokenRepository(client, clusterService);
+    public ApiTokenAction(ClusterService clusterService, Client client, SecurityTokenManager securityTokenManager) {
+        this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
     }
 
     @Override
@@ -94,6 +96,9 @@ public class ApiTokenAction extends BaseRestHandler {
                     builder.startObject();
                     builder.field(NAME_FIELD, token.getName());
                     builder.field(CREATION_TIME_FIELD, token.getCreationTime().toEpochMilli());
+                    builder.field(EXPIRATION_FIELD, token.getExpiration());
+                    builder.field(CLUSTER_PERMISSIONS_FIELD, token.getClusterPermissions());
+                    builder.field(INDEX_PERMISSIONS_FIELD, token.getIndexPermissions());
                     builder.endObject();
                 }
                 builder.endArray();
@@ -122,11 +127,12 @@ public class ApiTokenAction extends BaseRestHandler {
                 String token = apiTokenRepository.createApiToken(
                     (String) requestBody.get(NAME_FIELD),
                     clusterPermissions,
-                    indexPermissions
+                    indexPermissions,
+                    (Long) requestBody.getOrDefault(EXPIRATION_FIELD, Long.MAX_VALUE)
                 );
 
                 builder.startObject();
-                builder.field("token", token);
+                builder.field("Api Token: ", token);
                 builder.endObject();
 
                 response = new BytesRestResponse(RestStatus.OK, builder);
@@ -146,14 +152,14 @@ public class ApiTokenAction extends BaseRestHandler {
      * Extracts cluster permissions from the request body
      */
     List<String> extractClusterPermissions(Map<String, Object> requestBody) {
-        return ParsingUtils.safeStringList(requestBody.get(CLUSTER_PERMISSIONS_FIELD), CLUSTER_PERMISSIONS_FIELD);
+        return safeStringList(requestBody.get(CLUSTER_PERMISSIONS_FIELD), CLUSTER_PERMISSIONS_FIELD);
     }
 
     /**
      * Extracts and builds index permissions from the request body
      */
     List<ApiToken.IndexPermission> extractIndexPermissions(Map<String, Object> requestBody) {
-        List<Map<String, Object>> indexPerms = ParsingUtils.safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
+        List<Map<String, Object>> indexPerms = safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
         return indexPerms.stream().map(this::createIndexPermission).collect(Collectors.toList());
     }
 
@@ -166,10 +172,10 @@ public class ApiTokenAction extends BaseRestHandler {
         if (indexPatternObj instanceof String) {
             indexPatterns = Collections.singletonList((String) indexPatternObj);
         } else {
-            indexPatterns = ParsingUtils.safeStringList(indexPatternObj, INDEX_PATTERN_FIELD);
+            indexPatterns = safeStringList(indexPatternObj, INDEX_PATTERN_FIELD);
         }
 
-        List<String> allowedActions = ParsingUtils.safeStringList(indexPerm.get(ALLOWED_ACTIONS_FIELD), ALLOWED_ACTIONS_FIELD);
+        List<String> allowedActions = safeStringList(indexPerm.get(ALLOWED_ACTIONS_FIELD), ALLOWED_ACTIONS_FIELD);
 
         return new ApiToken.IndexPermission(indexPatterns, allowedActions);
     }
@@ -182,6 +188,13 @@ public class ApiTokenAction extends BaseRestHandler {
             throw new IllegalArgumentException("Missing required parameter: " + NAME_FIELD);
         }
 
+        if (requestBody.containsKey(EXPIRATION_FIELD)) {
+            Object expiration = requestBody.get(EXPIRATION_FIELD);
+            if (!(expiration instanceof Long)) {
+                throw new IllegalArgumentException(EXPIRATION_FIELD + " must be an long");
+            }
+        }
+
         if (requestBody.containsKey(CLUSTER_PERMISSIONS_FIELD)) {
             Object permissions = requestBody.get(CLUSTER_PERMISSIONS_FIELD);
             if (!(permissions instanceof List)) {
@@ -190,10 +203,7 @@ public class ApiTokenAction extends BaseRestHandler {
         }
 
         if (requestBody.containsKey(INDEX_PERMISSIONS_FIELD)) {
-            List<Map<String, Object>> indexPermsList = ParsingUtils.safeMapList(
-                requestBody.get(INDEX_PERMISSIONS_FIELD),
-                INDEX_PERMISSIONS_FIELD
-            );
+            List<Map<String, Object>> indexPermsList = safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
             validateIndexPermissionsList(indexPermsList);
         }
     }
