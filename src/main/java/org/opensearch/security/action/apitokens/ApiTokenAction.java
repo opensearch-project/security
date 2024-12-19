@@ -12,9 +12,11 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -128,7 +130,7 @@ public class ApiTokenAction extends BaseRestHandler {
                     (String) requestBody.get(NAME_FIELD),
                     clusterPermissions,
                     indexPermissions,
-                    (Long) requestBody.getOrDefault(EXPIRATION_FIELD, Long.MAX_VALUE)
+                    (Long) requestBody.getOrDefault(EXPIRATION_FIELD, Instant.now().toEpochMilli() + TimeUnit.DAYS.toMillis(30))
                 );
 
                 builder.startObject();

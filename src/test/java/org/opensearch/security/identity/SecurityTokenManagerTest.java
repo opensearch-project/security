@@ -28,7 +28,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
-import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -263,7 +262,7 @@ public class SecurityTokenManagerTest {
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
         when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
-        final AuthToken returnedToken = tokenManager.issueApiToken(new ApiToken("elmo", List.of("*"), List.of()));
+        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE, List.of("*"), List.of());
 
         assertThat(returnedToken, equalTo(authToken));
 
@@ -284,7 +283,7 @@ public class SecurityTokenManagerTest {
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
         when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
-        final AuthToken returnedToken = tokenManager.issueApiToken(new ApiToken("elmo", List.of("*"), List.of()));
+        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE, List.of("*"), List.of());
 
         assertThat(returnedToken, equalTo(authToken));
 

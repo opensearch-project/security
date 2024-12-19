@@ -43,7 +43,13 @@ public class ApiTokenRepository {
         apiTokenIndexHandler.createApiTokenIndexIfAbsent();
         // TODO: Add validation on whether user is creating a token with a subset of their permissions
         ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(name, expiration, clusterPermissions, indexPermissions);
-        ApiToken apiToken = new ApiToken(name, securityTokenManager.encryptToken(token.getCompleteToken()), clusterPermissions, indexPermissions, expiration);
+        ApiToken apiToken = new ApiToken(
+            name,
+            securityTokenManager.encryptToken(token.getCompleteToken()),
+            clusterPermissions,
+            indexPermissions,
+            expiration
+        );
         apiTokenIndexHandler.indexTokenMetadata(apiToken);
         return token.getCompleteToken();
     }
