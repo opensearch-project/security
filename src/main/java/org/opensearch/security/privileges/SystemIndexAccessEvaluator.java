@@ -38,6 +38,12 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
+import org.opensearch.action.admin.indices.alias.IndicesAliasesAction;
+import org.opensearch.action.admin.indices.close.CloseIndexAction;
+import org.opensearch.action.admin.indices.delete.DeleteIndexAction;
+import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
@@ -71,6 +77,9 @@ public class SystemIndexAccessEvaluator {
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
     private final static ImmutableSet<String> SYSTEM_INDEX_PERMISSION_SET = ImmutableSet.of(ConfigConstants.SYSTEM_INDEX_PERMISSION);
+    // Pattern for all actions like indices:data/write/index, indices:data/write/bulk, indices:data/write/delete,
+    // indices:data/write/reindex, etc
+    public static final String INDICES_DATA_WRITE_ALL_ACTIONS_PATTERN = "indices:data/write/*";
 
     public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.securityIndex = settings.get(
@@ -97,8 +106,8 @@ public class SystemIndexAccessEvaluator {
         final List<String> deniedActionPatternsList = deniedActionPatterns();
 
         final List<String> deniedActionPatternsListNoSnapshot = new ArrayList<>(deniedActionPatternsList);
-        deniedActionPatternsListNoSnapshot.add("indices:admin/close*");
-        deniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
+        deniedActionPatternsListNoSnapshot.add(CloseIndexAction.NAME + "*");  // "indices:admin/close*"
+        deniedActionPatternsListNoSnapshot.add(RestoreSnapshotAction.NAME + "*");  // "cluster:admin/snapshot/restore*"
 
         deniedActionsMatcher = WildcardMatcher.from(
             restoreSecurityIndexEnabled ? deniedActionPatternsList : deniedActionPatternsListNoSnapshot
@@ -111,13 +120,17 @@ public class SystemIndexAccessEvaluator {
 
     private static List<String> deniedActionPatterns() {
         final List<String> securityIndexDeniedActionPatternsList = new ArrayList<>();
-        securityIndexDeniedActionPatternsList.add("indices:data/write*");
-        securityIndexDeniedActionPatternsList.add("indices:admin/delete*");
-        securityIndexDeniedActionPatternsList.add("indices:admin/mapping/delete*");
-        securityIndexDeniedActionPatternsList.add("indices:admin/mapping/put*");
-        securityIndexDeniedActionPatternsList.add("indices:admin/freeze*");
-        securityIndexDeniedActionPatternsList.add("indices:admin/settings/update*");
-        securityIndexDeniedActionPatternsList.add("indices:admin/aliases");
+        securityIndexDeniedActionPatternsList.add(INDICES_DATA_WRITE_ALL_ACTIONS_PATTERN);  // "indices:data/write*"
+        securityIndexDeniedActionPatternsList.add(DeleteIndexAction.NAME + "*");  // "indices:admin/delete*"
+        // action does not exist in OpenSearch-
+        // https://github.com/opensearch-project/OpenSearch/tree/main/server/src/main/java/org/opensearch/action/admin/indices/mapping
+        // securityIndexDeniedActionPatternsList.add("indices:admin/mapping/delete*");
+        securityIndexDeniedActionPatternsList.add(PutMappingAction.NAME + "*");  // indices:admin/mapping/put*
+        // action does not exist in OpenSearch-
+        // https://github.com/opensearch-project/OpenSearch/tree/main/server/src/main/java/org/opensearch/action/admin/indices
+        // securityIndexDeniedActionPatternsList.add("indices:admin/freeze*");
+        securityIndexDeniedActionPatternsList.add(UpdateSettingsAction.NAME + "*");  // "indices:admin/settings/update*"
+        securityIndexDeniedActionPatternsList.add(IndicesAliasesAction.NAME);  // "indices:admin/aliases"
         return securityIndexDeniedActionPatternsList;
     }
 
