@@ -16,9 +16,17 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+
+import com.nimbusds.jose.shaded.gson.JsonArray;
+import com.nimbusds.jose.shaded.gson.JsonElement;
+import com.nimbusds.jose.shaded.gson.JsonObject;
+import com.nimbusds.jose.shaded.gson.JsonParseException;
+import com.nimbusds.jose.shaded.gson.JsonParser;
 
 public class ApiToken implements ToXContent {
     public static final String NAME_FIELD = "name";
@@ -28,35 +36,38 @@ public class ApiToken implements ToXContent {
     public static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
     public static final String INDEX_PATTERN_FIELD = "index_pattern";
     public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
+    public static final String EXPIRATION_FIELD = "expiration";
 
-    private String name;
-    private final String jti;
+    private final String name;
+    private String jti;
     private final Instant creationTime;
-    private List<String> clusterPermissions;
-    private List<IndexPermission> indexPermissions;
+    private final List<String> clusterPermissions;
+    private final List<IndexPermission> indexPermissions;
+    private final long expiration;
 
-    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions) {
+    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions, Long expiration) {
         this.creationTime = Instant.now();
+        this.jti = jti;
+        this.name = name;
+        this.clusterPermissions = clusterPermissions;
+        this.indexPermissions = indexPermissions;
+        this.expiration = expiration;
+    }
+
+    public ApiToken(
+        String name,
+        String jti,
+        List<String> clusterPermissions,
+        List<IndexPermission> indexPermissions,
+        Instant creationTime,
+        Long expiration
+    ) {
         this.name = name;
         this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
-
-    }
-
-    public ApiToken(
-        String description,
-        String jti,
-        List<String> clusterPermissions,
-        List<IndexPermission> indexPermissions,
-        Instant creationTime
-    ) {
-        this.name = description;
-        this.jti = jti;
-        this.clusterPermissions = clusterPermissions;
-        this.indexPermissions = indexPermissions;
         this.creationTime = creationTime;
-
+        this.expiration = expiration;
     }
 
     public static class IndexPermission implements ToXContent {
@@ -84,6 +95,38 @@ public class ApiToken implements ToXContent {
             builder.endObject();
             return builder;
         }
+
+        // TODO: look into integrating with default object mapper
+        @Override
+        public String toString() {
+            JsonObject json = new JsonObject();
+            JsonArray patternsArray = new JsonArray();
+            JsonArray actionsArray = new JsonArray();
+
+            for (String pattern : indexPatterns) {
+                patternsArray.add(pattern);
+            }
+            for (String action : allowedActions) {
+                actionsArray.add(action);
+            }
+
+            json.add(INDEX_PATTERN_FIELD, patternsArray);
+            json.add(ALLOWED_ACTIONS_FIELD, actionsArray);
+
+            return json.toString();
+        }
+
+        public static IndexPermission fromString(String str) {
+            try {
+                JsonObject json = JsonParser.parseString(str).getAsJsonObject();
+                return new IndexPermission(
+                    json.get(INDEX_PATTERN_FIELD).getAsJsonArray().asList().stream().map(JsonElement::getAsString).toList(),
+                    json.get(ALLOWED_ACTIONS_FIELD).getAsJsonArray().asList().stream().map(JsonElement::getAsString).toList()
+                );
+            } catch (JsonParseException e) {
+                throw new IllegalArgumentException("Invalid IndexPermission format", e);
+            }
+        }
     }
 
     /**
@@ -109,6 +152,7 @@ public class ApiToken implements ToXContent {
         List<String> clusterPermissions = new ArrayList<>();
         List<IndexPermission> indexPermissions = new ArrayList<>();
         Instant creationTime = null;
+        long expiration = Long.MAX_VALUE;
 
         XContentParser.Token token;
         String currentFieldName = null;
@@ -126,6 +170,9 @@ public class ApiToken implements ToXContent {
                         break;
                     case CREATION_TIME_FIELD:
                         creationTime = Instant.ofEpochMilli(parser.longValue());
+                        break;
+                    case EXPIRATION_FIELD:
+                        expiration = parser.longValue();
                         break;
                 }
             } else if (token == XContentParser.Token.START_ARRAY) {
@@ -146,7 +193,7 @@ public class ApiToken implements ToXContent {
             }
         }
 
-        return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime);
+        return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime, expiration);
     }
 
     private static IndexPermission parseIndexPermission(XContentParser parser) throws IOException {
@@ -174,7 +221,6 @@ public class ApiToken implements ToXContent {
                 }
             }
         }
-
         return new IndexPermission(indexPatterns, allowedActions);
     }
 
@@ -182,10 +228,11 @@ public class ApiToken implements ToXContent {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public Long getExpiration() {
+        return expiration;
     }
 
+    @JsonIgnore
     public String getJti() {
         return jti;
     }
@@ -196,10 +243,6 @@ public class ApiToken implements ToXContent {
 
     public List<String> getClusterPermissions() {
         return clusterPermissions;
-    }
-
-    public void setClusterPermissions(List<String> clusterPermissions) {
-        this.clusterPermissions = clusterPermissions;
     }
 
     @Override
@@ -216,9 +259,5 @@ public class ApiToken implements ToXContent {
 
     public List<IndexPermission> getIndexPermissions() {
         return indexPermissions;
-    }
-
-    public void setIndexPermissions(List<IndexPermission> indexPermissions) {
-        this.indexPermissions = indexPermissions;
     }
 }
