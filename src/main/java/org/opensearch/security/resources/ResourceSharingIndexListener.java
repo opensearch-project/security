@@ -42,9 +42,7 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
     private ResourceSharingIndexListener() {}
 
     public static ResourceSharingIndexListener getInstance() {
-
         return ResourceSharingIndexListener.INSTANCE;
-
     }
 
     /**
@@ -122,11 +120,9 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
 
         boolean success = this.resourceSharingIndexHandler.deleteResourceSharingRecord(resourceId, resourceIndex);
         if (success) {
-            log.info("Successfully deleted resource sharing entries for resource {}", resourceId);
+            log.info("Successfully deleted resource sharing entry for resource {}", resourceId);
         } else {
             log.info("Failed to delete resource sharing entry for resource {}", resourceId);
         }
-
     }
-
 }

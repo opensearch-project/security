@@ -2128,7 +2128,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             String resourceIndex = resourcePlugin.getResourceIndex();
 
             this.indicesToListen.add(resourceIndex);
-            log.info("Preparing to listen to index: {} of plugin: {}", resourceIndex, resourcePlugin);
+            log.warn("Security plugin started listening to index: {} of plugin: {}", resourceIndex, resourcePlugin);
         }
 
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
@@ -2148,7 +2148,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final List<Class<? extends LifecycleComponent>> services = new ArrayList<>(1);
         services.add(GuiceHolder.class);
-        log.info("Guice service classes loaded");
         return services;
     }
 
