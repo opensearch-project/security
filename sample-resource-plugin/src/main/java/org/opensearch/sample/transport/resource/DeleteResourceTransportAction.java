@@ -54,9 +54,9 @@ public class DeleteResourceTransportAction extends HandledTransportAction<Delete
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             deleteResource(request, ActionListener.wrap(deleteResponse -> {
                 if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-                    listener.onFailure(new ResourceNotFoundException("Resource " + request.getResourceId() + " not found"));
+                    listener.onFailure(new ResourceNotFoundException("Resource " + request.getResourceId() + " not found."));
                 } else {
-                    listener.onResponse(new DeleteResourceResponse("Resource " + request.getResourceId() + " deleted successfully"));
+                    listener.onResponse(new DeleteResourceResponse("Resource " + request.getResourceId() + " deleted successfully."));
                 }
             }, exception -> {
                 log.error("Failed to delete resource: " + request.getResourceId(), exception);

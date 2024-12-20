@@ -19,7 +19,9 @@ import org.opensearch.accesscontrol.resources.ResourceAccessScope;
  */
 public enum SampleResourceScope implements ResourceAccessScope {
 
-    SAMPLE_FULL_ACCESS("sample_full_access");
+    SAMPLE_FULL_ACCESS("sample_full_access"),
+
+    PUBLIC("public");
 
     private final String name;
 
