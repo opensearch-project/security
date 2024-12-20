@@ -575,13 +575,14 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addComplianceDocVersion(result.getVersion());
         msg.addComplianceOperation(result.isCreated() ? Operation.CREATE : Operation.UPDATE);
 
-        if (complianceConfig.shouldLogDiffsForWrite()
-            && originalResult != null
-            && originalResult.isExists()
-            && originalResult.internalSourceRef() != null) {
+        if (complianceConfig.shouldLogDiffsForWrite()) {
             try {
                 String originalSource = null;
                 String currentSource = null;
+                if (!(originalResult != null && originalResult.isExists() && originalResult.internalSourceRef() != null)) {
+                    // originalSource is empty
+                    originalSource = "{}";
+                }
                 if (securityIndicesMatcher.test(shardId.getIndexName())) {
                     try (
                         XContentParser parser = XContentHelper.createParser(
@@ -624,7 +625,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                     );
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
-                    originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                    if (originalSource == null) {
+                        originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                    }
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                     final JsonNode diffnode = JsonDiff.asJson(
                         DefaultObjectMapper.objectMapper.readTree(originalSource),
