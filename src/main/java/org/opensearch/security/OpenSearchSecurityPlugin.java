@@ -70,6 +70,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.accesscontrol.resources.EntityType;
+import org.opensearch.accesscontrol.resources.Resource;
 import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
@@ -2217,7 +2218,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public <T> Set<T> getAccessibleResourcesForCurrentUser(String systemIndexName, Class<T> clazz) {
+    public <T extends Resource> Set<T> getAccessibleResourcesForCurrentUser(String systemIndexName, Class<T> clazz) {
         return this.resourceAccessHandler.getAccessibleResourcesForCurrentUser(systemIndexName, clazz);
     }
 
