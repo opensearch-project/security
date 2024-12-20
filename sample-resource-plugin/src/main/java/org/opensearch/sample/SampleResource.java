@@ -14,11 +14,10 @@ package org.opensearch.sample;
 import java.io.IOException;
 import java.util.Map;
 
+import org.opensearch.accesscontrol.resources.Resource;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
-
-import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
 public class SampleResource implements Resource {
 
@@ -32,16 +31,6 @@ public class SampleResource implements Resource {
         this.name = in.readString();
         this.description = in.readString();
         this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
-    }
-
-    @Override
-    public String getResourceIndex() {
-        return RESOURCE_INDEX_NAME;
-    }
-
-    @Override
-    public String getResourceName() {
-        return this.name;
     }
 
     @Override
@@ -71,5 +60,10 @@ public class SampleResource implements Resource {
 
     public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
+    }
+
+    @Override
+    public String getResourceName() {
+        return name;
     }
 }

@@ -13,6 +13,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.accesscontrol.resources.Resource;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -23,7 +24,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.sample.Resource;
 import org.opensearch.sample.actions.resource.create.CreateResourceAction;
 import org.opensearch.sample.actions.resource.create.CreateResourceRequest;
 import org.opensearch.sample.actions.resource.create.CreateResourceResponse;
