@@ -313,7 +313,7 @@ public class ResourceAccessHandler {
             .filter(sharedWithScope -> sharedWithScope.getScope().equals(scope))
             .findFirst()
             .map(sharedWithScope -> {
-                SharedWithScope.SharedWithPerScope scopePermissions = sharedWithScope.getSharedWithPerScope();
+                SharedWithScope.ScopeRecipients scopePermissions = sharedWithScope.getSharedWithPerScope();
 
                 return switch (entityType) {
                     case EntityType.USERS -> scopePermissions.getUsers().contains(identifier);

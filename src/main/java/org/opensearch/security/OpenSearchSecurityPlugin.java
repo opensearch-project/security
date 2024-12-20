@@ -726,7 +726,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             if (this.indicesToListen.contains(indexModule.getIndex().getName())) {
                 ResourceSharingIndexListener resourceSharingIndexListener = ResourceSharingIndexListener.getInstance();
-                resourceSharingIndexListener.initialize(threadPool, localClient);
+                resourceSharingIndexListener.initialize(threadPool, localClient, auditLog);
                 indexModule.addIndexOperationListener(resourceSharingIndexListener);
                 log.warn("Security plugin started listening to operations on index {}", indexModule.getIndex().getName());
             }
@@ -1215,7 +1215,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         final var resourceSharingIndex = ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX;
-        ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(resourceSharingIndex, localClient, threadPool);
+        ResourceSharingIndexHandler rsIndexHandler = new ResourceSharingIndexHandler(
+            resourceSharingIndex,
+            localClient,
+            threadPool,
+            auditLog
+        );
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
 
         rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler);
@@ -2150,8 +2155,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
-        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
-        return Collections.singletonList(systemIndexDescriptor);
+        final SystemIndexDescriptor securityIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
+        final SystemIndexDescriptor resourceSharingIndexDescriptor = new SystemIndexDescriptor(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
+            "Resource Sharing index"
+        );
+        return List.of(securityIndexDescriptor, resourceSharingIndexDescriptor);
     }
 
     @Override

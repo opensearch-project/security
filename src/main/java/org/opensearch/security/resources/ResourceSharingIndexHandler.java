@@ -66,6 +66,7 @@ import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -84,10 +85,13 @@ public class ResourceSharingIndexHandler {
 
     private final ThreadPool threadPool;
 
-    public ResourceSharingIndexHandler(final String indexName, final Client client, ThreadPool threadPool) {
+    private final AuditLog auditLog;
+
+    public ResourceSharingIndexHandler(final String indexName, final Client client, final ThreadPool threadPool, final AuditLog auditLog) {
         this.resourceSharingIndex = indexName;
         this.client = client;
         this.threadPool = threadPool;
+        this.auditLog = auditLog;
     }
 
     public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");

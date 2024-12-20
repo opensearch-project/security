@@ -19,6 +19,7 @@ import org.opensearch.client.Client;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -53,7 +54,7 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
      * @param threadPool The ThreadPool instance to be used for executing operations.
      * @param client     The Client instance to be used for interacting with OpenSearch.
      */
-    public void initialize(ThreadPool threadPool, Client client) {
+    public void initialize(ThreadPool threadPool, Client client, AuditLog auditLog) {
 
         if (initialized) {
             return;
@@ -64,7 +65,8 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
         this.resourceSharingIndexHandler = new ResourceSharingIndexHandler(
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_INDEX,
             client,
-            threadPool
+            threadPool,
+            auditLog
         );
 
     }
