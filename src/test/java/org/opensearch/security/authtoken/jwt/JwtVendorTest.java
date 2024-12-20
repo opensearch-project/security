@@ -30,6 +30,10 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -313,17 +317,16 @@ public class JwtVendorTest {
         );
         assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()), equalTo(expectedIndexPermisions));
 
+        XContentParser parser = XContentType.JSON.xContent()
+            .createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString())
+            );
+
         // Index permission deserialization works as expected
-        assertThat(
-            ApiToken.IndexPermission.fromString(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()))
-                .getIndexPatterns(),
-            equalTo(indexPermission.getIndexPatterns())
-        );
-        assertThat(
-            ApiToken.IndexPermission.fromString(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()))
-                .getAllowedActions(),
-            equalTo(indexPermission.getAllowedActions())
-        );
+        assertThat(ApiToken.IndexPermission.fromXContent(parser).getIndexPatterns(), equalTo(indexPermission.getIndexPatterns()));
+        assertThat(ApiToken.IndexPermission.fromXContent(parser).getAllowedActions(), equalTo(indexPermission.getAllowedActions()));
     }
 
     @Test

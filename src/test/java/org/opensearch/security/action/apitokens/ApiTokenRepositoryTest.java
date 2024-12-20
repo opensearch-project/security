@@ -47,7 +47,7 @@ public class ApiTokenRepositoryTest {
     public void setUp() {
         apiTokenIndexHandler = mock(ApiTokenIndexHandler.class);
         securityTokenManager = mock(SecurityTokenManager.class);
-        repository = new ApiTokenRepository(apiTokenIndexHandler, securityTokenManager);
+        repository = ApiTokenRepository.forTest(apiTokenIndexHandler, securityTokenManager);
     }
 
     @Test

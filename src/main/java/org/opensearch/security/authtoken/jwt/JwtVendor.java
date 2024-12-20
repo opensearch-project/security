@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.ParseException;
@@ -27,6 +28,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.security.action.apitokens.ApiToken;
 
 import com.nimbusds.jose.JOSEException;
@@ -161,7 +164,7 @@ public class JwtVendor {
         final long expiration,
         final List<String> clusterPermissions,
         final List<ApiToken.IndexPermission> indexPermissions
-    ) throws JOSEException, ParseException {
+    ) throws JOSEException, ParseException, IOException {
         final long currentTimeMs = timeProvider.getAsLong();
         final Date now = new Date(currentTimeMs);
 
@@ -183,7 +186,7 @@ public class JwtVendor {
         if (indexPermissions != null) {
             List<String> permissionStrings = new ArrayList<>();
             for (ApiToken.IndexPermission permission : indexPermissions) {
-                permissionStrings.add(permission.toString());
+                permissionStrings.add(permission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString());
             }
             final String listOfIndexPermissions = String.join(",", permissionStrings);
             claimsBuilder.claim("ip", encryptString(listOfIndexPermissions));

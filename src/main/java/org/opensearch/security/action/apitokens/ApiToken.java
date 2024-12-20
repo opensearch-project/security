@@ -22,12 +22,6 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
-import com.nimbusds.jose.shaded.gson.JsonArray;
-import com.nimbusds.jose.shaded.gson.JsonElement;
-import com.nimbusds.jose.shaded.gson.JsonObject;
-import com.nimbusds.jose.shaded.gson.JsonParseException;
-import com.nimbusds.jose.shaded.gson.JsonParser;
-
 public class ApiToken implements ToXContent {
     public static final String NAME_FIELD = "name";
     public static final String JTI_FIELD = "jti";
@@ -39,7 +33,7 @@ public class ApiToken implements ToXContent {
     public static final String EXPIRATION_FIELD = "expiration";
 
     private final String name;
-    private String jti;
+    private final String jti;
     private final Instant creationTime;
     private final List<String> clusterPermissions;
     private final List<IndexPermission> indexPermissions;
@@ -96,37 +90,35 @@ public class ApiToken implements ToXContent {
             return builder;
         }
 
-        // TODO: look into integrating with default object mapper
-        @Override
-        public String toString() {
-            JsonObject json = new JsonObject();
-            JsonArray patternsArray = new JsonArray();
-            JsonArray actionsArray = new JsonArray();
+        public static IndexPermission fromXContent(XContentParser parser) throws IOException {
+            List<String> indexPatterns = new ArrayList<>();
+            List<String> allowedActions = new ArrayList<>();
 
-            for (String pattern : indexPatterns) {
-                patternsArray.add(pattern);
+            XContentParser.Token token;
+            String currentFieldName = null;
+
+            while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                if (token == XContentParser.Token.FIELD_NAME) {
+                    currentFieldName = parser.currentName();
+                } else if (token == XContentParser.Token.START_ARRAY) {
+                    switch (currentFieldName) {
+                        case INDEX_PATTERN_FIELD:
+                            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                                indexPatterns.add(parser.text());
+                            }
+                            break;
+                        case ALLOWED_ACTIONS_FIELD:
+                            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                                allowedActions.add(parser.text());
+                            }
+                            break;
+                    }
+                }
             }
-            for (String action : allowedActions) {
-                actionsArray.add(action);
-            }
 
-            json.add(INDEX_PATTERN_FIELD, patternsArray);
-            json.add(ALLOWED_ACTIONS_FIELD, actionsArray);
-
-            return json.toString();
+            return new IndexPermission(indexPatterns, allowedActions);
         }
 
-        public static IndexPermission fromString(String str) {
-            try {
-                JsonObject json = JsonParser.parseString(str).getAsJsonObject();
-                return new IndexPermission(
-                    json.get(INDEX_PATTERN_FIELD).getAsJsonArray().asList().stream().map(JsonElement::getAsString).toList(),
-                    json.get(ALLOWED_ACTIONS_FIELD).getAsJsonArray().asList().stream().map(JsonElement::getAsString).toList()
-                );
-            } catch (JsonParseException e) {
-                throw new IllegalArgumentException("Invalid IndexPermission format", e);
-            }
-        }
     }
 
     /**
@@ -152,7 +144,7 @@ public class ApiToken implements ToXContent {
         List<String> clusterPermissions = new ArrayList<>();
         List<IndexPermission> indexPermissions = new ArrayList<>();
         Instant creationTime = null;
-        long expiration = Long.MAX_VALUE;
+        long expiration = 0;
 
         XContentParser.Token token;
         String currentFieldName = null;
@@ -246,7 +238,7 @@ public class ApiToken implements ToXContent {
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.startObject();
         xContentBuilder.field(NAME_FIELD, name);
         xContentBuilder.field(JTI_FIELD, jti);
