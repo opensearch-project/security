@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
@@ -30,9 +31,11 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.support.ConfigConstants;
@@ -286,7 +289,8 @@ public class JwtVendorTest {
         ApiToken.IndexPermission indexPermission = new ApiToken.IndexPermission(List.of("*"), List.of("read"));
         final List<ApiToken.IndexPermission> indexPermissions = List.of(indexPermission);
         final String expectedClusterPermissions = "cluster:admin/*";
-        final String expectedIndexPermisions = indexPermission.toString();
+        final String expectedIndexPermissions = indexPermission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+            .toString();
 
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = "1234567890123456";
@@ -315,7 +319,7 @@ public class JwtVendorTest {
             encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("cp").toString()),
             equalTo(expectedClusterPermissions)
         );
-        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()), equalTo(expectedIndexPermisions));
+        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()), equalTo(expectedIndexPermissions));
 
         XContentParser parser = XContentType.JSON.xContent()
             .createParser(
@@ -323,10 +327,11 @@ public class JwtVendorTest {
                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                 encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString())
             );
+        ApiToken.IndexPermission indexPermission1 = ApiToken.IndexPermission.fromXContent(parser);
 
         // Index permission deserialization works as expected
-        assertThat(ApiToken.IndexPermission.fromXContent(parser).getIndexPatterns(), equalTo(indexPermission.getIndexPatterns()));
-        assertThat(ApiToken.IndexPermission.fromXContent(parser).getAllowedActions(), equalTo(indexPermission.getAllowedActions()));
+        assertThat(indexPermission1.getIndexPatterns(), equalTo(indexPermission.getIndexPatterns()));
+        assertThat(indexPermission1.getAllowedActions(), equalTo(indexPermission.getAllowedActions()));
     }
 
     @Test
@@ -343,15 +348,21 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testEncryptDecryptClusterIndexPermissionsCorrectly() {
+    public void testEncryptDecryptClusterIndexPermissionsCorrectly() throws IOException {
         String claimsEncryptionKey = BaseEncoding.base64().encode("1234567890123456".getBytes(StandardCharsets.UTF_8));
         String clusterPermissions = "cluster:admin/*,cluster:*";
         String encryptedClusterPermissions = "P+KGUkpANJHzHGKVSqJhIyHOKS+JCLOanxCOBWSgZNk=";
         // "{\"index_pattern\":[\"*\"],\"allowed_actions\":[\"read\"]},{\"index_pattern\":[\".*\"],\"allowed_actions\":[\"write\"]}"
         String indexPermissions = Strings.join(
             List.of(
-                new ApiToken.IndexPermission(List.of("*"), List.of("read")).toString(),
-                new ApiToken.IndexPermission(List.of(".*"), List.of("write")).toString()
+                new ApiToken.IndexPermission(List.of("*"), List.of("read")).toXContent(
+                    XContentFactory.jsonBuilder(),
+                    ToXContent.EMPTY_PARAMS
+                ).toString(),
+                new ApiToken.IndexPermission(List.of(".*"), List.of("write")).toXContent(
+                    XContentFactory.jsonBuilder(),
+                    ToXContent.EMPTY_PARAMS
+                ).toString()
             ),
             ","
         );

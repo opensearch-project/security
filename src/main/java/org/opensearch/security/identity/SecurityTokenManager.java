@@ -11,10 +11,10 @@
 
 package org.opensearch.security.identity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -118,9 +118,6 @@ public class SecurityTokenManager implements TokenManager {
         }
 
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (user == null) {
-            throw new OpenSearchSecurityException("Unsupported user to generate OnBehalfOfToken");
-        }
 
         final TransportAddress callerAddress = null; /* OBO tokens must not roles based on location from network address */
         final Set<String> mappedRoles = configModel.mapSecurityRoles(user, callerAddress);
@@ -131,8 +128,8 @@ public class SecurityTokenManager implements TokenManager {
                 user.getName(),
                 claims.getAudience(),
                 claims.getExpiration(),
-                mappedRoles.stream().collect(Collectors.toList()),
-                user.getRoles().stream().collect(Collectors.toList()),
+                new ArrayList<>(mappedRoles),
+                new ArrayList<>(user.getRoles()),
                 false
             );
         } catch (final Exception ex) {
