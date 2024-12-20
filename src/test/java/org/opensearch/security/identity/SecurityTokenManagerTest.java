@@ -81,6 +81,7 @@ public class SecurityTokenManagerTest {
         verifyNoMoreInteractions(userService);
     }
 
+    @Test
     public void onConfigModelChanged_oboNotSupported() {
         final ConfigModel configModel = mock(ConfigModel.class);
 
@@ -107,6 +108,7 @@ public class SecurityTokenManagerTest {
         final Settings settings = Settings.builder().put("enabled", false).build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
 
         assertThat(tokenManager.issueOnBehalfOfTokenAllowed(), equalTo(false));
@@ -119,6 +121,7 @@ public class SecurityTokenManagerTest {
         final Settings settings = Settings.builder().put("enabled", true).build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
+        when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
         doAnswer((invocation) -> jwtVendor).when(tokenManager).createJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;
@@ -244,5 +247,60 @@ public class SecurityTokenManagerTest {
 
         verify(cs).getClusterName();
         verify(threadPool).getThreadContext();
+    }
+
+    @Test
+    public void issueApiToken_success() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+
+        createMockJwtVendorInTokenManager();
+
+        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
+        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE, List.of("*"), List.of());
+
+        assertThat(returnedToken, equalTo(authToken));
+
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
+    }
+
+    @Test
+    public void encryptCallsJwtEncrypt() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        final ConfigModel configModel = mock(ConfigModel.class);
+        tokenManager.onConfigModelChanged(configModel);
+
+        createMockJwtVendorInTokenManager();
+
+        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
+        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE, List.of("*"), List.of());
+
+        assertThat(returnedToken, equalTo(authToken));
+
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
+    }
+
+    @Test
+    public void testEncryptTokenCallsJwtEncrypt() throws Exception {
+        String tokenToEncrypt = "test-token";
+        String encryptedToken = "encrypted-test-token";
+        createMockJwtVendorInTokenManager();
+        when(jwtVendor.encryptString(tokenToEncrypt)).thenReturn(encryptedToken);
+
+        String result = tokenManager.encryptToken(tokenToEncrypt);
+
+        assertThat(result, equalTo(encryptedToken));
+        verify(jwtVendor).encryptString(tokenToEncrypt);
     }
 }

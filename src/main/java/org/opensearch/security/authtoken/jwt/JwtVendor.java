@@ -11,7 +11,11 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -24,6 +28,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.security.action.apitokens.ApiToken;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -147,5 +154,69 @@ public class JwtVendor {
         }
 
         return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime, expirySeconds);
+    }
+
+    @SuppressWarnings("removal")
+    public ExpiringBearerAuthToken createJwt(
+        final String issuer,
+        final String subject,
+        final String audience,
+        final long expiration,
+        final List<String> clusterPermissions,
+        final List<ApiToken.IndexPermission> indexPermissions
+    ) throws JOSEException, ParseException, IOException {
+        final long currentTimeMs = timeProvider.getAsLong();
+        final Date now = new Date(currentTimeMs);
+
+        final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder();
+        claimsBuilder.issuer(issuer);
+        claimsBuilder.issueTime(now);
+        claimsBuilder.subject(subject);
+        claimsBuilder.audience(audience);
+        claimsBuilder.notBeforeTime(now);
+
+        final Date expiryTime = new Date(expiration);
+        claimsBuilder.expirationTime(expiryTime);
+
+        if (clusterPermissions != null) {
+            final String listOfClusterPermissions = String.join(",", clusterPermissions);
+            claimsBuilder.claim("cp", encryptString(listOfClusterPermissions));
+        }
+
+        if (indexPermissions != null) {
+            List<String> permissionStrings = new ArrayList<>();
+            for (ApiToken.IndexPermission permission : indexPermissions) {
+                permissionStrings.add(permission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString());
+            }
+            final String listOfIndexPermissions = String.join(",", permissionStrings);
+            claimsBuilder.claim("ip", encryptString(listOfIndexPermissions));
+        }
+
+        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
+
+        final SignedJWT signedJwt = AccessController.doPrivileged(
+            (PrivilegedAction<SignedJWT>) () -> new SignedJWT(header, claimsBuilder.build())
+        );
+
+        // Sign the JWT so it can be serialized
+        signedJwt.sign(signer);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug(
+                "Created JWT: " + signedJwt.serialize() + "\n" + signedJwt.getHeader().toJSONObject() + "\n" + signedJwt.getJWTClaimsSet()
+            );
+        }
+
+        return new ExpiringBearerAuthToken(signedJwt.serialize(), subject, expiryTime);
+    }
+
+    /* Returns the encrypted string based on encryption settings  */
+    public String encryptString(final String input) {
+        return encryptionDecryptionUtil.encrypt(input);
+    }
+
+    /* Returns the decrypted string based on encryption settings  */
+    public String decryptString(final String input) {
+        return encryptionDecryptionUtil.decrypt(input);
     }
 }

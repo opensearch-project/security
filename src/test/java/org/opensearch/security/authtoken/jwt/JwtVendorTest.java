@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
@@ -30,11 +31,19 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.support.ConfigConstants;
 
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
+import joptsimple.internal.Strings;
 import org.mockito.ArgumentCaptor;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -270,4 +279,116 @@ public class JwtVendorTest {
         final String[] parts = logMessage.split("\\.");
         assertTrue(parts.length >= 3);
     }
+
+    @Test
+    public void testCreateJwtForApiTokenSuccess() throws Exception {
+        final String issuer = "cluster_0";
+        final String subject = "test-token";
+        final String audience = "test-token";
+        final List<String> clusterPermissions = List.of("cluster:admin/*");
+        ApiToken.IndexPermission indexPermission = new ApiToken.IndexPermission(List.of("*"), List.of("read"));
+        final List<ApiToken.IndexPermission> indexPermissions = List.of(indexPermission);
+        final String expectedClusterPermissions = "cluster:admin/*";
+        final String expectedIndexPermissions = indexPermission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+            .toString();
+
+        LongSupplier currentTime = () -> (long) 100;
+        String claimsEncryptionKey = "1234567890123456";
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
+        final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(
+            issuer,
+            subject,
+            audience,
+            Long.MAX_VALUE,
+            clusterPermissions,
+            indexPermissions
+        );
+
+        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
+
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo(issuer));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo(subject));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[" + audience + "]"));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
+        // Allow for millisecond to second conversion flexibility
+        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime() / 1000, equalTo(Long.MAX_VALUE / 1000));
+
+        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
+        assertThat(
+            encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("cp").toString()),
+            equalTo(expectedClusterPermissions)
+        );
+        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()), equalTo(expectedIndexPermissions));
+
+        XContentParser parser = XContentType.JSON.xContent()
+            .createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString())
+            );
+        ApiToken.IndexPermission indexPermission1 = ApiToken.IndexPermission.fromXContent(parser);
+
+        // Index permission deserialization works as expected
+        assertThat(indexPermission1.getIndexPatterns(), equalTo(indexPermission.getIndexPatterns()));
+        assertThat(indexPermission1.getAllowedActions(), equalTo(indexPermission.getAllowedActions()));
+    }
+
+    @Test
+    public void testEncryptJwtCorrectly() {
+        String claimsEncryptionKey = BaseEncoding.base64().encode("1234567890123456".getBytes(StandardCharsets.UTF_8));
+        String token =
+            "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJkZXJlayI6ImlzIGF3ZXNvbWUifQ.aPp9mSaBRBUzMJ8V_MYWUs8UoGYnJDNVriu3B9MRJpPNZtOhnIfATE0Ghmms2bGRNw9rmyRn1VIDQRmxSOTu3w";
+        String expectedEncryptedToken =
+            "k3JQNRXR57Y4V4W1LNkpEP7FTJZos7fySJDJDGuBQXe7pi9aiEIGJ7JqjezssGRZ1AZGD/QTPQ0jjaV+rEICxBO9oyfTYWIoDdnAg5LijqPAzaULp48hi+/dqXXAAhi1zIlCSjqTDoZMTyjFxq4aRlPLjjQFuVxR3gIDMNnAUnvmFu5xh5AiVeKa1dwGy5X34Ou2i9pnQzmEDJDnf6mh7w2ODkDThJGh8JUlsUlfZEq6NwVN1XNyOr2IhPd3IZYUMgN3vWHyfjs6uwQNyHKHHcxIj4P8bJXLIGxJy3+LV5Y=";
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
+        LongSupplier currentTime = () -> (long) 100;
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        assertThat(jwtVendor.encryptString(token), equalTo(expectedEncryptedToken));
+    }
+
+    @Test
+    public void testEncryptDecryptClusterIndexPermissionsCorrectly() throws IOException {
+        String claimsEncryptionKey = BaseEncoding.base64().encode("1234567890123456".getBytes(StandardCharsets.UTF_8));
+        String clusterPermissions = "cluster:admin/*,cluster:*";
+        String encryptedClusterPermissions = "P+KGUkpANJHzHGKVSqJhIyHOKS+JCLOanxCOBWSgZNk=";
+        // "{\"index_pattern\":[\"*\"],\"allowed_actions\":[\"read\"]},{\"index_pattern\":[\".*\"],\"allowed_actions\":[\"write\"]}"
+        String indexPermissions = Strings.join(
+            List.of(
+                new ApiToken.IndexPermission(List.of("*"), List.of("read")).toXContent(
+                    XContentFactory.jsonBuilder(),
+                    ToXContent.EMPTY_PARAMS
+                ).toString(),
+                new ApiToken.IndexPermission(List.of(".*"), List.of("write")).toXContent(
+                    XContentFactory.jsonBuilder(),
+                    ToXContent.EMPTY_PARAMS
+                ).toString()
+            ),
+            ","
+        );
+        String encryptedIndexPermissions =
+            "Y9ssHcl6spHC2/zy+L1P0y8e2+T+jGgXcP02DWGeTMk/3KiI4Ik0Df7oXMf9l/Ba0emk9LClnHsJi8iFwRh7ii1Pxb3CTHS/d+p7a3bA6rtJjgOjGlbjdWTdj4+87uBJynsR5CAlUMLeTrjbPe/nWw==";
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
+        LongSupplier currentTime = () -> (long) 100;
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+
+        // encrypt decrypt cluster permissions
+        assertThat(jwtVendor.encryptString(clusterPermissions), equalTo(encryptedClusterPermissions));
+        assertThat(jwtVendor.decryptString(encryptedClusterPermissions), equalTo(clusterPermissions));
+
+        // encrypt decrypt index permissions
+        assertThat(jwtVendor.encryptString(indexPermissions), equalTo(encryptedIndexPermissions));
+        assertThat(jwtVendor.decryptString(encryptedIndexPermissions), equalTo(indexPermissions));
+    }
+
+    @Test
+    public void testKeyTooShortThrowsException() {
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
+        Settings settings = Settings.builder().put("signing_key", tooShortKey).put("encryption_key", claimsEncryptionKey).build();
+        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new JwtVendor(settings, Optional.empty()); });
+
+        assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
+    }
+
 }

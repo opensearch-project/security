@@ -100,5 +100,4 @@ public class ApiTokenActionTest {
         requestBody.put("cluster_permissions", Arrays.asList("perm1", "perm2"));
         assertThat(apiTokenAction.extractClusterPermissions(requestBody), is(Arrays.asList("perm1", "perm2")));
     }
-
 }
