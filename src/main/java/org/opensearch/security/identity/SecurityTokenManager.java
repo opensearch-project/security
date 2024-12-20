@@ -118,6 +118,9 @@ public class SecurityTokenManager implements TokenManager {
         }
 
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null) {
+            throw new OpenSearchSecurityException("Unsupported user to generate OnBehalfOfToken");
+        }
 
         final TransportAddress callerAddress = null; /* OBO tokens must not roles based on location from network address */
         final Set<String> mappedRoles = configModel.mapSecurityRoles(user, callerAddress);
@@ -145,9 +148,6 @@ public class SecurityTokenManager implements TokenManager {
         final List<ApiToken.IndexPermission> indexPermissions
     ) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (user == null) {
-            throw new OpenSearchSecurityException("Unsupported user to generate Api Token");
-        }
 
         try {
             return apiTokenJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration, clusterPermissions, indexPermissions);
