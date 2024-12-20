@@ -118,6 +118,7 @@ public class ResourceSharingIndexHandler {
     public void createResourceSharingIndexIfAbsent(Callable<Boolean> callable) {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+
             CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
             ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
                 LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
@@ -158,7 +159,8 @@ public class ResourceSharingIndexHandler {
      */
     public ResourceSharing indexResourceSharing(String resourceId, String resourceIndex, CreatedBy createdBy, ShareWith shareWith)
         throws IOException {
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             ResourceSharing entry = new ResourceSharing(resourceIndex, resourceId, createdBy, shareWith);
 
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
@@ -224,7 +226,8 @@ public class ResourceSharingIndexHandler {
     public <T> Set<T> fetchAllDocuments(String pluginIndex, Class<T> clazz) {
         LOGGER.debug("Fetching all documents from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
 
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
 
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -414,7 +417,8 @@ public class ResourceSharingIndexHandler {
         Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
@@ -521,7 +525,8 @@ public class ResourceSharingIndexHandler {
         Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
             searchRequest.scroll(scroll);
 
@@ -602,7 +607,8 @@ public class ResourceSharingIndexHandler {
 
         LOGGER.debug("Fetching document from index: {}, with resourceId: {}", pluginIndex, resourceId);
 
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             SearchRequest searchRequest = new SearchRequest(resourceSharingIndex);
 
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
@@ -838,7 +844,8 @@ public class ResourceSharingIndexHandler {
      * </pre>
      */
     private boolean updateByQueryResourceSharing(String sourceIdx, String resourceId, Script updateScript) {
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             BoolQueryBuilder query = QueryBuilders.boolQuery()
                 .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
                 .must(QueryBuilders.termQuery("resource_id.keyword", resourceId));
@@ -941,7 +948,8 @@ public class ResourceSharingIndexHandler {
 
         LOGGER.debug("Revoking access for resource {} in {} for entities: {} and scopes: {}", resourceId, sourceIdx, revokeAccess, scopes);
 
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             Map<String, Object> revoke = new HashMap<>();
             for (Map.Entry<EntityType, Set<String>> entry : revokeAccess.entrySet()) {
                 revoke.put(entry.getKey().name().toLowerCase(), new ArrayList<>(entry.getValue()));
@@ -1036,7 +1044,8 @@ public class ResourceSharingIndexHandler {
     public boolean deleteResourceSharingRecord(String resourceId, String sourceIdx) {
         LOGGER.debug("Deleting documents from {} where source_idx = {} and resource_id = {}", resourceSharingIndex, sourceIdx, resourceId);
 
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             DeleteByQueryRequest dbq = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
                 QueryBuilders.boolQuery()
                     .must(QueryBuilders.termQuery("source_idx.keyword", sourceIdx))
@@ -1124,7 +1133,8 @@ public class ResourceSharingIndexHandler {
 
         LOGGER.debug("Deleting all records for user {}", name);
 
-        try {
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             DeleteByQueryRequest deleteRequest = new DeleteByQueryRequest(resourceSharingIndex).setQuery(
                 QueryBuilders.termQuery("created_by.user", name)
             ).setRefresh(true);
@@ -1157,6 +1167,7 @@ public class ResourceSharingIndexHandler {
     private <T> Set<T> getResourcesFromIds(Set<String> resourceIds, String resourceIndex, Class<T> clazz) {
         Set<T> result = new HashSet<>();
         // stashing Context to avoid permission issues in-case resourceIndex is a system index
+        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             MultiGetRequest request = new MultiGetRequest();
             for (String id : resourceIds) {
