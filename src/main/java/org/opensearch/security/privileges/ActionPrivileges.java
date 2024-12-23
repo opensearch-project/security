@@ -90,9 +90,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         Settings settings,
         ImmutableSet<String> wellKnownClusterActions,
         ImmutableSet<String> wellKnownIndexActions,
-        ImmutableSet<String> explicitlyRequiredIndexActions
+        ImmutableSet<String> explicitlyRequiredIndexActions,
+        Map<String, Set<String>> pluginToClusterActions
     ) {
-        this.cluster = new ClusterPrivileges(roles, actionGroups, wellKnownClusterActions);
+        this.cluster = new ClusterPrivileges(roles, actionGroups, wellKnownClusterActions, pluginToClusterActions);
         this.index = new IndexPrivileges(roles, actionGroups, wellKnownIndexActions, explicitlyRequiredIndexActions);
         this.roles = roles;
         this.actionGroups = actionGroups;
@@ -115,7 +116,27 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             settings,
             WellKnownActions.CLUSTER_ACTIONS,
             WellKnownActions.INDEX_ACTIONS,
-            WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS
+            WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS,
+            Map.of()
+        );
+    }
+
+    public ActionPrivileges(
+        SecurityDynamicConfiguration<RoleV7> roles,
+        FlattenedActionGroups actionGroups,
+        Supplier<Map<String, IndexAbstraction>> indexMetadataSupplier,
+        Settings settings,
+        Map<String, Set<String>> pluginToClusterActions
+    ) {
+        this(
+            roles,
+            actionGroups,
+            indexMetadataSupplier,
+            settings,
+            WellKnownActions.CLUSTER_ACTIONS,
+            WellKnownActions.INDEX_ACTIONS,
+            WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS,
+            pluginToClusterActions
         );
     }
 
@@ -297,6 +318,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          */
         private final ImmutableMap<String, WildcardMatcher> rolesToActionMatcher;
 
+        private final ImmutableMap<String, WildcardMatcher> usersToActionMatcher;
+
         private final ImmutableSet<String> wellKnownClusterActions;
 
         /**
@@ -310,7 +333,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         ClusterPrivileges(
             SecurityDynamicConfiguration<RoleV7> roles,
             FlattenedActionGroups actionGroups,
-            ImmutableSet<String> wellKnownClusterActions
+            ImmutableSet<String> wellKnownClusterActions,
+            Map<String, Set<String>> pluginToClusterActions
         ) {
             DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
                 roles.getCEntries().keySet()
@@ -318,6 +342,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> actionToRoles = new HashMap<>();
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
+            ImmutableMap.Builder<String, WildcardMatcher> usersToActionMatcher = ImmutableMap.builder();
 
             for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 try {
@@ -367,6 +392,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
+            if (pluginToClusterActions != null) {
+                for (String pluginIdentifier : pluginToClusterActions.keySet()) {
+                    Set<String> clusterActions = pluginToClusterActions.get(pluginIdentifier);
+                    WildcardMatcher matcher = WildcardMatcher.from(clusterActions);
+                    usersToActionMatcher.put(pluginIdentifier, matcher);
+                }
+            }
+
             DeduplicatingCompactSubSetBuilder.Completed<String> completedRoleSetBuilder = roleSetBuilder.build();
 
             this.actionToRoles = actionToRoles.entrySet()
@@ -374,6 +407,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, entry -> entry.getValue().build(completedRoleSetBuilder)));
             this.rolesWithWildcardPermissions = rolesWithWildcardPermissions.build();
             this.rolesToActionMatcher = rolesToActionMatcher.build();
+            this.usersToActionMatcher = usersToActionMatcher.build();
             this.wellKnownClusterActions = wellKnownClusterActions;
         }
 
@@ -404,6 +438,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                     if (matcher != null && matcher.test(action)) {
                         return PrivilegesEvaluatorResponse.ok();
                     }
+                }
+            }
+
+            // 4: If plugin is performing the action, check if plugin has permission
+            if (context.getUser().isPluginUser() && this.usersToActionMatcher.containsKey(context.getUser().getName())) {
+                WildcardMatcher matcher = this.usersToActionMatcher.get(context.getUser().getName());
+                if (matcher != null && matcher.test(action)) {
+                    return PrivilegesEvaluatorResponse.ok();
                 }
             }
 
@@ -472,6 +514,16 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                         if (matcher != null && matcher.test(action)) {
                             return PrivilegesEvaluatorResponse.ok();
                         }
+                    }
+                }
+            }
+
+            // 4: If plugin is performing the action, check if plugin has permission
+            if (this.usersToActionMatcher.containsKey(context.getUser().getName())) {
+                WildcardMatcher matcher = this.usersToActionMatcher.get(context.getUser().getName());
+                for (String action : actions) {
+                    if (matcher != null && matcher.test(action)) {
+                        return PrivilegesEvaluatorResponse.ok();
                     }
                 }
             }
