@@ -503,7 +503,7 @@ configurations {
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
             force "com.google.errorprone:error_prone_annotations:2.35.1"
             force "org.checkerframework:checker-qual:3.48.3"
-            force "ch.qos.logback:logback-classic:1.5.12"
+            force "ch.qos.logback:logback-classic:1.5.15"
             force "commons-io:commons-io:2.18.0"
         }
     }
