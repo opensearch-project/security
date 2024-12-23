@@ -497,7 +497,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.36.0"
             force "org.checkerframework:checker-qual:3.48.3"
-            force "ch.qos.logback:logback-classic:1.5.12"
+            force "ch.qos.logback:logback-classic:1.5.15"
             force "commons-io:commons-io:2.18.0"
         }
     }
