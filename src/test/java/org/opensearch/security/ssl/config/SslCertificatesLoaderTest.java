@@ -13,6 +13,7 @@ package org.opensearch.security.ssl.config;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import org.junit.ClassRule;
@@ -49,7 +50,7 @@ public abstract class SslCertificatesLoaderTest extends RandomizedTest {
         assertThat("Truststore configuration created", nonNull(trustStoreConfiguration));
         assertThat(trustStoreConfiguration.file(), is(expectedFile));
         assertThat(trustStoreConfiguration.loadCertificates(), containsInAnyOrder(expectedCertificates));
-        assertThat(trustStoreConfiguration.createTrustManagerFactory(true), is(notNullValue()));
+        assertThat(trustStoreConfiguration.createTrustManagerFactory(true, Set.of()), is(notNullValue()));
     }
 
     void assertKeyStoreConfiguration(
