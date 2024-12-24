@@ -33,7 +33,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         try {
             Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPOpenIdAuthenticator jwtAuth = new HTTPOpenIdAuthenticator(settings, null);
 
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
@@ -60,7 +60,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         try {
             Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPOpenIdAuthenticator jwtAuth = new HTTPOpenIdAuthenticator(settings, null);
 
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_X), new HashMap<String, String>())
@@ -83,7 +83,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         try {
             Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPOpenIdAuthenticator jwtAuth = new HTTPOpenIdAuthenticator(settings, null);
 
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
@@ -109,7 +109,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         try {
             Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPOpenIdAuthenticator jwtAuth = new HTTPOpenIdAuthenticator(settings, null);
 
             AuthCredentials creds = jwtAuth.extractCredentials(
                 new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>())
@@ -132,7 +132,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
         Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        HTTPOpenIdAuthenticator jwtAuth = new HTTPOpenIdAuthenticator(settings, null);
 
         try {
             AuthCredentials creds = jwtAuth.extractCredentials(
@@ -183,7 +183,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
         mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_2);
         settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build(); // port changed
-        jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        jwtAuth = new HTTPOpenIdAuthenticator(settings, null);
 
         try {
             AuthCredentials creds = jwtAuth.extractCredentials(

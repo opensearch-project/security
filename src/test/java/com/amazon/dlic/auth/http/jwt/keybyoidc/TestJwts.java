@@ -32,13 +32,23 @@ class TestJwts {
     static final Set<String> TEST_ROLES = ImmutableSet.of("role1", "role2");
     static final String TEST_ROLES_STRING = String.join(",", TEST_ROLES);
 
+    static final String OIDC_TEST_AUD = "testClient";
+
+    static final String OIDC_TEST_ISS = "http://www.example.com";
+
     static final String TEST_AUDIENCE = "TestAudience";
 
     static final String MCCOY_SUBJECT = "Leonard McCoy";
 
+    static final String STEPHEN_SUBJECT = "Stephen Crawford";
+
     static final String TEST_ISSUER = "TestIssuer";
 
+    static final JWTClaimsSet STEPHEN = create(STEPHEN_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+
     static final JWTClaimsSet MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+
+    static final JWTClaimsSet MC_COY_OIDC = create(MCCOY_SUBJECT, OIDC_TEST_AUD, OIDC_TEST_ISS, ROLES_CLAIM, TEST_ROLES_STRING);
 
     static final JWTClaimsSet MC_COY_2 = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
@@ -58,6 +68,8 @@ class TestJwts {
 
     static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
 
+    static final String MC_COY_SIGNED_OCT_1_OIDC = createSigned(MC_COY_OIDC, TestJwk.OCT_1);
+
     static final String MC_COY_SIGNED_OCT_2 = createSigned(MC_COY_2, TestJwk.OCT_2);
 
     static final String MC_COY_SIGNED_NO_AUDIENCE_OCT_1 = createSigned(MC_COY_NO_AUDIENCE, TestJwk.OCT_1);
@@ -66,6 +78,8 @@ class TestJwts {
     static final String MC_COY_SIGNED_OCT_1_INVALID_KID = createSigned(MC_COY, TestJwk.FORWARD_SLASH_KID_OCT_1);
 
     static final String MC_COY_SIGNED_RSA_1 = createSigned(MC_COY, TestJwk.RSA_1);
+
+    static final String STEPHEN_RSA_1 = createSigned(STEPHEN, TestJwk.RSA_1);
 
     static final String MC_COY_SIGNED_RSA_X = createSigned(MC_COY, TestJwk.RSA_X);
 
