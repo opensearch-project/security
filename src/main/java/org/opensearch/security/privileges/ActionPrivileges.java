@@ -14,6 +14,7 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -159,6 +160,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
         PrivilegesEvaluatorResponse response = this.index.providesWildcardPrivilege(context, actions);
         if (response != null) {
             return response;
+        }
+
+        // API Token Authz
+        // TODO: this is very naive implementation
+        if (context.getIndices() != null && new HashSet<>(context.getIndices()).containsAll(resolvedIndices.getAllIndices())) {
+            if (new HashSet<>(context.getAllowedActions()).containsAll(actions)) {
+                return PrivilegesEvaluatorResponse.ok();
+            }
         }
 
         if (!resolvedIndices.isLocalAll() && resolvedIndices.getAllIndices().isEmpty()) {
@@ -405,6 +414,11 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                         return PrivilegesEvaluatorResponse.ok();
                     }
                 }
+            }
+
+            // 4: Evaluate api tokens
+            if (context.getClusterPermissions().contains(action)) {
+                return PrivilegesEvaluatorResponse.ok();
             }
 
             return PrivilegesEvaluatorResponse.insufficient(action);

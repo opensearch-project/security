@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -30,6 +29,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.action.apitokens.ApiToken;
 
 import com.nimbusds.jose.JOSEException;
@@ -184,12 +184,17 @@ public class JwtVendor {
         }
 
         if (indexPermissions != null) {
-            List<String> permissionStrings = new ArrayList<>();
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.startArray();
             for (ApiToken.IndexPermission permission : indexPermissions) {
-                permissionStrings.add(permission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString());
+                // Add each permission to the array
+                permission.toXContent(builder, ToXContent.EMPTY_PARAMS);
             }
-            final String listOfIndexPermissions = String.join(",", permissionStrings);
-            claimsBuilder.claim("ip", encryptString(listOfIndexPermissions));
+            builder.endArray();
+
+            // Encrypt the entire JSON array
+            String jsonArray = builder.toString();
+            claimsBuilder.claim("ip", encryptString(jsonArray));
         }
 
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.parse(signingKey.getAlgorithm().getName())).build();
