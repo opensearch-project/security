@@ -11,9 +11,10 @@
 
 package org.opensearch.security.http;
 
+import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -31,7 +32,12 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
@@ -48,6 +54,8 @@ import io.jsonwebtoken.security.WeakKeyException;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_CLUSTERPERM_KEY;
+import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDEXACTIONS_KEY;
+import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDICES_KEY;
 import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class ApiTokenAuthenticator implements HTTPAuthenticator {
@@ -109,32 +117,88 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         return jwtParserBuilder;
     }
 
-    private String extractSecurityRolesFromClaims(Claims claims) {
+    private String extractClusterPermissionsFromClaims(Claims claims) {
         Object cp = claims.get("cp");
-        Object ip = claims.get("ip");
-        String rolesClaim = "";
+        String clusterPermissions = "";
 
         if (cp != null) {
-            rolesClaim = encryptionUtil.decrypt(cp.toString());
+            clusterPermissions = encryptionUtil.decrypt(cp.toString());
         } else {
             log.warn("This is a malformed Api Token");
         }
 
-        return rolesClaim;
+        return clusterPermissions;
     }
 
-    private String[] extractBackendRolesFromClaims(Claims claims) {
-        Object backendRolesObject = claims.get("br");
-        String[] backendRoles;
+    private String extractAllowedActionsFromClaims(Claims claims) throws IOException {
+        Object ip = claims.get("ip");
 
-        if (backendRolesObject == null) {
-            backendRoles = new String[0];
-        } else {
-            // Extracting roles based on the compatibility mode
-            backendRoles = Arrays.stream(backendRolesObject.toString().split(",")).map(String::trim).toArray(String[]::new);
+        if (ip != null) {
+            String decryptedPermissions = encryptionUtil.decrypt(ip.toString());
+
+            try (
+                XContentParser parser = XContentType.JSON.xContent()
+                    .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, decryptedPermissions)
+            ) {
+
+                // Use built-in array parsing
+                List<ApiToken.IndexPermission> permissions = new ArrayList<>();
+
+                // Move to start of array
+                parser.nextToken();  // START_ARRAY
+                while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                    permissions.add(ApiToken.IndexPermission.fromXContent(parser));
+                }
+                // Get first permission's actions
+                if (!permissions.isEmpty() && !permissions.get(0).getAllowedActions().isEmpty()) {
+                    return permissions.get(0).getAllowedActions().get(0);
+                }
+
+                return "";
+            } catch (Exception e) {
+                log.error("Error extracting allowed actions", e);
+                return "";
+            }
+
         }
 
-        return backendRoles;
+        return "";
+    }
+
+    private String extractIndicesFromClaims(Claims claims) throws IOException {
+        Object ip = claims.get("ip");
+
+        if (ip != null) {
+            String decryptedPermissions = encryptionUtil.decrypt(ip.toString());
+
+            try (
+                XContentParser parser = XContentType.JSON.xContent()
+                    .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, decryptedPermissions)
+            ) {
+
+                // Use built-in array parsing
+                List<ApiToken.IndexPermission> permissions = new ArrayList<>();
+
+                // Move to start of array
+                parser.nextToken();  // START_ARRAY
+                while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                    permissions.add(ApiToken.IndexPermission.fromXContent(parser));
+                }
+
+                // Get first permission's actions
+                if (!permissions.isEmpty() && !permissions.get(0).getIndexPatterns().isEmpty()) {
+                    return permissions.get(0).getIndexPatterns().get(0);
+                }
+
+                return "";
+            } catch (Exception e) {
+                log.error("Error extracting indices", e);
+                return "";
+            }
+
+        }
+
+        return "";
     }
 
     @Override
@@ -193,10 +257,15 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            String clusterPermissions = extractSecurityRolesFromClaims(claims);
-            String[] backendRoles = extractBackendRolesFromClaims(claims);
+            log.info("before extraction");
 
-            final AuthCredentials ac = new AuthCredentials(subject, List.of(), backendRoles).markComplete();
+            String clusterPermissions = extractClusterPermissionsFromClaims(claims);
+            String allowedActions = extractAllowedActionsFromClaims(claims);
+            String indices = extractIndicesFromClaims(claims);
+
+            log.info(clusterPermissions + allowedActions + indices);
+
+            final AuthCredentials ac = new AuthCredentials(subject, List.of(), new String[0]).markComplete();
 
             for (Entry<String, Object> claim : claims.entrySet()) {
                 String key = "attr.jwt." + claim.getKey();
@@ -218,6 +287,8 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             }
 
             context.putTransient(API_TOKEN_CLUSTERPERM_KEY, clusterPermissions);
+            context.putTransient(API_TOKEN_INDEXACTIONS_KEY, allowedActions);
+            context.putTransient(API_TOKEN_INDICES_KEY, indices);
 
             return ac;
 

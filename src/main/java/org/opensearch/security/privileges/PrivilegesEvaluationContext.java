@@ -47,6 +47,8 @@ public class PrivilegesEvaluationContext {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
     private List<String> clusterPermissions;
+    private List<String> allowedActions;
+    private List<String> indices;
 
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
@@ -181,5 +183,21 @@ public class PrivilegesEvaluationContext {
 
     public List<String> getClusterPermissions() {
         return clusterPermissions;
+    }
+
+    public List<String> getAllowedActions() {
+        return allowedActions;
+    }
+
+    public void setAllowedActions(List<String> allowedActions) {
+        this.allowedActions = allowedActions;
+    }
+
+    public List<String> getIndices() {
+        return indices;
+    }
+
+    public void setIndices(List<String> indices) {
+        this.indices = indices;
     }
 }
