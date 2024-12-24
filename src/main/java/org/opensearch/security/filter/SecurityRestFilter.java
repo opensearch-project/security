@@ -76,6 +76,8 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 public class SecurityRestFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
+    public static final String API_TOKEN_CLUSTERPERM_KEY = "security.api_token.clusterperm";
+    public static final String API_TOKEN_INDEXPERM_KEY = "security.api_token.indexperm";
     private final BackendRegistry registry;
     private final RestLayerPrivilegesEvaluator evaluator;
     private final AuditLog auditLog;
@@ -232,6 +234,13 @@ public class SecurityRestFilter {
                 .addAll(route.actionNames() != null ? route.actionNames() : Collections.emptySet())
                 .add(route.name())
                 .build();
+
+            log.info("API token context value: " + threadContext.getTransient(API_TOKEN_CLUSTERPERM_KEY).toString());
+
+            if (threadContext.getTransient(API_TOKEN_CLUSTERPERM_KEY) != null) {
+                return;
+            }
+
             pres = evaluator.evaluate(user, route.name(), actionNames);
 
             if (log.isDebugEnabled()) {

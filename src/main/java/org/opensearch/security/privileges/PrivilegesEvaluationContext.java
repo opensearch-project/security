@@ -11,6 +11,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -45,6 +46,7 @@ public class PrivilegesEvaluationContext {
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
+    private List<String> clusterPermissions;
 
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
@@ -171,5 +173,13 @@ public class PrivilegesEvaluationContext {
             + ", mappedRoles="
             + mappedRoles
             + '}';
+    }
+
+    public void setClusterPermissions(List<String> clusterPermissions) {
+        this.clusterPermissions = clusterPermissions;
+    }
+
+    public List<String> getClusterPermissions() {
+        return clusterPermissions;
     }
 }

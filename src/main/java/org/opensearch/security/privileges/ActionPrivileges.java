@@ -407,6 +407,11 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
+            // 4: Evaluate api tokens
+            if (context.getClusterPermissions().contains(action)) {
+                return PrivilegesEvaluatorResponse.ok();
+            }
+
             return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
