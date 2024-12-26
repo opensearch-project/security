@@ -289,8 +289,9 @@ public class JwtVendorTest {
         ApiToken.IndexPermission indexPermission = new ApiToken.IndexPermission(List.of("*"), List.of("read"));
         final List<ApiToken.IndexPermission> indexPermissions = List.of(indexPermission);
         final String expectedClusterPermissions = "cluster:admin/*";
-        final String expectedIndexPermissions = indexPermission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-            .toString();
+        final String expectedIndexPermissions = "["
+            + indexPermission.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString()
+            + "]";
 
         LongSupplier currentTime = () -> (long) 100;
         String claimsEncryptionKey = "1234567890123456";
@@ -319,6 +320,7 @@ public class JwtVendorTest {
             encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("cp").toString()),
             equalTo(expectedClusterPermissions)
         );
+
         assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()), equalTo(expectedIndexPermissions));
 
         XContentParser parser = XContentType.JSON.xContent()
@@ -327,6 +329,9 @@ public class JwtVendorTest {
                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                 encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString())
             );
+        // Parse first item of the list
+        parser.nextToken();
+        parser.nextToken();
         ApiToken.IndexPermission indexPermission1 = ApiToken.IndexPermission.fromXContent(parser);
 
         // Index permission deserialization works as expected
