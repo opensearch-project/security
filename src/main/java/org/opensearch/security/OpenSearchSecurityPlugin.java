@@ -132,6 +132,7 @@ import org.opensearch.search.internal.ReaderContext;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.apitokens.ApiTokenAction;
+import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
@@ -717,6 +718,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     dlsFlsBaseContext
                 )
             );
+
+            // TODO: Is there a higher level approach that makes more sense here? Does this cover unsuccessful index ops?
+            if (ConfigConstants.OPENSEARCH_API_TOKENS_INDEX.equals(indexModule.getIndex().getName())) {
+                ApiTokenIndexListenerCache apiTokenIndexListenerCacher = ApiTokenIndexListenerCache.getInstance();
+                apiTokenIndexListenerCacher.initialize();
+                indexModule.addIndexOperationListener(apiTokenIndexListenerCacher);
+                log.warn("Security plugin started listening to operations on index {}", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+            }
+
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
 
                 @Override

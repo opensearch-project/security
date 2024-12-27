@@ -386,7 +386,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          */
         Settings apiTokenSettings = getDynamicApiTokenSettings();
         if (!isKeyNull(apiTokenSettings, "signing_key") && !isKeyNull(apiTokenSettings, "encryption_key")) {
-            log.info("we initialized the api tokenauthenticator");
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
                 new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName()),

@@ -20,6 +20,7 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class AuthTokenUtils {
     private static final String ON_BEHALF_OF_SUFFIX = "api/generateonbehalfoftoken";
     private static final String ACCOUNT_SUFFIX = "api/account";
+    private static final String API_TOKEN_SUFFIX = "api/apitokens";
 
     public static Boolean isAccessToRestrictedEndpoints(final SecurityRequest request, final String suffix) {
         if (suffix == null) {
@@ -28,6 +29,9 @@ public class AuthTokenUtils {
         switch (suffix) {
             case ON_BEHALF_OF_SUFFIX:
                 return request.method() == POST;
+            case API_TOKEN_SUFFIX:
+                // Don't want to allow any api token access
+                return true;
             case ACCOUNT_SUFFIX:
                 return request.method() == PUT;
             default:

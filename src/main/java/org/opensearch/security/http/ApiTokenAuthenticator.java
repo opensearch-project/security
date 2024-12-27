@@ -38,6 +38,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.apitokens.ApiToken;
+import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
@@ -226,6 +227,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.error("Api token authentication is disabled");
             return null;
         }
+        ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
 
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
@@ -236,34 +238,36 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
+        // TODO: handle revocation different from deletion?
+        if (!cache.getJtis().contains(encryptionUtil.encrypt(jwtToken))) {
+            log.debug("Token is not allowlisted");
+            return null;
+        }
+
         try {
             final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
             final String subject = claims.getSubject();
             if (subject == null) {
-                log.error("Valid jwt on behalf of token with no subject");
+                log.error("Valid jwt api token with no subject");
                 return null;
             }
 
             final Set<String> audience = claims.getAudience();
             if (audience == null || audience.isEmpty()) {
-                log.error("Valid jwt on behalf of token with no audience");
+                log.error("Valid jwt api token with no audience");
                 return null;
             }
 
             final String issuer = claims.getIssuer();
             if (!clusterName.equals(issuer)) {
-                log.error("The issuer of this OBO does not match the current cluster identifier");
+                log.error("The issuer of this api token does not match the current cluster identifier");
                 return null;
             }
-
-            log.info("before extraction");
 
             String clusterPermissions = extractClusterPermissionsFromClaims(claims);
             String allowedActions = extractAllowedActionsFromClaims(claims);
             String indices = extractIndicesFromClaims(claims);
-
-            log.info(clusterPermissions + allowedActions + indices);
 
             final AuthCredentials ac = new AuthCredentials(subject, List.of(), new String[0]).markComplete();
 
@@ -333,7 +337,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (isAccessToRestrictedEndpoints(request, suffix)) {
-            final OpenSearchException exception = ExceptionUtils.invalidUsageOfOBOTokenException();
+            final OpenSearchException exception = ExceptionUtils.invalidUsageOfApiTokenException();
             log.error(exception.toString());
             return false;
         }
@@ -347,7 +351,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
     @Override
     public String getType() {
-        return "onbehalfof_jwt";
+        return "apitoken_jwt";
     }
 
     @Override
