@@ -15,11 +15,8 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +33,6 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
 import org.opensearch.security.auth.HTTPAuthenticator;
@@ -55,8 +51,7 @@ import io.jsonwebtoken.security.WeakKeyException;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_CLUSTERPERM_KEY;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDEXACTIONS_KEY;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDICES_KEY;
+import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDEXPERM_KEY;
 import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class ApiTokenAuthenticator implements HTTPAuthenticator {
@@ -65,7 +60,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    public Logger log = LogManager.getLogger(this.getClass());
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
@@ -131,7 +126,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         return clusterPermissions;
     }
 
-    private String extractAllowedActionsFromClaims(Claims claims) throws IOException {
+    private List<ApiToken.IndexPermission> extractIndexPermissionFromClaims(Claims claims) throws IOException {
         Object ip = claims.get("ip");
 
         if (ip != null) {
@@ -150,56 +145,15 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                     permissions.add(ApiToken.IndexPermission.fromXContent(parser));
                 }
-                // Get first permission's actions
-                if (!permissions.isEmpty() && !permissions.get(0).getAllowedActions().isEmpty()) {
-                    return permissions.get(0).getAllowedActions().get(0);
-                }
-
-                return "";
+                return permissions;
             } catch (Exception e) {
-                log.error("Error extracting allowed actions", e);
-                return "";
+                log.error("Error extracting index permissions", e);
+                return List.of();
             }
 
         }
 
-        return "";
-    }
-
-    private String extractIndicesFromClaims(Claims claims) throws IOException {
-        Object ip = claims.get("ip");
-
-        if (ip != null) {
-            String decryptedPermissions = encryptionUtil.decrypt(ip.toString());
-
-            try (
-                XContentParser parser = XContentType.JSON.xContent()
-                    .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, decryptedPermissions)
-            ) {
-
-                // Use built-in array parsing
-                List<ApiToken.IndexPermission> permissions = new ArrayList<>();
-
-                // Move to start of array
-                parser.nextToken();  // START_ARRAY
-                while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                    permissions.add(ApiToken.IndexPermission.fromXContent(parser));
-                }
-
-                // Get first permission's actions
-                if (!permissions.isEmpty() && !permissions.get(0).getIndexPatterns().isEmpty()) {
-                    return permissions.get(0).getIndexPatterns().get(0);
-                }
-
-                return "";
-            } catch (Exception e) {
-                log.error("Error extracting indices", e);
-                return "";
-            }
-
-        }
-
-        return "";
+        return List.of();
     }
 
     @Override
@@ -253,12 +207,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            final Set<String> audience = claims.getAudience();
-            if (audience == null || audience.isEmpty()) {
-                log.error("Valid jwt api token with no audience");
-                return null;
-            }
-
             final String issuer = claims.getIssuer();
             if (!clusterName.equals(issuer)) {
                 log.error("The issuer of this api token does not match the current cluster identifier");
@@ -266,33 +214,12 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             }
 
             String clusterPermissions = extractClusterPermissionsFromClaims(claims);
-            String allowedActions = extractAllowedActionsFromClaims(claims);
-            String indices = extractIndicesFromClaims(claims);
+            List<ApiToken.IndexPermission> indexPermissions = extractIndexPermissionFromClaims(claims);
 
-            final AuthCredentials ac = new AuthCredentials(subject, List.of(), new String[0]).markComplete();
-
-            for (Entry<String, Object> claim : claims.entrySet()) {
-                String key = "attr.jwt." + claim.getKey();
-                Object value = claim.getValue();
-
-                if (value instanceof Collection<?>) {
-                    try {
-                        // Convert the list to a JSON array string
-                        String jsonValue = DefaultObjectMapper.writeValueAsString(value, false);
-                        ac.addAttribute(key, jsonValue);
-                    } catch (Exception e) {
-                        log.warn("Failed to convert list claim to JSON for key: " + key, e);
-                        // Fallback to string representation
-                        ac.addAttribute(key, String.valueOf(value));
-                    }
-                } else {
-                    ac.addAttribute(key, String.valueOf(value));
-                }
-            }
+            final AuthCredentials ac = new AuthCredentials(subject, List.of(), "").markComplete();
 
             context.putTransient(API_TOKEN_CLUSTERPERM_KEY, clusterPermissions);
-            context.putTransient(API_TOKEN_INDEXACTIONS_KEY, allowedActions);
-            context.putTransient(API_TOKEN_INDICES_KEY, indices);
+            context.putTransient(API_TOKEN_INDEXPERM_KEY, indexPermissions);
 
             return ac;
 

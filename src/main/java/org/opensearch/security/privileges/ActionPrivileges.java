@@ -36,6 +36,7 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -164,8 +165,16 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
         // API Token Authz
         // TODO: this is very naive implementation
-        if (context.getIndices() != null && new HashSet<>(context.getIndices()).containsAll(resolvedIndices.getAllIndices())) {
-            if (new HashSet<>(context.getAllowedActions()).containsAll(actions)) {
+        if (context.getIndexPermissions() != null) {
+            List<ApiToken.IndexPermission> indexPermissions = context.getIndexPermissions();
+
+            boolean hasPermission = indexPermissions.stream().anyMatch(permission -> {
+                boolean hasAllActions = new HashSet<>(permission.getAllowedActions()).containsAll(actions);
+                boolean hasAllIndices = new HashSet<>(permission.getIndexPatterns()).containsAll(resolvedIndices.getAllIndices());
+                return hasAllActions && hasAllIndices;
+            });
+
+            if (hasPermission) {
                 return PrivilegesEvaluatorResponse.ok();
             }
         }

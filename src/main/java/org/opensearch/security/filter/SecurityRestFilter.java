@@ -77,8 +77,7 @@ public class SecurityRestFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     public static final String API_TOKEN_CLUSTERPERM_KEY = "security.api_token.clusterperm";
-    public static final String API_TOKEN_INDEXACTIONS_KEY = "security.api_token.indexactions";
-    public static final String API_TOKEN_INDICES_KEY = "security.api_token.indices";
+    public static final String API_TOKEN_INDEXPERM_KEY = "security.api_token.indexactions";
     private final BackendRegistry registry;
     private final RestLayerPrivilegesEvaluator evaluator;
     private final AuditLog auditLog;

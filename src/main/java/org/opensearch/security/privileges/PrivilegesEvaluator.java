@@ -86,6 +86,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -110,8 +111,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_CLUSTERPERM_KEY;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDEXACTIONS_KEY;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDICES_KEY;
+import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDEXPERM_KEY;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class PrivilegesEvaluator {
@@ -354,20 +354,10 @@ public class PrivilegesEvaluator {
             context.setClusterPermissions(clusterPermissions);
         }
 
-        final String apiTokenIndexAllowedActions = threadContext.getTransient(API_TOKEN_INDEXACTIONS_KEY);
-        if (apiTokenIndexAllowedActions != null) {
-            List<String> allowedactions = Arrays.asList(apiTokenIndexAllowedActions.split(","));
-            context.setAllowedActions(allowedactions);
+        final List<ApiToken.IndexPermission> apiTokenIndexPermissions = threadContext.getTransient(API_TOKEN_INDEXPERM_KEY);
+        if (apiTokenIndexPermissions != null) {
+            context.setIndexPermissions(apiTokenIndexPermissions);
         }
-
-        final String apiTokenIndices = threadContext.getTransient(API_TOKEN_INDICES_KEY);
-        if (apiTokenIndices != null) {
-            List<String> indices = Arrays.asList(apiTokenIndices.split(","));
-            context.setIndices(indices);
-        }
-
-        log.info("API Tokens actions" + apiTokenIndexAllowedActions);
-        log.info("API Tokens indices" + apiTokenIndices);
 
         // Add the security roles for this user so that they can be used for DLS parameter substitution.
         user.addSecurityRoles(mappedRoles);

@@ -21,6 +21,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -47,8 +48,7 @@ public class PrivilegesEvaluationContext {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
     private List<String> clusterPermissions;
-    private List<String> allowedActions;
-    private List<String> indices;
+    private List<ApiToken.IndexPermission> indexPermissions;
 
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
@@ -185,19 +185,11 @@ public class PrivilegesEvaluationContext {
         return clusterPermissions;
     }
 
-    public List<String> getAllowedActions() {
-        return allowedActions;
+    public List<ApiToken.IndexPermission> getIndexPermissions() {
+        return indexPermissions;
     }
 
-    public void setAllowedActions(List<String> allowedActions) {
-        this.allowedActions = allowedActions;
-    }
-
-    public List<String> getIndices() {
-        return indices;
-    }
-
-    public void setIndices(List<String> indices) {
-        this.indices = indices;
+    public void setIndexPermissions(List<ApiToken.IndexPermission> indexPermissions) {
+        this.indexPermissions = indexPermissions;
     }
 }
