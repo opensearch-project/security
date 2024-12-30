@@ -170,7 +170,9 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (Exception e) {
-            log.error("Invalid or expired JWT token.", e);
+            if (log.isDebugEnabled()) {
+                log.debug("Invalid or expired JWT token.", e);
+            }
         }
 
         // Return null for the authentication failure

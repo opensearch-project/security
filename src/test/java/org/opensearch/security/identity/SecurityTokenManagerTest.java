@@ -261,8 +261,8 @@ public class SecurityTokenManagerTest {
         createMockJwtVendorInTokenManager();
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
-        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE, List.of("*"), List.of());
+        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
 
         assertThat(returnedToken, equalTo(authToken));
 
@@ -282,8 +282,8 @@ public class SecurityTokenManagerTest {
         createMockJwtVendorInTokenManager();
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong(), any(), any())).thenReturn(authToken);
-        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE, List.of("*"), List.of());
+        when(jwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
 
         assertThat(returnedToken, equalTo(authToken));
 

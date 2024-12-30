@@ -32,11 +32,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.DeprecationHandler;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -297,14 +293,7 @@ public class JwtVendorTest {
         String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
         final JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(
-            issuer,
-            subject,
-            audience,
-            Long.MAX_VALUE,
-            clusterPermissions,
-            indexPermissions
-        );
+        final ExpiringBearerAuthToken authToken = jwtVendor.createJwt(issuer, subject, audience, Long.MAX_VALUE);
 
         SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
 
@@ -314,29 +303,6 @@ public class JwtVendorTest {
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
         // Allow for millisecond to second conversion flexibility
         assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime() / 1000, equalTo(Long.MAX_VALUE / 1000));
-
-        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        assertThat(
-            encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("cp").toString()),
-            equalTo(expectedClusterPermissions)
-        );
-
-        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString()), equalTo(expectedIndexPermissions));
-
-        XContentParser parser = XContentType.JSON.xContent()
-            .createParser(
-                NamedXContentRegistry.EMPTY,
-                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("ip").toString())
-            );
-        // Parse first item of the list
-        parser.nextToken();
-        parser.nextToken();
-        ApiToken.IndexPermission indexPermission1 = ApiToken.IndexPermission.fromXContent(parser);
-
-        // Index permission deserialization works as expected
-        assertThat(indexPermission1.getIndexPatterns(), equalTo(indexPermission.getIndexPatterns()));
-        assertThat(indexPermission1.getAllowedActions(), equalTo(indexPermission.getAllowedActions()));
     }
 
     @Test

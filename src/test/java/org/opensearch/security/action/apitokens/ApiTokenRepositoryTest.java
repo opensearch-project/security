@@ -84,13 +84,13 @@ public class ApiTokenRepositoryTest {
         String encryptedToken = "encrypted-token";
         ExpiringBearerAuthToken bearerToken = mock(ExpiringBearerAuthToken.class);
         when(bearerToken.getCompleteToken()).thenReturn(completeToken);
-        when(securityTokenManager.issueApiToken(any(), any(), any(), any())).thenReturn(bearerToken);
+        when(securityTokenManager.issueApiToken(any(), any())).thenReturn(bearerToken);
         when(securityTokenManager.encryptToken(completeToken)).thenReturn(encryptedToken);
 
         String result = repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration);
 
         verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent();
-        verify(securityTokenManager).issueApiToken(any(), any(), any(), any());
+        verify(securityTokenManager).issueApiToken(any(), any());
         verify(securityTokenManager).encryptToken(completeToken);
         verify(apiTokenIndexHandler).indexTokenMetadata(
             argThat(
