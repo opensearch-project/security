@@ -302,7 +302,7 @@ public class SystemIndexAccessEvaluator {
                 }
         }
 
-        if (user.isPluginUser()) {
+        if (user.isPluginUser() && !requestedResolved.isLocalAll()) {
             Set<String> matchingSystemIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
                 user.getName().replace("plugin:", ""),
                 requestedResolved.getAllIndices()

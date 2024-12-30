@@ -8,7 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-package org.opensearch.security.identity;
+package org.opensearch.security.systemindex.sampleplugin;
 
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -21,11 +21,11 @@ public class PluginContextSwitcher {
     public PluginContextSwitcher() {}
 
     public void initialize(PluginSubject pluginSubject) {
+        Objects.requireNonNull(pluginSubject);
         this.pluginSubject = pluginSubject;
     }
 
     public <T> T runAs(Callable<T> callable) {
-        Objects.requireNonNull(pluginSubject);
         try {
             return pluginSubject.runAs(callable);
         } catch (Exception e) {
