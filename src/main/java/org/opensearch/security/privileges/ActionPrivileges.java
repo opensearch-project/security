@@ -13,6 +13,7 @@ package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -323,6 +324,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
         private final ImmutableSet<String> wellKnownClusterActions;
 
+        private final FlattenedActionGroups actionGroups;
+
         /**
          * Creates pre-computed cluster privileges based on the given parameters.
          * <p>
@@ -399,6 +402,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             this.rolesWithWildcardPermissions = rolesWithWildcardPermissions.build();
             this.rolesToActionMatcher = rolesToActionMatcher.build();
             this.wellKnownClusterActions = wellKnownClusterActions;
+            this.actionGroups = actionGroups;
         }
 
         /**
@@ -432,17 +436,60 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             }
 
             // 4: Evaluate api tokens
-            if (context.getUser().getName().startsWith("apitoken")) {
-                String jti = context.getUser().getName().split(":")[1];
-                log.info(context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().toString());
+            return providesClusterPrivilegeForApiToken(context, Set.of(action), false);
+        }
 
-                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null
-                    && context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().contains(action)) {
+        /**
+         * Evaluates cluster privileges for api tokens. It does so by checking exact match, regex match, * match, and action group match in a non-optimized, naive way.
+         * First it expands all action groups to get all the actions and patterns of actions. Then it checks * if not an explicit check, then for exact match, then for pattern match.
+         */
+        PrivilegesEvaluatorResponse providesClusterPrivilegeForApiToken(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            Boolean explicit
+        ) {
+            String userName = context.getUser().getName();
+            String jti = context.getUser().getName().split(":")[1];
+            if (userName.startsWith("apitoken") && context.getApiTokenIndexListenerCache().getJtis().get(jti) != null) {
+                List<String> clusterPermissions = context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm();
+                // Expand the action groups
+                ImmutableSet<String> resolvedClusterPermissions = actionGroups.resolve(
+                    context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm()
+                );
+                log.info(resolvedClusterPermissions);
+
+                // Check for wildcard permission
+                if (!explicit) {
+                    if (resolvedClusterPermissions.contains("*")) {
+                        return PrivilegesEvaluatorResponse.ok();
+                    }
+                }
+
+                // Check for exact match
+                if (!Collections.disjoint(resolvedClusterPermissions, actions)) {
                     return PrivilegesEvaluatorResponse.ok();
                 }
-            }
 
-            return PrivilegesEvaluatorResponse.insufficient(action);
+                // Check for pattern matches (like "cluster:*")
+                for (String permission : resolvedClusterPermissions) {
+                    // Skip exact matches as we already checked those
+                    if (!permission.contains("*")) {
+                        continue;
+                    }
+
+                    WildcardMatcher permissionMatcher = WildcardMatcher.from(permission);
+                    for (String action : actions) {
+                        if (permissionMatcher.test(action)) {
+                            return PrivilegesEvaluatorResponse.ok();
+                        }
+                    }
+                }
+            }
+            if (actions.size() == 1) {
+                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
+            } else {
+                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
+            }
         }
 
         /**
@@ -475,15 +522,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            if (context.getUser().getName().startsWith("apitoken")) {
-                String jti = context.getUser().getName().split(":")[1];
-                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null
-                    && context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().contains(action)) {
-                    return PrivilegesEvaluatorResponse.ok();
-                }
-            }
-
-            return PrivilegesEvaluatorResponse.insufficient(action);
+            return providesClusterPrivilegeForApiToken(context, Set.of(action), true);
         }
 
         /**
@@ -519,19 +558,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            if (context.getUser().getName().startsWith("apitoken")) {
-                String jti = context.getUser().getName().split(":")[1];
-                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null
-                    && context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().stream().anyMatch(actions::contains)) {
-                    return PrivilegesEvaluatorResponse.ok();
-                }
-            }
-
-            if (actions.size() == 1) {
-                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
-            } else {
-                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
-            }
+            return providesClusterPrivilegeForApiToken(context, actions, false);
         }
     }
 
