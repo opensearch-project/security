@@ -86,7 +86,6 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
-import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -110,8 +109,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.greenrobot.eventbus.Subscribe;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_CLUSTERPERM_KEY;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDEXPERM_KEY;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class PrivilegesEvaluator {
@@ -343,20 +340,6 @@ public class PrivilegesEvaluator {
             }
             mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
             context.setMappedRoles(mappedRoles);
-        }
-
-        // Extract cluster and index permissions from the api token thread context
-        // TODO: Add decryption here to make sure it is not injectable by anyone?
-        // TODO: This is only a naive implementation that does not support *
-        final String apiTokenClusterPermissions = threadContext.getTransient(API_TOKEN_CLUSTERPERM_KEY);
-        if (apiTokenClusterPermissions != null) {
-            List<String> clusterPermissions = Arrays.asList(apiTokenClusterPermissions.split(","));
-            context.setClusterPermissions(clusterPermissions);
-        }
-
-        final List<ApiToken.IndexPermission> apiTokenIndexPermissions = threadContext.getTransient(API_TOKEN_INDEXPERM_KEY);
-        if (apiTokenIndexPermissions != null) {
-            context.setIndexPermissions(apiTokenIndexPermissions);
         }
 
         // Add the security roles for this user so that they can be used for DLS parameter substitution.

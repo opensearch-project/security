@@ -63,7 +63,7 @@ public class ApiTokenAuthenticatorTest {
     public void testAuthenticationFailsWhenJtiNotInCache() {
         String testJti = "test-jti-not-in-cache";
         ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        assertFalse(cache.getJtis().contains(testJti));
+        assertFalse(cache.getJtis().containsKey(testJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + testJti);
@@ -81,8 +81,8 @@ public class ApiTokenAuthenticatorTest {
         String encryptedTestJti =
             "k3JQNRXR57Y4V4W1LNkpEP+QzcDra5+/fFfQrr0Rncr/RhYAnYEDgN9RKcJ2Wmjf63NCQa9+HjeFcn0H2wKhMm7pl9bd3ya9FO+LUD7t9Sih4DOjUt0t7ee4ROC0eRK5glMsKsKQVkuY+YKa6A6dT8bMqmt7kIrer7w8TRENr9J8x41TGb/cDDWDvJLME7QkFzJjMxYDgKNiEevMbOpC8yjIZdK08jPe3Thq+xm+JYruoYeyI5g8QjkJA9ZOs1f6eXTAvPxhseuPqgIKykRE25fuWjl5n9tJ9W+jpl+iET7zzOLXSPEU5UepL/COkVd6xW63Ay72oMOewqveDXzyR8S8LAfgRuKgYZWms7yT37XcGg0c6Y7M62KVPo+1XQ+F+K5bgddkd8G+I9KHf561jIMzBcIodgGRj659954W16D1C92+PF/YWPQoTv2hVK4f60H82ga1YSiz3r9UrFV8d7gLJwtyJT9HNPuXO2VZ7xPhre+n1Wv7No0kH2S/r3nqKK6Bk/kn1ZbAmjLxuw13c95lIir6avlKE7XX4PiQDfcGeAyeXOw/36kLW8wH7kjXWdBspld1AiI4fCOaszNXF+7gcuTxIhECl+mEyrJbMI88EWllq+LbydiOrVLFXXRMiCbvj+VTYjzimgJPp+Vuvg==";
         ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        cache.getJtis().add(encryptedTestJti);
-        assertTrue(cache.getJtis().contains(encryptedTestJti));
+        cache.getJtis().put(encryptedTestJti, null);
+        assertTrue(cache.getJtis().containsKey(encryptedTestJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + testJti);
@@ -100,8 +100,8 @@ public class ApiTokenAuthenticatorTest {
         String encryptedTestJti =
             "k3JQNRXR57Y4V4W1LNkpEP+QzcDra5+/fFfQrr0Rncr/RhYAnYEDgN9RKcJ2Wmjf63NCQa9+HjeFcn0H2wKhMm7pl9bd3ya9FO+LUD7t9ShsbOyBUkpFSVuQwrXLatY+glMsKsKQVkuY+YKa6A6dT8bMqmt7kIrer7w8TRENr9J8x41TGb/cDDWDvJLME7QkFzJjMxYDgKNiEevMbOpC8yjIZdK08jPe3Thq+xm+JYruoYeyI5g8QjkJA9ZOs1f6eXTAvPxhseuPqgIKykRE25fuWjl5n9tJ9W+jpl+iET7zzOLXSPEU5UepL/COkVd6xW63Ay72oMOewqveDXzyR8S8LAfgRuKgYZWms7yT37XcGg0c6Y7M62KVPo+1XQ+Fu193YtvS4vqt9G8jHiq51VCRxNHYVlAsratxzvECD8AKBilR9/7dUKyOQDBIzPG4ws+kgI680SgdMgGuLANQPGzal9US8GsWzTbQWCgtObaSVKB02U4gh16wvy3XrXtPz2Z0ZAxoU2Z8opX8hcvB5MG5UUEf+tpgTtVPcbuJyCL42yD3FIc3v/LCYlG/hFvflXBx5c1r+4Tij8Qc/NkYb7/03xiJsVH6eduSqR9M0QBpLm7xg2TgqVMvC/+n96x2V3lS4via4lAK6xuYeRY0ng==";
         ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        cache.getJtis().add(encryptedTestJti);
-        assertTrue(cache.getJtis().contains(encryptedTestJti));
+        cache.getJtis().put(encryptedTestJti, null);
+        assertTrue(cache.getJtis().containsKey(encryptedTestJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + testJti);
@@ -121,8 +121,8 @@ public class ApiTokenAuthenticatorTest {
         String encryptedTestJti =
             "k3JQNRXR57Y4V4W1LNkpEP+QzcDra5+/fFfQrr0Rncr/RhYAnYEDgN9RKcJ2Wmjf63NCQa9+HjeFcn0H2wKhMm7pl9bd3ya9FO+LUD7t9Sih4DOjUt0t7ee4ROC0eRK5glMsKsKQVkuY+YKa6A6dT8bMqmt7kIrer7w8TRENr9J8x41TGb/cDDWDvJLME7QkFzJjMxYDgKNiEevMbOpC8yjIZdK08jPe3Thq+xm+JYruoYeyI5g8QjkJA9ZOs1f6eXTAvPxhseuPqgIKykRE25fuWjl5n9tJ9W+jpl+iET7zzOLXSPEU5UepL/COkVd6xW63Ay72oMOewqveDXzyR8S8LAfgRuKgYZWms7yT37XcGg0c6Y7M62KVPo+1XQ+F+K5bgddkd8G+I9KHf561jIMzBcIodgGRj659954W16D1C92+PF/YWPQoTv2hVK4f60H82ga1YSiz3r9UrFV8d7gLJwtyJT9HNPuXO2VZ7xPhre+n1Wv7No0kH2S/r3nqKK6Bk/kn1ZbAmjLxuw13c95lIir6avlKE7XX4PiQDfcGeAyeXOw/36kLW8wH7kjXWdBspld1AiI4fCOaszNXF+7gcuTxIhECl+mEyrJbMI88EWllq+LbydiOrVLFXXRMiCbvj+VTYjzimgJPp+Vuvg==";
         ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        cache.getJtis().add(encryptedTestJti);
-        assertTrue(cache.getJtis().contains(encryptedTestJti));
+        cache.getJtis().put(encryptedTestJti, null);
+        assertTrue(cache.getJtis().containsKey(encryptedTestJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + testJti);
@@ -150,8 +150,8 @@ public class ApiTokenAuthenticatorTest {
         String encryptedTestJti =
             "k3JQNRXR57Y4V4W1LNkpEP+QzcDra5+/fFfQrr0Rncr/RhYAnYEDgN9RKcJ2Wmjf63NCQa9+HjeFcn0H2wKhMm7pl9bd3ya9FO+LUD7t9Sih4DOjUt0t7ee4ROC0eRK5glMsKsKQVkuY+YKa6A6dT8bMqmt7kIrer7w8TRENr9J8x41TGb/cDDWDvJLME7QkFzJjMxYDgKNiEevMbOpC8yjIZdK08jPe3Thq+xm+JYruoYeyI5g8QjkJA9ZOs1f6eXTAvPxhseuPqgIKykRE25fuWjl5n9tJ9W+jpl+iET7zzOLXSPEU5UepL/COkVd6xW63Ay72oMOewqveDXzyR8S8LAfgRuKgYZWms7yT37XcGg0c6Y7M62KVPo+1XQ+F+K5bgddkd8G+I9KHf561jIMzBcIodgGRj659954W16D1C92+PF/YWPQoTv2hVK4f60H82ga1YSiz3r9UrFV8d7gLJwtyJT9HNPuXO2VZ7xPhre+n1Wv7No0kH2S/r3nqKK6Bk/kn1ZbAmjLxuw13c95lIir6avlKE7XX4PiQDfcGeAyeXOw/36kLW8wH7kjXWdBspld1AiI4fCOaszNXF+7gcuTxIhECl+mEyrJbMI88EWllq+LbydiOrVLFXXRMiCbvj+VTYjzimgJPp+Vuvg==";
         ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        cache.getJtis().add(encryptedTestJti);
-        assertTrue(cache.getJtis().contains(encryptedTestJti));
+        cache.getJtis().put(encryptedTestJti, null);
+        assertTrue(cache.getJtis().containsKey(encryptedTestJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + testJti);
@@ -169,8 +169,8 @@ public class ApiTokenAuthenticatorTest {
         String encryptedTestJti =
             "k3JQNRXR57Y4V4W1LNkpEP+QzcDra5+/fFfQrr0Rncr/RhYAnYEDgN9RKcJ2Wmjf63NCQa9+HjeFcn0H2wKhMm7pl9bd3ya9FO+LUD7t9Sih4DOjUt0t7ee4ROC0eRK5glMsKsKQVkuY+YKa6A6dT8bMqmt7kIrer7w8TRENr9J8x41TGb/cDDWDvJLME7QkFzJjMxYDgKNiEevMbOpC8yjIZdK08jPe3Thq+xm+JYruoYeyI5g8QjkJA9ZOs1f6eXTAvPxhseuPqgIKykRE25fuWjl5n9tJ9W+jpl+iET7zzOLXSPEU5UepL/COkVd6xW63Ay72oMOewqveDXzyR8S8LAfgRuKgYZWms7yT37XcGg0c6Y7M62KVPo+1XQ+F+K5bgddkd8G+I9KHf561jIMzBcIodgGRj659954W16D1C92+PF/YWPQoTv2hVK4f60H82ga1YSiz3r9UrFV8d7gLJwtyJT9HNPuXO2VZ7xPhre+n1Wv7No0kH2S/r3nqKK6Bk/kn1ZbAmjLxuw13c95lIir6avlKE7XX4PiQDfcGeAyeXOw/36kLW8wH7kjXWdBspld1AiI4fCOaszNXF+7gcuTxIhECl+mEyrJbMI88EWllq+LbydiOrVLFXXRMiCbvj+VTYjzimgJPp+Vuvg==";
         ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        cache.getJtis().add(encryptedTestJti);
-        assertTrue(cache.getJtis().contains(encryptedTestJti));
+        cache.getJtis().put(encryptedTestJti, null);
+        assertTrue(cache.getJtis().containsKey(encryptedTestJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
 

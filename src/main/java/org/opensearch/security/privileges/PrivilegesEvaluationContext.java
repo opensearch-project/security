@@ -11,7 +11,6 @@
 package org.opensearch.security.privileges;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -21,7 +20,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.security.action.apitokens.ApiToken;
+import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -47,9 +46,7 @@ public class PrivilegesEvaluationContext {
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
-    private List<String> clusterPermissions;
-    private List<ApiToken.IndexPermission> indexPermissions;
-
+    private final ApiTokenIndexListenerCache apiTokenIndexListenerCache = ApiTokenIndexListenerCache.getInstance();
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
      * to be executed several times per request (for example first for action privileges, later for DLS). Thus,
@@ -177,19 +174,7 @@ public class PrivilegesEvaluationContext {
             + '}';
     }
 
-    public void setClusterPermissions(List<String> clusterPermissions) {
-        this.clusterPermissions = clusterPermissions;
-    }
-
-    public List<String> getClusterPermissions() {
-        return clusterPermissions;
-    }
-
-    public List<ApiToken.IndexPermission> getIndexPermissions() {
-        return indexPermissions;
-    }
-
-    public void setIndexPermissions(List<ApiToken.IndexPermission> indexPermissions) {
-        this.indexPermissions = indexPermissions;
+    public ApiTokenIndexListenerCache getApiTokenIndexListenerCache() {
+        return apiTokenIndexListenerCache;
     }
 }

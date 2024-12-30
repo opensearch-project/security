@@ -165,17 +165,23 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
         // API Token Authz
         // TODO: this is very naive implementation
-        if (context.getIndexPermissions() != null) {
-            List<ApiToken.IndexPermission> indexPermissions = context.getIndexPermissions();
+        if (context.getUser().getName().startsWith("apitoken")) {
+            String jti = context.getUser().getName().split(":")[1];
+            if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null) {
+                List<ApiToken.IndexPermission> indexPermissions = context.getApiTokenIndexListenerCache()
+                    .getJtis()
+                    .get(jti)
+                    .getIndexPermission();
 
-            boolean hasPermission = indexPermissions.stream().anyMatch(permission -> {
-                boolean hasAllActions = new HashSet<>(permission.getAllowedActions()).containsAll(actions);
-                boolean hasAllIndices = new HashSet<>(permission.getIndexPatterns()).containsAll(resolvedIndices.getAllIndices());
-                return hasAllActions && hasAllIndices;
-            });
+                boolean hasPermission = indexPermissions.stream().anyMatch(permission -> {
+                    boolean hasAllActions = new HashSet<>(permission.getAllowedActions()).containsAll(actions);
+                    boolean hasAllIndices = new HashSet<>(permission.getIndexPatterns()).containsAll(resolvedIndices.getAllIndices());
+                    return hasAllActions && hasAllIndices;
+                });
 
-            if (hasPermission) {
-                return PrivilegesEvaluatorResponse.ok();
+                if (hasPermission) {
+                    return PrivilegesEvaluatorResponse.ok();
+                }
             }
         }
 
@@ -426,8 +432,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             }
 
             // 4: Evaluate api tokens
-            if (context.getClusterPermissions() != null && context.getClusterPermissions().contains(action)) {
-                return PrivilegesEvaluatorResponse.ok();
+            if (context.getUser().getName().startsWith("apitoken")) {
+                String jti = context.getUser().getName().split(":")[1];
+                log.info(context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().toString());
+
+                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null
+                    && context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().contains(action)) {
+                    return PrivilegesEvaluatorResponse.ok();
+                }
             }
 
             return PrivilegesEvaluatorResponse.insufficient(action);
@@ -460,6 +472,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                     if (matcher != null && matcher.test(action)) {
                         return PrivilegesEvaluatorResponse.ok();
                     }
+                }
+            }
+
+            if (context.getUser().getName().startsWith("apitoken")) {
+                String jti = context.getUser().getName().split(":")[1];
+                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null
+                    && context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().contains(action)) {
+                    return PrivilegesEvaluatorResponse.ok();
                 }
             }
 
@@ -496,6 +516,14 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                             return PrivilegesEvaluatorResponse.ok();
                         }
                     }
+                }
+            }
+
+            if (context.getUser().getName().startsWith("apitoken")) {
+                String jti = context.getUser().getName().split(":")[1];
+                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null
+                    && context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm().stream().anyMatch(actions::contains)) {
+                    return PrivilegesEvaluatorResponse.ok();
                 }
             }
 

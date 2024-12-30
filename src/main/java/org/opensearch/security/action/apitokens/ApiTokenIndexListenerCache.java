@@ -9,8 +9,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
@@ -36,7 +35,7 @@ public class ApiTokenIndexListenerCache implements IndexingOperationListener {
     private static final ApiTokenIndexListenerCache INSTANCE = new ApiTokenIndexListenerCache();
     private final ConcurrentHashMap<String, String> idToJtiMap = new ConcurrentHashMap<>();
 
-    private Set<String> jtis = new HashSet<String>();
+    private Map<String, Permissions> jtis = new ConcurrentHashMap<>();
 
     private boolean initialized;
 
@@ -81,7 +80,7 @@ public class ApiTokenIndexListenerCache implements IndexingOperationListener {
                 .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, sourceRef.streamInput());
 
             ApiToken token = ApiToken.fromXContent(parser);
-            jtis.add(token.getJti());
+            jtis.put(token.getJti(), new Permissions(token.getClusterPermissions(), token.getIndexPermissions()));
             idToJtiMap.put(index.id(), token.getJti());
 
         } catch (IOException e) {
@@ -106,7 +105,8 @@ public class ApiTokenIndexListenerCache implements IndexingOperationListener {
         }
     }
 
-    public Set<String> getJtis() {
+    public Map<String, Permissions> getJtis() {
         return jtis;
     }
+
 }

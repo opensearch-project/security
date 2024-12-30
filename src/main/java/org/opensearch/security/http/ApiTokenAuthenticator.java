@@ -11,10 +11,8 @@
 
 package org.opensearch.security.http;
 
-import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -29,11 +27,6 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.DeprecationHandler;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
@@ -50,8 +43,6 @@ import io.jsonwebtoken.security.WeakKeyException;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_CLUSTERPERM_KEY;
-import static org.opensearch.security.filter.SecurityRestFilter.API_TOKEN_INDEXPERM_KEY;
 import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class ApiTokenAuthenticator implements HTTPAuthenticator {
@@ -113,49 +104,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         return jwtParserBuilder;
     }
 
-    private String extractClusterPermissionsFromClaims(Claims claims) {
-        Object cp = claims.get("cp");
-        String clusterPermissions = "";
-
-        if (cp != null) {
-            clusterPermissions = encryptionUtil.decrypt(cp.toString());
-        } else {
-            log.warn("This is a malformed Api Token");
-        }
-
-        return clusterPermissions;
-    }
-
-    private List<ApiToken.IndexPermission> extractIndexPermissionFromClaims(Claims claims) throws IOException {
-        Object ip = claims.get("ip");
-
-        if (ip != null) {
-            String decryptedPermissions = encryptionUtil.decrypt(ip.toString());
-
-            try (
-                XContentParser parser = XContentType.JSON.xContent()
-                    .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, decryptedPermissions)
-            ) {
-
-                // Use built-in array parsing
-                List<ApiToken.IndexPermission> permissions = new ArrayList<>();
-
-                // Move to start of array
-                parser.nextToken();  // START_ARRAY
-                while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                    permissions.add(ApiToken.IndexPermission.fromXContent(parser));
-                }
-                return permissions;
-            } catch (Exception e) {
-                log.error("Error extracting index permissions", e);
-                return List.of();
-            }
-
-        }
-
-        return List.of();
-    }
-
     @Override
     @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
@@ -193,8 +141,8 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         }
 
         // TODO: handle revocation different from deletion?
-        if (!cache.getJtis().contains(encryptionUtil.encrypt(jwtToken))) {
-            log.debug("Token is not allowlisted");
+        if (!cache.getJtis().containsKey(encryptionUtil.encrypt(jwtToken))) {
+            log.error("Token is not allowlisted");
             return null;
         }
 
@@ -213,13 +161,8 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            String clusterPermissions = extractClusterPermissionsFromClaims(claims);
-            List<ApiToken.IndexPermission> indexPermissions = extractIndexPermissionFromClaims(claims);
-
-            final AuthCredentials ac = new AuthCredentials(subject, List.of(), "").markComplete();
-
-            context.putTransient(API_TOKEN_CLUSTERPERM_KEY, clusterPermissions);
-            context.putTransient(API_TOKEN_INDEXPERM_KEY, indexPermissions);
+            final AuthCredentials ac = new AuthCredentials("apitoken_" + subject + ":" + encryptionUtil.encrypt(jwtToken), List.of(), "")
+                .markComplete();
 
             return ac;
 
@@ -227,9 +170,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (Exception e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Invalid or expired JWT token.", e);
-            }
+            log.error("Invalid or expired JWT token.", e);
         }
 
         // Return null for the authentication failure
