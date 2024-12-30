@@ -64,7 +64,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.10.0"
+    id 'com.netflix.nebula.ospackage' version "11.10.1"
     id "org.gradle.test-retry" version "1.6.0"
     id 'eclipse'
     id "com.github.spotbugs" version "5.2.5"
@@ -497,7 +497,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:2.36.0"
             force "org.checkerframework:checker-qual:3.48.3"
-            force "ch.qos.logback:logback-classic:1.5.12"
+            force "ch.qos.logback:logback-classic:1.5.15"
             force "commons-io:commons-io:2.18.0"
         }
     }
@@ -585,7 +585,7 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.9.0'
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:9.47'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
 
@@ -641,7 +641,7 @@ dependencies {
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.2'
-    runtimeOnly 'org.apache.commons:commons-text:1.12.0'
+    runtimeOnly 'org.apache.commons:commons-text:1.13.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -688,8 +688,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.9.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.0'
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.4'
     testImplementation('org.awaitility:awaitility:4.2.2') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -749,7 +749,7 @@ dependencies {
     integrationTestImplementation "org.mockito:mockito-core:5.14.2"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.25.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.25.2') {
         exclude group: 'com.google.guava'
     }
 }
