@@ -14,7 +14,6 @@ package org.opensearch.security.ssl.config;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.security.KeyStore;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +26,7 @@ import org.opensearch.env.Environment;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SECURE_SUFFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_PASSWORD;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_KEY_PASSWORD;
@@ -123,7 +123,7 @@ public class SslCertificatesLoader {
     ) {
         return new KeyStoreConfiguration.JdkKeyStoreConfiguration(
             resolvePath(environment.settings().get(sslConfigSuffix + KEYSTORE_FILEPATH), environment),
-            environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE, KeyStore.getDefaultType()),
+            environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE, DEFAULT_STORE_TYPE),
             settings.get(KEYSTORE_ALIAS, null),
             keyStorePassword,
             keyPassword
@@ -137,7 +137,7 @@ public class SslCertificatesLoader {
     ) {
         return new TrustStoreConfiguration.JdkTrustStoreConfiguration(
             resolvePath(environment.settings().get(sslConfigSuffix + TRUSTSTORE_FILEPATH), environment),
-            environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE, KeyStore.getDefaultType()),
+            environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE, DEFAULT_STORE_TYPE),
             settings.get(TRUSTSTORE_ALIAS, null),
             trustStorePassword
         );
