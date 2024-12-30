@@ -26,6 +26,7 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.test.framework.matcher.RestMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -108,10 +109,10 @@ public class SystemIndexTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_2);
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
-                response.getBody(),
-                containsString(
+                response,
+                RestMatchers.isForbidden(
+                    "/error/root_cause/0/reason",
                     "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
                 )
             );
@@ -123,8 +124,7 @@ public class SystemIndexTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1 + "?runAs=user");
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
-            assertThat(response.getBody(), containsString("no permissions for [] and User [name=admin"));
+            assertThat(response, RestMatchers.isForbidden("/error/root_cause/0/reason", "no permissions for [] and User [name=admin"));
         }
     }
 
@@ -133,10 +133,10 @@ public class SystemIndexTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.get("try-cluster-health/plugin");
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.FORBIDDEN.getStatus()));
             assertThat(
-                response.getBody(),
-                containsString(
+                response,
+                RestMatchers.isForbidden(
+                    "/error/root_cause/0/reason",
                     "no permissions for [cluster:monitor/health] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
                 )
             );
