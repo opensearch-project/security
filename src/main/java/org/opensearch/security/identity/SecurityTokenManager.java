@@ -12,7 +12,6 @@
 package org.opensearch.security.identity;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,7 +27,6 @@ import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
-import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -141,16 +139,11 @@ public class SecurityTokenManager implements TokenManager {
         }
     }
 
-    public ExpiringBearerAuthToken issueApiToken(
-        final String name,
-        final Long expiration,
-        final List<String> clusterPermissions,
-        final List<ApiToken.IndexPermission> indexPermissions
-    ) {
+    public ExpiringBearerAuthToken issueApiToken(final String name, final Long expiration) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         try {
-            return apiTokenJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration, clusterPermissions, indexPermissions);
+            return apiTokenJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration);
         } catch (final Exception ex) {
             logger.error("Error creating Api Token for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate Api Token");

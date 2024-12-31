@@ -20,6 +20,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -45,7 +46,7 @@ public class PrivilegesEvaluationContext {
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
-
+    private final ApiTokenIndexListenerCache apiTokenIndexListenerCache = ApiTokenIndexListenerCache.getInstance();
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
      * to be executed several times per request (for example first for action privileges, later for DLS). Thus,
@@ -171,5 +172,9 @@ public class PrivilegesEvaluationContext {
             + ", mappedRoles="
             + mappedRoles
             + '}';
+    }
+
+    public ApiTokenIndexListenerCache getApiTokenIndexListenerCache() {
+        return apiTokenIndexListenerCache;
     }
 }
