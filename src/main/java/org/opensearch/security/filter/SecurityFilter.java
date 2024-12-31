@@ -193,15 +193,9 @@ public class SecurityFilter implements ActionFilter {
                 attachSourceFieldContext(request);
             }
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
-            boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (user == null && (user = userInjector.getInjectedUser()) != null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                // since there is no support for TransportClient auth/auth in 2.0 anymore, usually we
-                // can skip any checks on transport in case of trusted requests.
-                // However, if another plugin injected a user in the ThreadContext, we still need
-                // to perform privileges checks.
-                enforcePrivilegesEvaluation = true;
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
@@ -320,8 +314,7 @@ public class SecurityFilter implements ActionFilter {
             if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                 && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                 && (injectedRoles == null)
-                && (user == null)
-                && !enforcePrivilegesEvaluation) {
+                && (user == null)) {
 
                 chain.proceed(task, action, request, listener);
                 return;
