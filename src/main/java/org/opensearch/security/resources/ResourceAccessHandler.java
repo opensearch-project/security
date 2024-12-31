@@ -19,7 +19,8 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.EntityType;
+import org.opensearch.accesscontrol.resources.RecipientType;
+import org.opensearch.accesscontrol.resources.RecipientTypeRegistry;
 import org.opensearch.accesscontrol.resources.Resource;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
@@ -54,6 +55,19 @@ public class ResourceAccessHandler {
     }
 
     /**
+     * Initializes the recipient types for users, roles, and backend roles.
+     * These recipient types are used to identify the types of recipients for resource sharing.
+     */
+    public void initializeRecipientTypes() {
+        RecipientTypeRegistry.registerRecipientType(Recipient.USERS.getName(), new RecipientType(Recipient.USERS.getName()));
+        RecipientTypeRegistry.registerRecipientType(Recipient.ROLES.getName(), new RecipientType(Recipient.ROLES.getName()));
+        RecipientTypeRegistry.registerRecipientType(
+            Recipient.BACKEND_ROLES.getName(),
+            new RecipientType(Recipient.BACKEND_ROLES.getName())
+        );
+    }
+
+    /**
      * Returns a set of accessible resources for the current user within the specified resource index.
      *
      * @param resourceIndex The resource index to check for accessible resources.
@@ -82,15 +96,15 @@ public class ResourceAccessHandler {
         result.addAll(loadOwnResources(resourceIndex, user.getName(), clazz));
 
         // 1. By username
-        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), EntityType.USERS.toString(), clazz));
+        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), Recipient.USERS.toString(), clazz));
 
         // 2. By roles
         Set<String> roles = user.getSecurityRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, roles, EntityType.ROLES.toString(), clazz));
+        result.addAll(loadSharedWithResources(resourceIndex, roles, Recipient.ROLES.toString(), clazz));
 
         // 3. By backend_roles
         Set<String> backendRoles = user.getRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, EntityType.BACKEND_ROLES.toString(), clazz));
+        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, Recipient.BACKEND_ROLES.toString(), clazz));
 
         return result;
     }
@@ -127,9 +141,9 @@ public class ResourceAccessHandler {
 
         if (isSharedWithEveryone(document)
             || isOwnerOfResource(document, user.getName())
-            || isSharedWithEntity(document, EntityType.USERS, Set.of(user.getName()), scope)
-            || isSharedWithEntity(document, EntityType.ROLES, userRoles, scope)
-            || isSharedWithEntity(document, EntityType.BACKEND_ROLES, userBackendRoles, scope)) {
+            || isSharedWithEntity(document, Recipient.USERS, Set.of(user.getName()), scope)
+            || isSharedWithEntity(document, Recipient.ROLES, userRoles, scope)
+            || isSharedWithEntity(document, Recipient.BACKEND_ROLES, userBackendRoles, scope)) {
             LOGGER.info("User {} has {} access to {}", user.getName(), scope, resourceId);
             return true;
         }
@@ -169,7 +183,7 @@ public class ResourceAccessHandler {
     public ResourceSharing revokeAccess(
         String resourceId,
         String resourceIndex,
-        Map<EntityType, Set<String>> revokeAccess,
+        Map<RecipientType, Set<String>> revokeAccess,
         Set<String> scopes
     ) {
         if (areArgumentsInvalid(resourceId, resourceIndex, revokeAccess, scopes)) {
@@ -247,16 +261,16 @@ public class ResourceAccessHandler {
      *
      * @param resourceIndex The resource index to load resources from.
      * @param entities The set of entities to check for shared resources.
-     * @param entityType The type of entity (e.g., users, roles, backend_roles).
+     * @param RecipientType The type of entity (e.g., users, roles, backend_roles).
      * @return A set of resource IDs shared with the specified entities.
      */
     private <T extends Resource> Set<T> loadSharedWithResources(
         String resourceIndex,
         Set<String> entities,
-        String entityType,
+        String RecipientType,
         Class<T> clazz
     ) {
-        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, entityType, clazz);
+        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, RecipientType, clazz);
     }
 
     /**
@@ -267,21 +281,21 @@ public class ResourceAccessHandler {
      * @return True if the resource is owned by the user, false otherwise.
      */
     private boolean isOwnerOfResource(ResourceSharing document, String userName) {
-        return document.getCreatedBy() != null && document.getCreatedBy().getUser().equals(userName);
+        return document.getCreatedBy() != null && document.getCreatedBy().getCreator().equals(userName);
     }
 
     /**
      * Checks if the given resource is shared with the specified entities and scope.
      *
      * @param document The ResourceSharing document to check.
-     * @param entityType The type of entity (e.g., users, roles, backend_roles).
+     * @param recipient The recipient entity
      * @param entities The set of entities to check for sharing.
      * @param scope The permission scope to check.
      * @return True if the resource is shared with the entities and scope, false otherwise.
      */
-    private boolean isSharedWithEntity(ResourceSharing document, EntityType entityType, Set<String> entities, String scope) {
+    private boolean isSharedWithEntity(ResourceSharing document, Recipient recipient, Set<String> entities, String scope) {
         for (String entity : entities) {
-            if (checkSharing(document, entityType, entity, scope)) {
+            if (checkSharing(document, recipient, entity, scope)) {
                 return true;
             }
         }
@@ -303,12 +317,12 @@ public class ResourceAccessHandler {
      * Checks if the given resource is shared with the specified entity and scope.
      *
      * @param document The ResourceSharing document to check.
-     * @param entityType The type of entity (e.g., users, roles, backend_roles).
+     * @param recipient The recipient entity
      * @param identifier The identifier of the entity to check for sharing.
      * @param scope The permission scope to check.
      * @return True if the resource is shared with the entity and scope, false otherwise.
      */
-    private boolean checkSharing(ResourceSharing document, EntityType entityType, String identifier, String scope) {
+    private boolean checkSharing(ResourceSharing document, Recipient recipient, String identifier, String scope) {
         if (document.getShareWith() == null) {
             return false;
         }
@@ -320,11 +334,12 @@ public class ResourceAccessHandler {
             .findFirst()
             .map(sharedWithScope -> {
                 SharedWithScope.ScopeRecipients scopePermissions = sharedWithScope.getSharedWithPerScope();
+                Map<RecipientType, Set<String>> recipients = scopePermissions.getRecipients();
 
-                return switch (entityType) {
-                    case EntityType.USERS -> scopePermissions.getUsers().contains(identifier);
-                    case EntityType.ROLES -> scopePermissions.getRoles().contains(identifier);
-                    case EntityType.BACKEND_ROLES -> scopePermissions.getBackendRoles().contains(identifier);
+                return switch (recipient) {
+                    case Recipient.USERS, Recipient.ROLES, Recipient.BACKEND_ROLES -> recipients.get(
+                        RecipientTypeRegistry.fromValue(recipient.getName())
+                    ).contains(identifier);
                 };
             })
             .orElse(false); // Return false if no matching scope is found

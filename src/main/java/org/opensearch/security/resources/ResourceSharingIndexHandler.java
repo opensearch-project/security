@@ -25,7 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.accesscontrol.resources.CreatedBy;
-import org.opensearch.accesscontrol.resources.EntityType;
+import org.opensearch.accesscontrol.resources.RecipientType;
 import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.accesscontrol.resources.ShareWith;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -266,7 +266,7 @@ public class ResourceSharingIndexHandler {
     *
     * <p>The method executes the following steps:
     * <ol>
-    *   <li>Validates the entityType parameter</li>
+    *   <li>Validates the RecipientType parameter</li>
     *   <li>Creates a scrolling search request with a compound query</li>
     *   <li>Processes results in batches using scroll API</li>
     *   <li>Collects all matching resource IDs</li>
@@ -285,9 +285,9 @@ public class ResourceSharingIndexHandler {
     *             "should": [
     *               {
     *                 "nested": {
-    *                   "path": "share_with.*.entityType",
+    *                   "path": "share_with.*.RecipientType",
     *                   "query": {
-    *                     "term": { "share_with.*.entityType": "entity_value" }
+    *                     "term": { "share_with.*.RecipientType": "entity_value" }
     *                   }
     *                 }
     *               }
@@ -304,8 +304,8 @@ public class ResourceSharingIndexHandler {
     * </pre>
     *
     * @param pluginIndex The source index to match against the source_idx field
-    * @param entities Set of values to match in the specified entityType field
-    * @param entityType The type of association with the resource. Must be one of:
+    * @param entities Set of values to match in the specified RecipientType field
+    * @param RecipientType The type of association with the resource. Must be one of:
     *                  <ul>
     *                    <li>"users" - for user-based access</li>
     *                    <li>"roles" - for role-based access</li>
@@ -327,9 +327,9 @@ public class ResourceSharingIndexHandler {
     * </ul>
     */
 
-    public <T> Set<T> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String entityType, Class<T> clazz) {
+    public <T> Set<T> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String RecipientType, Class<T> clazz) {
         // "*" must match all scopes
-        return fetchDocumentsForAGivenScope(pluginIndex, entities, entityType, "*", clazz);
+        return fetchDocumentsForAGivenScope(pluginIndex, entities, RecipientType, "*", clazz);
     }
 
     /**
@@ -338,7 +338,7 @@ public class ResourceSharingIndexHandler {
      *
      * <p>The method executes the following steps:
      * <ol>
-     *   <li>Validates the entityType parameter</li>
+     *   <li>Validates the RecipientType parameter</li>
      *   <li>Creates a scrolling search request with a compound query</li>
      *   <li>Processes results in batches using scroll API</li>
      *   <li>Collects all matching resource IDs</li>
@@ -357,9 +357,9 @@ public class ResourceSharingIndexHandler {
      *             "should": [
      *               {
      *                 "nested": {
-     *                   "path": "share_with.scope.entityType",
+     *                   "path": "share_with.scope.RecipientType",
      *                   "query": {
-     *                     "term": { "share_with.scope.entityType": "entity_value" }
+     *                     "term": { "share_with.scope.RecipientType": "entity_value" }
      *                   }
      *                 }
      *               }
@@ -376,8 +376,8 @@ public class ResourceSharingIndexHandler {
      * </pre>
      *
      * @param pluginIndex The source index to match against the source_idx field
-     * @param entities Set of values to match in the specified entityType field
-     * @param entityType The type of association with the resource. Must be one of:
+     * @param entities Set of values to match in the specified RecipientType field
+     * @param RecipientType The type of association with the resource. Must be one of:
      *                  <ul>
      *                    <li>"users" - for user-based access</li>
      *                    <li>"roles" - for role-based access</li>
@@ -402,7 +402,7 @@ public class ResourceSharingIndexHandler {
     public <T> Set<T> fetchDocumentsForAGivenScope(
         String pluginIndex,
         Set<String> entities,
-        String entityType,
+        String RecipientType,
         String scope,
         Class<T> clazz
     ) {
@@ -410,7 +410,7 @@ public class ResourceSharingIndexHandler {
             "Fetching documents from index: {}, where share_with.{}.{} contains any of {}",
             pluginIndex,
             scope,
-            entityType,
+            RecipientType,
             entities
         );
 
@@ -428,13 +428,13 @@ public class ResourceSharingIndexHandler {
             if ("*".equals(scope)) {
                 for (String entity : entities) {
                     shouldQuery.should(
-                        QueryBuilders.multiMatchQuery(entity, "share_with.*." + entityType + ".keyword")
+                        QueryBuilders.multiMatchQuery(entity, "share_with.*." + RecipientType + ".keyword")
                             .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
                     );
                 }
             } else {
                 for (String entity : entities) {
-                    shouldQuery.should(QueryBuilders.termQuery("share_with." + scope + "." + entityType + ".keyword", entity));
+                    shouldQuery.should(QueryBuilders.termQuery("share_with." + scope + "." + RecipientType + ".keyword", entity));
                 }
             }
             shouldQuery.minimumShouldMatch(1);
@@ -449,11 +449,11 @@ public class ResourceSharingIndexHandler {
 
         } catch (Exception e) {
             LOGGER.error(
-                "Failed to fetch documents from {} for criteria - pluginIndex: {}, scope: {}, entityType: {}, entities: {}",
+                "Failed to fetch documents from {} for criteria - pluginIndex: {}, scope: {}, RecipientType: {}, entities: {}",
                 resourceSharingIndex,
                 pluginIndex,
                 scope,
-                entityType,
+                RecipientType,
                 entities,
                 e
             );
@@ -618,7 +618,6 @@ public class ResourceSharingIndexHandler {
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(boolQuery).size(1); // We only need one document since
                                                                                                           // a resource must have only one
                                                                                                           // sharing entry
-
             searchRequest.source(searchSourceBuilder);
 
             SearchResponse searchResponse = client.search(searchRequest).actionGet();
@@ -733,14 +732,14 @@ public class ResourceSharingIndexHandler {
         // Check if the user requesting to share is the owner of the resource
         // TODO Add a way for users who are not creators to be able to share the resource
         ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
-        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
+        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
             LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
             return null;
         }
 
         CreatedBy createdBy;
         if (currentSharingInfo == null) {
-            createdBy = new CreatedBy(requestUserName);
+            createdBy = new CreatedBy(Creator.USER.getName(), requestUserName);
         } else {
             createdBy = currentSharingInfo.getCreatedBy();
         }
@@ -914,23 +913,23 @@ public class ResourceSharingIndexHandler {
      * @throws IllegalArgumentException if resourceId, sourceIdx is null/empty, or if revokeAccess is null/empty
      * @throws RuntimeException if the update operation fails or encounters an error
      *
-     * @see EntityType
+     * @see RecipientType
      * @see ResourceSharing
      *
      * @apiNote This method modifies the existing document. If no modifications are needed (i.e., specified
      *          entities don't exist in the current configuration), the original document is returned unchanged.
      * &#064;example
      * <pre>
-     * Map<EntityType, Set<String>> revokeAccess = new HashMap<>();
-     * revokeAccess.put(EntityType.USER, Set.of("user1", "user2"));
-     * revokeAccess.put(EntityType.ROLE, Set.of("role1"));
+     * Map<RecipientType, Set<String>> revokeAccess = new HashMap<>();
+     * revokeAccess.put(RecipientType.USER, Set.of("user1", "user2"));
+     * revokeAccess.put(RecipientType.ROLE, Set.of("role1"));
      * ResourceSharing updated = revokeAccess("resourceId", "pluginIndex", revokeAccess);
      * </pre>
      */
     public ResourceSharing revokeAccess(
         String resourceId,
         String sourceIdx,
-        Map<EntityType, Set<String>> revokeAccess,
+        Map<RecipientType, Set<String>> revokeAccess,
         Set<String> scopes,
         String requestUserName,
         boolean isAdmin
@@ -941,7 +940,7 @@ public class ResourceSharingIndexHandler {
 
         // TODO Check if access can be revoked by non-creator
         ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
-        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getUser().equals(requestUserName)) {
+        if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
             LOGGER.error("User {} is not authorized to revoke access to resource {}", requestUserName, resourceId);
             return null;
         }
@@ -951,8 +950,8 @@ public class ResourceSharingIndexHandler {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             Map<String, Object> revoke = new HashMap<>();
-            for (Map.Entry<EntityType, Set<String>> entry : revokeAccess.entrySet()) {
-                revoke.put(entry.getKey().name().toLowerCase(), new ArrayList<>(entry.getValue()));
+            for (Map.Entry<RecipientType, Set<String>> entry : revokeAccess.entrySet()) {
+                revoke.put(entry.getKey().getType().toLowerCase(), new ArrayList<>(entry.getValue()));
             }
 
             List<String> scopesToUse = scopes != null ? new ArrayList<>(scopes) : new ArrayList<>();
@@ -966,18 +965,18 @@ public class ResourceSharingIndexHandler {
                             def existingScope = ctx._source.share_with.get(scopeName);
 
                             for (def entry : params.revokeAccess.entrySet()) {
-                                def entityType = entry.getKey();
+                                def RecipientType = entry.getKey();
                                 def entitiesToRemove = entry.getValue();
 
-                                if (existingScope.containsKey(entityType) && existingScope[entityType] != null) {
-                                    if (!(existingScope[entityType] instanceof HashSet)) {
-                                        existingScope[entityType] = new HashSet(existingScope[entityType]);
+                                if (existingScope.containsKey(RecipientType) && existingScope[RecipientType] != null) {
+                                    if (!(existingScope[RecipientType] instanceof HashSet)) {
+                                        existingScope[RecipientType] = new HashSet(existingScope[RecipientType]);
                                     }
 
-                                    existingScope[entityType].removeAll(entitiesToRemove);
+                                    existingScope[RecipientType].removeAll(entitiesToRemove);
 
-                                    if (existingScope[entityType].isEmpty()) {
-                                        existingScope.remove(entityType);
+                                    if (existingScope[RecipientType].isEmpty()) {
+                                        existingScope.remove(RecipientType);
                                     }
                                 }
                             }

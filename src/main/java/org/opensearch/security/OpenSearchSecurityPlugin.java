@@ -69,11 +69,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
-import org.opensearch.accesscontrol.resources.EntityType;
-import org.opensearch.accesscontrol.resources.Resource;
-import org.opensearch.accesscontrol.resources.ResourceService;
-import org.opensearch.accesscontrol.resources.ResourceSharing;
-import org.opensearch.accesscontrol.resources.ShareWith;
+import org.opensearch.accesscontrol.resources.*;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
@@ -1230,6 +1226,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             auditLog
         );
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
+        resourceAccessHandler.initializeRecipientTypes();
 
         rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler);
 
@@ -2255,7 +2252,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public ResourceSharing revokeAccess(
         String resourceId,
         String systemIndexName,
-        Map<EntityType, Set<String>> entities,
+        Map<RecipientType, Set<String>> entities,
         Set<String> scopes
     ) {
         return this.resourceAccessHandler.revokeAccess(resourceId, systemIndexName, entities, scopes);

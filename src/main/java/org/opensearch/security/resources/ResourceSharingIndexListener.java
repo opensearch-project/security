@@ -94,7 +94,7 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
             ResourceSharing sharing = this.resourceSharingIndexHandler.indexResourceSharing(
                 resourceId,
                 resourceIndex,
-                new CreatedBy(user.getName()),
+                new CreatedBy(Creator.USER.getName(), user.getName()),
                 null
             );
             log.info("Successfully created a resource sharing entry {}", sharing);

@@ -35,5 +35,4 @@ public class ResourceSharingIndexManagementRepository {
 
         this.resourceSharingIndexHandler.createResourceSharingIndexIfAbsent(() -> null);
     }
-
 }
