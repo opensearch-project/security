@@ -131,8 +131,8 @@ public class SecurityInterceptor {
 
     private User determineUser(Connection connection) {
         User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        // pluginUser did not exist prior to 2.18.0
-        if (user0 != null && user0.isPluginUser() && connection.getVersion().before(Version.V_2_18_0)) {
+        // pluginUser did not exist prior to 2.19.0
+        if (user0 != null && user0.isPluginUser() && connection.getVersion().before(Version.V_2_19_0)) {
             user0 = null;
         }
         return user0;

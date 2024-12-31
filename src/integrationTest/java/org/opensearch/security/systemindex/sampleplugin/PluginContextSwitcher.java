@@ -8,7 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-package org.opensearch.security.identity;
+package org.opensearch.security.systemindex.sampleplugin;
 
 import java.util.Objects;
 import java.util.concurrent.Callable;

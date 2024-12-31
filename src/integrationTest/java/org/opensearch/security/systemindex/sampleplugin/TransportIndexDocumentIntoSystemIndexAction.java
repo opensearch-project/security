@@ -8,7 +8,7 @@
  *
  */
 
-package org.opensearch.security.plugin;
+package org.opensearch.security.systemindex.sampleplugin;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -21,7 +21,6 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.identity.IdentityService;
 import org.opensearch.identity.Subject;
-import org.opensearch.security.identity.PluginContextSwitcher;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;

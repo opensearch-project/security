@@ -8,7 +8,7 @@
  *
  */
 
-package org.opensearch.security.plugin;
+package org.opensearch.security.systemindex.sampleplugin;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,7 +39,6 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
-import org.opensearch.security.identity.PluginContextSwitcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 

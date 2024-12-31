@@ -8,7 +8,7 @@
  *
  */
 
-package org.opensearch.security.plugin;
+package org.opensearch.security.systemindex.sampleplugin;
 
 import java.util.List;
 
@@ -19,31 +19,32 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 
 import static java.util.Collections.singletonList;
-import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.rest.RestRequest.Method.GET;
 
-public class RestIndexDocumentIntoSystemIndexAction extends BaseRestHandler {
+public class RestRunClusterHealthAction extends BaseRestHandler {
 
     private final Client client;
+    private final PluginContextSwitcher contextSwitcher;
 
-    public RestIndexDocumentIntoSystemIndexAction(Client client) {
+    public RestRunClusterHealthAction(Client client, PluginContextSwitcher contextSwitcher) {
         this.client = client;
+        this.contextSwitcher = contextSwitcher;
     }
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(PUT, "/try-create-and-index/{index}"));
+        return singletonList(new Route(GET, "/try-cluster-health/{runAs}"));
     }
 
     @Override
     public String getName() {
-        return "test_index_document_into_system_index_action";
+        return "test_run_cluster_health_action";
     }
 
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         String runAs = request.param("runAs");
-        String indexName = request.param("index");
-        IndexDocumentIntoSystemIndexRequest indexRequest = new IndexDocumentIntoSystemIndexRequest(indexName, runAs);
-        return channel -> client.execute(IndexDocumentIntoSystemIndexAction.INSTANCE, indexRequest, new RestToXContentListener<>(channel));
+        RunClusterHealthRequest runRequest = new RunClusterHealthRequest(runAs);
+        return channel -> client.execute(RunClusterHealthAction.INSTANCE, runRequest, new RestToXContentListener<>(channel));
     }
 }

@@ -46,7 +46,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.support.ConfigConstants.SYSTEM_INDEX_PERMISSION;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -151,8 +150,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         when(log.isDebugEnabled()).thenReturn(true);
         when(log.isInfoEnabled()).thenReturn(true);
-
-        when(presponse.addMissingPrivileges(any())).thenReturn(true);
 
         doReturn(ImmutableSet.of(index)).when(ip).getResolvedIndexPattern(user, indexNameExpressionResolver, cs, true, false);
     }
@@ -291,7 +288,6 @@ public class SystemIndexAccessEvaluatorTest {
         verify(auditLog).logSecurityIndexAttempt(request, UNPROTECTED_ACTION, null);
         verify(log).isInfoEnabled();
         verify(log).info("No {} permission for user roles {} to System Indices {}", UNPROTECTED_ACTION, securityRoles, TEST_SYSTEM_INDEX);
-        verify(presponse).addMissingPrivileges(UNPROTECTED_ACTION);
     }
 
     @Test
@@ -446,7 +442,6 @@ public class SystemIndexAccessEvaluatorTest {
         );
         verify(log).debug("Disable search request cache for this request");
         verify(log).debug("Disable realtime for this request");
-        verify(presponse, times(3)).addMissingPrivileges(UNPROTECTED_ACTION);
     }
 
     @Test
@@ -500,7 +495,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
-        verify(presponse).addMissingPrivileges(PROTECTED_ACTION);
         verify(presponse).markComplete();
         verify(log).warn("{} for '_all' indices is not allowed for a regular user", "indices:data/write");
     }
@@ -515,7 +509,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
-        verify(presponse).addMissingPrivileges(PROTECTED_ACTION);
         verify(presponse).markComplete();
         verify(log).warn("{} for '_all' indices is not allowed for a regular user", PROTECTED_ACTION);
     }
@@ -530,7 +523,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
-        verify(presponse).addMissingPrivileges(PROTECTED_ACTION);
         verify(presponse).markComplete();
         verify(log).warn("{} for '_all' indices is not allowed for a regular user", PROTECTED_ACTION);
     }
@@ -589,7 +581,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
-        verify(presponse).addMissingPrivileges(PROTECTED_ACTION);
         verify(presponse).markComplete();
         verify(log).warn("{} for '{}' index is not allowed for a regular user", PROTECTED_ACTION, TEST_SYSTEM_INDEX);
     }
@@ -607,7 +598,6 @@ public class SystemIndexAccessEvaluatorTest {
         verify(presponse).markComplete();
         verify(log).isInfoEnabled();
         verify(log).info("No {} permission for user roles {} to System Indices {}", PROTECTED_ACTION, securityRoles, TEST_SYSTEM_INDEX);
-        verify(presponse).addMissingPrivileges(PROTECTED_ACTION);
     }
 
     @Test
@@ -632,7 +622,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
-        verify(presponse).addMissingPrivileges(PROTECTED_ACTION);
         verify(presponse).markComplete();
 
         verify(log).warn("{} for '{}' index is not allowed for a regular user", PROTECTED_ACTION, SECURITY_INDEX);
@@ -648,7 +637,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
-        verify(presponse).addMissingPrivileges(PROTECTED_ACTION);
         verify(presponse).markComplete();
 
         verify(log).warn("{} for '{}' index is not allowed for a regular user", PROTECTED_ACTION, SECURITY_INDEX);
@@ -684,7 +672,6 @@ public class SystemIndexAccessEvaluatorTest {
 
         verify(auditLog).logSecurityIndexAttempt(request, action, task);
         assertThat(presponse.allowed, is(false));
-        verify(presponse).addMissingPrivileges(action);
         verify(presponse).markComplete();
 
         verify(log).isInfoEnabled();

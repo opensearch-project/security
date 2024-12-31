@@ -25,7 +25,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 
 public class ContextProvidingPluginSubjectTests {
     static class TestIdentityAwarePlugin extends Plugin implements IdentityAwarePlugin {
@@ -54,38 +53,5 @@ public class ContextProvidingPluginSubjectTests {
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
         SecurityUserTests.terminate(threadPool);
-    }
-
-    @Test
-    public void testPluginContextSwitcherRunAs() throws Exception {
-        final ThreadPool threadPool = new TestThreadPool(getClass().getName());
-
-        final Plugin testPlugin = new TestIdentityAwarePlugin();
-
-        final PluginContextSwitcher contextSwitcher = new PluginContextSwitcher();
-
-        final User pluginUser = new User("plugin:" + testPlugin.getClass().getCanonicalName());
-
-        ContextProvidingPluginSubject subject = new ContextProvidingPluginSubject(threadPool, Settings.EMPTY, testPlugin);
-
-        contextSwitcher.initialize(subject);
-
-        assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
-
-        subject.runAs(() -> {
-            assertThat(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER), equalTo(pluginUser));
-            return null;
-        });
-
-        assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
-
-        SecurityUserTests.terminate(threadPool);
-    }
-
-    @Test
-    public void testPluginContextSwitcherUninitializedRunAs() throws Exception {
-        final PluginContextSwitcher contextSwitcher = new PluginContextSwitcher();
-
-        assertThrows(NullPointerException.class, () -> contextSwitcher.runAs(() -> null));
     }
 }

@@ -8,7 +8,7 @@
  *
  */
 
-package org.opensearch.security.plugin;
+package org.opensearch.security.systemindex.sampleplugin;
 
 import java.util.Collection;
 import java.util.Collections;

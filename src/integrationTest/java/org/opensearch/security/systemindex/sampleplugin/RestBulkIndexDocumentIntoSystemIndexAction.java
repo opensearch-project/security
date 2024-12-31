@@ -8,7 +8,7 @@
  *
  */
 
-package org.opensearch.security.plugin;
+package org.opensearch.security.systemindex.sampleplugin;
 
 import java.util.List;
 
@@ -27,7 +27,6 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.identity.PluginContextSwitcher;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.PUT;
