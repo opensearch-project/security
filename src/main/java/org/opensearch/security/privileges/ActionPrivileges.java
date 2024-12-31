@@ -431,7 +431,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 String jti = context.getUser().getName().split(":")[1];
                 if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null) {
                     // Expand the action groups
-                    ImmutableSet<String> resolvedClusterPermissions = actionGroups.resolve(
+                    Set<String> resolvedClusterPermissions = actionGroups.resolve(
                         context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm()
                     );
 
@@ -449,15 +449,18 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
                     // Check for pattern matches (like "cluster:*")
                     for (String permission : resolvedClusterPermissions) {
-                        // Skip exact matches as we already checked those
-                        if (!permission.contains("*")) {
-                            continue;
-                        }
+                        // skip pure *, which was evaluated above
+                        if (permission != "*") {
+                            // Skip exact matches as we already checked those
+                            if (!permission.contains("*")) {
+                                continue;
+                            }
 
-                        WildcardMatcher permissionMatcher = WildcardMatcher.from(permission);
-                        for (String action : actions) {
-                            if (permissionMatcher.test(action)) {
-                                return PrivilegesEvaluatorResponse.ok();
+                            WildcardMatcher permissionMatcher = WildcardMatcher.from(permission);
+                            for (String action : actions) {
+                                if (permissionMatcher.test(action)) {
+                                    return PrivilegesEvaluatorResponse.ok();
+                                }
                             }
                         }
                     }
@@ -967,7 +970,15 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                         }
 
                         if (!indexHasAllPermissions) {
-                            return PrivilegesEvaluatorResponse.insufficient("Insufficient permissions for index");
+                            return PrivilegesEvaluatorResponse.insufficient(checkTable)
+                                .reason(
+                                    resolvedIndices.getAllIndices().size() == 1
+                                        ? "Insufficient permissions for the referenced index"
+                                        : "None of "
+                                            + resolvedIndices.getAllIndices().size()
+                                            + " referenced indices has sufficient permissions"
+                                )
+                                .evaluationExceptions(exceptions);
                         }
                     }
                     // If we get here, all indices had sufficient permissions
