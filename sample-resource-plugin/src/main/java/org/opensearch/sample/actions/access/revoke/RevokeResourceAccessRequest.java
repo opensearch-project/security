@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import org.opensearch.accesscontrol.resources.EntityType;
+import org.opensearch.accesscontrol.resources.RecipientType;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -22,10 +22,10 @@ import org.opensearch.sample.utils.Validation;
 public class RevokeResourceAccessRequest extends ActionRequest {
 
     private final String resourceId;
-    private final Map<EntityType, Set<String>> revokeAccess;
+    private final Map<RecipientType, Set<String>> revokeAccess;
     private final Set<String> scopes;
 
-    public RevokeResourceAccessRequest(String resourceId, Map<EntityType, Set<String>> revokeAccess, Set<String> scopes) {
+    public RevokeResourceAccessRequest(String resourceId, Map<RecipientType, Set<String>> revokeAccess, Set<String> scopes) {
         this.resourceId = resourceId;
         this.revokeAccess = revokeAccess;
         this.scopes = scopes;
@@ -33,7 +33,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
 
     public RevokeResourceAccessRequest(StreamInput in) throws IOException {
         this.resourceId = in.readString();
-        this.revokeAccess = in.readMap(input -> EntityType.valueOf(input.readString()), input -> input.readSet(StreamInput::readString));
+        this.revokeAccess = in.readMap(input -> new RecipientType(input.readString()), input -> input.readSet(StreamInput::readString));
         this.scopes = in.readSet(StreamInput::readString);
     }
 
@@ -42,7 +42,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         out.writeString(resourceId);
         out.writeMap(
             revokeAccess,
-            (streamOutput, entityType) -> streamOutput.writeString(entityType.name()),
+            (streamOutput, recipientType) -> streamOutput.writeString(recipientType.getType()),
             StreamOutput::writeStringCollection
         );
         out.writeStringCollection(scopes);
@@ -62,7 +62,7 @@ public class RevokeResourceAccessRequest extends ActionRequest {
         return resourceId;
     }
 
-    public Map<EntityType, Set<String>> getRevokeAccess() {
+    public Map<RecipientType, Set<String>> getRevokeAccess() {
         return revokeAccess;
     }
 

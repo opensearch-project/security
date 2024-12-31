@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import org.opensearch.accesscontrol.resources.EntityType;
+import org.opensearch.accesscontrol.resources.RecipientType;
+import org.opensearch.accesscontrol.resources.RecipientTypeRegistry;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
@@ -46,15 +47,9 @@ public class RevokeResourceAccessRestAction extends BaseRestHandler {
         String resourceId = (String) source.get("resource_id");
         @SuppressWarnings("unchecked")
         Map<String, Set<String>> revokeSource = (Map<String, Set<String>>) source.get("entities");
-        Map<EntityType, Set<String>> revoke = revokeSource.entrySet().stream().collect(Collectors.toMap(entry -> {
-            try {
-                return EntityType.fromValue(entry.getKey());
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(
-                    "Invalid entity type: " + entry.getKey() + ". Valid values are: " + Arrays.toString(EntityType.values())
-                );
-            }
-        }, Map.Entry::getValue));
+        Map<RecipientType, Set<String>> revoke = revokeSource.entrySet()
+            .stream()
+            .collect(Collectors.toMap(entry -> RecipientTypeRegistry.fromValue(entry.getKey()), Map.Entry::getValue));
         @SuppressWarnings("unchecked")
         Set<String> scopes = new HashSet<>(source.containsKey("scopes") ? (List<String>) source.get("scopes") : List.of());
         final RevokeResourceAccessRequest revokeResourceAccessRequest = new RevokeResourceAccessRequest(resourceId, revoke, scopes);
