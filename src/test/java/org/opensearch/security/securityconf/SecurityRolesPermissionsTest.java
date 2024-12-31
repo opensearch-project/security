@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -59,6 +60,7 @@ import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvalua
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.junit.Assert.assertTrue;
 
 public class SecurityRolesPermissionsTest {
 
@@ -219,6 +221,14 @@ public class SecurityRolesPermissionsTest {
             securityConfigAllowRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(SECURITY_CONFIG_UPDATE))
         );
         assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.CONFIG, securityConfigAllowRole);
+    }
+
+    @Test
+    public void testCreateSecurityRole() {
+        InMemorySecurityRoles securityRoles = new InMemorySecurityRolesV7(1);
+        securityRoles.addSecurityRole("testRole", Set.of("cluster:monitor/health"), Map.of("*", Set.of("indices:data/read/search")));
+        assertTrue(securityRoles.getRoleNames().contains("testRole"));
+        assertTrue(securityRoles.hasExplicitClusterPermissionPermission("cluster:monitor/health"));
     }
 
     void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final SecurityRoles allowOnlyRoleForRole) {

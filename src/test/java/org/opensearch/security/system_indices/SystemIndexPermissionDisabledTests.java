@@ -140,10 +140,10 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
 
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse response = restHelper.executeDeleteRequest(index + "/_doc/document1", header);
-            validateForbiddenResponse(response, "", user);
+            validateForbiddenResponse(response, "indices:data/write/delete", user);
 
             response = restHelper.executeDeleteRequest(index, header);
-            validateForbiddenResponse(response, "", user);
+            validateForbiddenResponse(response, "indices:admin/delete", user);
         }
     }
 
@@ -169,7 +169,7 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
 
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
-            validateForbiddenResponse(response, "", allAccessUser);
+            validateForbiddenResponse(response, "indices:admin/close", allAccessUser);
 
             // admin cannot close any system index but can open them
             response = restHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
@@ -192,7 +192,7 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
 
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_close", "", header);
-            validateForbiddenResponse(response, "", user);
+            validateForbiddenResponse(response, "indices:admin/close", user);
 
             // normal user cannot open or close security index
             response = restHelper.executePostRequest(index + "/_open", "", header);
@@ -284,10 +284,10 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
 
         for (String index : SYSTEM_INDICES) {
             RestHelper.HttpResponse response = restHelper.executePutRequest(index + "/_mapping", newMappings, header);
-            validateForbiddenResponse(response, "", user);
+            validateForbiddenResponse(response, "indices:admin/mapping/put", user);
 
             response = restHelper.executePutRequest(index + "/_settings", updateIndexSettings, header);
-            validateForbiddenResponse(response, "", user);
+            validateForbiddenResponse(response, "indices:admin/settings/update", user);
         }
     }
 
@@ -346,14 +346,14 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
                 "",
                 allAccessUserHeader
             );
-            validateForbiddenResponse(res, "", allAccessUser);
+            validateForbiddenResponse(res, "cluster:admin/snapshot/restore", allAccessUser);
 
             res = restHelper.executePostRequest(
                 "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
                 "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
                 allAccessUserHeader
             );
-            shouldBeAllowedOnlyForAuthorizedIndices(index, res, "", allAccessUser);
+            shouldBeAllowedOnlyForAuthorizedIndices(index, res, "cluster:admin/snapshot/restore", allAccessUser);
         }
     }
 
@@ -382,7 +382,7 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
             assertThat(res.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
 
             res = restHelper.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true", "", header);
-            validateForbiddenResponse(res, "", user);
+            validateForbiddenResponse(res, "cluster:admin/snapshot/restore", user);
 
             res = restHelper.executePostRequest(
                 "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
@@ -390,7 +390,7 @@ public class SystemIndexPermissionDisabledTests extends AbstractSystemIndicesTes
                 header
             );
             if (index.equals(ACCESSIBLE_ONLY_BY_SUPER_ADMIN)) {
-                validateForbiddenResponse(res, "", user);
+                validateForbiddenResponse(res, "cluster:admin/snapshot/restore", user);
             } else {
                 validateForbiddenResponse(res, "indices:data/write/index, indices:admin/create", user);
             }
