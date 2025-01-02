@@ -67,12 +67,17 @@ public class SslContextHandler {
         return sslContext;
     }
 
+    public Stream<Certificate> certificates() {
+        return Stream.concat(authorityCertificates(), keyMaterialCertificates())
+            .sorted((c1, c2) -> Boolean.compare(c1.hasPrivateKey(), c2.hasPrivateKey()));
+    }
+
     public Stream<Certificate> authorityCertificates() {
         return authorityCertificates(loadedCertificates);
     }
 
     Stream<Certificate> authorityCertificates(final List<Certificate> certificates) {
-        return certificates.stream().filter(not(Certificate::hasKey));
+        return certificates.stream().filter(not(Certificate::hasPrivateKey));
     }
 
     public Stream<Certificate> keyMaterialCertificates() {
@@ -80,7 +85,7 @@ public class SslContextHandler {
     }
 
     Stream<Certificate> keyMaterialCertificates(final List<Certificate> certificates) {
-        return certificates.stream().filter(Certificate::hasKey);
+        return certificates.stream().filter(Certificate::hasPrivateKey);
     }
 
     boolean reloadSslContext() throws CertificateException {
