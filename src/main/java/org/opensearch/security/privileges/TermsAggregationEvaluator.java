@@ -26,8 +26,8 @@
 
 package org.opensearch.security.privileges;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,24 +38,27 @@ import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.securityconf.SecurityRoles;
+import org.opensearch.security.user.User;
 
 public class TermsAggregationEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    private static final ImmutableSet<String> READ_ACTIONS = ImmutableSet.of(
+    private static final String[] READ_ACTIONS = new String[] {
         MultiSearchAction.NAME,
         MultiGetAction.NAME,
         GetAction.NAME,
         SearchAction.NAME,
-        FieldCapabilitiesAction.NAME
-    );
+        FieldCapabilitiesAction.NAME };
 
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
 
@@ -64,8 +67,10 @@ public class TermsAggregationEvaluator {
     public PrivilegesEvaluatorResponse evaluate(
         final Resolved resolved,
         final ActionRequest request,
-        PrivilegesEvaluationContext context,
-        ActionPrivileges actionPrivileges,
+        ClusterService clusterService,
+        User user,
+        SecurityRoles securityRoles,
+        IndexNameExpressionResolver resolver,
         PrivilegesEvaluatorResponse presponse
     ) {
         try {
@@ -84,22 +89,17 @@ public class TermsAggregationEvaluator {
                             && ab.getPipelineAggregations().isEmpty()
                             && ab.getSubAggregations().isEmpty()) {
 
-                            PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
-                                context,
+                            final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForDashboards(
+                                resolved,
+                                user,
                                 READ_ACTIONS,
-                                Resolved._LOCAL_ALL
+                                resolver,
+                                clusterService
                             );
-
-                            if (subResponse.isPartiallyOk()) {
-                                sr.source()
-                                    .query(
-                                        new TermsQueryBuilder(
-                                            "_index",
-                                            Sets.union(subResponse.getAvailableIndices(), resolved.getRemoteIndices())
-                                        )
-                                    );
-                            } else if (!subResponse.isAllowed()) {
+                            if (allPermittedIndices == null || allPermittedIndices.isEmpty()) {
                                 sr.source().query(NONE_QUERY);
+                            } else {
+                                sr.source().query(new TermsQueryBuilder("_index", allPermittedIndices));
                             }
 
                             presponse.allowed = true;
