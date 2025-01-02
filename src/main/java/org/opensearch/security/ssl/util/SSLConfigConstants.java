@@ -28,6 +28,8 @@ import io.netty.handler.ssl.OpenSsl;
 
 public final class SSLConfigConstants {
 
+    public static final String DEFAULT_STORE_TYPE = "JKS";
+
     public static final String SSL_PREFIX = "plugins.security.ssl.";
 
     public static final String HTTP_SETTINGS = "http";
