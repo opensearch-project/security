@@ -21,7 +21,6 @@ import org.junit.runner.RunWith;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.security.http.ExampleSystemIndexPlugin;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -47,7 +46,6 @@ public class ThreadPoolTests {
         .anonymousAuth(false)
         .authc(AUTHC_DOMAIN)
         .users(USER_ADMIN)
-        .plugin(ExampleSystemIndexPlugin.class)
         .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName())))
         .build();
 
