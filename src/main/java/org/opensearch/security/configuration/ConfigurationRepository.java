@@ -569,7 +569,7 @@ public class ConfigurationRepository implements ClusterStateListener {
     private synchronized void notifyAboutChanges(ConfigurationMap typeToConfig) {
         for (ConfigurationChangeListener listener : configurationChangedListener) {
             try {
-                LOGGER.debug("Notify {} listener about change configuration with type {}", listener, typeToConfig);
+                LOGGER.debug("Notify {} listener about change configuration with type {}", listener);
                 listener.onChange(typeToConfig);
             } catch (Exception e) {
                 LOGGER.error("{} listener errored: " + e, listener, e);

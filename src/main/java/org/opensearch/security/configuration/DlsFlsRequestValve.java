@@ -31,8 +31,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
@@ -42,14 +40,6 @@ public interface DlsFlsRequestValve {
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
 
     void onQueryPhase(QuerySearchResult queryResult);
-
-    DlsFlsProcessedConfig getCurrentConfig();
-
-    boolean hasFlsOrFieldMasking(String index) throws PrivilegesEvaluationException;
-
-    boolean hasFieldMasking(String index) throws PrivilegesEvaluationException;
-
-    boolean isFieldAllowed(String index, String field) throws PrivilegesEvaluationException;
 
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
@@ -66,26 +56,6 @@ public interface DlsFlsRequestValve {
         @Override
         public void onQueryPhase(QuerySearchResult queryResult) {
 
-        }
-
-        @Override
-        public DlsFlsProcessedConfig getCurrentConfig() {
-            return null;
-        }
-
-        @Override
-        public boolean hasFlsOrFieldMasking(String index) {
-            return false;
-        }
-
-        @Override
-        public boolean hasFieldMasking(String index) {
-            return false;
-        }
-
-        @Override
-        public boolean isFieldAllowed(String index, String field) {
-            return true;
         }
     }
 

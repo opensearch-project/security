@@ -135,8 +135,7 @@ public class ConfigurationLoaderSecurity7 {
                     "Failure {} retrieving configuration for {} (index={})",
                     failure == null ? null : failure.getMessage(),
                     Arrays.toString(events),
-                    securityIndex,
-                    failure.getFailure()
+                    securityIndex
                 );
             }
 
