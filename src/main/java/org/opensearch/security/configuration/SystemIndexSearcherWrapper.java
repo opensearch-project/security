@@ -167,7 +167,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             }
             final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
             final Set<String> mappedRoles = evaluator.mapRoles(user, caller);
-            final SecurityRoles securityRoles = evaluator.getSecurityRoles(mappedRoles);
+            final SecurityRoles securityRoles = evaluator.filterSecurityRolesFromCache(mappedRoles);
             return !securityRoles.isPermittedOnSystemIndex(index.getName());
         }
         return true;
