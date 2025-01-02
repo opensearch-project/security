@@ -71,7 +71,6 @@ public class DlsFlsProcessedConfig extends ClusterStateMetadataDependentPrivileg
         long duration = System.currentTimeMillis() - start;
 
         log.debug("Updating DlsFlsProcessedConfig took {} ms", duration);
-        this.metadataVersionEffective = metadata.version();
     }
 
     @Override
