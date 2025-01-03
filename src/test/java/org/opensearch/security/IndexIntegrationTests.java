@@ -28,9 +28,13 @@ package org.opensearch.security;
 
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.TimeZone;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -48,6 +52,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.indices.InvalidIndexNameException;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -59,6 +64,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class IndexIntegrationTests extends SingleClusterTest {
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public IndexIntegrationTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
 
     @Test
     public void testComposite() throws Exception {
@@ -66,7 +81,9 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup(
             Settings.EMPTY,
             new DynamicSecurityConfig().setConfig("composite_config.yml").setSecurityRoles("roles_composite.yml"),
-            Settings.EMPTY,
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build(),
             true
         );
         final RestHelper rh = nonSslRestHelper();
@@ -105,7 +122,14 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testBulkShards() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bs.yml"), Settings.EMPTY, true);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setSecurityRoles("roles_bs.yml"),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build(),
+            true
+        );
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -175,7 +199,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testCreateIndex() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
 
         HttpResponse res;
@@ -215,7 +243,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testFilteredAlias() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         try (Client tc = getClient()) {
 
@@ -271,7 +303,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testIndexTypeEvaluation() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         try (Client tc = getClient()) {
             tc.index(
@@ -343,7 +379,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testIndices() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("nopermindex").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON))
@@ -541,8 +581,10 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testAliases() throws Exception {
 
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
-
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
         setup(settings);
 
         try (Client tc = getClient()) {
@@ -661,7 +703,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testIndexResolveInvalidIndexName() throws Exception {
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         final RestHelper rh = nonSslRestHelper();
 
         // invalid_index_name_exception should be thrown and responded when invalid index name is mentioned in requests.
@@ -676,7 +722,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testCCSIndexResolve() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -697,7 +747,11 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Ignore
     public void testCCSIndexResolve2() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -763,7 +817,9 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup(
             Settings.EMPTY,
             new DynamicSecurityConfig().setConfig("config_respect_indices_options.yml").setSecurityRoles("roles_bs.yml"),
-            Settings.EMPTY,
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build(),
             true
         );
         final RestHelper rh = nonSslRestHelper();
@@ -789,7 +845,14 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testIndexResolveIndicesAlias() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig(),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build(),
+            true
+        );
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -821,7 +884,14 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testIndexResolveMinus() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig(),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build(),
+            true
+        );
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {

@@ -28,8 +28,11 @@
 package org.opensearch.security.protected_indices;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
@@ -49,6 +52,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -59,6 +63,17 @@ import static org.hamcrest.Matchers.is;
 import static junit.framework.TestCase.assertTrue;
 
 public class ProtectedIndicesTests extends SingleClusterTest {
+
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public ProtectedIndicesTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
 
     private static final List<String> listOfIndexesToTest = Arrays.asList("logs1", "logs2", "logs3", "no_match");
     private static final List<String> listOfIndexPatternsToTest = Arrays.asList("*logs*", "logs*", "*lo*");
@@ -88,6 +103,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
         setup(
             Settings.EMPTY,
@@ -106,6 +122,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexPatternsToTest)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
         setup(
             Settings.EMPTY,
@@ -131,6 +148,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, false)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
         setup(
             Settings.EMPTY,
@@ -149,6 +167,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
             .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
 
         setup(

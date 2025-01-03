@@ -15,6 +15,11 @@
 
 package org.opensearch.security;
 
+import java.util.Arrays;
+import java.util.Collection;
+
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +32,7 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
@@ -35,14 +41,25 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class ResolveAPITests extends SingleClusterTest {
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public ResolveAPITests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     @Test
     public void testResolveDnfofFalse() throws Exception {
 
-        Settings settings = Settings.builder().build();
-
+        Settings settings = Settings.builder()
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
         setup(settings);
         setupIndices();
 
@@ -97,7 +114,9 @@ public class ResolveAPITests extends SingleClusterTest {
 
     @Test
     public void testResolveDnfofTrue() throws Exception {
-        final Settings settings = Settings.builder().build();
+        Settings settings = Settings.builder()
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml"), settings);
         setupIndices();

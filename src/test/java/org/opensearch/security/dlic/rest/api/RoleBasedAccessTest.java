@@ -11,6 +11,11 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.util.Arrays;
+import java.util.Collection;
+
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -18,6 +23,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -27,20 +33,32 @@ import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
     private final String ENDPOINT;
 
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public RoleBasedAccessTest() {
+    public RoleBasedAccessTest(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
         ENDPOINT = getEndpointPrefix() + "/api";
     }
 
     @Test
     public void testActionGroupsApi() throws Exception {
 
-        setupWithRestRoles();
+        setupWithRestRoles(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         rh.sendAdminCertificate = false;
 

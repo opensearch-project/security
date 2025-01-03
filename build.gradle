@@ -594,6 +594,10 @@ dependencies {
     implementation 'com.nimbusds:nimbus-jose-jwt:9.48'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation 'com.password4j:password4j:1.8.2'
+
+    // Action privileges: check tables and compact collections
+    implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
+
     //JWT
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
@@ -747,6 +751,7 @@ dependencies {
     integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
     integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
     integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
+    integrationTestImplementation "org.mockito:mockito-core:5.14.2"
 
     //spotless
     implementation('com.google.googlejavaformat:google-java-format:1.25.2') {

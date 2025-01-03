@@ -166,6 +166,7 @@ import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.identity.NoopPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
@@ -1070,7 +1071,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.salt = Salt.from(settings);
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
-        irr = new IndexResolverReplacer(resolver, clusterService, cih);
+        irr = new IndexResolverReplacer(resolver, clusterService::state, cih);
 
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
@@ -1120,18 +1121,43 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
-        evaluator = new PrivilegesEvaluator(
-            clusterService,
-            threadPool,
-            cr,
-            resolver,
-            auditLog,
-            settings,
-            privilegesInterceptor,
-            cih,
-            irr,
-            namedXContentRegistry.get()
-        );
+        if (PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.get(settings)) {
+            // Use legacy implementation (non-default)
+            evaluator = new org.opensearch.security.privileges.legacy.PrivilegesEvaluatorImpl(
+                clusterService,
+                threadPool,
+                cr,
+                resolver,
+                auditLog,
+                settings,
+                privilegesInterceptor,
+                cih,
+                irr,
+                namedXContentRegistry.get()
+            );
+
+            restLayerEvaluator = new org.opensearch.security.privileges.legacy.RestLayerPrivilegesEvaluatorImpl(clusterService, threadPool);
+        } else {
+            // Use new implementation (default)
+            evaluator = new org.opensearch.security.privileges.PrivilegesEvaluatorImpl(
+                clusterService,
+                clusterService::state,
+                threadPool,
+                threadPool.getThreadContext(),
+                cr,
+                resolver,
+                auditLog,
+                settings,
+                privilegesInterceptor,
+                cih,
+                irr,
+                namedXContentRegistry.get()
+            );
+
+            restLayerEvaluator = new org.opensearch.security.privileges.RestLayerPrivilegesEvaluatorImpl(
+                (org.opensearch.security.privileges.PrivilegesEvaluatorImpl) evaluator
+            );
+        }
 
         sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
 
@@ -1142,8 +1168,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         } else {
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
-
-        restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool);
 
         securityRestHandler = new SecurityRestFilter(
             backendRegistry,
@@ -1162,7 +1186,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
-        dcf.registerDCFListener(restLayerEvaluator);
         dcf.registerDCFListener(securityRestHandler);
         dcf.registerDCFListener(tokenManager);
         if (!(auditLog instanceof NullAuditLog)) {
@@ -2057,6 +2080,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+
+            // Privileges evaluation
+            settings.add(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
+            settings.add(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR);
         }
 
         return settings;

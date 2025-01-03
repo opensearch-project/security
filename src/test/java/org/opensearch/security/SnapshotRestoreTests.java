@@ -27,8 +27,11 @@
 package org.opensearch.security;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -45,6 +48,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
@@ -56,6 +60,17 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class SnapshotRestoreTests extends SingleClusterTest {
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public SnapshotRestoreTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
+
     private ClusterConfiguration currentClusterConfig = ClusterConfiguration.DEFAULT;
 
     @Test
@@ -65,6 +80,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
             .put("plugins.security.check_snapshot_restore_write_privileges", false)
             .put("plugins.security.unsupported.restore.securityindex.enabled", true)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
 
         setup(settings, currentClusterConfig);
@@ -858,7 +874,10 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
         final List<String> listOfIndexesToTest = Arrays.asList("foo", "bar", "baz");
 
-        final Settings settings = Settings.builder().putList("path.repo", repositoryPath.getRoot().getAbsolutePath()).build();
+        final Settings settings = Settings.builder()
+            .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
 
         setup(
             Settings.EMPTY,
@@ -940,6 +959,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
             .put("plugins.security.enable_snapshot_restore_privilege", false)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
 
         setup(

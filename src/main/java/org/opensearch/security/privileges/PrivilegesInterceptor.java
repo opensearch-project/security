@@ -42,9 +42,9 @@ import org.opensearch.threadpool.ThreadPool;
 public class PrivilegesInterceptor {
 
     public static class ReplaceResult {
-        final boolean continueEvaluation;
-        final boolean accessDenied;
-        final CreateIndexRequestBuilder createIndexRequestBuilder;
+        public final boolean continueEvaluation;
+        public final boolean accessDenied;
+        public final CreateIndexRequestBuilder createIndexRequestBuilder;
 
         private ReplaceResult(boolean continueEvaluation, boolean accessDenied, CreateIndexRequestBuilder createIndexRequestBuilder) {
             this.continueEvaluation = continueEvaluation;

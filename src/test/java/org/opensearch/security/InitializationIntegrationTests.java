@@ -27,8 +27,12 @@
 package org.opensearch.security;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
@@ -50,6 +54,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -64,6 +69,19 @@ import static org.hamcrest.Matchers.is;
 
 public class InitializationIntegrationTests extends SingleClusterTest {
 
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public InitializationIntegrationTests(
+        @Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation
+    ) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
+
     @Test
     public void testEnsureInitViaRestDoesWork() throws Exception {
 
@@ -72,6 +90,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             .put("plugins.security.ssl.http.enabled", true)
             .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
             .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
         setup(Settings.EMPTY, null, settings, false);
         final RestHelper rh = restHelper(); // ssl resthelper
@@ -107,6 +126,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
             .put("plugins.security.unsupported.inject_user.enabled", true)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_disable_all.yml"), settings, true);
@@ -130,6 +150,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             .put("plugins.security.ssl.http.enabled", true)
             .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
             .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
         setup(
             Settings.EMPTY,
@@ -152,7 +173,11 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testConfigHotReload() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
         Header spock = encodeBasicHeader("spock", "spock");
 
@@ -243,7 +268,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testDefaultConfig() throws Exception {
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();
         Thread.sleep(10000);
@@ -259,7 +287,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             final String defaultInitDirectory = ClusterHelper.updateDefaultDirectory(
                 new File(TEST_RESOURCE_RELATIVE_PATH + "invalid_config").getAbsolutePath()
             );
-            final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
+            final Settings settings = Settings.builder()
+                .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build();
             setup(Settings.EMPTY, null, settings, false);
             RestHelper rh = nonSslRestHelper();
             Thread.sleep(10000);
@@ -275,7 +306,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testDisabled() throws Exception {
 
-        final Settings settings = Settings.builder().put("plugins.security.disabled", true).build();
+        final Settings settings = Settings.builder()
+            .put("plugins.security.disabled", true)
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
 
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();
@@ -287,7 +321,14 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testDiscoveryWithoutInitialization() throws Exception {
-        setup(Settings.EMPTY, null, Settings.EMPTY, false);
+        setup(
+            Settings.EMPTY,
+            null,
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build(),
+            false
+        );
         assertThat(
             clusterInfo.numNodes,
             is(
