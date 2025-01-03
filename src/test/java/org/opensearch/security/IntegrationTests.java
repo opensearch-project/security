@@ -26,8 +26,12 @@
 
 package org.opensearch.security;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.TreeSet;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
@@ -48,6 +52,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.http.HTTPClientCertAuthenticator;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -63,11 +68,22 @@ import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 
 public class IntegrationTests extends SingleClusterTest {
+    private boolean useOldPrivilegeEvaluationImplementation;
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public IntegrationTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
 
     @Test
     public void testSearchScroll() throws Exception {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".worf", "knuddel", "nonexists")
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -197,6 +213,7 @@ public class IntegrationTests extends SingleClusterTest {
                 "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE"
             )
             .put("plugins.security.cert.oid", "1.2.3.4.5.6")
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
 
         Settings tcSettings = Settings.builder()
@@ -223,7 +240,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiget() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         try (Client tc = getClient()) {
             tc.index(
@@ -261,6 +282,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".spock", "knuddel", "userwhonotexists")
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
 
         setup(settings);
@@ -305,7 +327,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testSingle() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         try (Client tc = getClient()) {
             tc.index(
@@ -336,7 +362,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testSpecialUsernames() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         RestHelper rh = nonSslRestHelper();
 
         assertThat(rh.executeGetRequest("", encodeBasicHeader("bug.88", "nagilum")).getStatusCode(), is(HttpStatus.SC_OK));
@@ -349,7 +379,14 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testXff() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_xff.yml"), Settings.EMPTY, true);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_xff.yml"),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build(),
+            true
+        );
         RestHelper rh = nonSslRestHelper();
         HttpResponse resc = rh.executeGetRequest(
             "_opendistro/_security/authinfo",
@@ -363,7 +400,14 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testRegexExcludes() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig(),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("indexa").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"indexa\":1}", XContentType.JSON))
@@ -400,7 +444,13 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiRoleSpan() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_multirolespan.yml"), Settings.EMPTY);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_multirolespan.yml"),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -421,7 +471,13 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMultiRoleSpan2() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_multirolespan.yml"), Settings.EMPTY);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_multirolespan.yml"),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         final RestHelper rh = nonSslRestHelper();
 
         try (Client tc = getClient()) {
@@ -449,7 +505,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testSecurityUnderscore() throws Exception {
 
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executePostRequest(
@@ -470,7 +530,13 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDeleteByQueryDnfof() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml"), Settings.EMPTY);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_dnfof.yml"),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         try (Client tc = getClient()) {
             for (int i = 0; i < 3; i++) {
@@ -498,7 +564,10 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testUpdate() throws Exception {
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
 
@@ -519,7 +588,10 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDnfof() throws Exception {
 
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
@@ -766,7 +838,10 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testNoDnfof() throws Exception {
 
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+            .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
@@ -991,7 +1066,11 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testSecurityIndexSecurity() throws Exception {
-        setup();
+        setup(
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executePutRequest(
@@ -1059,7 +1138,13 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testMonitorHealth() throws Exception {
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig(),
+            Settings.builder()
+                .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
+                .build()
+        );
 
         RestHelper rh = nonSslRestHelper();
         assertThat(rh.executeGetRequest("_cat/health", encodeBasicHeader("picard", "picard")).getStatusCode(), is(HttpStatus.SC_OK));

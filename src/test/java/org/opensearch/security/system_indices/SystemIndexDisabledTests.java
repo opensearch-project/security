@@ -12,7 +12,11 @@
 package org.opensearch.security.system_indices;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
@@ -32,6 +36,15 @@ import static org.junit.Assert.assertTrue;
  * Adds test for scenario when system index feature is disabled
  */
 public class SystemIndexDisabledTests extends AbstractSystemIndicesTests {
+
+    @ParametersFactory()
+    public static Collection<Object[]> params() {
+        return Arrays.asList(new Object[] { false }, new Object[] { true });
+    }
+
+    public SystemIndexDisabledTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        super(useOldPrivilegeEvaluationImplementation);
+    }
 
     @Before
     public void setup() throws Exception {
