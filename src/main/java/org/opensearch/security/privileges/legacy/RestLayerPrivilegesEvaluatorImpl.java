@@ -95,7 +95,11 @@ public class RestLayerPrivilegesEvaluatorImpl implements RestLayerPrivilegesEval
             }
         }
 
-        return presponse;
+        if (presponse.allowed) {
+            return PrivilegesEvaluatorResponse.ok();
+        } else {
+            return PrivilegesEvaluatorResponse.insufficient(actions);
+        }
     }
 
     Set<String> mapRoles(final User user, final TransportAddress caller) {
