@@ -270,7 +270,7 @@ public class ActionPrivilegesTest {
                 "  - '*'", CType.ROLES);
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
             String token = "blah";
-            PrivilegesEvaluationContext context = ctxWithUserName("apitoken_test:" + token);
+            PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
             context.getApiTokenIndexListenerCache().getJtis().put(token, new Permissions(List.of("*"), List.of()));
             // Explicit fails
             assertThat(
@@ -290,7 +290,7 @@ public class ActionPrivilegesTest {
                 "  - '*'", CType.ROLES);
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
             String token = "blah";
-            PrivilegesEvaluationContext context = ctxWithUserName("apitoken_test:" + token);
+            PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
             context.getApiTokenIndexListenerCache().getJtis().put(token, new Permissions(List.of("cluster:whatever"), List.of()));
             // Explicit succeeds
             assertThat(subject.hasExplicitClusterPrivilege(context, "cluster:whatever"), isAllowed());
@@ -316,7 +316,7 @@ public class ActionPrivilegesTest {
             FlattenedActionGroups actionGroups = new FlattenedActionGroups(config);
             ActionPrivileges subject = new ActionPrivileges(roles, actionGroups, null, Settings.EMPTY);
             String token = "blah";
-            PrivilegesEvaluationContext context = ctxWithUserName("apitoken_test:" + token);
+            PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
             context.getApiTokenIndexListenerCache().getJtis().put(token, new Permissions(List.of("CLUSTER_ALL"), List.of()));
             // Explicit succeeds
             assertThat(subject.hasExplicitClusterPrivilege(context, "cluster:whatever"), isAllowed());
@@ -362,7 +362,7 @@ public class ActionPrivilegesTest {
             @Test
             public void apiTokens_positive_full() throws Exception {
                 String token = "blah";
-                PrivilegesEvaluationContext context = ctxWithUserName("apitoken_test:" + token);
+                PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
                 context.getApiTokenIndexListenerCache()
                     .getJtis()
                     .put(
@@ -430,7 +430,7 @@ public class ActionPrivilegesTest {
             @Test
             public void apiToken_negative_noPermissions() throws Exception {
                 String token = "blah";
-                PrivilegesEvaluationContext context = ctxWithUserName("apitoken_test:" + token);
+                PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
                 context.getApiTokenIndexListenerCache()
                     .getJtis()
                     .put(token, new Permissions(List.of(), List.of(new ApiToken.IndexPermission(List.of(), List.of()))));
@@ -471,7 +471,7 @@ public class ActionPrivilegesTest {
             @Test
             public void apiTokens_positive_hasExplicit_full() {
                 String token = "blah";
-                PrivilegesEvaluationContext context = ctxWithUserName("apitoken_test:" + token);
+                PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
                 context.getApiTokenIndexListenerCache()
                     .getJtis()
                     .put(
