@@ -21,7 +21,6 @@ import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -63,18 +62,7 @@ public class ApiTokenIndexListenerCache implements ClusterStateListener {
     }
 
     void reloadApiTokensFromIndex() {
-        if (!initialized.get()) {
-            log.debug("Cache not yet initialized or client is null, skipping reload");
-            return;
-        }
-
-        if (clusterService.state() != null && clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
-            log.debug("Cluster not yet ready, skipping API tokens cache reload");
-            return;
-        }
-
         try {
-            idToJtiMap.clear();
             jtis.clear();
 
             client.prepareSearch(getSecurityIndexName())
@@ -88,8 +76,6 @@ public class ApiTokenIndexListenerCache implements ClusterStateListener {
                     String id = hit.getId();
                     String jti = (String) source.get("jti");
                     Permissions permissions = parsePermissions(source);
-
-                    idToJtiMap.put(id, jti);
                     jtis.put(jti, permissions);
                 });
 
@@ -122,12 +108,5 @@ public class ApiTokenIndexListenerCache implements ClusterStateListener {
 
     public Map<String, Permissions> getJtis() {
         return jtis;
-    }
-
-    // Cleanup method
-    public void close() {
-        if (clusterService != null) {
-            clusterService.removeListener(this);
-        }
     }
 }
