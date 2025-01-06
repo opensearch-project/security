@@ -74,13 +74,9 @@ public class ApiTokenIndexListenerCache implements ClusterStateListener {
         }
 
         try {
-            // Clear existing caches
-            log.info("Reloading API tokens cache from index: {}", jtis.entrySet().toString());
-
             idToJtiMap.clear();
             jtis.clear();
 
-            // Search request to get all API tokens from the security index
             client.prepareSearch(getSecurityIndexName())
                 .setQuery(QueryBuilders.matchAllQuery())
                 .execute()
@@ -104,22 +100,15 @@ public class ApiTokenIndexListenerCache implements ClusterStateListener {
     }
 
     private String getSecurityIndexName() {
-        // Return the name of your security index
         return ConfigConstants.OPENSEARCH_API_TOKENS_INDEX;
     }
 
     @SuppressWarnings("unchecked")
     private Permissions parsePermissions(Map<String, Object> source) {
-        // Implement parsing logic for permissions from the document
         return new Permissions(
             (List<String>) source.get(ApiToken.CLUSTER_PERMISSIONS_FIELD),
             (List<ApiToken.IndexPermission>) source.get(ApiToken.INDEX_PERMISSIONS_FIELD)
         );
-    }
-
-    // Getter methods for cached data
-    public String getJtiForId(String id) {
-        return idToJtiMap.get(id);
     }
 
     public Permissions getPermissionsForJti(String jti) {

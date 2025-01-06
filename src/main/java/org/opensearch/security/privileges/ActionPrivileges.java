@@ -49,6 +49,8 @@ import com.selectivem.collections.CompactMapGroupBuilder;
 import com.selectivem.collections.DeduplicatingCompactSubSetBuilder;
 import com.selectivem.collections.ImmutableCompactSubSet;
 
+import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX;
+
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking privileges.
  * <p>
@@ -427,8 +429,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             Boolean explicit
         ) {
             String userName = context.getUser().getName();
-            if (userName.startsWith("apitoken") && userName.contains(":")) {
-                String jti = context.getUser().getName().split(":")[1];
+            if (userName.startsWith(API_TOKEN_USER_PREFIX)) {
+                String jti = context.getUser().getName().split(API_TOKEN_USER_PREFIX)[1];
                 if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
                     // Expand the action groups
                     Set<String> resolvedClusterPermissions = actionGroups.resolve(
@@ -919,8 +921,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             Boolean explicit
         ) {
             String userName = context.getUser().getName();
-            if (userName.startsWith("apitoken") && userName.contains(":")) {
-                String jti = context.getUser().getName().split(":")[1];
+            if (userName.startsWith(API_TOKEN_USER_PREFIX)) {
+                String jti = context.getUser().getName().split(API_TOKEN_USER_PREFIX)[1];
                 if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
                     List<ApiToken.IndexPermission> indexPermissions = context.getApiTokenIndexListenerCache()
                         .getPermissionsForJti(jti)

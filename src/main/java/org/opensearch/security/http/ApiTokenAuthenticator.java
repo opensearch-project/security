@@ -60,6 +60,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private final String encryptionKey;
     private final Boolean apiTokenEnabled;
     private final String clusterName;
+    public static final String API_TOKEN_USER_PREFIX = "apitoken:";
 
     private final EncryptionDecryptionUtil encryptionUtil;
 
@@ -161,10 +162,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
-            final AuthCredentials ac = new AuthCredentials("apitoken_" + subject + ":" + encryptionUtil.encrypt(jwtToken), List.of(), "")
-                .markComplete();
-
-            return ac;
+            return new AuthCredentials(API_TOKEN_USER_PREFIX + encryptionUtil.encrypt(jwtToken), List.of(), "").markComplete();
 
         } catch (WeakKeyException e) {
             log.error("Cannot authenticate user with JWT because of ", e);
