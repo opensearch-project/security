@@ -8,105 +8,137 @@
 
 package org.opensearch.security.action.apitokens;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.common.bytes.BytesReference;
-import org.opensearch.core.index.shard.ShardId;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.index.engine.Engine;
-import org.opensearch.index.shard.IndexingOperationListener;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.security.support.ConfigConstants;
 
-/**
- * This class implements an index operation listener for operations performed on api tokens
- * These indices are defined on bootstrap and configured to listen in OpenSearchSecurityPlugin.java
- */
-public class ApiTokenIndexListenerCache implements IndexingOperationListener {
+public class ApiTokenIndexListenerCache implements ClusterStateListener {
 
-    private final static Logger log = LogManager.getLogger(ApiTokenIndexListenerCache.class);
-
+    private static final Logger log = LogManager.getLogger(ApiTokenIndexListenerCache.class);
     private static final ApiTokenIndexListenerCache INSTANCE = new ApiTokenIndexListenerCache();
+
     private final ConcurrentHashMap<String, String> idToJtiMap = new ConcurrentHashMap<>();
+    private final Map<String, Permissions> jtis = new ConcurrentHashMap<>();
 
-    private Map<String, Permissions> jtis = new ConcurrentHashMap<>();
-
-    private boolean initialized;
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private ClusterService clusterService;
+    private Client client;
 
     private ApiTokenIndexListenerCache() {}
 
     public static ApiTokenIndexListenerCache getInstance() {
-        return ApiTokenIndexListenerCache.INSTANCE;
+        return INSTANCE;
     }
 
-    /**
-     * Initializes the ApiTokenIndexListenerCache.
-     * This method is called during the plugin's initialization process.
-     *
-     */
-    public void initialize() {
+    public void initialize(ClusterService clusterService, Client client) {
+        if (initialized.compareAndSet(false, true)) {
+            this.clusterService = clusterService;
+            this.client = client;
 
-        if (initialized) {
+            // Register as cluster state listener
+            this.clusterService.addListener(this);
+        }
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        // Reload cache if the security index has changed
+        IndexMetadata securityIndex = event.state().metadata().index(getSecurityIndexName());
+        if (securityIndex != null) {
+            reloadApiTokensFromIndex();
+        }
+    }
+
+    void reloadApiTokensFromIndex() {
+        if (!initialized.get()) {
+            log.debug("Cache not yet initialized or client is null, skipping reload");
             return;
         }
 
-        initialized = true;
-
-    }
-
-    public boolean isInitialized() {
-        return initialized;
-    }
-
-    /**
-     * This method is called after an index operation is performed.
-     * It adds the JTI of the indexed document to the cache and maps the document ID to the JTI (for deletion handling).
-     * @param shardId The shard ID of the index where the operation was performed.
-     * @param index The index where the operation was performed.
-     * @param result The result of the index operation.
-     */
-    @Override
-    public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
-        BytesReference sourceRef = index.source();
+        if (clusterService.state() != null && clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+            log.debug("Cluster not yet ready, skipping API tokens cache reload");
+            return;
+        }
 
         try {
-            XContentParser parser = XContentType.JSON.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, sourceRef.streamInput());
+            // Clear existing caches
+            log.info("Reloading API tokens cache from index: {}", jtis.entrySet().toString());
 
-            ApiToken token = ApiToken.fromXContent(parser);
-            jtis.put(token.getJti(), new Permissions(token.getClusterPermissions(), token.getIndexPermissions()));
-            idToJtiMap.put(index.id(), token.getJti());
+            idToJtiMap.clear();
+            jtis.clear();
 
-        } catch (IOException e) {
-            log.error("Failed to parse indexed document", e);
+            // Search request to get all API tokens from the security index
+            client.prepareSearch(getSecurityIndexName())
+                .setQuery(QueryBuilders.matchAllQuery())
+                .execute()
+                .actionGet()
+                .getHits()
+                .forEach(hit -> {
+                    // Parse the document and update the cache
+                    Map<String, Object> source = hit.getSourceAsMap();
+                    String id = hit.getId();
+                    String jti = (String) source.get("jti");
+                    Permissions permissions = parsePermissions(source);
+
+                    idToJtiMap.put(id, jti);
+                    jtis.put(jti, permissions);
+                });
+
+            log.debug("Successfully reloaded API tokens cache");
+        } catch (Exception e) {
+            log.error("Failed to reload API tokens cache", e);
         }
     }
 
-    /**
-     * This method is called after a delete operation is performed.
-     * It deletes the corresponding document id in the map and the corresponding jti from the cache.
-     * @param shardId The shard ID of the index where the delete operation was performed.
-     * @param delete The delete operation that was performed.
-     * @param result The result of the delete operation.
-     */
-    @Override
-    public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
-        String docId = delete.id();
-        String jti = idToJtiMap.remove(docId);
-        if (jti != null) {
-            jtis.remove(jti);
-            log.debug("Removed token with ID {} and JTI {} from cache", docId, jti);
-        }
+    private String getSecurityIndexName() {
+        // Return the name of your security index
+        return ConfigConstants.OPENSEARCH_API_TOKENS_INDEX;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Permissions parsePermissions(Map<String, Object> source) {
+        // Implement parsing logic for permissions from the document
+        return new Permissions(
+            (List<String>) source.get(ApiToken.CLUSTER_PERMISSIONS_FIELD),
+            (List<ApiToken.IndexPermission>) source.get(ApiToken.INDEX_PERMISSIONS_FIELD)
+        );
+    }
+
+    // Getter methods for cached data
+    public String getJtiForId(String id) {
+        return idToJtiMap.get(id);
+    }
+
+    public Permissions getPermissionsForJti(String jti) {
+        return jtis.get(jti);
+    }
+
+    // Method to check if a token is valid
+    public boolean isValidToken(String jti) {
+        return jtis.containsKey(jti);
     }
 
     public Map<String, Permissions> getJtis() {
         return jtis;
     }
 
+    // Cleanup method
+    public void close() {
+        if (clusterService != null) {
+            clusterService.removeListener(this);
+        }
+    }
 }

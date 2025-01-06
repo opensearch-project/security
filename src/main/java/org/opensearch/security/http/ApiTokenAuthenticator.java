@@ -141,7 +141,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         }
 
         // TODO: handle revocation different from deletion?
-        if (!cache.getJtis().containsKey(encryptionUtil.encrypt(jwtToken))) {
+        if (!cache.isValidToken(encryptionUtil.encrypt(jwtToken))) {
             log.error("Token is not allowlisted");
             return null;
         }

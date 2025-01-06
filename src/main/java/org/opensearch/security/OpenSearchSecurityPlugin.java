@@ -133,6 +133,8 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.apitokens.ApiTokenAction;
 import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
+import org.opensearch.security.action.apitokens.ApiTokenUpdateAction;
+import org.opensearch.security.action.apitokens.TransportApiTokenUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
@@ -686,6 +688,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if (!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            actions.add(new ActionHandler<>(ApiTokenUpdateAction.INSTANCE, TransportApiTokenUpdateAction.class));
             // external storage does not support reload and does not provide SSL certs info
             if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
                 actions.add(new ActionHandler<>(CertificatesActionType.INSTANCE, TransportCertificatesInfoNodesAction.class));
@@ -718,14 +721,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     dlsFlsBaseContext
                 )
             );
-
-            // TODO: Is there a higher level approach that makes more sense here? Does this cover unsuccessful index ops?
-            if (ConfigConstants.OPENSEARCH_API_TOKENS_INDEX.equals(indexModule.getIndex().getName())) {
-                ApiTokenIndexListenerCache apiTokenIndexListenerCacher = ApiTokenIndexListenerCache.getInstance();
-                apiTokenIndexListenerCacher.initialize();
-                indexModule.addIndexOperationListener(apiTokenIndexListenerCacher);
-                log.warn("Security plugin started listening to operations on index {}", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-            }
 
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
 
@@ -1105,6 +1100,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         adminDns = new AdminDNs(settings);
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
+        ApiTokenIndexListenerCache.getInstance().initialize(clusterService, localClient);
 
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
 

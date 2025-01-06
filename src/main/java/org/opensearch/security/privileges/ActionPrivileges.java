@@ -429,10 +429,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             String userName = context.getUser().getName();
             if (userName.startsWith("apitoken") && userName.contains(":")) {
                 String jti = context.getUser().getName().split(":")[1];
-                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null) {
+                if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
                     // Expand the action groups
                     Set<String> resolvedClusterPermissions = actionGroups.resolve(
-                        context.getApiTokenIndexListenerCache().getJtis().get(jti).getClusterPerm()
+                        context.getApiTokenIndexListenerCache().getPermissionsForJti(jti).getClusterPerm()
                     );
 
                     // Check for wildcard permission
@@ -921,10 +921,9 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             String userName = context.getUser().getName();
             if (userName.startsWith("apitoken") && userName.contains(":")) {
                 String jti = context.getUser().getName().split(":")[1];
-                if (context.getApiTokenIndexListenerCache().getJtis().get(jti) != null) {
+                if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
                     List<ApiToken.IndexPermission> indexPermissions = context.getApiTokenIndexListenerCache()
-                        .getJtis()
-                        .get(jti)
+                        .getPermissionsForJti(jti)
                         .getIndexPermission();
 
                     for (String concreteIndex : resolvedIndices.getAllIndices()) {
