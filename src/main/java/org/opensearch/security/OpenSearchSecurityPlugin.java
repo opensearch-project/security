@@ -69,7 +69,6 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
-import org.opensearch.accesscontrol.resources.*;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
@@ -118,12 +117,11 @@ import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.ResourceAccessControlPlugin;
-import org.opensearch.plugins.ResourcePlugin;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
@@ -191,6 +189,12 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ResourceAccessControlPlugin;
+import org.opensearch.security.spi.resources.ResourceAccessScope;
+import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.ResourceProvider;
+import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.ssl.ExternalSecurityKeyStore;
 import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
@@ -244,7 +248,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         IdentityPlugin,
         ResourceAccessControlPlugin,
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
-        ExtensionAwarePlugin
+        ExtensionAwarePlugin,
+        ExtensiblePlugin
 // CS-ENFORCE-SINGLE
 
 {
@@ -283,6 +288,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private ResourceSharingIndexManagementRepository rmr;
     private ResourceAccessHandler resourceAccessHandler;
     private final Set<String> indicesToListen = new HashSet<>();
+    private static final Map<String, ResourceProvider> resourceProviders = new HashMap<>();
 
     public static boolean isActionTraceEnabled() {
 
@@ -2121,13 +2127,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // create resource sharing index if absent
         rmr.createResourceSharingIndexIfAbsent();
 
-        for (ResourcePlugin resourcePlugin : OpenSearchSecurityPlugin.GuiceHolder.getResourceService().listResourcePlugins()) {
-            String resourceIndex = resourcePlugin.getResourceIndex();
-
-            this.indicesToListen.add(resourceIndex);
-            log.warn("Security plugin started listening to index: {} of plugin: {}", resourceIndex, resourcePlugin);
-        }
-
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -2233,40 +2232,32 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         });
     }
 
-    @Override
-    public <T extends Resource> Set<T> getAccessibleResourcesForCurrentUser(String systemIndexName, Class<T> clazz) {
-        return this.resourceAccessHandler.getAccessibleResourcesForCurrentUser(systemIndexName, clazz);
+    public static Map<String, ResourceProvider> getResourceProviders() {
+        return resourceProviders;
     }
 
     @Override
-    public boolean hasPermission(String resourceId, String systemIndexName, String scope) {
-        return this.resourceAccessHandler.hasPermission(resourceId, systemIndexName, scope);
+    public boolean hasPermission(String resourceId, String resourceIndex, ResourceAccessScope<? extends Enum<?>> scope) {
+        return this.resourceAccessHandler.hasPermission(resourceId, resourceIndex, scope.value());
     }
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     @Override
-    public ResourceSharing shareWith(String resourceId, String systemIndexName, ShareWith shareWith) {
-        return this.resourceAccessHandler.shareWith(resourceId, systemIndexName, shareWith);
-    }
+    public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
 
-    @Override
-    public ResourceSharing revokeAccess(
-        String resourceId,
-        String systemIndexName,
-        Map<RecipientType, Set<String>> entities,
-        Set<String> scopes
-    ) {
-        return this.resourceAccessHandler.revokeAccess(resourceId, systemIndexName, entities, scopes);
-    }
+        for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
+            String resourceType = extension.getResourceType();
+            String resourceIndexName = extension.getResourceIndex();
+            ResourceParser<? extends Resource> resourceParser = extension.getResourceParser();
 
-    @Override
-    public boolean deleteResourceSharingRecord(String resourceId, String systemIndexName) {
-        return this.resourceAccessHandler.deleteResourceSharingRecord(resourceId, systemIndexName);
-    }
+            this.indicesToListen.add(resourceIndexName);
 
-    @Override
-    public boolean deleteAllResourceSharingRecordsForCurrentUser() {
-        return this.resourceAccessHandler.deleteAllResourceSharingRecordsForCurrentUser();
+            ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, resourceParser);
+            resourceProviders.put(resourceIndexName, resourceProvider);
+            log.info("Loaded resource provider extension: {}, index: {}", resourceType, resourceIndexName);
+        }
     }
+    // CS-ENFORCE-SINGLE
 
     public static class GuiceHolder implements LifecycleComponent {
 
@@ -2274,7 +2265,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
-        private static ResourceService resourceService;
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
@@ -2285,15 +2275,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             final TransportService remoteClusterService,
             IndicesService indicesService,
             PitService pitService,
-            ExtensionsManager extensionsManager,
-            ResourceService resourceService
+            ExtensionsManager extensionsManager
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
-            GuiceHolder.resourceService = resourceService;
         }
         // CS-ENFORCE-SINGLE
 
@@ -2318,10 +2306,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             return extensionsManager;
         }
         // CS-ENFORCE-SINGLE
-
-        public static ResourceService getResourceService() {
-            return resourceService;
-        }
 
         @Override
         public void close() {}

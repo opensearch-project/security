@@ -24,10 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.CreatedBy;
-import org.opensearch.accesscontrol.resources.RecipientType;
-import org.opensearch.accesscontrol.resources.ResourceSharing;
-import org.opensearch.accesscontrol.resources.ShareWith;
+import org.opensearch.OpenSearchException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
@@ -52,6 +49,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -67,6 +65,8 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -178,7 +178,7 @@ public class ResourceSharingIndexHandler {
             return entry;
         } catch (Exception e) {
             LOGGER.info("Failed to create {} entry.", resourceSharingIndex, e);
-            return null;
+            throw new OpenSearchException("Failed to create " + resourceSharingIndex + " entry.", e);
         }
     }
 
@@ -223,7 +223,7 @@ public class ResourceSharingIndexHandler {
         *   <li>Returns an empty list instead of throwing exceptions</li>
         * </ul>
         */
-    public <T> Set<T> fetchAllDocuments(String pluginIndex, Class<T> clazz) {
+    public <T extends Resource> Set<T> fetchAllDocuments(String pluginIndex, ResourceParser<T> parser) {
         LOGGER.debug("Fetching all documents from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
 
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
@@ -252,7 +252,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents in {} for source_idx: {}", resourceIds.size(), resourceSharingIndex, pluginIndex);
 
-            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, clazz);
+            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, parser);
 
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
@@ -327,9 +327,14 @@ public class ResourceSharingIndexHandler {
     * </ul>
     */
 
-    public <T> Set<T> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String RecipientType, Class<T> clazz) {
+    public <T extends Resource> Set<T> fetchDocumentsForAllScopes(
+        String pluginIndex,
+        Set<String> entities,
+        String RecipientType,
+        ResourceParser<T> parser
+    ) {
         // "*" must match all scopes
-        return fetchDocumentsForAGivenScope(pluginIndex, entities, RecipientType, "*", clazz);
+        return fetchDocumentsForAGivenScope(pluginIndex, entities, RecipientType, "*", parser);
     }
 
     /**
@@ -383,7 +388,7 @@ public class ResourceSharingIndexHandler {
      *                    <li>"roles" - for role-based access</li>
      *                    <li>"backend_roles" - for backend role-based access</li>
      *                  </ul>
-     * @param scope The scope of the access. Should be implementation of {@link org.opensearch.accesscontrol.resources.ResourceAccessScope}
+     * @param scope The scope of the access. Should be implementation of {@link org.opensearch.security.spi.resources.ResourceAccessScope}
      * @param clazz Class to deserialize each document from Response into
      * @return Set<String> List of resource IDs that match the criteria. The list may be empty
      *         if no matches are found
@@ -399,12 +404,12 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public <T> Set<T> fetchDocumentsForAGivenScope(
+    public <T extends Resource> Set<T> fetchDocumentsForAGivenScope(
         String pluginIndex,
         Set<String> entities,
         String RecipientType,
         String scope,
-        Class<T> clazz
+        ResourceParser<T> parser
     ) {
         LOGGER.debug(
             "Fetching documents from index: {}, where share_with.{}.{} contains any of {}",
@@ -445,7 +450,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
 
-            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, clazz);
+            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, parser);
 
         } catch (Exception e) {
             LOGGER.error(
@@ -515,7 +520,7 @@ public class ResourceSharingIndexHandler {
      * Set<String> resources = fetchDocumentsByField("myIndex", "status", "active");
      * </pre>
      */
-    public <T> Set<T> fetchDocumentsByField(String pluginIndex, String field, String value, Class<T> clazz) {
+    public <T extends Resource> Set<T> fetchDocumentsByField(String pluginIndex, String field, String value, ResourceParser<T> parser) {
         if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
             throw new IllegalArgumentException("pluginIndex, field, and value must not be null or empty");
         }
@@ -538,7 +543,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
 
-            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, clazz);
+            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, parser);
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, e);
             throw new RuntimeException("Failed to fetch documents: " + e.getMessage(), e);
@@ -645,7 +650,7 @@ public class ResourceSharingIndexHandler {
 
         } catch (Exception e) {
             LOGGER.error("Failed to fetch document for resourceId: {} from index: {}", resourceId, pluginIndex, e);
-            throw new RuntimeException("Failed to fetch document: " + e.getMessage(), e);
+            throw new OpenSearchException("Failed to fetch document for resourceId: " + resourceId + " from index: " + pluginIndex, e);
         }
     }
 
@@ -726,7 +731,7 @@ public class ResourceSharingIndexHandler {
 
         } catch (IOException e) {
             LOGGER.error("Failed to build json content", e);
-            return null;
+            throw new OpenSearchException("Failed to build json content", e);
         }
 
         // Check if the user requesting to share is the owner of the resource
@@ -734,7 +739,7 @@ public class ResourceSharingIndexHandler {
         ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
         if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
             LOGGER.error("User {} is not authorized to share resource {}", requestUserName, resourceId);
-            return null;
+            throw new OpenSearchException("User " + requestUserName + " is not authorized to share resource " + resourceId);
         }
 
         CreatedBy createdBy;
@@ -786,7 +791,12 @@ public class ResourceSharingIndexHandler {
             """, Collections.singletonMap("shareWith", shareWithMap));
 
         boolean success = updateByQueryResourceSharing(sourceIdx, resourceId, updateScript);
-        return success ? new ResourceSharing(resourceId, sourceIdx, createdBy, shareWith) : null;
+        if (!success) {
+            LOGGER.error("Failed to update resource sharing info for resource {}", resourceId);
+            throw new OpenSearchException("Failed to update resource sharing info for resource " + resourceId);
+        }
+
+        return new ResourceSharing(resourceId, sourceIdx, createdBy, shareWith);
     }
 
     /**
@@ -942,7 +952,7 @@ public class ResourceSharingIndexHandler {
         ResourceSharing currentSharingInfo = fetchDocumentById(sourceIdx, resourceId);
         if (!isAdmin && currentSharingInfo != null && !currentSharingInfo.getCreatedBy().getCreator().equals(requestUserName)) {
             LOGGER.error("User {} is not authorized to revoke access to resource {}", requestUserName, resourceId);
-            return null;
+            throw new OpenSearchException("User " + requestUserName + " is not authorized to revoke access to resource " + resourceId);
         }
 
         LOGGER.debug("Revoking access for resource {} in {} for entities: {} and scopes: {}", resourceId, sourceIdx, revokeAccess, scopes);
@@ -1163,7 +1173,7 @@ public class ResourceSharingIndexHandler {
      * @param clazz The class to deserialize the documents into.
      * @return A set of deserialized documents.
      */
-    private <T> Set<T> getResourcesFromIds(Set<String> resourceIds, String resourceIndex, Class<T> clazz) {
+    private <T extends Resource> Set<T> getResourcesFromIds(Set<String> resourceIds, String resourceIndex, ResourceParser<T> parser) {
         Set<T> result = new HashSet<>();
         // stashing Context to avoid permission issues in-case resourceIndex is a system index
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
@@ -1178,12 +1188,17 @@ public class ResourceSharingIndexHandler {
             for (MultiGetItemResponse itemResponse : response.getResponses()) {
                 if (!itemResponse.isFailed() && itemResponse.getResponse().isExists()) {
                     String sourceAsString = itemResponse.getResponse().getSourceAsString();
-                    T resource = DefaultObjectMapper.readValue(sourceAsString, clazz);
+                    // T resource = DefaultObjectMapper.readValue(sourceAsString, clazz);
+                    T resource = parser.parse(sourceAsString);
                     result.add(resource);
                 }
             }
+        } catch (IndexNotFoundException e) {
+            LOGGER.error("Index {} does not exist", resourceIndex, e);
+            throw e;
         } catch (Exception e) {
             LOGGER.error("Failed to fetch resources with ids {} from index {}", resourceIds, resourceIndex, e);
+            throw new OpenSearchException("Failed to fetch resources: " + e.getMessage(), e);
         }
 
         return result;

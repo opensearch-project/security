@@ -19,14 +19,11 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.RecipientType;
-import org.opensearch.accesscontrol.resources.RecipientTypeRegistry;
-import org.opensearch.accesscontrol.resources.Resource;
-import org.opensearch.accesscontrol.resources.ResourceSharing;
-import org.opensearch.accesscontrol.resources.ShareWith;
-import org.opensearch.accesscontrol.resources.SharedWithScope;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -73,11 +70,12 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to check for accessible resources.
      * @return A set of accessible resource IDs.
      */
-    public <T extends Resource> Set<T> getAccessibleResourcesForCurrentUser(String resourceIndex, Class<T> clazz) {
-        if (areArgumentsInvalid(resourceIndex, clazz)) {
-            return Collections.emptySet();
-        }
-        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+    @SuppressWarnings("unchecked")
+    public <T extends Resource> Set<T> getAccessibleResourcesForCurrentUser(String resourceIndex) {
+        validateArguments(resourceIndex);
+        ResourceParser<T> parser = OpenSearchSecurityPlugin.getResourceProviders().get(resourceIndex).getResourceParser();
+
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             LOGGER.info("Unable to fetch user details ");
             return Collections.emptySet();
@@ -87,24 +85,24 @@ public class ResourceAccessHandler {
 
         // check if user is admin, if yes all resources should be accessible
         if (adminDNs.isAdmin(user)) {
-            return loadAllResources(resourceIndex, clazz);
+            return loadAllResources(resourceIndex, parser);
         }
 
         Set<T> result = new HashSet<>();
 
         // 0. Own resources
-        result.addAll(loadOwnResources(resourceIndex, user.getName(), clazz));
+        result.addAll(loadOwnResources(resourceIndex, user.getName(), parser));
 
         // 1. By username
-        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), Recipient.USERS.toString(), clazz));
+        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), Recipient.USERS.toString(), parser));
 
         // 2. By roles
         Set<String> roles = user.getSecurityRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, roles, Recipient.ROLES.toString(), clazz));
+        result.addAll(loadSharedWithResources(resourceIndex, roles, Recipient.ROLES.toString(), parser));
 
         // 3. By backend_roles
         Set<String> backendRoles = user.getRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, Recipient.BACKEND_ROLES.toString(), clazz));
+        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, Recipient.BACKEND_ROLES.toString(), parser));
 
         return result;
     }
@@ -118,10 +116,9 @@ public class ResourceAccessHandler {
      * @return True if the user has the specified permission, false otherwise.
      */
     public boolean hasPermission(String resourceId, String resourceIndex, String scope) {
-        if (areArgumentsInvalid(resourceId, resourceIndex, scope)) {
-            return false;
-        }
-        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        validateArguments(resourceId, resourceIndex, scope);
+
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         LOGGER.info("Checking if {} has {} permission to resource {}", user.getName(), scope, resourceId);
 
@@ -160,10 +157,9 @@ public class ResourceAccessHandler {
      * @return The updated ResourceSharing document.
      */
     public ResourceSharing shareWith(String resourceId, String resourceIndex, ShareWith shareWith) {
-        if (areArgumentsInvalid(resourceId, resourceIndex, shareWith)) {
-            return null;
-        }
-        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        validateArguments(resourceId, resourceIndex, shareWith);
+
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
 
         // check if user is admin, if yes the user has permission
@@ -186,10 +182,8 @@ public class ResourceAccessHandler {
         Map<RecipientType, Set<String>> revokeAccess,
         Set<String> scopes
     ) {
-        if (areArgumentsInvalid(resourceId, resourceIndex, revokeAccess, scopes)) {
-            return null;
-        }
-        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        validateArguments(resourceId, resourceIndex, revokeAccess, scopes);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("User {} revoking access to resource {} for {} for scopes {} ", user.getName(), resourceId, revokeAccess, scopes);
 
         // check if user is admin, if yes the user has permission
@@ -205,10 +199,9 @@ public class ResourceAccessHandler {
      * @return True if the record was successfully deleted, false otherwise.
      */
     public boolean deleteResourceSharingRecord(String resourceId, String resourceIndex) {
-        if (areArgumentsInvalid(resourceId, resourceIndex)) {
-            return false;
-        }
-        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        validateArguments(resourceId, resourceIndex);
+
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Deleting resource sharing record for resource {} in {} created by {}", resourceId, resourceIndex, user.getName());
 
         ResourceSharing document = this.resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId);
@@ -229,7 +222,7 @@ public class ResourceAccessHandler {
      */
     public boolean deleteAllResourceSharingRecordsForCurrentUser() {
 
-        final User user = threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
         LOGGER.info("Deleting all resource sharing records for resource {}", user.getName());
 
         return this.resourceSharingIndexHandler.deleteAllRecordsForUser(user.getName());
@@ -241,8 +234,8 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to load resources from.
      * @return A set of resource IDs.
      */
-    private <T extends Resource> Set<T> loadAllResources(String resourceIndex, Class<T> clazz) {
-        return this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex, clazz);
+    private <T extends Resource> Set<T> loadAllResources(String resourceIndex, ResourceParser<T> parser) {
+        return this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex, parser);
     }
 
     /**
@@ -252,8 +245,8 @@ public class ResourceAccessHandler {
      * @param userName The username of the owner.
      * @return A set of resource IDs owned by the user.
      */
-    private <T extends Resource> Set<T> loadOwnResources(String resourceIndex, String userName, Class<T> clazz) {
-        return this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName, clazz);
+    private <T extends Resource> Set<T> loadOwnResources(String resourceIndex, String userName, ResourceParser<T> parser) {
+        return this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName, parser);
     }
 
     /**
@@ -268,9 +261,9 @@ public class ResourceAccessHandler {
         String resourceIndex,
         Set<String> entities,
         String RecipientType,
-        Class<T> clazz
+        ResourceParser<T> parser
     ) {
-        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, RecipientType, clazz);
+        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, RecipientType, parser);
     }
 
     /**
@@ -345,20 +338,19 @@ public class ResourceAccessHandler {
             .orElse(false); // Return false if no matching scope is found
     }
 
-    private boolean areArgumentsInvalid(Object... args) {
+    private void validateArguments(Object... args) {
         if (args == null) {
-            return true;
+            throw new IllegalArgumentException("Arguments cannot be null");
         }
         for (Object arg : args) {
             if (arg == null) {
-                return true;
+                throw new IllegalArgumentException("Argument cannot be null");
             }
             // Additional check for String type arguments
             if (arg instanceof String && ((String) arg).trim().isEmpty()) {
-                return true;
+                throw new IllegalArgumentException("Arguments cannot be empty");
             }
         }
-        return false;
     }
 
 }

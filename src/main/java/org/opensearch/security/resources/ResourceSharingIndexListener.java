@@ -13,8 +13,6 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.CreatedBy;
-import org.opensearch.accesscontrol.resources.ResourceSharing;
 import org.opensearch.client.Client;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
@@ -88,7 +86,7 @@ public class ResourceSharingIndexListener implements IndexingOperationListener {
 
         String resourceId = index.id();
 
-        User user = threadPool.getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        User user = (User) threadPool.getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         try {
             ResourceSharing sharing = this.resourceSharingIndexHandler.indexResourceSharing(
