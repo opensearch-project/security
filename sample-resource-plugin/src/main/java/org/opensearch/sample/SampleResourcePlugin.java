@@ -17,7 +17,6 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -39,30 +38,23 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.ResourcePlugin;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.sample.actions.access.list.ListAccessibleResourcesAction;
-import org.opensearch.sample.actions.access.list.ListAccessibleResourcesRestAction;
-import org.opensearch.sample.actions.access.revoke.RevokeResourceAccessAction;
-import org.opensearch.sample.actions.access.revoke.RevokeResourceAccessRestAction;
-import org.opensearch.sample.actions.access.share.ShareResourceAction;
-import org.opensearch.sample.actions.access.share.ShareResourceRestAction;
 import org.opensearch.sample.actions.access.verify.VerifyResourceAccessAction;
 import org.opensearch.sample.actions.access.verify.VerifyResourceAccessRestAction;
 import org.opensearch.sample.actions.resource.create.CreateResourceAction;
 import org.opensearch.sample.actions.resource.create.CreateResourceRestAction;
 import org.opensearch.sample.actions.resource.delete.DeleteResourceAction;
 import org.opensearch.sample.actions.resource.delete.DeleteResourceRestAction;
-import org.opensearch.sample.transport.access.ListAccessibleResourcesTransportAction;
-import org.opensearch.sample.transport.access.RevokeResourceAccessTransportAction;
-import org.opensearch.sample.transport.access.ShareResourceTransportAction;
 import org.opensearch.sample.transport.access.VerifyResourceAccessTransportAction;
 import org.opensearch.sample.transport.resource.CreateResourceTransportAction;
 import org.opensearch.sample.transport.resource.DeleteResourceTransportAction;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.spi.resources.ResourceParser;
+import org.opensearch.security.spi.resources.ResourceService;
+import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
@@ -73,7 +65,7 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
  * It uses ".sample_resources" index to manage its resources, and exposes a REST API
  *
  */
-public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, ResourcePlugin {
+public class SampleResourcePlugin extends Plugin implements ActionPlugin, SystemIndexPlugin, ResourceSharingExtension {
     private static final Logger log = LogManager.getLogger(SampleResourcePlugin.class);
 
     @Override
@@ -104,23 +96,13 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return List.of(
-            new CreateResourceRestAction(),
-            new ListAccessibleResourcesRestAction(),
-            new VerifyResourceAccessRestAction(),
-            new RevokeResourceAccessRestAction(),
-            new ShareResourceRestAction(),
-            new DeleteResourceRestAction()
-        );
+        return List.of(new CreateResourceRestAction(), new VerifyResourceAccessRestAction(), new DeleteResourceRestAction());
     }
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
             new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
-            new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, ListAccessibleResourcesTransportAction.class),
-            new ActionHandler<>(ShareResourceAction.INSTANCE, ShareResourceTransportAction.class),
-            new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, RevokeResourceAccessTransportAction.class),
             new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, VerifyResourceAccessTransportAction.class),
             new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class)
         );
@@ -134,12 +116,17 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
 
     @Override
     public String getResourceType() {
-        return "";
+        return SampleResource.class.getCanonicalName();
     }
 
     @Override
     public String getResourceIndex() {
         return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public ResourceParser<SampleResource> getResourceParser() {
+        return new SampleResourceParser();
     }
 
     @Override

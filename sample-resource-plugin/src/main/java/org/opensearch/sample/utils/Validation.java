@@ -11,9 +11,9 @@ package org.opensearch.sample.utils;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.opensearch.accesscontrol.resources.ResourceAccessScope;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.sample.SampleResourceScope;
+import org.opensearch.security.spi.resources.ResourceAccessScope;
 
 public class Validation {
     public static ActionRequestValidationException validateScopes(Set<String> scopes) {

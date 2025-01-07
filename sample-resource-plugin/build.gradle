@@ -9,6 +9,10 @@ apply plugin: 'opensearch.java-rest-test'
 
 import org.opensearch.gradle.test.RestIntegTestTask
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
 opensearchplugin {
     name 'opensearch-sample-resource-plugin'
@@ -20,6 +24,20 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
+    opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+
+    version_tokens = opensearch_version.tokenize('-')
+    opensearch_build = version_tokens[0] + '.0'
+
+
+    if (buildVersionQualifier) {
+        opensearch_build += "-${buildVersionQualifier}"
+    }
+    if (isSnapshot) {
+        opensearch_build += "-SNAPSHOT"
+    }
 }
 
 repositories {
@@ -29,7 +47,12 @@ repositories {
 }
 
 dependencies {
+    implementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 }
+
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
 
 def es_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
 es_tmp_dir.mkdirs()

@@ -11,16 +11,17 @@ package org.opensearch.sample.transport.access;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.accesscontrol.resources.ResourceService;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.sample.SampleResourceScope;
 import org.opensearch.sample.actions.access.verify.VerifyResourceAccessAction;
 import org.opensearch.sample.actions.access.verify.VerifyResourceAccessRequest;
 import org.opensearch.sample.actions.access.verify.VerifyResourceAccessResponse;
+import org.opensearch.security.spi.resources.ResourceService;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -39,7 +40,7 @@ public class VerifyResourceAccessTransportAction extends HandledTransportAction<
         try {
             ResourceService rs = SampleResourcePlugin.GuiceHolder.getResourceService();
             boolean hasRequestedScopeAccess = rs.getResourceAccessControlPlugin()
-                .hasPermission(request.getResourceId(), RESOURCE_INDEX_NAME, request.getScope());
+                .hasPermission(request.getResourceId(), RESOURCE_INDEX_NAME, SampleResourceScope.valueOf(request.getScope()));
 
             StringBuilder sb = new StringBuilder();
             sb.append("User ");

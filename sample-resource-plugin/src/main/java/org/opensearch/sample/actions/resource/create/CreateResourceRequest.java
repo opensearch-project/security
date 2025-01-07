@@ -10,11 +10,11 @@ package org.opensearch.sample.actions.resource.create;
 
 import java.io.IOException;
 
-import org.opensearch.accesscontrol.resources.Resource;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.security.spi.resources.Resource;
 
 /**
  * Request object for CreateSampleResource transport action

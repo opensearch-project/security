@@ -11,13 +11,13 @@
 
 package org.opensearch.sample;
 
-import org.opensearch.accesscontrol.resources.ResourceAccessScope;
+import org.opensearch.security.spi.resources.ResourceAccessScope;
 
 /**
  * This class demonstrates a sample implementation of Basic Access Scopes to fit each plugin's use-case.
  * The plugin then uses this scope when seeking access evaluation for a user on a particular resource.
  */
-public enum SampleResourceScope implements ResourceAccessScope {
+public enum SampleResourceScope implements ResourceAccessScope<SampleResourceScope> {
 
     SAMPLE_FULL_ACCESS("sample_full_access"),
 
@@ -29,7 +29,8 @@ public enum SampleResourceScope implements ResourceAccessScope {
         this.name = scopeName;
     }
 
-    public String getName() {
+    @Override
+    public String value() {
         return name;
     }
 }

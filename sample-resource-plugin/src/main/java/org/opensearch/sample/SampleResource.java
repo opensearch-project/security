@@ -14,10 +14,10 @@ package org.opensearch.sample;
 import java.io.IOException;
 import java.util.Map;
 
-import org.opensearch.accesscontrol.resources.Resource;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.security.spi.resources.Resource;
 
 public class SampleResource implements Resource {
 
@@ -65,5 +65,10 @@ public class SampleResource implements Resource {
     @Override
     public String getResourceName() {
         return name;
+    }
+
+    @Override
+    public Resource readFrom(StreamInput streamInput) throws IOException {
+        return new SampleResource(streamInput);
     }
 }
