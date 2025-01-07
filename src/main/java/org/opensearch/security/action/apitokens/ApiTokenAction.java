@@ -14,15 +14,19 @@ package org.opensearch.security.action.apitokens;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
@@ -32,9 +36,20 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.User;
+import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -53,17 +68,23 @@ import static org.opensearch.security.util.ParsingUtils.safeStringList;
 public class ApiTokenAction extends BaseRestHandler {
     private final ApiTokenRepository apiTokenRepository;
     public Logger log = LogManager.getLogger(this.getClass());
+    private final ThreadPool threadPool;
+    private final ConfigurationRepository configurationRepository;
 
-    private static final List<RestHandler.Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(
-            new RestHandler.Route(POST, "/apitokens"),
-            new RestHandler.Route(DELETE, "/apitokens"),
-            new RestHandler.Route(GET, "/apitokens")
-        )
+    private static final List<Route> ROUTES = addRoutesPrefix(
+        ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens"), new Route(GET, "/apitokens"))
     );
 
-    public ApiTokenAction(ClusterService clusterService, Client client, SecurityTokenManager securityTokenManager) {
+    public ApiTokenAction(
+        ClusterService clusterService,
+        Client client,
+        SecurityTokenManager securityTokenManager,
+        ThreadPool threadpool,
+        ConfigurationRepository configurationRepository
+    ) {
         this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
+        threadPool = threadpool;
+        this.configurationRepository = configurationRepository;
     }
 
     @Override
@@ -72,7 +93,7 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     @Override
-    public List<RestHandler.Route> routes() {
+    public List<Route> routes() {
         return ROUTES;
     }
 
@@ -123,13 +144,14 @@ public class ApiTokenAction extends BaseRestHandler {
     private RestChannelConsumer handlePost(RestRequest request, NodeClient client) {
         return channel -> {
             final XContentBuilder builder = channel.newBuilder();
-            BytesRestResponse response;
             try {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
                 validateRequestParameters(requestBody);
 
                 List<String> clusterPermissions = extractClusterPermissions(requestBody);
                 List<ApiToken.IndexPermission> indexPermissions = extractIndexPermissions(requestBody);
+
+                validateUserPermissions(clusterPermissions, indexPermissions);
 
                 String token = apiTokenRepository.createApiToken(
                     (String) requestBody.get(NAME_FIELD),
@@ -162,6 +184,7 @@ public class ApiTokenAction extends BaseRestHandler {
                     }
                 });
             } catch (final Exception exception) {
+                log.error(exception.toString());
                 sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
             }
         };
@@ -249,7 +272,6 @@ public class ApiTokenAction extends BaseRestHandler {
     private RestChannelConsumer handleDelete(RestRequest request, NodeClient client) {
         return channel -> {
             final XContentBuilder builder = channel.newBuilder();
-            BytesRestResponse response;
             try {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
 
@@ -298,4 +320,119 @@ public class ApiTokenAction extends BaseRestHandler {
         }
     }
 
+    /**
+     *  Validates that the user has the required permissions to create an API token (must be a subset of their own permissions)
+     * */
+    @SuppressWarnings("unchecked")
+    private void validateUserPermissions(List<String> clusterPermissions, List<ApiToken.IndexPermission> indexPermissions) {
+        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        Set<String> backendRoles = new HashSet<>(user.getRoles());
+        Set<String> roles = new HashSet<>(user.getSecurityRoles());
+        final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, true);
+        // Load all roles the user has access to
+        rolesMappingConfiguration.getCEntries().forEach((roleName, mapping) -> {
+            // Check username matches
+            RoleMappingsV7 roleMapping = (RoleMappingsV7) mapping;
+            if (roleMapping.getUsers() != null && roleMapping.getUsers().contains(user.getName())) {
+                roles.add(roleName);
+            }
+
+            // Check backend roles matches
+            if (roleMapping.getBackend_roles() != null && !Collections.disjoint(roleMapping.getBackend_roles(), backendRoles)) {
+                roles.add(roleName);
+            }
+
+            // Check and_backend_roles matches (all must match)
+            if (roleMapping.getAnd_backend_roles() != null
+                && !roleMapping.getAnd_backend_roles().isEmpty()
+                && backendRoles.containsAll(roleMapping.getAnd_backend_roles())) {
+                roles.add(roleName);
+            }
+        });
+
+        if (roles.isEmpty()) {
+            throw new OpenSearchException("User does not have any roles");
+        } else if (roles.contains("all_access")) {
+            // all_access == *
+            return;
+        }
+
+        // Verify user has all requested cluster permissions
+        final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguraiton = (SecurityDynamicConfiguration<ActionGroupsV7>) load(
+            CType.ACTIONGROUPS,
+            true
+        );
+        FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguraiton);
+        final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, true);
+        ImmutableSet<String> resolvedClusterPermissions = flattenedActionGroups.resolve(clusterPermissions);
+        Set<String> clusterPermissionsWithoutActionGroups = resolvedClusterPermissions.stream()
+            .filter(permission -> !actionGroupsConfiguraiton.getCEntries().containsKey(permission))
+            .collect(Collectors.toSet());
+
+        // Load all roles the user has access to, remove permissions that
+        for (String role : roles) {
+            RoleV7 roleV7 = (RoleV7) rolesConfiguration.getCEntry(role);
+            ImmutableSet<String> expandedRoleClusterPermissions = flattenedActionGroups.resolve(roleV7.getCluster_permissions());
+            for (String clusterPermission : expandedRoleClusterPermissions) {
+                WildcardMatcher matcher = WildcardMatcher.from(clusterPermission);
+                clusterPermissionsWithoutActionGroups.removeIf(matcher);
+            }
+        }
+
+        if (!clusterPermissionsWithoutActionGroups.isEmpty()) {
+            throw new OpenSearchException("User does not have all requested cluster permissions");
+        }
+
+        // Verify user has all requested index permissions
+        for (ApiToken.IndexPermission requestedPermission : indexPermissions) {
+            // First, flatten/resolve any action groups into the underlying actions and remove action group names (which may not exact
+            // match)
+            Set<String> resolvedActions = new HashSet<>(flattenedActionGroups.resolve(requestedPermission.getAllowedActions()));
+            resolvedActions.removeIf(permission -> actionGroupsConfiguraiton.getCEntries().containsKey(permission));
+
+            // For each index pattern in the requested permission
+            for (String requestedPattern : requestedPermission.getIndexPatterns()) {
+
+                Set<String> actionsForIndexPattern = new HashSet<>(resolvedActions);
+
+                // Check each role the user has
+                for (String roleName : roles) {
+                    RoleV7 role = (RoleV7) rolesConfiguration.getCEntry(roleName);
+                    if (role == null || role.getIndex_permissions() == null) continue;
+
+                    // Check each index permission block in the role
+                    for (RoleV7.Index indexPermission : role.getIndex_permissions()) {
+                        log.error(indexPermission);
+                        log.error(requestedPattern);
+                        log.error(WildcardMatcher.from(indexPermission.getIndex_patterns()).test(requestedPattern));
+                        log.error(flattenedActionGroups.resolve(indexPermission.getAllowed_actions()));
+                        List<String> rolePatterns = indexPermission.getIndex_patterns();
+                        List<String> roleIndexPerms = indexPermission.getAllowed_actions();
+
+                        // Check if this role's pattern covers the requested pattern
+                        if (WildcardMatcher.from(rolePatterns).test(requestedPattern)) {
+                            // Get resolved actions for this role's index permissions
+                            Set<String> roleActions = flattenedActionGroups.resolve(roleIndexPerms);
+                            WildcardMatcher matcher = WildcardMatcher.from(roleActions);
+
+                            actionsForIndexPattern.removeIf(matcher);
+                        }
+                    }
+                }
+
+                // After checking all roles, verify if all requested actions were covered
+                if (!actionsForIndexPattern.isEmpty()) {
+                    throw new OpenSearchException("User does not have sufficient permissions for index pattern: " + requestedPattern);
+                }
+            }
+        }
+    }
+
+    private SecurityDynamicConfiguration<?> load(final CType<?> config, boolean logComplianceEvent) {
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
+            Collections.singleton(config),
+            logComplianceEvent
+        ).get(config).deepClone();
+        return DynamicConfigFactory.addStatics(loaded);
+    }
 }

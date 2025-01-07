@@ -26,7 +26,7 @@ import static org.junit.Assert.assertThrows;
 
 public class ApiTokenActionTest {
 
-    private final ApiTokenAction apiTokenAction = new ApiTokenAction(null, null, null);
+    private final ApiTokenAction apiTokenAction = new ApiTokenAction(null, null, null, null, null);
 
     @Test
     public void testCreateIndexPermission() {
