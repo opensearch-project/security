@@ -31,6 +31,7 @@ import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
@@ -39,12 +40,12 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
-import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -70,6 +71,7 @@ public class ApiTokenAction extends BaseRestHandler {
     public Logger log = LogManager.getLogger(this.getClass());
     private final ThreadPool threadPool;
     private final ConfigurationRepository configurationRepository;
+    private final PrivilegesEvaluator privilegesEvaluator;
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens"), new Route(GET, "/apitokens"))
@@ -80,11 +82,13 @@ public class ApiTokenAction extends BaseRestHandler {
         Client client,
         SecurityTokenManager securityTokenManager,
         ThreadPool threadpool,
-        ConfigurationRepository configurationRepository
+        ConfigurationRepository configurationRepository,
+        PrivilegesEvaluator privilegesEvaluator
     ) {
         this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
-        threadPool = threadpool;
+        this.threadPool = threadpool;
         this.configurationRepository = configurationRepository;
+        this.privilegesEvaluator = privilegesEvaluator;
     }
 
     @Override
@@ -324,32 +328,12 @@ public class ApiTokenAction extends BaseRestHandler {
      *  Validates that the user has the required permissions to create an API token (must be a subset of their own permissions)
      * */
     @SuppressWarnings("unchecked")
-    private void validateUserPermissions(List<String> clusterPermissions, List<ApiToken.IndexPermission> indexPermissions) {
+    void validateUserPermissions(List<String> clusterPermissions, List<ApiToken.IndexPermission> indexPermissions) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        Set<String> backendRoles = new HashSet<>(user.getRoles());
-        Set<String> roles = new HashSet<>(user.getSecurityRoles());
-        final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, true);
-        // Load all roles the user has access to
-        rolesMappingConfiguration.getCEntries().forEach((roleName, mapping) -> {
-            // Check username matches
-            RoleMappingsV7 roleMapping = (RoleMappingsV7) mapping;
-            if (roleMapping.getUsers() != null && roleMapping.getUsers().contains(user.getName())) {
-                roles.add(roleName);
-            }
+        final TransportAddress caller = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final Set<String> roles = privilegesEvaluator.mapRoles(user, caller);
 
-            // Check backend roles matches
-            if (roleMapping.getBackend_roles() != null && !Collections.disjoint(roleMapping.getBackend_roles(), backendRoles)) {
-                roles.add(roleName);
-            }
-
-            // Check and_backend_roles matches (all must match)
-            if (roleMapping.getAnd_backend_roles() != null
-                && !roleMapping.getAnd_backend_roles().isEmpty()
-                && backendRoles.containsAll(roleMapping.getAnd_backend_roles())) {
-                roles.add(roleName);
-            }
-        });
-
+        // Early return conditions
         if (roles.isEmpty()) {
             throw new OpenSearchException("User does not have any roles");
         } else if (roles.contains("all_access")) {
@@ -359,11 +343,10 @@ public class ApiTokenAction extends BaseRestHandler {
 
         // Verify user has all requested cluster permissions
         final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguraiton = (SecurityDynamicConfiguration<ActionGroupsV7>) load(
-            CType.ACTIONGROUPS,
-            true
+            CType.ACTIONGROUPS
         );
         FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguraiton);
-        final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, true);
+        final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES);
         ImmutableSet<String> resolvedClusterPermissions = flattenedActionGroups.resolve(clusterPermissions);
         Set<String> clusterPermissionsWithoutActionGroups = resolvedClusterPermissions.stream()
             .filter(permission -> !actionGroupsConfiguraiton.getCEntries().containsKey(permission))
@@ -402,10 +385,6 @@ public class ApiTokenAction extends BaseRestHandler {
 
                     // Check each index permission block in the role
                     for (RoleV7.Index indexPermission : role.getIndex_permissions()) {
-                        log.error(indexPermission);
-                        log.error(requestedPattern);
-                        log.error(WildcardMatcher.from(indexPermission.getIndex_patterns()).test(requestedPattern));
-                        log.error(flattenedActionGroups.resolve(indexPermission.getAllowed_actions()));
                         List<String> rolePatterns = indexPermission.getIndex_patterns();
                         List<String> roleIndexPerms = indexPermission.getAllowed_actions();
 
@@ -428,11 +407,8 @@ public class ApiTokenAction extends BaseRestHandler {
         }
     }
 
-    private SecurityDynamicConfiguration<?> load(final CType<?> config, boolean logComplianceEvent) {
-        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
-            Collections.singleton(config),
-            logComplianceEvent
-        ).get(config).deepClone();
+    private SecurityDynamicConfiguration<?> load(final CType<?> config) {
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfiguration(config);
         return DynamicConfigFactory.addStatics(loaded);
     }
 }
