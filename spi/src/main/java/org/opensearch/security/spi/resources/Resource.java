@@ -17,15 +17,17 @@ import org.opensearch.core.xcontent.ToXContentFragment;
 /**
  * Marker interface for all resources
  */
-public interface Resource extends NamedWriteable, ToXContentFragment {
+public abstract class Resource implements NamedWriteable, ToXContentFragment {
     /**
-     * Get the resource name
+     * Abstract method to get the resource name.
+     * Must be implemented by subclasses.
+     *
      * @return resource name
      */
-    String getResourceName();
+    public abstract String getResourceName();
 
-    // For de-serialization
-    Resource readFrom(StreamInput in) throws IOException;
-
-    // TODO: Next iteration, check if getResourceType() should be implemented
+    /**
+     * Enforces that all subclasses have a constructor accepting StreamInput.
+     */
+    protected Resource(StreamInput in) throws IOException {}
 }
