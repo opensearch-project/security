@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.actions.resource.delete;
+package org.opensearch.sample.resource.actions.rest.delete;
 
 import org.opensearch.action.ActionType;
 

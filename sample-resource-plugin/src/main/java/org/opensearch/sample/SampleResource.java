@@ -19,15 +19,18 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.spi.resources.Resource;
 
-public class SampleResource implements Resource {
+public class SampleResource extends Resource {
 
     private String name;
     private String description;
     private Map<String, String> attributes;
 
-    public SampleResource() {}
+    public SampleResource() throws IOException {
+        super(null);
+    }
 
     public SampleResource(StreamInput in) throws IOException {
+        super(in);
         this.name = in.readString();
         this.description = in.readString();
         this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
@@ -65,10 +68,5 @@ public class SampleResource implements Resource {
     @Override
     public String getResourceName() {
         return name;
-    }
-
-    @Override
-    public Resource readFrom(StreamInput streamInput) throws IOException {
-        return new SampleResource(streamInput);
     }
 }

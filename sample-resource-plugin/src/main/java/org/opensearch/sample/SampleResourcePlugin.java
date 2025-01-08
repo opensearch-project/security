@@ -42,15 +42,12 @@ import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.sample.actions.access.verify.VerifyResourceAccessAction;
-import org.opensearch.sample.actions.access.verify.VerifyResourceAccessRestAction;
-import org.opensearch.sample.actions.resource.create.CreateResourceAction;
-import org.opensearch.sample.actions.resource.create.CreateResourceRestAction;
-import org.opensearch.sample.actions.resource.delete.DeleteResourceAction;
-import org.opensearch.sample.actions.resource.delete.DeleteResourceRestAction;
-import org.opensearch.sample.transport.access.VerifyResourceAccessTransportAction;
-import org.opensearch.sample.transport.resource.CreateResourceTransportAction;
-import org.opensearch.sample.transport.resource.DeleteResourceTransportAction;
+import org.opensearch.sample.resource.actions.rest.create.CreateResourceAction;
+import org.opensearch.sample.resource.actions.rest.create.CreateResourceRestAction;
+import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
+import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRestAction;
+import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
+import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.ResourceService;
@@ -96,14 +93,13 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return List.of(new CreateResourceRestAction(), new VerifyResourceAccessRestAction(), new DeleteResourceRestAction());
+        return List.of(new CreateResourceRestAction(), new DeleteResourceRestAction());
     }
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
             new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class),
-            new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, VerifyResourceAccessTransportAction.class),
             new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class)
         );
     }

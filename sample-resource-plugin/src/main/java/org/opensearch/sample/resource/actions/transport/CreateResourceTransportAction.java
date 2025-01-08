@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.transport.resource;
+package org.opensearch.sample.resource.actions.transport;
 
 import java.io.IOException;
 
@@ -23,9 +23,9 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.sample.actions.resource.create.CreateResourceAction;
-import org.opensearch.sample.actions.resource.create.CreateResourceRequest;
-import org.opensearch.sample.actions.resource.create.CreateResourceResponse;
+import org.opensearch.sample.resource.actions.rest.create.CreateResourceAction;
+import org.opensearch.sample.resource.actions.rest.create.CreateResourceRequest;
+import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;

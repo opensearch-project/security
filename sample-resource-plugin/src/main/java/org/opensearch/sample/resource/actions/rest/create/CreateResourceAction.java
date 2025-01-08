@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.actions.resource.create;
+package org.opensearch.sample.resource.actions.rest.create;
 
 import org.opensearch.action.ActionType;
 

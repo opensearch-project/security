@@ -6,57 +6,44 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.actions.access.verify;
+package org.opensearch.sample.resource.actions.rest.delete;
 
 import java.io.IOException;
-import java.util.Set;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sample.utils.Validation;
 
-public class VerifyResourceAccessRequest extends ActionRequest {
+/**
+ * Request object for CreateSampleResource transport action
+ */
+public class DeleteResourceRequest extends ActionRequest {
 
     private final String resourceId;
-
-    private final String scope;
 
     /**
      * Default constructor
      */
-    public VerifyResourceAccessRequest(String resourceId, String scope) {
+    public DeleteResourceRequest(String resourceId) {
         this.resourceId = resourceId;
-        this.scope = scope;
     }
 
-    /**
-     * Constructor with stream input
-     * @param in the stream input
-     * @throws IOException IOException
-     */
-    public VerifyResourceAccessRequest(final StreamInput in) throws IOException {
+    public DeleteResourceRequest(StreamInput in) throws IOException {
         this.resourceId = in.readString();
-        this.scope = in.readString();
     }
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
-        out.writeString(resourceId);
-        out.writeString(scope);
+        out.writeString(this.resourceId);
     }
 
     @Override
     public ActionRequestValidationException validate() {
-        return Validation.validateScopes(Set.of(scope));
+        return null;
     }
 
     public String getResourceId() {
-        return resourceId;
-    }
-
-    public String getScope() {
-        return scope;
+        return this.resourceId;
     }
 }

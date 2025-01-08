@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.sample.actions.resource.delete;
+package org.opensearch.sample.resource.actions.rest.create;
 
 import java.io.IOException;
 
@@ -16,7 +16,10 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
-public class DeleteResourceResponse extends ActionResponse implements ToXContentObject {
+/**
+ * Response to a CreateSampleResourceRequest
+ */
+public class CreateResourceResponse extends ActionResponse implements ToXContentObject {
     private final String message;
 
     /**
@@ -24,7 +27,7 @@ public class DeleteResourceResponse extends ActionResponse implements ToXContent
      *
      * @param message The message
      */
-    public DeleteResourceResponse(String message) {
+    public CreateResourceResponse(String message) {
         this.message = message;
     }
 
@@ -38,7 +41,7 @@ public class DeleteResourceResponse extends ActionResponse implements ToXContent
      *
      * @param in the stream input
      */
-    public DeleteResourceResponse(final StreamInput in) throws IOException {
+    public CreateResourceResponse(final StreamInput in) throws IOException {
         message = in.readString();
     }
 
