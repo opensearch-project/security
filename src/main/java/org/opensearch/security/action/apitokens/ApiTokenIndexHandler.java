@@ -145,7 +145,6 @@ public class ApiTokenIndexHandler {
     }
 
     public void createApiTokenIndexIfAbsent() {
-        // TODO: Decide if this should be done at bootstrap
         if (!apiTokenIndexExists()) {
             final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
             try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {

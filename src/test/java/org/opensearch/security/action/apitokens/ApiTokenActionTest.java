@@ -131,7 +131,19 @@ public class ApiTokenActionTest {
         when(configurationRepository.getConfiguration(CType.ROLES)).thenReturn(rolesConfig);
         when(configurationRepository.getConfiguration(CType.ACTIONGROUPS)).thenReturn(actionGroupsConfig);
 
-        apiTokenAction = new ApiTokenAction(null, null, null, threadPool, configurationRepository, privilegesEvaluator);
+        apiTokenAction = new ApiTokenAction(
+            null,
+            null,
+            null,
+            threadPool,
+            configurationRepository,
+            privilegesEvaluator,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
 
     }
 

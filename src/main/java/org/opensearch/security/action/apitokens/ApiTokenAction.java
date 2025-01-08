@@ -12,6 +12,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
@@ -30,6 +31,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
@@ -38,7 +40,13 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.RestApiPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -47,6 +55,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -63,6 +72,7 @@ import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PATTERN_FI
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.util.ParsingUtils.safeMapList;
 import static org.opensearch.security.util.ParsingUtils.safeStringList;
 
@@ -72,6 +82,7 @@ public class ApiTokenAction extends BaseRestHandler {
     private final ThreadPool threadPool;
     private final ConfigurationRepository configurationRepository;
     private final PrivilegesEvaluator privilegesEvaluator;
+    private final SecurityApiDependencies securityApiDependencies;
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens"), new Route(GET, "/apitokens"))
@@ -83,12 +94,31 @@ public class ApiTokenAction extends BaseRestHandler {
         SecurityTokenManager securityTokenManager,
         ThreadPool threadpool,
         ConfigurationRepository configurationRepository,
-        PrivilegesEvaluator privilegesEvaluator
+        PrivilegesEvaluator privilegesEvaluator,
+        Settings settings,
+        AdminDNs adminDns,
+        AuditLog auditLog,
+        Path configPath,
+        PrincipalExtractor principalExtractor
     ) {
         this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
         this.threadPool = threadpool;
         this.configurationRepository = configurationRepository;
         this.privilegesEvaluator = privilegesEvaluator;
+        this.securityApiDependencies = new SecurityApiDependencies(
+            adminDns,
+            configurationRepository,
+            privilegesEvaluator,
+            new RestApiPrivilegesEvaluator(settings, adminDns, privilegesEvaluator, principalExtractor, configPath, threadPool),
+            new RestApiAdminPrivilegesEvaluator(
+                threadPool.getThreadContext(),
+                privilegesEvaluator,
+                adminDns,
+                settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
+            ),
+            auditLog,
+            settings
+        );
     }
 
     @Override
@@ -103,17 +133,17 @@ public class ApiTokenAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
-        // TODO: Authorize this API properly
-        switch (request.method()) {
-            case POST:
-                return handlePost(request, client);
-            case DELETE:
-                return handleDelete(request, client);
-            case GET:
-                return handleGet(request, client);
-            default:
-                throw new IllegalArgumentException(request.method() + " not supported");
-        }
+        authorizeSecurityAccess();
+        return doPrepareRequest(request, client);
+    }
+
+    RestChannelConsumer doPrepareRequest(RestRequest request, NodeClient client) {
+        return switch (request.method()) {
+            case POST -> handlePost(request, client);
+            case DELETE -> handleDelete(request, client);
+            case GET -> handleGet(request, client);
+            default -> throw new IllegalArgumentException(request.method() + " not supported");
+        };
     }
 
     private RestChannelConsumer handleGet(RestRequest request, NodeClient client) {
@@ -410,5 +440,12 @@ public class ApiTokenAction extends BaseRestHandler {
     private SecurityDynamicConfiguration<?> load(final CType<?> config) {
         SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfiguration(config);
         return DynamicConfigFactory.addStatics(loaded);
+    }
+
+    protected void authorizeSecurityAccess() throws IOException {
+        // Check if user has security API access
+        if (!securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)) {
+            throw new SecurityException("User does not have required security API access");
+        }
     }
 }

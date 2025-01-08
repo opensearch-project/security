@@ -646,7 +646,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
-                handlers.add(new ApiTokenAction(cs, localClient, tokenManager, Objects.requireNonNull(threadPool), cr, evaluator));
+                handlers.add(
+                    new ApiTokenAction(
+                        cs,
+                        localClient,
+                        tokenManager,
+                        Objects.requireNonNull(threadPool),
+                        cr,
+                        evaluator,
+                        settings,
+                        adminDns,
+                        auditLog,
+                        configPath,
+                        principalExtractor
+                    )
+                );
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -2138,7 +2152,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
-        return Collections.singletonList(systemIndexDescriptor);
+        final SystemIndexDescriptor apiTokenSystemIndexDescriptor = new SystemIndexDescriptor(
+            ConfigConstants.OPENSEARCH_API_TOKENS_INDEX,
+            "Security API token index"
+        );
+        return List.of(systemIndexDescriptor, apiTokenSystemIndexDescriptor);
     }
 
     @Override
