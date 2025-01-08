@@ -20,7 +20,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
  */
 public class ListAccessibleResourcesRequest extends ActionRequest {
 
-    private String resourceIndex;
+    private final String resourceIndex;
 
     public ListAccessibleResourcesRequest(String resourceIndex) {
         this.resourceIndex = resourceIndex;

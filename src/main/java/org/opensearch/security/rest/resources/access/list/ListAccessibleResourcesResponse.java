@@ -9,7 +9,7 @@
 package org.opensearch.security.rest.resources.access.list;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Set;
 
 import org.opensearch.core.action.ActionResponse;
@@ -24,19 +24,33 @@ import org.opensearch.security.spi.resources.Resource;
  */
 public class ListAccessibleResourcesResponse extends ActionResponse implements ToXContentObject {
     private final Set<Resource> resources;
+    private final String resourceClass;
 
-    public ListAccessibleResourcesResponse(Set<Resource> resources) {
+    public ListAccessibleResourcesResponse(String resourceClass, Set<Resource> resources) {
+        this.resourceClass = resourceClass;
         this.resources = resources;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(resourceClass);
         out.writeCollection(resources);
     }
 
-    public ListAccessibleResourcesResponse(StreamInput in) {
-        // TODO need to fix this to return correct value
-        this.resources = new HashSet<>();
+    public ListAccessibleResourcesResponse(StreamInput in) throws IOException, ClassNotFoundException {
+        this.resourceClass = in.readString();
+
+        // TODO check if there is a better way to handle this
+        Class<?> clazz = Class.forName(this.resourceClass);
+        @SuppressWarnings("unchecked")
+        Class<? extends Resource> resourceClass = (Class<? extends Resource>) clazz;
+        this.resources = in.readSet(i -> {
+            try {
+                return resourceClass.getDeclaredConstructor(StreamInput.class).newInstance(i);
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override

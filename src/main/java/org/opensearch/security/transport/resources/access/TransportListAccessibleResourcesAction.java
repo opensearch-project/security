@@ -17,6 +17,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.rest.resources.access.list.ListAccessibleResourcesAction;
 import org.opensearch.security.rest.resources.access.list.ListAccessibleResourcesRequest;
@@ -25,14 +26,14 @@ import org.opensearch.security.spi.resources.Resource;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-public class ListAccessibleResourcesTransportAction extends HandledTransportAction<
+public class TransportListAccessibleResourcesAction extends HandledTransportAction<
     ListAccessibleResourcesRequest,
     ListAccessibleResourcesResponse> {
-    private static final Logger log = LogManager.getLogger(ListAccessibleResourcesTransportAction.class);
+    private static final Logger log = LogManager.getLogger(TransportListAccessibleResourcesAction.class);
     private final ResourceAccessHandler resourceAccessHandler;
 
     @Inject
-    public ListAccessibleResourcesTransportAction(
+    public TransportListAccessibleResourcesAction(
         TransportService transportService,
         ActionFilters actionFilters,
         ResourceAccessHandler resourceAccessHandler
@@ -46,7 +47,8 @@ public class ListAccessibleResourcesTransportAction extends HandledTransportActi
         try {
             Set<Resource> resources = resourceAccessHandler.getAccessibleResourcesForCurrentUser(request.getResourceIndex());
             log.info("Successfully fetched accessible resources for current user : {}", resources);
-            listener.onResponse(new ListAccessibleResourcesResponse(resources));
+            String resourceType = OpenSearchSecurityPlugin.getResourceProviders().get(request.getResourceIndex()).getResourceType();
+            listener.onResponse(new ListAccessibleResourcesResponse(resourceType, resources));
         } catch (Exception e) {
             log.info("Failed to list accessible resources for current user: ", e);
             listener.onFailure(e);

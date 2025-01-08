@@ -34,6 +34,7 @@ import org.opensearch.index.IndexService;
 import org.opensearch.index.mapper.SeqNoFieldMapper;
 import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.shard.ShardUtils;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.privileges.DocumentAllowList;
@@ -45,7 +46,10 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
+
+import joptsimple.internal.Strings;
 
 public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapper {
 
@@ -61,6 +65,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
     private final LongSupplier nowInMillis;
     private final Supplier<DlsFlsProcessedConfig> dlsFlsProcessedConfigSupplier;
     private final DlsFlsBaseContext dlsFlsBaseContext;
+    private final ResourceAccessHandler resourceAccessHandler;
 
     public SecurityFlsDlsIndexSearcherWrapper(
         final IndexService indexService,
@@ -71,7 +76,8 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         final ComplianceIndexingOperationListener ciol,
         final PrivilegesEvaluator evaluator,
         final Supplier<DlsFlsProcessedConfig> dlsFlsProcessedConfigSupplier,
-        final DlsFlsBaseContext dlsFlsBaseContext
+        final DlsFlsBaseContext dlsFlsBaseContext,
+        final ResourceAccessHandler resourceAccessHandler
     ) {
         super(indexService, settings, adminDNs, evaluator);
         Set<String> metadataFieldsCopy;
@@ -103,6 +109,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         log.debug("FLS/DLS {} enabled for index {}", this, indexService.index().getName());
         this.dlsFlsProcessedConfigSupplier = dlsFlsProcessedConfigSupplier;
         this.dlsFlsBaseContext = dlsFlsBaseContext;
+        this.resourceAccessHandler = resourceAccessHandler;
     }
 
     @SuppressWarnings("unchecked")
@@ -116,7 +123,36 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
             log.trace("dlsFlsWrap(); index: {}; privilegeEvaluationContext: {}", index.getName(), privilegesEvaluationContext);
         }
 
-        if (isAdmin || privilegesEvaluationContext == null) {
+        String indexName = shardId != null ? shardId.getIndexName() : null;
+        Set<String> resourceIds = null;
+        if (!Strings.isNullOrEmpty(indexName) && OpenSearchSecurityPlugin.getResourceIndices().contains(indexName)) {
+            resourceIds = this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(indexName);
+            if (resourceIds.isEmpty()) {
+                return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
+            }
+            // Create a resource DLS query for the current user
+            QueryShardContext queryShardContext = this.indexService.newQueryShardContext(shardId.getId(), null, nowInMillis, null);
+            Query resourceQuery = this.resourceAccessHandler.createResourceDlsQuery(resourceIds, queryShardContext);
+
+            // TODO the FlsRule must still be checked
+            return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
+                reader,
+                FieldPrivileges.FlsRule.ALLOW_ALL,
+                resourceQuery,
+                indexService,
+                threadContext,
+                clusterService,
+                auditlog,
+                FieldMasking.FieldMaskingRule.ALLOW_ALL,
+                shardId,
+                metaFields
+            );
+        }
+
+        // resourceIds == null indicates that the index is not a resource index
+        // resourceIds.isEmpty() indicates that the index is a resource index but the user does not have access to any resource under the
+        // index
+        if (isAdmin || privilegesEvaluationContext == null || resourceIds == null) {
             return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
                 reader,
                 FieldPrivileges.FlsRule.ALLOW_ALL,

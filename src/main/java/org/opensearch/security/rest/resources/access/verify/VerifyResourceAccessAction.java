@@ -17,7 +17,7 @@ public class VerifyResourceAccessAction extends ActionType<VerifyResourceAccessR
 
     public static final VerifyResourceAccessAction INSTANCE = new VerifyResourceAccessAction();
 
-    public static final String NAME = "cluster:admin/sample-resource-plugin/verify/resource_access";
+    public static final String NAME = "cluster:admin/security/resources/verify_access";
 
     private VerifyResourceAccessAction() {
         super(NAME, VerifyResourceAccessResponse::new);

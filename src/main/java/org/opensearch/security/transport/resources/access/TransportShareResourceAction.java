@@ -24,12 +24,12 @@ import org.opensearch.security.rest.resources.access.share.ShareResourceResponse
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-public class ShareResourceTransportAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
-    private static final Logger log = LogManager.getLogger(ShareResourceTransportAction.class);
+public class TransportShareResourceAction extends HandledTransportAction<ShareResourceRequest, ShareResourceResponse> {
+    private static final Logger log = LogManager.getLogger(TransportShareResourceAction.class);
     private final ResourceAccessHandler resourceAccessHandler;
 
     @Inject
-    public ShareResourceTransportAction(
+    public TransportShareResourceAction(
         TransportService transportService,
         ActionFilters actionFilters,
         ResourceAccessHandler resourceAccessHandler

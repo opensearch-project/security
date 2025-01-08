@@ -23,12 +23,12 @@ import org.opensearch.security.rest.resources.access.verify.VerifyResourceAccess
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-public class VerifyResourceAccessTransportAction extends HandledTransportAction<VerifyResourceAccessRequest, VerifyResourceAccessResponse> {
-    private static final Logger log = LogManager.getLogger(VerifyResourceAccessTransportAction.class);
+public class TransportVerifyResourceAccessAction extends HandledTransportAction<VerifyResourceAccessRequest, VerifyResourceAccessResponse> {
+    private static final Logger log = LogManager.getLogger(TransportVerifyResourceAccessAction.class);
     private final ResourceAccessHandler resourceAccessHandler;
 
     @Inject
-    public VerifyResourceAccessTransportAction(
+    public TransportVerifyResourceAccessAction(
         TransportService transportService,
         ActionFilters actionFilters,
         Client nodeClient,

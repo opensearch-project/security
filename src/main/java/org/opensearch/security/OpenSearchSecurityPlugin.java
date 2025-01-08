@@ -58,6 +58,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -185,6 +187,14 @@ import org.opensearch.security.rest.SecurityHealthAction;
 import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
+import org.opensearch.security.rest.resources.access.list.ListAccessibleResourcesAction;
+import org.opensearch.security.rest.resources.access.list.RestListAccessibleResourcesAction;
+import org.opensearch.security.rest.resources.access.revoke.RestRevokeResourceAccessAction;
+import org.opensearch.security.rest.resources.access.revoke.RevokeResourceAccessAction;
+import org.opensearch.security.rest.resources.access.share.RestShareResourceAction;
+import org.opensearch.security.rest.resources.access.share.ShareResourceAction;
+import org.opensearch.security.rest.resources.access.verify.RestVerifyResourceAccessAction;
+import org.opensearch.security.rest.resources.access.verify.VerifyResourceAccessAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
@@ -212,6 +222,10 @@ import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
+import org.opensearch.security.transport.resources.access.TransportListAccessibleResourcesAction;
+import org.opensearch.security.transport.resources.access.TransportRevokeResourceAccessAction;
+import org.opensearch.security.transport.resources.access.TransportShareResourceAction;
+import org.opensearch.security.transport.resources.access.TransportVerifyResourceAccessAction;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
@@ -288,7 +302,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private ResourceSharingIndexManagementRepository rmr;
     private ResourceAccessHandler resourceAccessHandler;
     private final Set<String> indicesToListen = new HashSet<>();
-    private static final Map<String, ResourceProvider> resourceProviders = new HashMap<>();
+    private static final Map<String, ResourceProvider> RESOURCE_PROVIDERS = new HashMap<>();
+    private static final Set<String> RESOURCE_INDICES = new HashSet<>();
 
     public static boolean isActionTraceEnabled() {
 
@@ -679,6 +694,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         passwordHasher
                     )
                 );
+
+                // Adds rest handlers for resource-access-control actions
+                handlers.addAll(
+                    List.of(
+                        new RestShareResourceAction(),
+                        new RestRevokeResourceAccessAction(),
+                        new RestListAccessibleResourcesAction(),
+                        new RestVerifyResourceAccessAction()
+                    )
+                );
                 log.debug("Added {} rest handler(s)", handlers.size());
             }
         }
@@ -706,6 +731,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 actions.add(new ActionHandler<>(CertificatesActionType.INSTANCE, TransportCertificatesInfoNodesAction.class));
             }
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
+
+            // Resource-access-control related actions
+            actions.addAll(
+                List.of(
+                    new ActionHandler<>(ShareResourceAction.INSTANCE, TransportShareResourceAction.class),
+                    new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, TransportRevokeResourceAccessAction.class),
+                    new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, TransportListAccessibleResourcesAction.class),
+                    new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, TransportVerifyResourceAccessAction.class)
+                )
+            );
         }
         return actions;
     }
@@ -730,15 +765,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ciol,
                     evaluator,
                     dlsFlsValve::getCurrentConfig,
-                    dlsFlsBaseContext
+                    dlsFlsBaseContext,
+                    resourceAccessHandler
                 )
             );
 
-            if (this.indicesToListen.contains(indexModule.getIndex().getName())) {
-                ResourceSharingIndexListener resourceSharingIndexListener = ResourceSharingIndexListener.getInstance();
-                resourceSharingIndexListener.initialize(threadPool, localClient, auditLog);
+            // Listening on POST and DELETE operations in resource indices
+            ResourceSharingIndexListener resourceSharingIndexListener = ResourceSharingIndexListener.getInstance();
+            resourceSharingIndexListener.initialize(threadPool, localClient, auditLog);
+            if (RESOURCE_INDICES.contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(resourceSharingIndexListener);
-                log.warn("Security plugin started listening to operations on index {}", indexModule.getIndex().getName());
+                log.warn("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
             }
 
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
@@ -2233,7 +2270,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     public static Map<String, ResourceProvider> getResourceProviders() {
-        return resourceProviders;
+        return ImmutableMap.copyOf(RESOURCE_PROVIDERS);
+    }
+
+    public static Set<String> getResourceIndices() {
+        return ImmutableSet.copyOf(RESOURCE_INDICES);
     }
 
     @Override
@@ -2250,10 +2291,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             String resourceIndexName = extension.getResourceIndex();
             ResourceParser<? extends Resource> resourceParser = extension.getResourceParser();
 
-            this.indicesToListen.add(resourceIndexName);
+            RESOURCE_INDICES.add(resourceIndexName);
 
             ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, resourceParser);
-            resourceProviders.put(resourceIndexName, resourceProvider);
+            RESOURCE_PROVIDERS.put(resourceIndexName, resourceProvider);
             log.info("Loaded resource provider extension: {}, index: {}", resourceType, resourceIndexName);
         }
     }

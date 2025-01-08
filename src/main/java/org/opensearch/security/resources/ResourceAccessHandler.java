@@ -11,6 +11,7 @@
 
 package org.opensearch.security.resources;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,8 +19,13 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.Query;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.ConstantScoreQueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.spi.resources.Resource;
@@ -65,6 +71,45 @@ public class ResourceAccessHandler {
     }
 
     /**
+     *  Returns a set of accessible resource IDs for the current user within the specified resource index.
+     * @param resourceIndex The resource index to check for accessible resources.
+     * @return A set of accessible resource IDs.
+     */
+    public Set<String> getAccessibleResourceIdsForCurrentUser(String resourceIndex) {
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null) {
+            LOGGER.info("Unable to fetch user details ");
+            return Collections.emptySet();
+        }
+
+        LOGGER.info("Listing accessible resources within a resource index {} for : {}", resourceIndex, user.getName());
+
+        Set<String> resourceIds = new HashSet<>();
+
+        // check if user is admin, if yes all resources should be accessible
+        if (adminDNs.isAdmin(user)) {
+            resourceIds.addAll(loadAllResources(resourceIndex));
+            return resourceIds;
+        }
+
+        // 0. Own resources
+        resourceIds.addAll(loadOwnResources(resourceIndex, user.getName()));
+
+        // 1. By username
+        resourceIds.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), Recipient.USERS.toString()));
+
+        // 2. By roles
+        Set<String> roles = user.getSecurityRoles();
+        resourceIds.addAll(loadSharedWithResources(resourceIndex, roles, Recipient.ROLES.toString()));
+
+        // 3. By backend_roles
+        Set<String> backendRoles = user.getRoles();
+        resourceIds.addAll(loadSharedWithResources(resourceIndex, backendRoles, Recipient.BACKEND_ROLES.toString()));
+
+        return resourceIds;
+    }
+
+    /**
      * Returns a set of accessible resources for the current user within the specified resource index.
      *
      * @param resourceIndex The resource index to check for accessible resources.
@@ -74,37 +119,10 @@ public class ResourceAccessHandler {
     public <T extends Resource> Set<T> getAccessibleResourcesForCurrentUser(String resourceIndex) {
         validateArguments(resourceIndex);
         ResourceParser<T> parser = OpenSearchSecurityPlugin.getResourceProviders().get(resourceIndex).getResourceParser();
-
-        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (user == null) {
-            LOGGER.info("Unable to fetch user details ");
-            return Collections.emptySet();
-        }
-
-        LOGGER.info("Listing accessible resources within a resource index {} for : {}", resourceIndex, user.getName());
-
-        // check if user is admin, if yes all resources should be accessible
-        if (adminDNs.isAdmin(user)) {
-            return loadAllResources(resourceIndex, parser);
-        }
-
-        Set<T> result = new HashSet<>();
-
-        // 0. Own resources
-        result.addAll(loadOwnResources(resourceIndex, user.getName(), parser));
-
-        // 1. By username
-        result.addAll(loadSharedWithResources(resourceIndex, Set.of(user.getName()), Recipient.USERS.toString(), parser));
-
-        // 2. By roles
-        Set<String> roles = user.getSecurityRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, roles, Recipient.ROLES.toString(), parser));
-
-        // 3. By backend_roles
-        Set<String> backendRoles = user.getRoles();
-        result.addAll(loadSharedWithResources(resourceIndex, backendRoles, Recipient.BACKEND_ROLES.toString(), parser));
-
-        return result;
+        Set<String> resourceIds = getAccessibleResourceIdsForCurrentUser(resourceIndex);
+        return resourceIds.isEmpty()
+            ? Set.of()
+            : this.resourceSharingIndexHandler.getResourceDocumentsFromIds(resourceIds, resourceIndex, parser);
     }
 
     /**
@@ -234,8 +252,8 @@ public class ResourceAccessHandler {
      * @param resourceIndex The resource index to load resources from.
      * @return A set of resource IDs.
      */
-    private <T extends Resource> Set<T> loadAllResources(String resourceIndex, ResourceParser<T> parser) {
-        return this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex, parser);
+    private Set<String> loadAllResources(String resourceIndex) {
+        return this.resourceSharingIndexHandler.fetchAllDocuments(resourceIndex);
     }
 
     /**
@@ -245,8 +263,8 @@ public class ResourceAccessHandler {
      * @param userName The username of the owner.
      * @return A set of resource IDs owned by the user.
      */
-    private <T extends Resource> Set<T> loadOwnResources(String resourceIndex, String userName, ResourceParser<T> parser) {
-        return this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName, parser);
+    private Set<String> loadOwnResources(String resourceIndex, String userName) {
+        return this.resourceSharingIndexHandler.fetchDocumentsByField(resourceIndex, "created_by.user", userName);
     }
 
     /**
@@ -257,13 +275,8 @@ public class ResourceAccessHandler {
      * @param RecipientType The type of entity (e.g., users, roles, backend_roles).
      * @return A set of resource IDs shared with the specified entities.
      */
-    private <T extends Resource> Set<T> loadSharedWithResources(
-        String resourceIndex,
-        Set<String> entities,
-        String RecipientType,
-        ResourceParser<T> parser
-    ) {
-        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, RecipientType, parser);
+    private Set<String> loadSharedWithResources(String resourceIndex, Set<String> entities, String RecipientType) {
+        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, RecipientType);
     }
 
     /**
@@ -353,4 +366,17 @@ public class ResourceAccessHandler {
         }
     }
 
+    /**
+     * Creates a DLS query for the given resource IDs.
+     * @param resourceIds The resource IDs to create the query for.
+     * @param queryShardContext The query shard context.
+     * @return The DLS query.
+     * @throws IOException If an I/O error occurs.
+     */
+    public Query createResourceDlsQuery(Set<String> resourceIds, QueryShardContext queryShardContext) throws IOException {
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        boolQueryBuilder.filter(QueryBuilders.termsQuery("_id", resourceIds));
+        ConstantScoreQueryBuilder builder = new ConstantScoreQueryBuilder(boolQueryBuilder);
+        return builder.toQuery(queryShardContext);
+    }
 }

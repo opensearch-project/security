@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
@@ -42,7 +43,6 @@ import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -66,6 +66,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.spi.resources.Resource;
+import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -166,6 +167,7 @@ public class ResourceSharingIndexHandler {
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setSource(entry.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .request();
 
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
@@ -183,47 +185,47 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-        * Fetches all resource sharing records that match the specified system index. This method retrieves
-        * a list of resource IDs associated with the given system index from the resource sharing index.
-        *
-        * <p>The method executes the following steps:
-        * <ol>
-        *   <li>Creates a search request with term query matching the system index</li>
-        *   <li>Applies source filtering to only fetch resource_id field</li>
-        *   <li>Executes the search with a limit of 10000 documents</li>
-        *   <li>Processes the results to extract resource IDs</li>
-        * </ol>
-        *
-        * <p>Example query structure:
-        * <pre>
-        * {
-        *   "query": {
-        *     "term": {
-        *       "source_idx": "system_index_name"
-        *     }
-        *   },
-        *   "_source": ["resource_id"],
-        *   "size": 10000
-        * }
-        * </pre>
-        *
-        * @param pluginIndex The source index to match against the source_idx field
-        * @return Set<String> containing resource IDs that belong to the specified system index.
-        *         Returns an empty list if:
-        *         <ul>
-        *           <li>No matching documents are found</li>
-        *           <li>An error occurs during the search operation</li>
-        *           <li>The system index parameter is invalid</li>
-        *         </ul>
-        *
-        * @apiNote This method:
-        * <ul>
-        *   <li>Uses source filtering for optimal performance</li>
-        *   <li>Performs exact matching on the source_idx field</li>
-        *   <li>Returns an empty list instead of throwing exceptions</li>
-        * </ul>
-        */
-    public <T extends Resource> Set<T> fetchAllDocuments(String pluginIndex, ResourceParser<T> parser) {
+    * Fetches all resource sharing records that match the specified system index. This method retrieves
+    * a list of resource IDs associated with the given system index from the resource sharing index.
+    *
+    * <p>The method executes the following steps:
+    * <ol>
+    *   <li>Creates a search request with term query matching the system index</li>
+    *   <li>Applies source filtering to only fetch resource_id field</li>
+    *   <li>Executes the search with a limit of 10000 documents</li>
+    *   <li>Processes the results to extract resource IDs</li>
+    * </ol>
+    *
+    * <p>Example query structure:
+    * <pre>
+    * {
+    *   "query": {
+    *     "term": {
+    *       "source_idx": "resource_index_name"
+    *     }
+    *   },
+    *   "_source": ["resource_id"],
+    *   "size": 10000
+    * }
+    * </pre>
+    *
+    * @param pluginIndex The source index to match against the source_idx field
+    * @return Set<String> containing resource IDs that belong to the specified system index.
+    *         Returns an empty list if:
+    *         <ul>
+    *           <li>No matching documents are found</li>
+    *           <li>An error occurs during the search operation</li>
+    *           <li>The system index parameter is invalid</li>
+    *         </ul>
+    *
+    * @apiNote This method:
+    * <ul>
+    *   <li>Uses source filtering for optimal performance</li>
+    *   <li>Performs exact matching on the source_idx field</li>
+    *   <li>Returns an empty list instead of throwing exceptions</li>
+    * </ul>
+    */
+    public Set<String> fetchAllDocuments(String pluginIndex) {
         LOGGER.debug("Fetching all documents from {} where source_idx = {}", resourceSharingIndex, pluginIndex);
 
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
@@ -252,7 +254,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents in {} for source_idx: {}", resourceIds.size(), resourceSharingIndex, pluginIndex);
 
-            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, parser);
+            return resourceIds;
 
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} for source_idx: {}", resourceSharingIndex, pluginIndex, e);
@@ -279,7 +281,7 @@ public class ResourceSharingIndexHandler {
     *   "query": {
     *     "bool": {
     *       "must": [
-    *         { "term": { "source_idx": "system_index_name" } },
+    *         { "term": { "source_idx": "resource_index_name" } },
     *         {
     *           "bool": {
     *             "should": [
@@ -311,7 +313,6 @@ public class ResourceSharingIndexHandler {
     *                    <li>"roles" - for role-based access</li>
     *                    <li>"backend_roles" - for backend role-based access</li>
     *                  </ul>
-     * @param clazz Class to deserialize each document from Response into
     * @return Set<String> List of resource IDs that match the criteria. The list may be empty
     *         if no matches are found
     *
@@ -327,14 +328,9 @@ public class ResourceSharingIndexHandler {
     * </ul>
     */
 
-    public <T extends Resource> Set<T> fetchDocumentsForAllScopes(
-        String pluginIndex,
-        Set<String> entities,
-        String RecipientType,
-        ResourceParser<T> parser
-    ) {
+    public Set<String> fetchDocumentsForAllScopes(String pluginIndex, Set<String> entities, String RecipientType) {
         // "*" must match all scopes
-        return fetchDocumentsForAGivenScope(pluginIndex, entities, RecipientType, "*", parser);
+        return fetchDocumentsForAGivenScope(pluginIndex, entities, RecipientType, "*");
     }
 
     /**
@@ -356,7 +352,7 @@ public class ResourceSharingIndexHandler {
      *   "query": {
      *     "bool": {
      *       "must": [
-     *         { "term": { "source_idx": "system_index_name" } },
+     *         { "term": { "source_idx": "resource_index_name" } },
      *         {
      *           "bool": {
      *             "should": [
@@ -388,8 +384,7 @@ public class ResourceSharingIndexHandler {
      *                    <li>"roles" - for role-based access</li>
      *                    <li>"backend_roles" - for backend role-based access</li>
      *                  </ul>
-     * @param scope The scope of the access. Should be implementation of {@link org.opensearch.security.spi.resources.ResourceAccessScope}
-     * @param clazz Class to deserialize each document from Response into
+     * @param scope The scope of the access. Should be implementation of {@link ResourceAccessScope}
      * @return Set<String> List of resource IDs that match the criteria. The list may be empty
      *         if no matches are found
      *
@@ -404,13 +399,7 @@ public class ResourceSharingIndexHandler {
      *   <li>Properly cleans up scroll context after use</li>
      * </ul>
      */
-    public <T extends Resource> Set<T> fetchDocumentsForAGivenScope(
-        String pluginIndex,
-        Set<String> entities,
-        String RecipientType,
-        String scope,
-        ResourceParser<T> parser
-    ) {
+    public Set<String> fetchDocumentsForAGivenScope(String pluginIndex, Set<String> entities, String RecipientType, String scope) {
         LOGGER.debug(
             "Fetching documents from index: {}, where share_with.{}.{} contains any of {}",
             pluginIndex,
@@ -418,6 +407,9 @@ public class ResourceSharingIndexHandler {
             RecipientType,
             entities
         );
+
+        // To allow "public" resources to be matched for any user, role, backend_role
+        entities.add("*");
 
         Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
@@ -450,7 +442,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.debug("Found {} documents matching the criteria in {}", resourceIds.size(), resourceSharingIndex);
 
-            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, parser);
+            return resourceIds;
 
         } catch (Exception e) {
             LOGGER.error(
@@ -499,7 +491,6 @@ public class ResourceSharingIndexHandler {
      * @param pluginIndex The source index to match against the source_idx field
      * @param field The field name to search in. Must be a valid field in the index mapping
      * @param value The value to match for the specified field. Performs exact term matching
-     * @param clazz Class to deserialize each document from Response into
      * @return Set<String> List of resource IDs that match the criteria. Returns an empty list
      *         if no matches are found
      *
@@ -520,7 +511,7 @@ public class ResourceSharingIndexHandler {
      * Set<String> resources = fetchDocumentsByField("myIndex", "status", "active");
      * </pre>
      */
-    public <T extends Resource> Set<T> fetchDocumentsByField(String pluginIndex, String field, String value, ResourceParser<T> parser) {
+    public Set<String> fetchDocumentsByField(String pluginIndex, String field, String value) {
         if (StringUtils.isBlank(pluginIndex) || StringUtils.isBlank(field) || StringUtils.isBlank(value)) {
             throw new IllegalArgumentException("pluginIndex, field, and value must not be null or empty");
         }
@@ -543,7 +534,7 @@ public class ResourceSharingIndexHandler {
 
             LOGGER.info("Found {} documents in {} where {} = {}", resourceIds.size(), resourceSharingIndex, field, value);
 
-            return resourceIds.isEmpty() ? Set.of() : getResourcesFromIds(resourceIds, pluginIndex, parser);
+            return resourceIds;
         } catch (Exception e) {
             LOGGER.error("Failed to fetch documents from {} where {} = {}", resourceSharingIndex, field, value, e);
             throw new RuntimeException("Failed to fetch documents: " + e.getMessage(), e);
@@ -569,7 +560,7 @@ public class ResourceSharingIndexHandler {
     *   "query": {
     *     "bool": {
     *       "must": [
-    *         { "term": { "source_idx": "system_index_name" } },
+    *         { "term": { "source_idx": "resource_index_name" } },
     *         { "term": { "resource_id": "resource_id_value" } }
     *       ]
     *     }
@@ -723,7 +714,7 @@ public class ResourceSharingIndexHandler {
         XContentBuilder builder;
         Map<String, Object> shareWithMap;
         try {
-            builder = XContentFactory.jsonBuilder();
+            builder = jsonBuilder();
             shareWith.toXContent(builder, ToXContent.EMPTY_PARAMS);
             String json = builder.toString();
             shareWithMap = DefaultObjectMapper.readValue(json, new TypeReference<>() {
@@ -900,7 +891,7 @@ public class ResourceSharingIndexHandler {
      * <p>Example document structure:
      * <pre>
      * {
-     *   "source_idx": "system_index_name",
+     *   "source_idx": "resource_index_name",
      *   "resource_id": "resource_id",
      *   "share_with": {
      *     "scope": {
@@ -1170,11 +1161,19 @@ public class ResourceSharingIndexHandler {
      * Fetches all documents from the specified resource index and deserializes them into the specified class.
      *
      * @param resourceIndex The resource index to fetch documents from.
-     * @param clazz The class to deserialize the documents into.
+     * @param parser The class to deserialize the documents into a specified type defined by the parser.
      * @return A set of deserialized documents.
      */
-    private <T extends Resource> Set<T> getResourcesFromIds(Set<String> resourceIds, String resourceIndex, ResourceParser<T> parser) {
+    public <T extends Resource> Set<T> getResourceDocumentsFromIds(
+        Set<String> resourceIds,
+        String resourceIndex,
+        ResourceParser<T> parser
+    ) {
         Set<T> result = new HashSet<>();
+        if (resourceIds.isEmpty()) {
+            return result;
+        }
+
         // stashing Context to avoid permission issues in-case resourceIndex is a system index
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {

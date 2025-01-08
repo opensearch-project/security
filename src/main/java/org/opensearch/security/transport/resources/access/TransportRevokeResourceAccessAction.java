@@ -24,12 +24,12 @@ import org.opensearch.security.rest.resources.access.revoke.RevokeResourceAccess
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-public class RevokeResourceAccessTransportAction extends HandledTransportAction<RevokeResourceAccessRequest, RevokeResourceAccessResponse> {
-    private static final Logger log = LogManager.getLogger(RevokeResourceAccessTransportAction.class);
+public class TransportRevokeResourceAccessAction extends HandledTransportAction<RevokeResourceAccessRequest, RevokeResourceAccessResponse> {
+    private static final Logger log = LogManager.getLogger(TransportRevokeResourceAccessAction.class);
     private final ResourceAccessHandler resourceAccessHandler;
 
     @Inject
-    public RevokeResourceAccessTransportAction(
+    public TransportRevokeResourceAccessAction(
         TransportService transportService,
         ActionFilters actionFilters,
         ResourceAccessHandler resourceAccessHandler
