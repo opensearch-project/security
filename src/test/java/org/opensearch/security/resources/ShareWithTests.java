@@ -89,12 +89,12 @@ public class ShareWithTests extends OpenSearchTestCase {
         XContentParser parser;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
             builder.startObject()
-                .startObject(ResourceAccessScope.READ_ONLY)
+                .startObject(ResourceAccessScope.RESTRICTED)
                 .array("users", "user1", "user2")
                 .array("roles", "role1")
                 .array("backend_roles", "backend_role1")
                 .endObject()
-                .startObject(ResourceAccessScope.READ_WRITE)
+                .startObject(ResourceAccessScope.PUBLIC)
                 .array("users", "user3")
                 .array("roles", "role2", "role3")
                 .array("backend_roles")
@@ -115,7 +115,7 @@ public class ShareWithTests extends OpenSearchTestCase {
         for (SharedWithScope scope : scopes) {
             SharedWithScope.ScopeRecipients perScope = scope.getSharedWithPerScope();
             Map<RecipientType, Set<String>> recipients = perScope.getRecipients();
-            if (scope.getScope().equals(ResourceAccessScope.READ_ONLY)) {
+            if (scope.getScope().equals(ResourceAccessScope.RESTRICTED)) {
                 MatcherAssert.assertThat(
                     recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())).size(),
                     is(2)
@@ -128,7 +128,7 @@ public class ShareWithTests extends OpenSearchTestCase {
                     recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.BACKEND_ROLES.getName())).size(),
                     is(1)
                 );
-            } else if (scope.getScope().equals(ResourceAccessScope.READ_WRITE)) {
+            } else if (scope.getScope().equals(ResourceAccessScope.PUBLIC)) {
                 MatcherAssert.assertThat(
                     recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())).size(),
                     is(1)
@@ -229,8 +229,8 @@ public class ShareWithTests extends OpenSearchTestCase {
         StreamOutput mockStreamOutput = Mockito.mock(StreamOutput.class);
 
         Set<SharedWithScope> sharedWithScopes = new HashSet<>();
-        sharedWithScopes.add(new SharedWithScope(ResourceAccessScope.READ_ONLY, new SharedWithScope.ScopeRecipients(Map.of())));
-        sharedWithScopes.add(new SharedWithScope(ResourceAccessScope.READ_WRITE, new SharedWithScope.ScopeRecipients(Map.of())));
+        sharedWithScopes.add(new SharedWithScope(ResourceAccessScope.RESTRICTED, new SharedWithScope.ScopeRecipients(Map.of())));
+        sharedWithScopes.add(new SharedWithScope(ResourceAccessScope.PUBLIC, new SharedWithScope.ScopeRecipients(Map.of())));
 
         ShareWith shareWith = new ShareWith(sharedWithScopes);
 

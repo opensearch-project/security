@@ -18,8 +18,8 @@ import java.util.Arrays;
  * @opensearch.experimental
  */
 public interface ResourceAccessScope<T extends Enum<T>> {
-    String READ_ONLY = "read_only";
-    String READ_WRITE = "read_write";
+    String RESTRICTED = "restricted";
+    String PUBLIC = "public";
 
     static <E extends Enum<E> & ResourceAccessScope<E>> E fromValue(Class<E> enumClass, String value) {
         for (E enumConstant : enumClass.getEnumConstants()) {

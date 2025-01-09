@@ -37,20 +37,27 @@ public class ListAccessibleResourcesResponse extends ActionResponse implements T
         out.writeCollection(resources);
     }
 
-    public ListAccessibleResourcesResponse(StreamInput in) throws IOException, ClassNotFoundException {
+    public ListAccessibleResourcesResponse(StreamInput in) throws IOException {
         this.resourceClass = in.readString();
+        this.resources = readResourcesFromStream(in);
+    }
 
-        // TODO check if there is a better way to handle this
-        Class<?> clazz = Class.forName(this.resourceClass);
-        @SuppressWarnings("unchecked")
-        Class<? extends Resource> resourceClass = (Class<? extends Resource>) clazz;
-        this.resources = in.readSet(i -> {
-            try {
-                return resourceClass.getDeclaredConstructor(StreamInput.class).newInstance(i);
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
-        });
+    private Set<Resource> readResourcesFromStream(StreamInput in) {
+        try {
+            // TODO check if there is a better way to handle this
+            Class<?> clazz = Class.forName(this.resourceClass);
+            @SuppressWarnings("unchecked")
+            Class<? extends Resource> resourceClass = (Class<? extends Resource>) clazz;
+            return in.readSet(i -> {
+                try {
+                    return resourceClass.getDeclaredConstructor(StreamInput.class).newInstance(i);
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (ClassNotFoundException | IOException e) {
+            return Set.of();
+        }
     }
 
     @Override

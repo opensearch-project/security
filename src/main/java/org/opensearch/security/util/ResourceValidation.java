@@ -17,8 +17,8 @@ import org.opensearch.security.spi.resources.ResourceAccessScope;
 public class ResourceValidation {
     public static ActionRequestValidationException validateScopes(Set<String> scopes) {
         Set<String> validScopes = new HashSet<>();
-        validScopes.add(ResourceAccessScope.READ_ONLY);
-        validScopes.add(ResourceAccessScope.READ_WRITE);
+        validScopes.add(ResourceAccessScope.RESTRICTED);
+        validScopes.add(ResourceAccessScope.PUBLIC);
 
         // TODO See if we can add custom scopes as part of this validation routine
 
