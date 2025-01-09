@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -32,6 +33,7 @@ import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
@@ -47,6 +49,7 @@ import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.RestApiPrivilegesEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
+import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -138,12 +141,18 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     RestChannelConsumer doPrepareRequest(RestRequest request, NodeClient client) {
-        return switch (request.method()) {
-            case POST -> handlePost(request, client);
-            case DELETE -> handleDelete(request, client);
-            case GET -> handleGet(request, client);
-            default -> throw new IllegalArgumentException(request.method() + " not supported");
-        };
+        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
+        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+            client.threadPool()
+                .getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+            return switch (request.method()) {
+                case POST -> handlePost(request, client);
+                case DELETE -> handleDelete(request, client);
+                case GET -> handleGet(request, client);
+                default -> throw new IllegalArgumentException(request.method() + " not supported");
+            };
+        }
     }
 
     private RestChannelConsumer handleGet(RestRequest request, NodeClient client) {
@@ -177,7 +186,6 @@ public class ApiTokenAction extends BaseRestHandler {
 
     private RestChannelConsumer handlePost(RestRequest request, NodeClient client) {
         return channel -> {
-            final XContentBuilder builder = channel.newBuilder();
             try {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
                 validateRequestParameters(requestBody);
@@ -305,7 +313,6 @@ public class ApiTokenAction extends BaseRestHandler {
 
     private RestChannelConsumer handleDelete(RestRequest request, NodeClient client) {
         return channel -> {
-            final XContentBuilder builder = channel.newBuilder();
             try {
                 final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
 
@@ -447,6 +454,16 @@ public class ApiTokenAction extends BaseRestHandler {
         if (!(securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
             || securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
             throw new SecurityException("User does not have required security API access");
+        }
+    }
+
+    private <T> T withSecurityContext(NodeClient client, Supplier<T> operation) {
+        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
+        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+            client.threadPool()
+                .getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+            return operation.get();
         }
     }
 }

@@ -70,8 +70,8 @@ public class RestApiAdminPrivilegesEvaluator {
         .put(Endpoint.ROLES, action -> buildEndpointPermission(Endpoint.ROLES))
         .put(Endpoint.ROLESMAPPING, action -> buildEndpointPermission(Endpoint.ROLESMAPPING))
         .put(Endpoint.TENANTS, action -> buildEndpointPermission(Endpoint.TENANTS))
-        .put(Endpoint.SSL, action -> buildEndpointActionPermission(Endpoint.SSL, action))
         .put(Endpoint.APITOKENS, action -> buildEndpointPermission(Endpoint.APITOKENS))
+        .put(Endpoint.SSL, action -> buildEndpointActionPermission(Endpoint.SSL, action))
         .build();
 
     private final ThreadContext threadContext;
