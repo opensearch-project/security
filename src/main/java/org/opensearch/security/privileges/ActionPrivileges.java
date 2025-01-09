@@ -13,7 +13,9 @@ package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +37,7 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -45,6 +48,8 @@ import com.selectivem.collections.CheckTable;
 import com.selectivem.collections.CompactMapGroupBuilder;
 import com.selectivem.collections.DeduplicatingCompactSubSetBuilder;
 import com.selectivem.collections.ImmutableCompactSubSet;
+
+import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX;
 
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking privileges.
@@ -299,6 +304,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
         private final ImmutableSet<String> wellKnownClusterActions;
 
+        private final FlattenedActionGroups actionGroups;
+
         /**
          * Creates pre-computed cluster privileges based on the given parameters.
          * <p>
@@ -375,6 +382,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             this.rolesWithWildcardPermissions = rolesWithWildcardPermissions.build();
             this.rolesToActionMatcher = rolesToActionMatcher.build();
             this.wellKnownClusterActions = wellKnownClusterActions;
+            this.actionGroups = actionGroups;
         }
 
         /**
@@ -407,7 +415,65 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(action);
+            // 4: Evaluate api tokens
+            return apiTokenProvidesClusterPrivilege(context, Set.of(action), false);
+        }
+
+        /**
+         * Evaluates cluster privileges for api tokens. It does so by checking exact match, regex match, * match, and action group match in a non-optimized, naive way.
+         * First it expands all action groups to get all the actions and patterns of actions. Then it checks * if not an explicit check, then for exact match, then for pattern match.
+         */
+        PrivilegesEvaluatorResponse apiTokenProvidesClusterPrivilege(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
+            Boolean explicit
+        ) {
+            String userName = context.getUser().getName();
+            if (userName.startsWith(API_TOKEN_USER_PREFIX)) {
+                String jti = context.getUser().getName().split(API_TOKEN_USER_PREFIX)[1];
+                if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
+                    // Expand the action groups
+                    Set<String> resolvedClusterPermissions = actionGroups.resolve(
+                        context.getApiTokenIndexListenerCache().getPermissionsForJti(jti).getClusterPerm()
+                    );
+
+                    // Check for wildcard permission
+                    if (!explicit) {
+                        if (resolvedClusterPermissions.contains("*")) {
+                            return PrivilegesEvaluatorResponse.ok();
+                        }
+                    }
+
+                    // Check for exact match
+                    if (!Collections.disjoint(resolvedClusterPermissions, actions)) {
+                        return PrivilegesEvaluatorResponse.ok();
+                    }
+
+                    // Check for pattern matches (like "cluster:*")
+                    for (String permission : resolvedClusterPermissions) {
+                        // skip pure *, which was evaluated above
+                        if (permission != "*") {
+                            // Skip exact matches as we already checked those
+                            if (!permission.contains("*")) {
+                                continue;
+                            }
+
+                            WildcardMatcher permissionMatcher = WildcardMatcher.from(permission);
+                            for (String action : actions) {
+                                if (permissionMatcher.test(action)) {
+                                    return PrivilegesEvaluatorResponse.ok();
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+            if (actions.size() == 1) {
+                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
+            } else {
+                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
+            }
         }
 
         /**
@@ -440,7 +506,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(action);
+            return apiTokenProvidesClusterPrivilege(context, Set.of(action), true);
         }
 
         /**
@@ -476,11 +542,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
-            if (actions.size() == 1) {
-                return PrivilegesEvaluatorResponse.insufficient(actions.iterator().next());
-            } else {
-                return PrivilegesEvaluatorResponse.insufficient("any of " + actions);
-            }
+            return apiTokenProvidesClusterPrivilege(context, actions, false);
         }
     }
 
@@ -538,6 +600,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
          * Compare https://github.com/opensearch-project/security/pull/2887
          */
         private final ImmutableMap<String, ImmutableMap<String, IndexPattern>> rolesToExplicitActionToIndexPattern;
+
+        private final FlattenedActionGroups actionGroups;
 
         /**
          * Creates pre-computed index privileges based on the given parameters.
@@ -676,6 +740,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
 
             this.wellKnownIndexActions = wellKnownIndexActions;
             this.explicitlyRequiredIndexActions = explicitlyRequiredIndexActions;
+            this.actionGroups = actionGroups;
         }
 
         /**
@@ -778,13 +843,7 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable).evaluationExceptions(exceptions);
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(checkTable)
-                .reason(
-                    resolvedIndices.getAllIndices().size() == 1
-                        ? "Insufficient permissions for the referenced index"
-                        : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
-                )
-                .evaluationExceptions(exceptions);
+            return apiTokenProvidesIndexPrivilege(checkTable, context, exceptions, resolvedIndices, actions, false);
         }
 
         /**
@@ -850,8 +909,89 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
                 }
             }
 
+            return apiTokenProvidesIndexPrivilege(checkTable, context, exceptions, resolvedIndices, actions, true);
+        }
+
+        PrivilegesEvaluatorResponse apiTokenProvidesIndexPrivilege(
+            CheckTable<String, String> checkTable,
+            PrivilegesEvaluationContext context,
+            List<PrivilegesEvaluationException> exceptions,
+            IndexResolverReplacer.Resolved resolvedIndices,
+            Set<String> actions,
+            Boolean explicit
+        ) {
+            String userName = context.getUser().getName();
+            if (userName.startsWith(API_TOKEN_USER_PREFIX)) {
+                String jti = context.getUser().getName().split(API_TOKEN_USER_PREFIX)[1];
+                if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
+                    List<ApiToken.IndexPermission> indexPermissions = context.getApiTokenIndexListenerCache()
+                        .getPermissionsForJti(jti)
+                        .getIndexPermission();
+
+                    for (String concreteIndex : resolvedIndices.getAllIndices()) {
+                        boolean indexHasAllPermissions = false;
+
+                        // Check each index permission
+                        for (ApiToken.IndexPermission indexPermission : indexPermissions) {
+                            // First check if this permission applies to this index
+                            boolean indexMatched = false;
+                            for (String pattern : indexPermission.getIndexPatterns()) {
+                                if (WildcardMatcher.from(pattern).test(concreteIndex)) {
+                                    indexMatched = true;
+                                    break;
+                                }
+                            }
+
+                            if (!indexMatched) {
+                                continue;
+                            }
+
+                            // Index matched, now check if this permission covers all actions
+                            Set<String> remainingActions = new HashSet<>(actions);
+                            ImmutableSet<String> resolvedIndexPermissions = actionGroups.resolve(indexPermission.getAllowedActions());
+
+                            for (String permission : resolvedIndexPermissions) {
+                                // Skip global wildcard if explicit is true
+                                if (explicit && permission.equals("*")) {
+                                    continue;
+                                }
+
+                                WildcardMatcher permissionMatcher = WildcardMatcher.from(permission);
+                                remainingActions.removeIf(action -> permissionMatcher.test(action));
+
+                                if (remainingActions.isEmpty()) {
+                                    indexHasAllPermissions = true;
+                                    break;
+                                }
+                            }
+
+                            if (indexHasAllPermissions) {
+                                break; // Found a permission that covers all actions for this index
+                            }
+                        }
+
+                        if (!indexHasAllPermissions) {
+                            return PrivilegesEvaluatorResponse.insufficient(checkTable)
+                                .reason(
+                                    resolvedIndices.getAllIndices().size() == 1
+                                        ? "Insufficient permissions for the referenced index"
+                                        : "None of "
+                                            + resolvedIndices.getAllIndices().size()
+                                            + " referenced indices has sufficient permissions"
+                                )
+                                .evaluationExceptions(exceptions);
+                        }
+                    }
+                    // If we get here, all indices had sufficient permissions
+                    return PrivilegesEvaluatorResponse.ok();
+                }
+            }
             return PrivilegesEvaluatorResponse.insufficient(checkTable)
-                .reason("No explicit privileges have been provided for the referenced indices.")
+                .reason(
+                    resolvedIndices.getAllIndices().size() == 1
+                        ? "Insufficient permissions for the referenced index"
+                        : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
+                )
                 .evaluationExceptions(exceptions);
         }
     }

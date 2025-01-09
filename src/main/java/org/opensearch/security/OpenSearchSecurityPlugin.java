@@ -132,6 +132,9 @@ import org.opensearch.search.internal.ReaderContext;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.apitokens.ApiTokenAction;
+import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
+import org.opensearch.security.action.apitokens.ApiTokenUpdateAction;
+import org.opensearch.security.action.apitokens.TransportApiTokenUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
@@ -643,7 +646,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
-                handlers.add(new ApiTokenAction(cs, localClient, tokenManager));
+                handlers.add(
+                    new ApiTokenAction(
+                        cs,
+                        localClient,
+                        tokenManager,
+                        Objects.requireNonNull(threadPool),
+                        cr,
+                        evaluator,
+                        settings,
+                        adminDns,
+                        auditLog,
+                        configPath,
+                        principalExtractor
+                    )
+                );
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -685,6 +702,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if (!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            actions.add(new ActionHandler<>(ApiTokenUpdateAction.INSTANCE, TransportApiTokenUpdateAction.class));
             // external storage does not support reload and does not provide SSL certs info
             if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
                 actions.add(new ActionHandler<>(CertificatesActionType.INSTANCE, TransportCertificatesInfoNodesAction.class));
@@ -717,6 +735,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     dlsFlsBaseContext
                 )
             );
+
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
 
                 @Override
@@ -1095,6 +1114,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         adminDns = new AdminDNs(settings);
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
+        ApiTokenIndexListenerCache.getInstance().initialize(clusterService, localClient);
 
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
 
@@ -2132,7 +2152,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
-        return Collections.singletonList(systemIndexDescriptor);
+        final SystemIndexDescriptor apiTokenSystemIndexDescriptor = new SystemIndexDescriptor(
+            ConfigConstants.OPENSEARCH_API_TOKENS_INDEX,
+            "Security API token index"
+        );
+        return List.of(systemIndexDescriptor, apiTokenSystemIndexDescriptor);
     }
 
     @Override
