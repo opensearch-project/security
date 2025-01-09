@@ -14,6 +14,7 @@ package org.opensearch.security.action.apitokens;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
@@ -57,42 +58,31 @@ public class ApiTokenIndexHandler {
         this.clusterService = clusterService;
     }
 
-    public String indexTokenMetadata(ApiToken token) {
-        // TODO: move this out of index handler class, potentially create a layer in between baseresthandler and abstractapiaction which can
-        // abstract this complexity away
-        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
-        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-            client.threadPool()
-                .getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+    public void indexTokenMetadata(ApiToken token) {
+        withSecurityContext(() -> {
+            try {
 
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            String jsonString = token.toXContent(builder, ToXContent.EMPTY_PARAMS).toString();
+                XContentBuilder builder = XContentFactory.jsonBuilder();
+                String jsonString = token.toXContent(builder, ToXContent.EMPTY_PARAMS).toString();
 
-            IndexRequest request = new IndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).source(jsonString, XContentType.JSON);
+                IndexRequest request = new IndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).source(jsonString, XContentType.JSON);
 
-            ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                LOGGER.info("Created {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-            }, (failResponse) -> {
-                LOGGER.error(failResponse.getMessage());
-                LOGGER.info("Failed to create {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-            });
-
-            client.index(request, irListener);
-            return token.getName();
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+                ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
+                    LOGGER.info("Created {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                }, (failResponse) -> {
+                    LOGGER.error(failResponse.getMessage());
+                    LOGGER.info("Failed to create {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                });
+                client.index(request, irListener);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
     }
 
     public void deleteToken(String name) throws ApiTokenException {
-        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
-        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
-            client.threadPool()
-                .getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+        withSecurityContext(() -> {
             DeleteByQueryRequest request = new DeleteByQueryRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).setQuery(
                 QueryBuilders.matchQuery(NAME_FIELD, name)
             ).setRefresh(true);
@@ -104,44 +94,61 @@ public class ApiTokenIndexHandler {
             if (deletedDocs == 0) {
                 throw new ApiTokenException("No token found with name " + name);
             }
-            LOGGER.info("Deleted " + deletedDocs + " documents");
-        }
+        });
     }
 
     public Map<String, ApiToken> getTokenMetadatas() {
+        return withSecurityContext(() -> {
+            try {
+                SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+                searchRequest.source(new SearchSourceBuilder());
+
+                SearchResponse response = client.search(searchRequest).actionGet();
+
+                Map<String, ApiToken> tokens = new HashMap<>();
+                for (SearchHit hit : response.getHits().getHits()) {
+                    try (
+                        XContentParser parser = XContentType.JSON.xContent()
+                            .createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                hit.getSourceRef().streamInput()
+                            )
+                    ) {
+
+                        ApiToken token = ApiToken.fromXContent(parser);
+                        tokens.put(token.getName(), token);
+                    }
+                }
+                return tokens;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public Boolean apiTokenIndexExists() {
+        return clusterService.state().metadata().hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+    }
+
+    private <T> T withSecurityContext(Supplier<T> operation) {
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
             client.threadPool()
                 .getThreadContext()
                 .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
-            SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-            searchRequest.source(new SearchSourceBuilder());
-
-            SearchResponse response = client.search(searchRequest).actionGet();
-
-            Map<String, ApiToken> tokens = new HashMap<>();
-            for (SearchHit hit : response.getHits().getHits()) {
-                try (
-                    XContentParser parser = XContentType.JSON.xContent()
-                        .createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            hit.getSourceRef().streamInput()
-                        )
-                ) {
-
-                    ApiToken token = ApiToken.fromXContent(parser);
-                    tokens.put(token.getName(), token);
-                }
-            }
-            return tokens;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            return operation.get();
         }
     }
 
-    public Boolean apiTokenIndexExists() {
-        return clusterService.state().metadata().hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+    private void withSecurityContext(Runnable operation) {
+        final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
+        try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+            client.threadPool()
+                .getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUserAndRemoteAddress.getLeft());
+            operation.run();
+        }
     }
 
     public void createApiTokenIndexIfAbsent() {

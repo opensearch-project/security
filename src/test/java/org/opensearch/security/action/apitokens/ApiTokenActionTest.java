@@ -138,7 +138,7 @@ public class ApiTokenActionTest {
             threadPool,
             configurationRepository,
             privilegesEvaluator,
-            null,
+            Settings.EMPTY,
             null,
             null,
             null,

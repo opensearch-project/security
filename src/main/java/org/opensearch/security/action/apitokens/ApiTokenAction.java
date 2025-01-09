@@ -133,7 +133,7 @@ public class ApiTokenAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
-        authorizeSecurityAccess();
+        authorizeSecurityAccess(request);
         return doPrepareRequest(request, client);
     }
 
@@ -442,9 +442,10 @@ public class ApiTokenAction extends BaseRestHandler {
         return DynamicConfigFactory.addStatics(loaded);
     }
 
-    protected void authorizeSecurityAccess() throws IOException {
+    protected void authorizeSecurityAccess(RestRequest request) throws IOException {
         // Check if user has security API access
-        if (!securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)) {
+        if (!(securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
+            || securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
             throw new SecurityException("User does not have required security API access");
         }
     }
