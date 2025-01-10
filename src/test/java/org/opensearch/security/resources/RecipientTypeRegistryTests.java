@@ -10,12 +10,14 @@ package org.opensearch.security.resources;
 
 import org.hamcrest.MatcherAssert;
 
-import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.security.test.SingleClusterTest;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThrows;
 
-public class RecipientTypeRegistryTests extends OpenSearchTestCase {
+public class RecipientTypeRegistryTests extends SingleClusterTest {
 
     public void testFromValue() {
         RecipientTypeRegistry.registerRecipientType("ble1", new RecipientType("ble1"));
@@ -23,8 +25,8 @@ public class RecipientTypeRegistryTests extends OpenSearchTestCase {
 
         // Valid Value
         RecipientType type = RecipientTypeRegistry.fromValue("ble1");
-        assertNotNull(type);
-        assertEquals("ble1", type.getType());
+        MatcherAssert.assertThat(type, notNullValue());
+        MatcherAssert.assertThat(type.getType(), is(equalTo("ble1")));
 
         // Invalid Value
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> RecipientTypeRegistry.fromValue("bleble"));

@@ -21,11 +21,12 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.ResourceAccessScope;
-import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.security.test.SingleClusterTest;
 
 import org.mockito.Mockito;
 
@@ -33,6 +34,8 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -40,7 +43,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ShareWithTests extends OpenSearchTestCase {
+public class ShareWithTests extends SingleClusterTest {
 
     @Before
     public void setupResourceRecipientTypes() {
@@ -55,16 +58,16 @@ public class ShareWithTests extends OpenSearchTestCase {
 
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
-        assertNotNull(shareWith);
+        MatcherAssert.assertThat(shareWith, notNullValue());
         Set<SharedWithScope> sharedWithScopes = shareWith.getSharedWithScopes();
-        assertNotNull(sharedWithScopes);
+        MatcherAssert.assertThat(sharedWithScopes, notNullValue());
         MatcherAssert.assertThat(1, equalTo(sharedWithScopes.size()));
 
         SharedWithScope scope = sharedWithScopes.iterator().next();
         MatcherAssert.assertThat("read_only", equalTo(scope.getScope()));
 
         SharedWithScope.ScopeRecipients scopeRecipients = scope.getSharedWithPerScope();
-        assertNotNull(scopeRecipients);
+        MatcherAssert.assertThat(scopeRecipients, notNullValue());
         Map<RecipientType, Set<String>> recipients = scopeRecipients.getRecipients();
         MatcherAssert.assertThat(recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())).size(), is(1));
         MatcherAssert.assertThat(recipients.get(RecipientTypeRegistry.fromValue(DefaultRecipientType.USERS.getName())), contains("user1"));
@@ -77,11 +80,11 @@ public class ShareWithTests extends OpenSearchTestCase {
 
     public void testFromXContentWithEmptyInput() throws IOException {
         String emptyJson = "{}";
-        XContentParser parser = XContentType.JSON.xContent().createParser(xContentRegistry(), null, emptyJson);
+        XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, null, emptyJson);
 
         ShareWith result = ShareWith.fromXContent(parser);
 
-        assertNotNull(result);
+        MatcherAssert.assertThat(result, notNullValue());
         MatcherAssert.assertThat(result.getSharedWithScopes(), is(empty()));
     }
 
@@ -108,7 +111,7 @@ public class ShareWithTests extends OpenSearchTestCase {
 
         ShareWith shareWith = ShareWith.fromXContent(parser);
 
-        assertNotNull(shareWith);
+        MatcherAssert.assertThat(shareWith, notNullValue());
         Set<SharedWithScope> scopes = shareWith.getSharedWithScopes();
         MatcherAssert.assertThat(scopes.size(), equalTo(2));
 
@@ -152,7 +155,7 @@ public class ShareWithTests extends OpenSearchTestCase {
 
         ShareWith result = ShareWith.fromXContent(mockParser);
 
-        assertNotNull(result);
+        MatcherAssert.assertThat(result, notNullValue());
         MatcherAssert.assertThat(result.getSharedWithScopes(), is(empty()));
     }
 
