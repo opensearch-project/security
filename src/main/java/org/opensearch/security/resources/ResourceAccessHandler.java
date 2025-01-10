@@ -12,7 +12,11 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +25,11 @@ import org.apache.lucene.search.Query;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.index.query.*;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.ConstantScoreQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.configuration.AdminDNs;
@@ -51,7 +59,6 @@ public class ResourceAccessHandler {
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         AdminDNs adminDns
     ) {
-        super();
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
         this.adminDNs = adminDns;
@@ -380,6 +387,14 @@ public class ResourceAccessHandler {
         return builder.toQuery(queryShardContext);
     }
 
+    /**
+     * Creates a DLS restriction for the given resource IDs.
+     * @param resourceIds The resource IDs to create the restriction for.
+     * @param xContentRegistry The named XContent registry.
+     * @return The DLS restriction.
+     * @throws JsonProcessingException If an error occurs while processing JSON.
+     * @throws PrivilegesConfigurationValidationException If the privileges configuration is invalid.
+     */
     public DlsRestriction createResourceDLSRestriction(Set<String> resourceIds, NamedXContentRegistry xContentRegistry)
         throws JsonProcessingException, PrivilegesConfigurationValidationException {
         String jsonQuery = String.format(
