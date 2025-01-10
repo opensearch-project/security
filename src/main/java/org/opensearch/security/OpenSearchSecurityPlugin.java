@@ -2163,8 +2163,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cr.initOnNodeStart();
         }
 
-        // create resource sharing index if absent
-        rmr.createResourceSharingIndexIfAbsent();
+        // rmr will be null when sec plugin is disabled or is in SSLOnly mode, hence rmr will not be instantiated
+        if (rmr != null) {
+            // create resource sharing index if absent
+            rmr.createResourceSharingIndexIfAbsent();
+        }
 
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
