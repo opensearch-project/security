@@ -53,7 +53,7 @@ public class DlsRestriction extends AbstractRuleBasedPrivileges.Rule {
 
     private final ImmutableList<DocumentPrivileges.RenderedDlsQuery> queries;
 
-    DlsRestriction(List<DocumentPrivileges.RenderedDlsQuery> queries) {
+    public DlsRestriction(List<DocumentPrivileges.RenderedDlsQuery> queries) {
         this.queries = ImmutableList.copyOf(queries);
     }
 

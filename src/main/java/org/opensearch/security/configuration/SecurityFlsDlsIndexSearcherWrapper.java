@@ -29,6 +29,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.mapper.SeqNoFieldMapper;
@@ -48,8 +49,6 @@ import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.support.ConfigConstants;
-
-import joptsimple.internal.Strings;
 
 public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapper {
 

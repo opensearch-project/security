@@ -17,6 +17,7 @@ import java.security.PrivilegedAction;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -70,13 +71,9 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
-import org.opensearch.security.privileges.dlsfls.DlsFlsLegacyHeaders;
-import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
-import org.opensearch.security.privileges.dlsfls.DlsRestriction;
-import org.opensearch.security.privileges.dlsfls.FieldMasking;
-import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
+import org.opensearch.security.privileges.dlsfls.*;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -98,6 +95,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
+    private final ResourceAccessHandler resourceAccessHandler;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -106,7 +104,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
-        DlsFlsBaseContext dlsFlsBaseContext
+        DlsFlsBaseContext dlsFlsBaseContext,
+        ResourceAccessHandler resourceAccessHandler
     ) {
         super();
         this.nodeClient = nodeClient;
@@ -118,6 +117,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
+        this.resourceAccessHandler = resourceAccessHandler;
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -349,6 +349,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         try {
             String index = searchContext.indexShard().indexSettings().getIndex().getName();
 
+            assert !Strings.isNullOrEmpty(index);
             if (log.isTraceEnabled()) {
                 log.trace("handleSearchContext(); index: {}", index);
             }
@@ -374,13 +375,27 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
-            if (privilegesEvaluationContext == null) {
+
+            if (privilegesEvaluationContext == null || OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
                 return;
             }
 
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
 
-            DlsRestriction dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
+            DlsRestriction dlsRestriction;
+
+            Set<String> resourceIds;
+            if (OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
+                resourceIds = this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(index);
+                if (resourceIds.isEmpty()) {
+                    return;
+                }
+                // Create a DLS restriction to filter search results with accessible resources only
+                dlsRestriction = this.resourceAccessHandler.createResourceDLSRestriction(resourceIds, namedXContentRegistry);
+
+            } else {
+                dlsRestriction = config.getDocumentPrivileges().getRestriction(privilegesEvaluationContext, index);
+            }
 
             if (log.isTraceEnabled()) {
                 log.trace("handleSearchContext(); index: {}; dlsRestriction: {}", index, dlsRestriction);
