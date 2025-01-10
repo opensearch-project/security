@@ -131,7 +131,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
             }
             // Create a resource DLS query for the current user
             QueryShardContext queryShardContext = this.indexService.newQueryShardContext(shardId.getId(), null, nowInMillis, null);
-            Query resourceQuery = this.resourceAccessHandler.createResourceDlsQuery(resourceIds, queryShardContext);
+            Query resourceQuery = this.resourceAccessHandler.createResourceDLSQuery(resourceIds, queryShardContext);
 
             // TODO the FlsRule must still be checked
             return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(

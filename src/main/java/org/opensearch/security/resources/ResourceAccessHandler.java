@@ -373,7 +373,7 @@ public class ResourceAccessHandler {
      * @return The DLS query.
      * @throws IOException If an I/O error occurs.
      */
-    public Query createResourceDlsQuery(Set<String> resourceIds, QueryShardContext queryShardContext) throws IOException {
+    public Query createResourceDLSQuery(Set<String> resourceIds, QueryShardContext queryShardContext) throws IOException {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
         boolQueryBuilder.filter(QueryBuilders.termsQuery("_id", resourceIds));
         ConstantScoreQueryBuilder builder = new ConstantScoreQueryBuilder(boolQueryBuilder);
