@@ -376,7 +376,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
 
-            if (privilegesEvaluationContext == null || OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
+            if (privilegesEvaluationContext == null && !OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
                 return;
             }
 
