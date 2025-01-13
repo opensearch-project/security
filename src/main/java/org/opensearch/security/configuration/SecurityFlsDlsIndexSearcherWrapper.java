@@ -65,6 +65,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
     private final Supplier<DlsFlsProcessedConfig> dlsFlsProcessedConfigSupplier;
     private final DlsFlsBaseContext dlsFlsBaseContext;
     private final ResourceAccessHandler resourceAccessHandler;
+    private final boolean isResourceSharingEnabled;
 
     public SecurityFlsDlsIndexSearcherWrapper(
         final IndexService indexService,
@@ -109,6 +110,10 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         this.dlsFlsProcessedConfigSupplier = dlsFlsProcessedConfigSupplier;
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.resourceAccessHandler = resourceAccessHandler;
+        this.isResourceSharingEnabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -123,9 +128,14 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         }
 
         String indexName = shardId != null ? shardId.getIndexName() : null;
-        Set<String> resourceIds = null;
-        if (!Strings.isNullOrEmpty(indexName) && OpenSearchSecurityPlugin.getResourceIndices().contains(indexName)) {
+        Set<String> resourceIds;
+        if (this.isResourceSharingEnabled
+            && !Strings.isNullOrEmpty(indexName)
+            && OpenSearchSecurityPlugin.getResourceIndices().contains(indexName)) {
             resourceIds = this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(indexName);
+            // resourceIds.isEmpty() indicates that the index is a resource index but the user does not have access to any resource under
+            // the
+            // index
             if (resourceIds.isEmpty()) {
                 return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
             }
@@ -148,10 +158,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
             );
         }
 
-        // resourceIds == null indicates that the index is not a resource index
-        // resourceIds.isEmpty() indicates that the index is a resource index but the user does not have access to any resource under the
-        // index
-        if (isAdmin || privilegesEvaluationContext == null || resourceIds == null) {
+        if (isAdmin || privilegesEvaluationContext == null) {
             return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
                 reader,
                 FieldPrivileges.FlsRule.ALLOW_ALL,
@@ -167,7 +174,6 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         }
 
         try {
-
             DlsFlsProcessedConfig config = this.dlsFlsProcessedConfigSupplier.get();
             DlsRestriction dlsRestriction;
 

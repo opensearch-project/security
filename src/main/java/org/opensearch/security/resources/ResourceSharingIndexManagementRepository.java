@@ -11,17 +11,29 @@
 
 package org.opensearch.security.resources;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class ResourceSharingIndexManagementRepository {
 
-    private final ResourceSharingIndexHandler resourceSharingIndexHandler;
+    private static final Logger log = LogManager.getLogger(ResourceSharingIndexManagementRepository.class);
 
-    protected ResourceSharingIndexManagementRepository(final ResourceSharingIndexHandler resourceSharingIndexHandler) {
+    private final ResourceSharingIndexHandler resourceSharingIndexHandler;
+    private final boolean resourceSharingEnabled;
+
+    protected ResourceSharingIndexManagementRepository(
+        final ResourceSharingIndexHandler resourceSharingIndexHandler,
+        boolean isResourceSharingEnabled
+    ) {
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
+        this.resourceSharingEnabled = isResourceSharingEnabled;
     }
 
-    public static ResourceSharingIndexManagementRepository create(ResourceSharingIndexHandler resourceSharingIndexHandler) {
-
-        return new ResourceSharingIndexManagementRepository(resourceSharingIndexHandler);
+    public static ResourceSharingIndexManagementRepository create(
+        ResourceSharingIndexHandler resourceSharingIndexHandler,
+        boolean isResourceSharingEnabled
+    ) {
+        return new ResourceSharingIndexManagementRepository(resourceSharingIndexHandler, isResourceSharingEnabled);
     }
 
     /**
@@ -32,7 +44,10 @@ public class ResourceSharingIndexManagementRepository {
      */
     public void createResourceSharingIndexIfAbsent() {
         // TODO check if this should be wrapped in an atomic completable future
+        if (resourceSharingEnabled) {
+            log.info("Attempting to create Resource Sharing index");
+            this.resourceSharingIndexHandler.createResourceSharingIndexIfAbsent(() -> null);
+        }
 
-        this.resourceSharingIndexHandler.createResourceSharingIndexIfAbsent(() -> null);
     }
 }

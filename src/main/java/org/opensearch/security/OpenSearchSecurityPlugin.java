@@ -696,14 +696,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 );
 
                 // Adds rest handlers for resource-access-control actions
-                handlers.addAll(
-                    List.of(
-                        new RestShareResourceAction(),
-                        new RestRevokeResourceAccessAction(),
-                        new RestListAccessibleResourcesAction(),
-                        new RestVerifyResourceAccessAction()
-                    )
-                );
+                if (settings.getAsBoolean(
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+                )) {
+                    handlers.addAll(
+                        List.of(
+                            new RestShareResourceAction(),
+                            new RestRevokeResourceAccessAction(),
+                            new RestListAccessibleResourcesAction(),
+                            new RestVerifyResourceAccessAction()
+                        )
+                    );
+                }
                 log.debug("Added {} rest handler(s)", handlers.size());
             }
         }
@@ -733,14 +738,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
 
             // Resource-access-control related actions
-            actions.addAll(
-                List.of(
-                    new ActionHandler<>(ShareResourceAction.INSTANCE, TransportShareResourceAction.class),
-                    new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, TransportRevokeResourceAccessAction.class),
-                    new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, TransportListAccessibleResourcesAction.class),
-                    new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, TransportVerifyResourceAccessAction.class)
-                )
-            );
+            if (settings.getAsBoolean(
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            )) {
+                actions.addAll(
+                    List.of(
+                        new ActionHandler<>(ShareResourceAction.INSTANCE, TransportShareResourceAction.class),
+                        new ActionHandler<>(RevokeResourceAccessAction.INSTANCE, TransportRevokeResourceAccessAction.class),
+                        new ActionHandler<>(ListAccessibleResourcesAction.INSTANCE, TransportListAccessibleResourcesAction.class),
+                        new ActionHandler<>(VerifyResourceAccessAction.INSTANCE, TransportVerifyResourceAccessAction.class)
+                    )
+                );
+            }
         }
         return actions;
     }
@@ -1271,8 +1281,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns);
         resourceAccessHandler.initializeRecipientTypes();
-
-        rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler);
+        // Resource Sharing index is enabled by default
+        boolean isResourceSharingEnabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
+        rmr = ResourceSharingIndexManagementRepository.create(rsIndexHandler, isResourceSharingEnabled);
 
         components.add(adminDns);
         components.add(cr);
@@ -2139,6 +2153,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             // Privileges evaluation
             settings.add(ActionPrivileges.PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE);
+
+            // Resource Sharing
+            settings.add(
+                Setting.boolSetting(
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                    ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         }
 
         return settings;

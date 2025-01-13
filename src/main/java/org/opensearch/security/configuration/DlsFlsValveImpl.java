@@ -101,6 +101,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
     private final ResourceAccessHandler resourceAccessHandler;
+    private final boolean isResourceSharingEnabled;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -123,6 +124,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
         this.resourceAccessHandler = resourceAccessHandler;
+        this.isResourceSharingEnabled = settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        );
 
         clusterService.addListener(event -> {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
@@ -390,11 +395,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             DlsRestriction dlsRestriction;
 
             Set<String> resourceIds;
-            if (OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
+            if (this.isResourceSharingEnabled && OpenSearchSecurityPlugin.getResourceIndices().contains(index)) {
                 resourceIds = this.resourceAccessHandler.getAccessibleResourceIdsForCurrentUser(index);
-                if (resourceIds.isEmpty()) {
-                    return;
-                }
                 // Create a DLS restriction to filter search results with accessible resources only
                 dlsRestriction = this.resourceAccessHandler.createResourceDLSRestriction(resourceIds, namedXContentRegistry);
 

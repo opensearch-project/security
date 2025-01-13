@@ -123,12 +123,16 @@ public class ResourceSharingIndexHandler {
             CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
             ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
                 LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
-                callable.call();
+                if (callable != null) {
+                    callable.call();
+                }
             }, (failResponse) -> {
                 /* Index already exists, ignore and continue */
                 LOGGER.info("Index {} already exists.", resourceSharingIndex);
                 try {
-                    callable.call();
+                    if (callable != null) {
+                        callable.call();
+                    }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
