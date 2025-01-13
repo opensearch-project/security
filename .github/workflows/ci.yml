@@ -208,7 +208,7 @@ jobs:
     - uses: github/codeql-action/init@v3
       with:
         languages: java
-    - run: ./gradlew clean assemble
+    - run: ./gradlew clean :assemble
     - uses: github/codeql-action/analyze@v3
 
   build-artifact-names:
@@ -238,13 +238,13 @@ jobs:
         echo ${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}
         echo ${{ env.TEST_QUALIFIER }}
 
-    - run: ./gradlew clean assemble && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.zip
+    - run: ./gradlew clean :assemble && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.zip
 
-    - run: ./gradlew clean assemble -Dbuild.snapshot=false && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}.zip
+    - run: ./gradlew clean :assemble -Dbuild.snapshot=false && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}.zip
 
-    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.zip
+    - run: ./gradlew clean :assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.zip
 
-    - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
+    - run: ./gradlew clean :assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
 
     - run: ./gradlew clean publishPluginZipPublicationToZipStagingRepository && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.zip && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.pom
 

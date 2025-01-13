@@ -32,7 +32,7 @@ jobs:
         uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
-          arguments: assemble
+          arguments: :assemble
 
       # Move and rename the plugin for installation
       - name: Move and rename the plugin for installation
