@@ -14,6 +14,7 @@ package org.opensearch.security.system_indices;
 import java.io.IOException;
 import java.util.List;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
 import org.apache.http.Header;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -31,6 +32,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -80,6 +82,12 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
     static final String updateIndexSettings = "{\n" + "    \"index\" : {\n" + "        \"refresh_interval\" : null\n" + "    }\n" + "}";
     static final String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
 
+    protected final boolean useOldPrivilegeEvaluationImplementation;
+
+    public AbstractSystemIndicesTests(@Name("useOldPrivilegeEvaluationImplementation") boolean useOldPrivilegeEvaluationImplementation) {
+        this.useOldPrivilegeEvaluationImplementation = useOldPrivilegeEvaluationImplementation;
+    }
+
     void setupWithSsl(boolean isSystemIndexEnabled, boolean isSystemIndexPermissionEnabled) throws Exception {
 
         Settings systemIndexSettings = Settings.builder()
@@ -90,6 +98,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
             .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
             .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
             .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
+            .put(PrivilegesEvaluator.USE_LEGACY_PRIVILEGE_EVALUATOR.getKey(), useOldPrivilegeEvaluationImplementation)
             .build();
         setup(
             Settings.EMPTY,

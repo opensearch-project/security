@@ -33,7 +33,7 @@ import org.opensearch.snapshots.SnapshotState;
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.client.RequestOptions.DEFAULT;
 
-class SnapshotSteps {
+public class SnapshotSteps {
 
     private final SnapshotClient snapshotClient;
 
