@@ -47,8 +47,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import org.opensearch.SpecialPermission;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthenticationBackend;
@@ -242,6 +244,9 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             .build();
     }
 
+    @Inject
+    private ApiTokenRepository apiTokenRepository;
+
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
@@ -388,7 +393,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         if (!isKeyNull(apiTokenSettings, "signing_key") && !isKeyNull(apiTokenSettings, "encryption_key")) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName()),
+                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName(), apiTokenRepository),
                 false,
                 -2
             );

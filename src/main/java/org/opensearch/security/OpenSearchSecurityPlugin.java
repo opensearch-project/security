@@ -132,7 +132,7 @@ import org.opensearch.search.internal.ReaderContext;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.apitokens.ApiTokenAction;
-import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.ApiTokenUpdateAction;
 import org.opensearch.security.action.apitokens.TransportApiTokenUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
@@ -257,6 +257,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
+    private volatile ApiTokenRepository ar;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
@@ -1100,7 +1101,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         adminDns = new AdminDNs(settings);
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
-        ApiTokenIndexListenerCache.getInstance().initialize(clusterService, localClient);
+        ar = new ApiTokenRepository(localClient, clusterService, tokenManager);
 
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
 
@@ -1216,6 +1217,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(dcf);
         components.add(userService);
         components.add(passwordHasher);
+        components.add(ar);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {

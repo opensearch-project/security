@@ -16,7 +16,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Before;
@@ -35,7 +34,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.any;
@@ -50,6 +48,8 @@ public class ApiTokenAuthenticatorTest {
     private ApiTokenAuthenticator authenticator;
     @Mock
     private Logger log;
+    @Mock
+    private ApiTokenRepository apiTokenRepository;
 
     private ThreadContext threadcontext;
     private final String signingKey = Base64.getEncoder()
@@ -60,7 +60,7 @@ public class ApiTokenAuthenticatorTest {
     public void setUp() {
         Settings settings = Settings.builder().put("enabled", "true").put("signing_key", signingKey).build();
 
-        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster");
+        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster", apiTokenRepository);
         authenticator.log = log;
         when(log.isDebugEnabled()).thenReturn(true);
         threadcontext = new ThreadContext(Settings.EMPTY);
@@ -69,8 +69,6 @@ public class ApiTokenAuthenticatorTest {
     @Test
     public void testAuthenticationFailsWhenJtiNotInCache() {
         String testJti = "test-jti-not-in-cache";
-        ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
-        assertFalse(cache.isValidToken(testJti));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + testJti);
@@ -92,7 +90,7 @@ public class ApiTokenAuthenticatorTest {
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
 
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(tokenName, new Permissions(List.of(), List.of()));
+        when(apiTokenRepository.isValidToken(tokenName)).thenReturn(true);
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -113,8 +111,6 @@ public class ApiTokenAuthenticatorTest {
             .setExpiration(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)))
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
-
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(tokenName, new Permissions(List.of(), List.of()));
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -138,7 +134,7 @@ public class ApiTokenAuthenticatorTest {
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
 
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(tokenName, new Permissions(List.of(), List.of()));
+        when(apiTokenRepository.isValidToken(tokenName)).thenReturn(true);
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
@@ -161,8 +157,6 @@ public class ApiTokenAuthenticatorTest {
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
 
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(tokenName, new Permissions(List.of(), List.of()));
-
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("Bearer " + token);
         when(request.path()).thenReturn("/_plugins/_security/api/apitokens");
@@ -183,7 +177,6 @@ public class ApiTokenAuthenticatorTest {
             .setExpiration(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
             .signWith(SignatureAlgorithm.HS512, signingKey)
             .compact();
-        ApiTokenIndexListenerCache.getInstance().getJtis().put(tokenName, new Permissions(List.of(), List.of()));
 
         SecurityRequest request = mock(SecurityRequest.class);
 
@@ -194,7 +187,7 @@ public class ApiTokenAuthenticatorTest {
             .build();
         ThreadContext threadContext = new ThreadContext(settings);
 
-        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster");
+        authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster", apiTokenRepository);
         authenticator.log = log;
 
         AuthCredentials ac = authenticator.extractCredentials(request, threadContext);

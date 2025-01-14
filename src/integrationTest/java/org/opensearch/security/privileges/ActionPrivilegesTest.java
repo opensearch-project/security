@@ -39,6 +39,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.security.action.apitokens.ApiToken;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.Permissions;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -48,6 +49,8 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
+
+import org.mockito.Mockito;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isAllowed;
@@ -267,8 +270,7 @@ public class ActionPrivilegesTest {
             SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.empty(CType.ROLES);
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
             String token = "blah";
-            PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-            context.getApiTokenRepository().getJtis().put(token, new Permissions(List.of("*"), List.of()));
+            PrivilegesEvaluationContext context = ctxForApiToken("apitoken:" + token, new Permissions(List.of("*"), List.of()));
             // Explicit fails
             assertThat(
                 subject.hasExplicitClusterPrivilege(context, "cluster:whatever"),
@@ -285,8 +287,10 @@ public class ActionPrivilegesTest {
             SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.empty(CType.ROLES);
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
             String token = "blah";
-            PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-            context.getApiTokenRepository().getJtis().put(token, new Permissions(List.of("cluster:whatever"), List.of()));
+            PrivilegesEvaluationContext context = ctxForApiToken(
+                "apitoken:" + token,
+                new Permissions(List.of("cluster:whatever"), List.of())
+            );
             // Explicit succeeds
             assertThat(subject.hasExplicitClusterPrivilege(context, "cluster:whatever"), isAllowed());
             // Not explicit succeeds
@@ -309,8 +313,7 @@ public class ActionPrivilegesTest {
             FlattenedActionGroups actionGroups = new FlattenedActionGroups(config);
             ActionPrivileges subject = new ActionPrivileges(roles, actionGroups, null, Settings.EMPTY);
             String token = "blah";
-            PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-            context.getApiTokenRepository().getJtis().put(token, new Permissions(List.of("CLUSTER_ALL"), List.of()));
+            PrivilegesEvaluationContext context = ctxForApiToken("apitoken:" + token, new Permissions(List.of("CLUSTER_ALL"), List.of()));
             // Explicit succeeds
             assertThat(subject.hasExplicitClusterPrivilege(context, "cluster:whatever"), isAllowed());
             // Not explicit succeeds
@@ -355,13 +358,10 @@ public class ActionPrivilegesTest {
             @Test
             public void apiTokens_positive_full() throws Exception {
                 String token = "blah";
-                PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-                context.getApiTokenRepository()
-                    .getJtis()
-                    .put(
-                        token,
-                        new Permissions(List.of("index_a11"), List.of(new ApiToken.IndexPermission(List.of("index_a11"), List.of("*"))))
-                    );
+                PrivilegesEvaluationContext context = ctxForApiToken(
+                    "apitoken:" + token,
+                    new Permissions(List.of("index_a11"), List.of(new ApiToken.IndexPermission(List.of("index_a11"), List.of("*"))))
+                );
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(context, requiredActions, resolved("index_a11"));
                 assertThat(result, isAllowed());
             }
@@ -423,10 +423,10 @@ public class ActionPrivilegesTest {
             @Test
             public void apiToken_negative_noPermissions() throws Exception {
                 String token = "blah";
-                PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-                context.getApiTokenRepository()
-                    .getJtis()
-                    .put(token, new Permissions(List.of(), List.of(new ApiToken.IndexPermission(List.of(), List.of()))));
+                PrivilegesEvaluationContext context = ctxForApiToken(
+                    "apitoken:" + token,
+                    new Permissions(List.of(), List.of(new ApiToken.IndexPermission(List.of(), List.of())))
+                );
 
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(context, requiredActions, resolved("index_a11"));
                 assertThat(result, isForbidden(missingPrivileges(requiredActions)));
@@ -464,13 +464,10 @@ public class ActionPrivilegesTest {
             @Test
             public void apiTokens_positive_hasExplicit_full() {
                 String token = "blah";
-                PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-                context.getApiTokenRepository()
-                    .getJtis()
-                    .put(
-                        token,
-                        new Permissions(List.of("index_a11"), List.of(new ApiToken.IndexPermission(List.of("index_a11"), List.of("*"))))
-                    );
+                PrivilegesEvaluationContext context = ctxForApiToken(
+                    "apitoken:" + token,
+                    new Permissions(List.of("index_a11"), List.of(new ApiToken.IndexPermission(List.of("index_a11"), List.of("*"))))
+                );
 
                 PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(context, requiredActions, resolved("index_a11"));
 
@@ -1126,6 +1123,7 @@ public class ActionPrivilegesTest {
     static PrivilegesEvaluationContext ctxWithUserName(String userName, String... roles) {
         User user = new User(userName);
         user.addAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
+        ApiTokenRepository mockRepository = Mockito.mock(ApiTokenRepository.class);
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
@@ -1135,6 +1133,23 @@ public class ActionPrivilegesTest {
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
             null
+        );
+    }
+
+    static PrivilegesEvaluationContext ctxForApiToken(String userName, Permissions permissions) {
+        User user = new User(userName);
+        user.addAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
+        ApiTokenRepository mockRepository = Mockito.mock(ApiTokenRepository.class);
+        return new PrivilegesEvaluationContext(
+            user,
+            ImmutableSet.of(),
+            null,
+            null,
+            null,
+            null,
+            new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
+            null,
+            permissions
         );
     }
 }

@@ -25,9 +25,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
@@ -56,16 +57,16 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private static final String BEARER_PREFIX = "bearer ";
 
     private final JwtParser jwtParser;
-    private final String encryptionKey;
     private final Boolean apiTokenEnabled;
     private final String clusterName;
     public static final String API_TOKEN_USER_PREFIX = "apitoken:";
+    private final ApiTokenRepository apiTokenRepository;
 
     @SuppressWarnings("removal")
-    public ApiTokenAuthenticator(Settings settings, String clusterName) {
+    @Inject
+    public ApiTokenAuthenticator(Settings settings, String clusterName, ApiTokenRepository apiTokenRepository) {
         String apiTokenEnabledSetting = settings.get("enabled", "true");
         apiTokenEnabled = Boolean.parseBoolean(apiTokenEnabledSetting);
-        encryptionKey = settings.get("encryption_key");
 
         final SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
@@ -79,6 +80,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             }
         });
         this.clusterName = clusterName;
+        this.apiTokenRepository = apiTokenRepository;
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
@@ -126,7 +128,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.error("Api token authentication is disabled");
             return null;
         }
-        ApiTokenIndexListenerCache cache = ApiTokenIndexListenerCache.getInstance();
 
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
@@ -147,7 +148,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             }
 
             // TODO: handle revocation different from deletion?
-            if (!cache.isValidToken(subject)) {
+            if (!apiTokenRepository.isValidToken(subject)) {
                 log.error("Token is not allowlisted");
                 return null;
             }
