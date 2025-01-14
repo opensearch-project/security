@@ -127,6 +127,28 @@ public class ActionPrivilegesTest {
         }
 
         @Test
+        public void wildcardByUsername() throws Exception {
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.empty(CType.ROLES);
+
+            ActionPrivileges subject = new ActionPrivileges(
+                roles,
+                FlattenedActionGroups.EMPTY,
+                null,
+                Settings.EMPTY,
+                Map.of("plugin:org.opensearch.sample.SamplePlugin", Set.of("*"))
+            );
+
+            assertThat(
+                subject.hasClusterPrivilege(ctxByUsername("plugin:org.opensearch.sample.SamplePlugin"), "cluster:whatever"),
+                isAllowed()
+            );
+            assertThat(
+                subject.hasClusterPrivilege(ctx("plugin:org.opensearch.other.OtherPlugin"), "cluster:whatever"),
+                isForbidden(missingPrivileges("cluster:whatever"))
+            );
+        }
+
+        @Test
         public void explicit_wellKnown() throws Exception {
             SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("non_explicit_role:\n" + //
                 "  cluster_permissions:\n" + //
@@ -455,7 +477,8 @@ public class ActionPrivilegesTest {
                     settings,
                     WellKnownActions.CLUSTER_ACTIONS,
                     WellKnownActions.INDEX_ACTIONS,
-                    WellKnownActions.INDEX_ACTIONS
+                    WellKnownActions.INDEX_ACTIONS,
+                    Map.of()
                 );
 
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
@@ -1022,6 +1045,21 @@ public class ActionPrivilegesTest {
         return new PrivilegesEvaluationContext(
             user,
             ImmutableSet.copyOf(roles),
+            null,
+            null,
+            null,
+            null,
+            new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
+            null
+        );
+    }
+
+    static PrivilegesEvaluationContext ctxByUsername(String username) {
+        User user = new User(username);
+        user.addAttributes(ImmutableMap.of("attrs.dept_no", "a11"));
+        return new PrivilegesEvaluationContext(
+            user,
+            ImmutableSet.of(),
             null,
             null,
             null,
