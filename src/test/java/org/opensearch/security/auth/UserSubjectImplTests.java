@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
 import static org.junit.Assert.assertNull;
 
-public class SecurityUserTests {
+public class UserSubjectImplTests {
 
     public static boolean terminate(ThreadPool threadPool) {
         return ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
@@ -36,7 +36,7 @@ public class SecurityUserTests {
 
         User user = new User("testUser");
 
-        SecurityUser subject = new SecurityUser(threadPool, user);
+        UserSubjectImpl subject = new UserSubjectImpl(threadPool, user);
 
         assertThat(subject.getPrincipal().getName(), equalTo(user.getName()));
 

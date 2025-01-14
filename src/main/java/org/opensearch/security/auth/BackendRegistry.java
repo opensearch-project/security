@@ -225,7 +225,7 @@ public class BackendRegistry {
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
-            UserSubject subject = new SecurityUser(threadPool, superuser);
+            UserSubject subject = new UserSubjectImpl(threadPool, superuser);
             threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
@@ -393,7 +393,7 @@ public class BackendRegistry {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
-            UserSubject subject = new SecurityUser(threadPool, effectiveUser);
+            UserSubject subject = new UserSubjectImpl(threadPool, effectiveUser);
             threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             auditLog.logSucceededLogin(effectiveUser.getName(), false, authenticatedUser.getName(), request);
         } else {
@@ -422,7 +422,7 @@ public class BackendRegistry {
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
 
-                UserSubject subject = new SecurityUser(threadPool, anonymousUser);
+                UserSubject subject = new UserSubjectImpl(threadPool, anonymousUser);
 
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
                 threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);

@@ -20,12 +20,12 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-public class SecurityUser implements UserSubject {
+public class UserSubjectImpl implements UserSubject {
     private final NamedPrincipal userPrincipal;
     private final ThreadPool threadPool;
     private final User user;
 
-    SecurityUser(ThreadPool threadPool, User user) {
+    UserSubjectImpl(ThreadPool threadPool, User user) {
         this.threadPool = threadPool;
         this.user = user;
         this.userPrincipal = new NamedPrincipal(user.getName());
