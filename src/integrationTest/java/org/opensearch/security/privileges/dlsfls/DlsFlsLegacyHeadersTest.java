@@ -35,6 +35,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.internal.ShardSearchRequest;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -47,6 +48,7 @@ import org.opensearch.transport.Transport;
 
 import org.mockito.Mockito;
 
+import static org.mockito.Mockito.mock;
 import static org.opensearch.security.Song.ARTIST_STRING;
 import static org.opensearch.security.Song.ARTIST_TWINS;
 import static org.opensearch.security.Song.FIELD_ARTIST;
@@ -255,11 +257,11 @@ public class DlsFlsLegacyHeadersTest {
         Metadata metadata = exampleMetadata();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(exampleRolesConfig(), metadata);
 
-        Transport.Connection connection = Mockito.mock(Transport.Connection.class);
+        Transport.Connection connection = mock(Transport.Connection.class);
         Mockito.when(connection.getVersion()).thenReturn(Version.V_2_0_0);
 
         // ShardSearchRequest does not extend ActionRequest, thus the headers must be set
-        ShardSearchRequest request = Mockito.mock(ShardSearchRequest.class);
+        ShardSearchRequest request = mock(ShardSearchRequest.class);
 
         Map<String, String> headerSink = new HashMap<>();
 
@@ -277,7 +279,7 @@ public class DlsFlsLegacyHeadersTest {
         Metadata metadata = exampleMetadata();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(exampleRolesConfig(), metadata);
 
-        Transport.Connection connection = Mockito.mock(Transport.Connection.class);
+        Transport.Connection connection = mock(Transport.Connection.class);
         Mockito.when(connection.getVersion()).thenReturn(Version.V_2_0_0);
 
         // SearchRequest does extend ActionRequest, thus the headers must not be set
@@ -296,11 +298,11 @@ public class DlsFlsLegacyHeadersTest {
         Metadata metadata = exampleMetadata();
         DlsFlsProcessedConfig dlsFlsProcessedConfig = dlsFlsProcessedConfig(exampleRolesConfig(), metadata);
 
-        Transport.Connection connection = Mockito.mock(Transport.Connection.class);
+        Transport.Connection connection = mock(Transport.Connection.class);
         Mockito.when(connection.getVersion()).thenReturn(Version.V_3_0_0);
 
         // ShardSearchRequest does not extend ActionRequest, thus the headers must be set
-        ShardSearchRequest request = Mockito.mock(ShardSearchRequest.class);
+        ShardSearchRequest request = mock(ShardSearchRequest.class);
 
         Map<String, String> headerSink = new HashMap<>();
 
@@ -345,7 +347,8 @@ public class DlsFlsLegacyHeadersTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState
+            () -> clusterState,
+                mock(ApiTokenRepository.class)
         );
 
         DlsFlsLegacyHeaders.prepare(threadContext, ctx, dlsFlsProcessedConfig(exampleRolesConfig(), metadata), metadata, false);
@@ -364,7 +367,8 @@ public class DlsFlsLegacyHeadersTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState
+            () -> clusterState,
+                mock(ApiTokenRepository.class)
         );
     }
 

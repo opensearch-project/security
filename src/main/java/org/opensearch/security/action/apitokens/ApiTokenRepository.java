@@ -24,6 +24,7 @@ import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
@@ -82,9 +83,11 @@ public class ApiTokenRepository implements ClusterStateListener {
         return jtis;
     }
 
+    @Inject
     public ApiTokenRepository(Client client, ClusterService clusterService, SecurityTokenManager tokenManager) {
         apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
         securityTokenManager = tokenManager;
+        this.client = client;
         clusterService.addListener(this);
     }
 

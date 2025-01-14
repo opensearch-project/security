@@ -27,8 +27,9 @@ import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
+import org.opensearch.security.authtoken.jwt.ApiTokenJwtVendor;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
-import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.OBOJwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
@@ -50,8 +51,8 @@ public class SecurityTokenManager implements TokenManager {
     private final ThreadPool threadPool;
     private final UserService userService;
 
-    private JwtVendor oboJwtVendor = null;
-    private JwtVendor apiTokenJwtVendor = null;
+    private OBOJwtVendor oboJwtVendor = null;
+    private ApiTokenJwtVendor apiTokenOBOJwtVendor = null;
     private ConfigModel configModel = null;
 
     public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
@@ -70,31 +71,42 @@ public class SecurityTokenManager implements TokenManager {
         final Settings oboSettings = dcm.getDynamicOnBehalfOfSettings();
         final Boolean oboEnabled = oboSettings.getAsBoolean("enabled", false);
         if (oboEnabled) {
-            oboJwtVendor = createJwtVendor(oboSettings);
+            oboJwtVendor = createOboJwtVendor(oboSettings);
         }
         final Settings apiTokenSettings = dcm.getDynamicApiTokenSettings();
         final Boolean apiTokenEnabled = apiTokenSettings.getAsBoolean("enabled", false);
         if (apiTokenEnabled) {
-            apiTokenJwtVendor = createJwtVendor(apiTokenSettings);
+            apiTokenOBOJwtVendor = createApiTokenJwtVendor(apiTokenSettings);
         }
     }
 
     /** For testing */
-    JwtVendor createJwtVendor(final Settings settings) {
+    OBOJwtVendor createOboJwtVendor(final Settings settings) {
         try {
-            return new JwtVendor(settings, Optional.empty());
+            return new OBOJwtVendor(settings, Optional.empty());
         } catch (final Exception ex) {
             logger.error("Unable to create the JwtVendor instance", ex);
             return null;
         }
     }
 
+    /** For testing */
+    ApiTokenJwtVendor createApiTokenJwtVendor(final Settings settings) {
+        try {
+            return new ApiTokenJwtVendor(settings, Optional.empty());
+        } catch (final Exception ex) {
+            logger.error("Unable to create the JwtVendor instance", ex);
+            return null;
+        }
+    }
+
+
     public boolean issueOnBehalfOfTokenAllowed() {
         return oboJwtVendor != null && configModel != null;
     }
 
     public boolean issueApiTokenAllowed() {
-        return apiTokenJwtVendor != null && configModel != null;
+        return apiTokenOBOJwtVendor != null && configModel != null;
     }
 
     @Override
@@ -146,7 +158,7 @@ public class SecurityTokenManager implements TokenManager {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         try {
-            return apiTokenJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration);
+            return apiTokenOBOJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration);
         } catch (final Exception ex) {
             logger.error("Error creating Api Token for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate Api Token");

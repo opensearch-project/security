@@ -52,7 +52,6 @@ public class PrivilegesEvaluationContext {
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
-    @Inject
     private ApiTokenRepository apiTokenRepository;
     private Permissions permissionsForApiToken;
     /**
@@ -62,6 +61,7 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
+    @Inject
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
@@ -70,7 +70,8 @@ public class PrivilegesEvaluationContext {
         Task task,
         IndexResolverReplacer indexResolverReplacer,
         IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<ClusterState> clusterStateSupplier
+        Supplier<ClusterState> clusterStateSupplier,
+        ApiTokenRepository apiTokenRepository
     ) {
         this.user = user;
         this.mappedRoles = mappedRoles;
@@ -80,6 +81,7 @@ public class PrivilegesEvaluationContext {
         this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
+        this.apiTokenRepository = apiTokenRepository;
         this.permissionsForApiToken = extractApiTokenPermissionsForUser();
     }
 

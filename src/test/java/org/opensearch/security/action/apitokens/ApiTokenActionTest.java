@@ -29,7 +29,7 @@ import static org.mockito.Mockito.mock;
 
 public class ApiTokenActionTest {
 
-    private final ApiTokenAction apiTokenAction = new ApiTokenAction(mock(ClusterService.class), null, null);
+    private final ApiTokenAction apiTokenAction = new ApiTokenAction(mock(ApiTokenRepository.class));
 
     @Test
     public void testCreateIndexPermission() {

@@ -51,6 +51,7 @@ import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -61,6 +62,7 @@ import org.opensearch.security.user.User;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.dataStreams;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
@@ -526,7 +528,8 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
-                () -> CLUSTER_STATE
+                () -> CLUSTER_STATE,
+                    mock(ApiTokenRepository.class)
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -841,7 +844,8 @@ public class DocumentPrivilegesTest {
                 null,
                 RESOLVER_REPLACER,
                 INDEX_NAME_EXPRESSION_RESOLVER,
-                () -> CLUSTER_STATE
+                () -> CLUSTER_STATE,
+                    mock(ApiTokenRepository.class)
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1126,7 +1130,8 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
-                () -> CLUSTER_STATE
+                () -> CLUSTER_STATE,
+                    mock(ApiTokenRepository.class)
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1146,7 +1151,7 @@ public class DocumentPrivilegesTest {
         @Test(expected = PrivilegesEvaluationException.class)
         public void invalidTemplatedQuery() throws Exception {
             DocumentPrivileges.DlsQuery.create("{\"invalid\": \"totally ${attr.foo}\"}", xContentRegistry)
-                .evaluate(new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.of(), null, null, null, null, null, null));
+                .evaluate(new PrivilegesEvaluationContext(new User("test_user"), ImmutableSet.of(), null, null, null, null, null, null, mock(ApiTokenRepository.class)));
         }
 
         @Test

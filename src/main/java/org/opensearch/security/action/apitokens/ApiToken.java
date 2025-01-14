@@ -133,7 +133,6 @@ public class ApiToken implements ToXContent {
      */
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
         String name = null;
-        String jti = null;
         List<String> clusterPermissions = new ArrayList<>();
         List<IndexPermission> indexPermissions = new ArrayList<>();
         Instant creationTime = null;

@@ -647,7 +647,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     )
                 );
                 handlers.add(new CreateOnBehalfOfTokenAction(tokenManager));
-                handlers.add(new ApiTokenAction(cs, localClient, tokenManager));
+                handlers.add(new ApiTokenAction(ar));
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -1101,7 +1101,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         adminDns = new AdminDNs(settings);
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
-        ar = new ApiTokenRepository(localClient, clusterService, tokenManager);
 
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
 
@@ -1110,6 +1109,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
         tokenManager = new SecurityTokenManager(cs, threadPool, userService);
+        ar = new ApiTokenRepository(localClient, clusterService, tokenManager);
 
         final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
@@ -1125,7 +1125,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             privilegesInterceptor,
             cih,
             irr,
-            namedXContentRegistry.get()
+            namedXContentRegistry.get(),
+                ar
         );
 
         dlsFlsBaseContext = new DlsFlsBaseContext(evaluator, threadPool.getThreadContext(), adminDns);

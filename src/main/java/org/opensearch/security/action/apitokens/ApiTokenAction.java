@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -51,8 +52,10 @@ import static org.opensearch.security.util.ParsingUtils.safeMapList;
 import static org.opensearch.security.util.ParsingUtils.safeStringList;
 
 public class ApiTokenAction extends BaseRestHandler {
-    private final ApiTokenRepository apiTokenRepository;
+    private ApiTokenRepository apiTokenRepository;
     public Logger log = LogManager.getLogger(this.getClass());
+
+
 
     private static final List<RestHandler.Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
@@ -62,8 +65,10 @@ public class ApiTokenAction extends BaseRestHandler {
         )
     );
 
-    public ApiTokenAction(ClusterService clusterService, Client client, SecurityTokenManager securityTokenManager) {
-        this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
+    @Inject
+    public ApiTokenAction(ApiTokenRepository apiTokenRepository) {
+        this.apiTokenRepository = apiTokenRepository;
+//        this.apiTokenRepository = new ApiTokenRepository(client, clusterService, securityTokenManager);
     }
 
     @Override
