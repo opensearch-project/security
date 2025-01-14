@@ -230,7 +230,6 @@ public class ApiTokenIndexHandlerTest {
         String source = capturedRequest.source().utf8ToString();
         assertThat(source, containsString("test-token-description"));
         assertThat(source, containsString("cluster:admin/something"));
-        assertThat(source, containsString("test-token-jti"));
         assertThat(source, containsString("test-index-*"));
     }
 
