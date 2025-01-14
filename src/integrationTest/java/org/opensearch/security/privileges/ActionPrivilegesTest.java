@@ -50,7 +50,6 @@ import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.opensearch.security.privileges.ActionPrivilegesTest.IndexPrivileges.IndicesAndAliases.resolved;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isAllowed;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isForbidden;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isPartiallyOk;
@@ -265,13 +264,11 @@ public class ActionPrivilegesTest {
 
         @Test
         public void apiToken_explicit_failsWithWildcard() throws Exception {
-            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
-                "  cluster_permissions:\n" + //
-                "  - '*'", CType.ROLES);
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.empty(CType.ROLES);
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
             String token = "blah";
             PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-            context.getApiTokenIndexListenerCache().getJtis().put(token, new Permissions(List.of("*"), List.of()));
+            context.getApiTokenRepository().getJtis().put(token, new Permissions(List.of("*"), List.of()));
             // Explicit fails
             assertThat(
                 subject.hasExplicitClusterPrivilege(context, "cluster:whatever"),
@@ -285,13 +282,11 @@ public class ActionPrivilegesTest {
 
         @Test
         public void apiToken_succeedsWithExactMatch() throws Exception {
-            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
-                "  cluster_permissions:\n" + //
-                "  - '*'", CType.ROLES);
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.empty(CType.ROLES);
             ActionPrivileges subject = new ActionPrivileges(roles, FlattenedActionGroups.EMPTY, null, Settings.EMPTY);
             String token = "blah";
             PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-            context.getApiTokenIndexListenerCache().getJtis().put(token, new Permissions(List.of("cluster:whatever"), List.of()));
+            context.getApiTokenRepository().getJtis().put(token, new Permissions(List.of("cluster:whatever"), List.of()));
             // Explicit succeeds
             assertThat(subject.hasExplicitClusterPrivilege(context, "cluster:whatever"), isAllowed());
             // Not explicit succeeds
@@ -304,9 +299,7 @@ public class ActionPrivilegesTest {
 
         @Test
         public void apiToken_succeedsWithActionGroupsExapnded() throws Exception {
-            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("test_role:\n" + //
-                "  cluster_permissions:\n" + //
-                "  - '*'", CType.ROLES);
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.empty(CType.ROLES);
 
             SecurityDynamicConfiguration<ActionGroupsV7> config = SecurityDynamicConfiguration.fromYaml(
                 "CLUSTER_ALL:\n  allowed_actions:\n    - \"cluster:*\"",
@@ -317,7 +310,7 @@ public class ActionPrivilegesTest {
             ActionPrivileges subject = new ActionPrivileges(roles, actionGroups, null, Settings.EMPTY);
             String token = "blah";
             PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-            context.getApiTokenIndexListenerCache().getJtis().put(token, new Permissions(List.of("CLUSTER_ALL"), List.of()));
+            context.getApiTokenRepository().getJtis().put(token, new Permissions(List.of("CLUSTER_ALL"), List.of()));
             // Explicit succeeds
             assertThat(subject.hasExplicitClusterPrivilege(context, "cluster:whatever"), isAllowed());
             // Not explicit succeeds
@@ -363,7 +356,7 @@ public class ActionPrivilegesTest {
             public void apiTokens_positive_full() throws Exception {
                 String token = "blah";
                 PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-                context.getApiTokenIndexListenerCache()
+                context.getApiTokenRepository()
                     .getJtis()
                     .put(
                         token,
@@ -431,7 +424,7 @@ public class ActionPrivilegesTest {
             public void apiToken_negative_noPermissions() throws Exception {
                 String token = "blah";
                 PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-                context.getApiTokenIndexListenerCache()
+                context.getApiTokenRepository()
                     .getJtis()
                     .put(token, new Permissions(List.of(), List.of(new ApiToken.IndexPermission(List.of(), List.of()))));
 
@@ -472,7 +465,7 @@ public class ActionPrivilegesTest {
             public void apiTokens_positive_hasExplicit_full() {
                 String token = "blah";
                 PrivilegesEvaluationContext context = ctxWithUserName("apitoken:" + token);
-                context.getApiTokenIndexListenerCache()
+                context.getApiTokenRepository()
                     .getJtis()
                     .put(
                         token,

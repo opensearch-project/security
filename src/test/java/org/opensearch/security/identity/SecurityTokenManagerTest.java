@@ -290,17 +290,4 @@ public class SecurityTokenManagerTest {
         verify(cs).getClusterName();
         verify(threadPool).getThreadContext();
     }
-
-    @Test
-    public void testEncryptTokenCallsJwtEncrypt() throws Exception {
-        String tokenToEncrypt = "test-token";
-        String encryptedToken = "encrypted-test-token";
-        createMockJwtVendorInTokenManager();
-        when(jwtVendor.encryptString(tokenToEncrypt)).thenReturn(encryptedToken);
-
-        String result = tokenManager.encryptToken(tokenToEncrypt);
-
-        assertThat(result, equalTo(encryptedToken));
-        verify(jwtVendor).encryptString(tokenToEncrypt);
-    }
 }

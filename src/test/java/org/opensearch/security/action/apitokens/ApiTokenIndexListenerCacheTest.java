@@ -124,7 +124,7 @@ public class ApiTokenIndexListenerCacheTest {
 
     @Test
     public void testReloadApiTokensFromIndexAndParse() throws IOException {
-        SearchHit hit = createSearchHitFromApiToken("1", "testJti", Arrays.asList("cluster:monitor"), List.of());
+        SearchHit hit = createSearchHitFromApiToken("1", Arrays.asList("cluster:monitor"), List.of());
 
         SearchHits searchHits = new SearchHits(new SearchHit[] { hit }, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
 
@@ -147,13 +147,9 @@ public class ApiTokenIndexListenerCacheTest {
         assertEquals("Should have no index actions", List.of(), cache.getJtis().get("testJti").getIndexPermission());
     }
 
-    private SearchHit createSearchHitFromApiToken(
-        String id,
-        String jti,
-        List<String> allowedActions,
-        List<ApiToken.IndexPermission> prohibitedActions
-    ) throws IOException {
-        ApiToken apiToken = new ApiToken("test", jti, allowedActions, prohibitedActions, Long.MAX_VALUE);
+    private SearchHit createSearchHitFromApiToken(String id, List<String> allowedActions, List<ApiToken.IndexPermission> prohibitedActions)
+        throws IOException {
+        ApiToken apiToken = new ApiToken("test", allowedActions, prohibitedActions, Long.MAX_VALUE);
         XContentBuilder builder = XContentFactory.jsonBuilder();
         apiToken.toXContent(builder, null);
 

@@ -24,6 +24,8 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.security.support.ConfigConstants;
 
+import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
+
 public class ApiTokenIndexListenerCache implements ClusterStateListener {
 
     private static final Logger log = LogManager.getLogger(ApiTokenIndexListenerCache.class);
@@ -64,7 +66,6 @@ public class ApiTokenIndexListenerCache implements ClusterStateListener {
     void reloadApiTokensFromIndex() {
         try {
             jtis.clear();
-
             client.prepareSearch(getSecurityIndexName())
                 .setQuery(QueryBuilders.matchAllQuery())
                 .execute()
@@ -73,13 +74,10 @@ public class ApiTokenIndexListenerCache implements ClusterStateListener {
                 .forEach(hit -> {
                     // Parse the document and update the cache
                     Map<String, Object> source = hit.getSourceAsMap();
-                    String id = hit.getId();
-                    String jti = (String) source.get("jti");
+                    String jti = (String) source.get(NAME_FIELD);
                     Permissions permissions = parsePermissions(source);
                     jtis.put(jti, permissions);
                 });
-
-            log.debug("Successfully reloaded API tokens cache");
         } catch (Exception e) {
             log.error("Failed to reload API tokens cache", e);
         }

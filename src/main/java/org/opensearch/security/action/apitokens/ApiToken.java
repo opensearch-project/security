@@ -16,15 +16,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 public class ApiToken implements ToXContent {
     public static final String NAME_FIELD = "name";
-    public static final String JTI_FIELD = "jti";
     public static final String CREATION_TIME_FIELD = "creation_time";
     public static final String CLUSTER_PERMISSIONS_FIELD = "cluster_permissions";
     public static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
@@ -33,15 +30,13 @@ public class ApiToken implements ToXContent {
     public static final String EXPIRATION_FIELD = "expiration";
 
     private final String name;
-    private final String jti;
     private final Instant creationTime;
     private final List<String> clusterPermissions;
     private final List<IndexPermission> indexPermissions;
     private final long expiration;
 
-    public ApiToken(String name, String jti, List<String> clusterPermissions, List<IndexPermission> indexPermissions, Long expiration) {
+    public ApiToken(String name, List<String> clusterPermissions, List<IndexPermission> indexPermissions, Long expiration) {
         this.creationTime = Instant.now();
-        this.jti = jti;
         this.name = name;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
@@ -50,14 +45,12 @@ public class ApiToken implements ToXContent {
 
     public ApiToken(
         String name,
-        String jti,
         List<String> clusterPermissions,
         List<IndexPermission> indexPermissions,
         Instant creationTime,
         Long expiration
     ) {
         this.name = name;
-        this.jti = jti;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
         this.creationTime = creationTime;
@@ -157,9 +150,6 @@ public class ApiToken implements ToXContent {
                     case NAME_FIELD:
                         name = parser.text();
                         break;
-                    case JTI_FIELD:
-                        jti = parser.text();
-                        break;
                     case CREATION_TIME_FIELD:
                         creationTime = Instant.ofEpochMilli(parser.longValue());
                         break;
@@ -185,7 +175,7 @@ public class ApiToken implements ToXContent {
             }
         }
 
-        return new ApiToken(name, jti, clusterPermissions, indexPermissions, creationTime, expiration);
+        return new ApiToken(name, clusterPermissions, indexPermissions, creationTime, expiration);
     }
 
     private static IndexPermission parseIndexPermission(XContentParser parser) throws IOException {
@@ -224,11 +214,6 @@ public class ApiToken implements ToXContent {
         return expiration;
     }
 
-    @JsonIgnore
-    public String getJti() {
-        return jti;
-    }
-
     public Instant getCreationTime() {
         return creationTime;
     }
@@ -241,7 +226,6 @@ public class ApiToken implements ToXContent {
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.startObject();
         xContentBuilder.field(NAME_FIELD, name);
-        xContentBuilder.field(JTI_FIELD, jti);
         xContentBuilder.field(CLUSTER_PERMISSIONS_FIELD, clusterPermissions);
         xContentBuilder.field(INDEX_PERMISSIONS_FIELD, indexPermissions);
         xContentBuilder.field(CREATION_TIME_FIELD, creationTime.toEpochMilli());

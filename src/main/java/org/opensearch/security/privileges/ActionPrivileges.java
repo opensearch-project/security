@@ -431,10 +431,10 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             String userName = context.getUser().getName();
             if (userName.startsWith(API_TOKEN_USER_PREFIX)) {
                 String jti = context.getUser().getName().split(API_TOKEN_USER_PREFIX)[1];
-                if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
+                if (context.getApiTokenRepository().isValidToken(jti)) {
                     // Expand the action groups
                     Set<String> resolvedClusterPermissions = actionGroups.resolve(
-                        context.getApiTokenIndexListenerCache().getPermissionsForJti(jti).getClusterPerm()
+                        context.getApiTokenRepository().getPermissionsForJti(jti).getClusterPerm()
                     );
 
                     // Check for wildcard permission
@@ -923,8 +923,8 @@ public class ActionPrivileges extends ClusterStateMetadataDependentPrivileges {
             String userName = context.getUser().getName();
             if (userName.startsWith(API_TOKEN_USER_PREFIX)) {
                 String jti = context.getUser().getName().split(API_TOKEN_USER_PREFIX)[1];
-                if (context.getApiTokenIndexListenerCache().isValidToken(jti)) {
-                    List<ApiToken.IndexPermission> indexPermissions = context.getApiTokenIndexListenerCache()
+                if (context.getApiTokenRepository().isValidToken(jti)) {
+                    List<ApiToken.IndexPermission> indexPermissions = context.getApiTokenRepository()
                         .getPermissionsForJti(jti)
                         .getIndexPermission();
 

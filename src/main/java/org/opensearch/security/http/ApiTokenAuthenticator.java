@@ -29,7 +29,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.action.apitokens.ApiTokenIndexListenerCache;
 import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.ssl.util.ExceptionUtils;
@@ -62,8 +61,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private final String clusterName;
     public static final String API_TOKEN_USER_PREFIX = "apitoken:";
 
-    private final EncryptionDecryptionUtil encryptionUtil;
-
     @SuppressWarnings("removal")
     public ApiTokenAuthenticator(Settings settings, String clusterName) {
         String apiTokenEnabledSetting = settings.get("enabled", "true");
@@ -82,7 +79,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             }
         });
         this.clusterName = clusterName;
-        this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
@@ -141,12 +137,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        // TODO: handle revocation different from deletion?
-        if (!cache.isValidToken(encryptionUtil.encrypt(jwtToken))) {
-            log.error("Token is not allowlisted");
-            return null;
-        }
-
         try {
             final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
@@ -156,13 +146,19 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
                 return null;
             }
 
+            // TODO: handle revocation different from deletion?
+            if (!cache.isValidToken(subject)) {
+                log.error("Token is not allowlisted");
+                return null;
+            }
+
             final String issuer = claims.getIssuer();
             if (!clusterName.equals(issuer)) {
                 log.error("The issuer of this api token does not match the current cluster identifier");
                 return null;
             }
 
-            return new AuthCredentials(API_TOKEN_USER_PREFIX + encryptionUtil.encrypt(jwtToken), List.of(), "").markComplete();
+            return new AuthCredentials(API_TOKEN_USER_PREFIX + subject, List.of(), "").markComplete();
 
         } catch (WeakKeyException e) {
             log.error("Cannot authenticate user with JWT because of ", e);

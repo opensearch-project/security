@@ -174,7 +174,7 @@ public class PrivilegesEvaluationContext {
             + '}';
     }
 
-    public ApiTokenIndexListenerCache getApiTokenIndexListenerCache() {
+    public ApiTokenIndexListenerCache getApiTokenRepository() {
         return apiTokenIndexListenerCache;
     }
 }

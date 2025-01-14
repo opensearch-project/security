@@ -319,40 +319,6 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testEncryptDecryptClusterIndexPermissionsCorrectly() throws IOException {
-        String claimsEncryptionKey = BaseEncoding.base64().encode("1234567890123456".getBytes(StandardCharsets.UTF_8));
-        String clusterPermissions = "cluster:admin/*,cluster:*";
-        String encryptedClusterPermissions = "P+KGUkpANJHzHGKVSqJhIyHOKS+JCLOanxCOBWSgZNk=";
-        // "{\"index_pattern\":[\"*\"],\"allowed_actions\":[\"read\"]},{\"index_pattern\":[\".*\"],\"allowed_actions\":[\"write\"]}"
-        String indexPermissions = Strings.join(
-            List.of(
-                new ApiToken.IndexPermission(List.of("*"), List.of("read")).toXContent(
-                    XContentFactory.jsonBuilder(),
-                    ToXContent.EMPTY_PARAMS
-                ).toString(),
-                new ApiToken.IndexPermission(List.of(".*"), List.of("write")).toXContent(
-                    XContentFactory.jsonBuilder(),
-                    ToXContent.EMPTY_PARAMS
-                ).toString()
-            ),
-            ","
-        );
-        String encryptedIndexPermissions =
-            "Y9ssHcl6spHC2/zy+L1P0y8e2+T+jGgXcP02DWGeTMk/3KiI4Ik0Df7oXMf9l/Ba0emk9LClnHsJi8iFwRh7ii1Pxb3CTHS/d+p7a3bA6rtJjgOjGlbjdWTdj4+87uBJynsR5CAlUMLeTrjbPe/nWw==";
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
-        LongSupplier currentTime = () -> (long) 100;
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
-
-        // encrypt decrypt cluster permissions
-        assertThat(jwtVendor.encryptString(clusterPermissions), equalTo(encryptedClusterPermissions));
-        assertThat(jwtVendor.decryptString(encryptedClusterPermissions), equalTo(clusterPermissions));
-
-        // encrypt decrypt index permissions
-        assertThat(jwtVendor.encryptString(indexPermissions), equalTo(encryptedIndexPermissions));
-        assertThat(jwtVendor.decryptString(encryptedIndexPermissions), equalTo(indexPermissions));
-    }
-
-    @Test
     public void testKeyTooShortThrowsException() {
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());

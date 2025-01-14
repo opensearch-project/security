@@ -503,8 +503,6 @@ public class ConfigV7 {
         private Boolean enabled = Boolean.FALSE;
         @JsonProperty("signing_key")
         private String signingKey;
-        @JsonProperty("encryption_key")
-        private String encryptionKey;
 
         @JsonIgnore
         public String configAsJson() {
@@ -531,17 +529,9 @@ public class ConfigV7 {
             this.signingKey = signingKey;
         }
 
-        public String getEncryptionKey() {
-            return encryptionKey;
-        }
-
-        public void setEncryptionKey(String encryptionKey) {
-            this.encryptionKey = encryptionKey;
-        }
-
         @Override
         public String toString() {
-            return "ApiTokenSettings [ enabled=" + enabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+            return "ApiTokenSettings [ enabled=" + enabled + ", signing_key=" + signingKey + "]";
         }
 
     }

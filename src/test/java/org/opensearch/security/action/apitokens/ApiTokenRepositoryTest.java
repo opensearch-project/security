@@ -62,7 +62,7 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testGetApiTokens() throws IndexNotFoundException {
         Map<String, ApiToken> expectedTokens = new HashMap<>();
-        expectedTokens.put("token1", new ApiToken("token1", "token1-jti", Arrays.asList("perm1"), Arrays.asList(), Long.MAX_VALUE));
+        expectedTokens.put("token1", new ApiToken("token1", Arrays.asList("perm1"), Arrays.asList(), Long.MAX_VALUE));
         when(apiTokenIndexHandler.getTokenMetadatas()).thenReturn(expectedTokens);
 
         Map<String, ApiToken> result = repository.getApiTokens();
@@ -85,19 +85,17 @@ public class ApiTokenRepositoryTest {
         ExpiringBearerAuthToken bearerToken = mock(ExpiringBearerAuthToken.class);
         when(bearerToken.getCompleteToken()).thenReturn(completeToken);
         when(securityTokenManager.issueApiToken(any(), any())).thenReturn(bearerToken);
-        when(securityTokenManager.encryptToken(completeToken)).thenReturn(encryptedToken);
 
         String result = repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration);
 
         verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent();
         verify(securityTokenManager).issueApiToken(any(), any());
-        verify(securityTokenManager).encryptToken(completeToken);
         verify(apiTokenIndexHandler).indexTokenMetadata(
             argThat(
                 token -> token.getName().equals(tokenName)
-                    && token.getJti().equals(encryptedToken)
                     && token.getClusterPermissions().equals(clusterPermissions)
                     && token.getIndexPermissions().equals(indexPermissions)
+                    && token.getExpiration().equals(expiration)
             )
         );
         assertThat(result, equalTo(completeToken));
