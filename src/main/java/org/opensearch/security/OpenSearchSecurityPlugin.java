@@ -785,7 +785,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             resourceSharingIndexListener.initialize(threadPool, localClient, auditLog);
             if (RESOURCE_INDICES.contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(resourceSharingIndexListener);
-                log.warn("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
+                log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
             }
 
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {

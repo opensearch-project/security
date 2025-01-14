@@ -8,7 +8,6 @@
  */
 package org.opensearch.sample;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -22,10 +21,6 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.inject.Inject;
-import org.opensearch.common.lifecycle.Lifecycle;
-import org.opensearch.common.lifecycle.LifecycleComponent;
-import org.opensearch.common.lifecycle.LifecycleListener;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Settings;
@@ -50,7 +45,6 @@ import org.opensearch.sample.resource.actions.transport.CreateResourceTransportA
 import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.spi.resources.ResourceParser;
-import org.opensearch.security.spi.resources.ResourceService;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -123,47 +117,5 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
     @Override
     public ResourceParser<SampleResource> getResourceParser() {
         return new SampleResourceParser();
-    }
-
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        final List<Class<? extends LifecycleComponent>> services = new ArrayList<>(1);
-        services.add(GuiceHolder.class);
-        return services;
-    }
-
-    public static class GuiceHolder implements LifecycleComponent {
-
-        private static ResourceService resourceService;
-
-        @Inject
-        public GuiceHolder(final ResourceService resourceService) {
-            GuiceHolder.resourceService = resourceService;
-        }
-
-        public static ResourceService getResourceService() {
-            return resourceService;
-        }
-
-        @Override
-        public void close() {}
-
-        @Override
-        public Lifecycle.State lifecycleState() {
-            return null;
-        }
-
-        @Override
-        public void addLifecycleListener(LifecycleListener listener) {}
-
-        @Override
-        public void removeLifecycleListener(LifecycleListener listener) {}
-
-        @Override
-        public void start() {}
-
-        @Override
-        public void stop() {}
-
     }
 }
