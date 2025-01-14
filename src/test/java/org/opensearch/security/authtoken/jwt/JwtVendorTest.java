@@ -11,7 +11,6 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
@@ -39,7 +38,6 @@ import org.opensearch.security.support.ConfigConstants;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
-import joptsimple.internal.Strings;
 import org.mockito.ArgumentCaptor;
 
 import static org.hamcrest.MatcherAssert.assertThat;

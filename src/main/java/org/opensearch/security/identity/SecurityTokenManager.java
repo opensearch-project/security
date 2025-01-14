@@ -141,9 +141,7 @@ public class SecurityTokenManager implements TokenManager {
 
     public ExpiringBearerAuthToken issueApiToken(final String name, final Long expiration) {
         if (!issueApiTokenAllowed()) {
-            throw new OpenSearchSecurityException(
-                    "Api token generation is not enabled."
-            );
+            throw new OpenSearchSecurityException("Api token generation is not enabled.");
         }
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
