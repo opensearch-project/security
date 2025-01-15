@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
-import org.junit.After;
 import org.junit.Test;
 
 import org.opensearch.security.auth.UserInjector;
@@ -35,11 +34,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class SafeSerializationUtilsTest {
-
-    @After
-    public void clearCache() {
-        SafeSerializationUtils.safeClassCache.clear();
-    }
 
     @Test
     public void testSafeClasses() {
