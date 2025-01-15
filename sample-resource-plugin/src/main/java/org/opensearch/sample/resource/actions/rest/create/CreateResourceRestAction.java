@@ -19,8 +19,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.sample.SampleResource;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.PUT;
 
 public class CreateResourceRestAction extends BaseRestHandler {
 
@@ -28,7 +28,10 @@ public class CreateResourceRestAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return singletonList(new Route(POST, "/_plugins/sample_resource_sharing/create"));
+        return List.of(
+            new Route(PUT, "/_plugins/sample_resource_sharing/create"),
+            new Route(POST, "/_plugins/sample_resource_sharing/update")
+        );
     }
 
     @Override

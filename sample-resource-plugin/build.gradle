@@ -15,15 +15,22 @@ opensearchplugin {
     name 'opensearch-sample-resource-plugin'
     description 'Sample plugin that extends OpenSearch Resource Plugin'
     classname 'org.opensearch.sample.SampleResourcePlugin'
+    extendedPlugins = ['opensearch-security;optional=true']
 }
 
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 loggerUsageCheck.enabled = false
-tasks.test.enabled=false
-validateNebulaPom.enabled=false
+validateNebulaPom.enabled = false
+testingConventions.enabled = false
+tasks.configureEach { task ->
+    if(task.name.contains("forbiddenApisIntegrationTest")) {
+        task.enabled = false
+    }
+}
 
 ext {
+    projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
     opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
@@ -97,3 +104,5 @@ tasks.register("integrationTest", Test) {
 tasks.named("integrationTest").configure {
     dependsOn rootProject.tasks.named("compileIntegrationTestJava")
 }
+
+project.getTasks().getByName('bundlePlugin').dependsOn(rootProject.tasks.getByName('build'))
