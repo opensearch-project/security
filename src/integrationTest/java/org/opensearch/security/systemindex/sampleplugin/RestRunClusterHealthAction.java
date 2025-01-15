@@ -24,11 +24,9 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 public class RestRunClusterHealthAction extends BaseRestHandler {
 
     private final Client client;
-    private final PluginContextSwitcher contextSwitcher;
 
-    public RestRunClusterHealthAction(Client client, PluginContextSwitcher contextSwitcher) {
+    public RestRunClusterHealthAction(Client client) {
         this.client = client;
-        this.contextSwitcher = contextSwitcher;
     }
 
     @Override
