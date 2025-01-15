@@ -200,8 +200,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
 import org.opensearch.security.spi.resources.Resource;
-import org.opensearch.security.spi.resources.ResourceAccessControlPlugin;
-import org.opensearch.security.spi.resources.ResourceAccessScope;
 import org.opensearch.security.spi.resources.ResourceParser;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
@@ -260,7 +258,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         ClusterPlugin,
         MapperPlugin,
         IdentityPlugin,
-        ResourceAccessControlPlugin,
         // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
         ExtensionAwarePlugin,
         ExtensiblePlugin
@@ -301,7 +298,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexManagementRepository rmr;
     private ResourceAccessHandler resourceAccessHandler;
-    private final Set<String> indicesToListen = new HashSet<>();
     private static final Map<String, ResourceProvider> RESOURCE_PROVIDERS = new HashMap<>();
     private static final Set<String> RESOURCE_INDICES = new HashSet<>();
 
@@ -2306,15 +2302,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return ImmutableSet.copyOf(RESOURCE_INDICES);
     }
 
-    @Override
-    public boolean hasPermission(String resourceId, String resourceIndex, ResourceAccessScope<? extends Enum<?>> scope) {
-        return this.resourceAccessHandler.hasPermission(resourceId, resourceIndex, scope.value());
-    }
-
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
     @Override
     public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
 
+        log.info("Loading extensions");
         for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
             String resourceType = extension.getResourceType();
             String resourceIndexName = extension.getResourceIndex();
@@ -2324,7 +2316,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, resourceParser);
             RESOURCE_PROVIDERS.put(resourceIndexName, resourceProvider);
-            log.info("Loaded resource provider extension: {}, index: {}", resourceType, resourceIndexName);
+            log.info("Loaded resource sharing extension: {}, index: {}", resourceType, resourceIndexName);
         }
     }
     // CS-ENFORCE-SINGLE
