@@ -43,6 +43,7 @@ public class ApiTokenRepository implements ClusterStateListener {
     private Client client;
 
     void reloadApiTokensFromIndex() {
+        log.info("Reloading api tokens from index. Currnet entries: " + jtis.entrySet());
         try {
             jtis.clear();
             client.prepareSearch(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)

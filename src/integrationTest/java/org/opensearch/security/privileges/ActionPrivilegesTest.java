@@ -53,6 +53,7 @@ import org.opensearch.security.util.MockIndexMetadataBuilder;
 import org.mockito.Mockito;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isAllowed;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isForbidden;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isPartiallyOk;
@@ -1132,7 +1133,8 @@ public class ActionPrivilegesTest {
             null,
             null,
             new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            null
+            null,
+                mock(ApiTokenRepository.class)
         );
     }
 

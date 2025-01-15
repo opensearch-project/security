@@ -61,7 +61,6 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
-    @Inject
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,

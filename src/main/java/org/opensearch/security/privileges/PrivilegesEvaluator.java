@@ -157,7 +157,6 @@ public class PrivilegesEvaluator {
     private final AtomicReference<ActionPrivileges> actionPrivileges = new AtomicReference<>();
     private ApiTokenRepository apiTokenRepository;
 
-    @Inject
     public PrivilegesEvaluator(
         final ClusterService clusterService,
         Supplier<ClusterState> clusterStateSupplier,
@@ -220,6 +219,8 @@ public class PrivilegesEvaluator {
                 }
             });
         }
+
+        this.apiTokenRepository = apiTokenRepository;
 
     }
 

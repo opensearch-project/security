@@ -32,6 +32,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -163,7 +164,8 @@ public class SystemIndexAccessEvaluatorTest {
             null,
             null,
             indexNameExpressionResolver,
-            null
+            null,
+                mock(ApiTokenRepository.class)
         );
     }
 

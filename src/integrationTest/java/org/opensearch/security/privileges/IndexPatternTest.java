@@ -22,10 +22,12 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
+import static org.mockito.Mockito.mock;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -246,7 +248,8 @@ public class IndexPatternTest {
             null,
             indexResolverReplacer,
             indexNameExpressionResolver,
-            () -> CLUSTER_STATE
+            () -> CLUSTER_STATE,
+                mock(ApiTokenRepository.class)
         );
     }
 }

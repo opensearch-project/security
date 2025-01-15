@@ -517,8 +517,8 @@ public class ConfigV7 {
             return enabled;
         }
 
-        public void setEnabled(Boolean oboEnabled) {
-            this.enabled = oboEnabled;
+        public void setEnabled(Boolean apiTokensEnabled) {
+            this.enabled = apiTokensEnabled;
         }
 
         public String getSigningKey() {

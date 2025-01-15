@@ -88,13 +88,15 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
     private final ClusterInfoHolder cih;
+    private final ApiTokenRepository ar;
 
     public DynamicConfigModelV7(
         ConfigV7 config,
         Settings opensearchSettings,
         Path configPath,
         InternalAuthenticationBackend iab,
-        ClusterInfoHolder cih
+        ClusterInfoHolder cih,
+        ApiTokenRepository ar
     ) {
         super();
         this.config = config;
@@ -102,6 +104,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         this.configPath = configPath;
         this.iab = iab;
         this.cih = cih;
+        this.ar = ar;
         buildAAA();
     }
 
@@ -390,10 +393,11 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          * order: -2 - prioritize the Api token authentication when it gets enabled
          */
         Settings apiTokenSettings = getDynamicApiTokenSettings();
-        if (!isKeyNull(apiTokenSettings, "signing_key") && !isKeyNull(apiTokenSettings, "encryption_key")) {
+        log.info("APITOKENSETTINGS" + apiTokenSettings.toString());
+        if (!isKeyNull(apiTokenSettings, "signing_key")) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName(), apiTokenRepository),
+                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName(), ar),
                 false,
                 -2
             );

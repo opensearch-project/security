@@ -63,8 +63,8 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private final ApiTokenRepository apiTokenRepository;
 
     @SuppressWarnings("removal")
-    @Inject
     public ApiTokenAuthenticator(Settings settings, String clusterName, ApiTokenRepository apiTokenRepository) {
+        log.info("We instantiating it");
         String apiTokenEnabledSetting = settings.get("enabled", "true");
         apiTokenEnabled = Boolean.parseBoolean(apiTokenEnabledSetting);
 
@@ -128,6 +128,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.error("Api token authentication is disabled");
             return null;
         }
+        log.info("API TOKEN AUTHENTICATOR IS BEING CALLED");
 
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
