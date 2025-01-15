@@ -412,9 +412,6 @@ public class ResourceSharingIndexHandler {
             entities
         );
 
-        // To allow "public" resources to be matched for any user, role, backend_role
-        entities.add("*");
-
         Set<String> resourceIds = new HashSet<>();
         final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
 

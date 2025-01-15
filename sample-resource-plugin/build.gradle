@@ -70,12 +70,13 @@ configurations.all {
 
 dependencies {
     // Main implementation dependencies
-    implementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+    compileOnly "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
+    compileOnly "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // Integration test dependencies
     integrationTestImplementation rootProject.sourceSets.integrationTest.output
     integrationTestImplementation rootProject.sourceSets.main.output
+    integrationTestImplementation "org.opensearch:opensearch-resource-sharing-spi:${opensearch_build}"
 }
 
 sourceSets {
@@ -89,6 +90,13 @@ sourceSets {
             srcDir file('src/integrationTest/resources')
         }
     }
+}
+
+tasks.named("bundlePlugin") {
+    from("$projectDir/plugin-security.policy") {
+        into ''
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.register("integrationTest", Test) {

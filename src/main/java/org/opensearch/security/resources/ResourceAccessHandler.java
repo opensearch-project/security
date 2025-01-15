@@ -275,7 +275,7 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Loads resources shared with the specified entities within the given resource index.
+     * Loads resources shared with the specified entities within the given resource index, including public resources.
      *
      * @param resourceIndex The resource index to load resources from.
      * @param entities The set of entities to check for shared resources.
@@ -283,7 +283,10 @@ public class ResourceAccessHandler {
      * @return A set of resource IDs shared with the specified entities.
      */
     private Set<String> loadSharedWithResources(String resourceIndex, Set<String> entities, String RecipientType) {
-        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entities, RecipientType);
+        Set<String> entitiesCopy = new HashSet<>(entities);
+        // To allow "public" resources to be matched for any user, role, backend_role
+        entitiesCopy.add("*");
+        return this.resourceSharingIndexHandler.fetchDocumentsForAllScopes(resourceIndex, entitiesCopy, RecipientType);
     }
 
     /**

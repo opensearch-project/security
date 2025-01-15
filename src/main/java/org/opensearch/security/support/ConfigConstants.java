@@ -381,7 +381,7 @@ public class ConfigConstants {
     // Resource sharing index
     public static final String OPENSEARCH_RESOURCE_SHARING_INDEX = ".opensearch_resource_sharing";
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = SECURITY_SETTINGS_PREFIX + "resource_sharing.enabled";
-    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
+    public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = true;
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

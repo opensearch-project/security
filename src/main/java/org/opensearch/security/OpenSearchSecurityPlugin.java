@@ -779,7 +779,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Listening on POST and DELETE operations in resource indices
             ResourceSharingIndexListener resourceSharingIndexListener = ResourceSharingIndexListener.getInstance();
             resourceSharingIndexListener.initialize(threadPool, localClient, auditLog);
-            if (RESOURCE_INDICES.contains(indexModule.getIndex().getName())) {
+            if (settings.getAsBoolean(
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+                ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+            ) && RESOURCE_INDICES.contains(indexModule.getIndex().getName())) {
                 indexModule.addIndexOperationListener(resourceSharingIndexListener);
                 log.info("Security plugin started listening to operations on resource-index {}", indexModule.getIndex().getName());
             }
@@ -2184,7 +2187,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         // rmr will be null when sec plugin is disabled or is in SSLOnly mode, hence rmr will not be instantiated
-        if (rmr != null) {
+        if (settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        ) && rmr != null) {
             // create resource sharing index if absent
             rmr.createResourceSharingIndexIfAbsent();
         }
@@ -2306,17 +2312,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public void loadExtensions(ExtensiblePlugin.ExtensionLoader loader) {
 
-        log.info("Loading extensions");
-        for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
-            String resourceType = extension.getResourceType();
-            String resourceIndexName = extension.getResourceIndex();
-            ResourceParser<? extends Resource> resourceParser = extension.getResourceParser();
+        if (settings.getAsBoolean(
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED,
+            ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT
+        )) {
+            for (ResourceSharingExtension extension : loader.loadExtensions(ResourceSharingExtension.class)) {
+                String resourceType = extension.getResourceType();
+                String resourceIndexName = extension.getResourceIndex();
+                ResourceParser<? extends Resource> resourceParser = extension.getResourceParser();
 
-            RESOURCE_INDICES.add(resourceIndexName);
+                RESOURCE_INDICES.add(resourceIndexName);
 
-            ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, resourceParser);
-            RESOURCE_PROVIDERS.put(resourceIndexName, resourceProvider);
-            log.info("Loaded resource sharing extension: {}, index: {}", resourceType, resourceIndexName);
+                ResourceProvider resourceProvider = new ResourceProvider(resourceType, resourceIndexName, resourceParser);
+                RESOURCE_PROVIDERS.put(resourceIndexName, resourceProvider);
+                log.info("Loaded resource sharing extension: {}, index: {}", resourceType, resourceIndexName);
+            }
         }
     }
     // CS-ENFORCE-SINGLE
