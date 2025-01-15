@@ -50,7 +50,7 @@ public class TransportRunClusterHealthAction extends HandledTransportAction<RunC
             );
             pluginClient.admin().cluster().health(new ClusterHealthRequest(), chr);
         } else {
-            // run in the authenticated user context
+            // use client instead of pluginClient to run in the authenticated user context
             ActionListener<ClusterHealthResponse> chr = ActionListener.wrap(
                 r -> { actionListener.onResponse(new AcknowledgedResponse(true)); },
                 actionListener::onFailure
