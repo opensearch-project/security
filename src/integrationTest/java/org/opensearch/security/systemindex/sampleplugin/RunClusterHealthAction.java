@@ -11,12 +11,13 @@
 package org.opensearch.security.systemindex.sampleplugin;
 
 import org.opensearch.action.ActionType;
+import org.opensearch.action.support.master.AcknowledgedResponse;
 
-public class RunClusterHealthAction extends ActionType<RunClusterHealthResponse> {
+public class RunClusterHealthAction extends ActionType<AcknowledgedResponse> {
     public static final RunClusterHealthAction INSTANCE = new RunClusterHealthAction();
     public static final String NAME = "cluster:mock/monitor/health";
 
     private RunClusterHealthAction() {
-        super(NAME, RunClusterHealthResponse::new);
+        super(NAME, AcknowledgedResponse::new);
     }
 }

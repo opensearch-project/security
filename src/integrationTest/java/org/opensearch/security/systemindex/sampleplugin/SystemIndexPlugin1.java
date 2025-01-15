@@ -45,7 +45,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, IdentityAwarePlugin {
     public static final String SYSTEM_INDEX_1 = ".system-index1";
 
-    private PluginContextSwitcher contextSwitcher;
+    private RunAsSubjectClient pluginClient;
 
     private Client client;
 
@@ -64,8 +64,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.client = client;
-        this.contextSwitcher = new PluginContextSwitcher();
-        return List.of(contextSwitcher);
+        this.pluginClient = new RunAsSubjectClient(client);
+        return List.of(pluginClient);
     }
 
     @Override
@@ -86,9 +86,9 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
     ) {
         return List.of(
             new RestIndexDocumentIntoSystemIndexAction(client),
-            new RestRunClusterHealthAction(client, contextSwitcher),
-            new RestBulkIndexDocumentIntoSystemIndexAction(client, contextSwitcher),
-            new RestBulkIndexDocumentIntoMixOfSystemIndexAction(client, contextSwitcher)
+            new RestRunClusterHealthAction(client),
+            new RestBulkIndexDocumentIntoSystemIndexAction(client, pluginClient),
+            new RestBulkIndexDocumentIntoMixOfSystemIndexAction(client, pluginClient)
         );
     }
 
@@ -102,8 +102,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
 
     @Override
     public void assignSubject(PluginSubject pluginSystemSubject) {
-        if (contextSwitcher != null) {
-            this.contextSwitcher.initialize(pluginSystemSubject);
+        if (pluginClient != null) {
+            this.pluginClient.setSubject(pluginSystemSubject);
         }
     }
 }

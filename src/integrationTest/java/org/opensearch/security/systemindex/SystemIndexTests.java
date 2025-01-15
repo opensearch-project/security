@@ -100,7 +100,7 @@ public class SystemIndexTests {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1);
 
             assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
-            assertThat(response.getBody(), containsString(SystemIndexPlugin1.class.getCanonicalName()));
+            assertThat(response.getBody(), containsString("{\"acknowledged\":true}"));
         }
     }
 
