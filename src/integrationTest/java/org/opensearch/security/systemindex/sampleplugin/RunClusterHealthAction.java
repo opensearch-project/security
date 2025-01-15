@@ -10,8 +10,8 @@
 
 package org.opensearch.security.systemindex.sampleplugin;
 
-import org.opensearch.action.ActionType;
 // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
+import org.opensearch.action.ActionType;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 // CS-ENFORCE-SINGLE
 
