@@ -12,8 +12,12 @@
 package org.opensearch.security.auditlog.sink;
 
 import java.io.IOException;
+import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
@@ -51,6 +55,29 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
 
     }
 
+    private boolean indexExists(String  indexName) {
+        return clientProvider
+            .admin()
+            .indices()
+            .prepareExists(indexName)
+            .execute()
+            .actionGet()
+            .isExists();
+    }
+
+    private boolean createIndexIfAbsent(String indexName){
+        try {
+            final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
+            final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
+            log.info("Index {} created?: {}", indexName, ok);
+            return ok;
+        } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
+            log.info("Index {} already exists", indexName);
+            return false;
+        }
+    }
+
     public boolean doStore(final AuditMessage msg, String indexName) {
 
         if (Boolean.parseBoolean(
@@ -60,6 +87,10 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
                 log.trace("audit log of audit log will not be executed");
             }
             return true;
+        }
+
+        if(!indexExists(indexName)){
+            createIndexIfAbsent(indexName);
         }
 
         try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
