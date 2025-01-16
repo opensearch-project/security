@@ -72,6 +72,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
@@ -113,7 +114,6 @@ import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.identity.PluginSubject;
 import org.opensearch.identity.Subject;
-import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
@@ -168,7 +168,7 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.http.NonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.identity.NoopPluginSubject;
+import org.opensearch.security.identity.ContextProvidingPluginSubject;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -245,6 +245,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED;
@@ -2249,8 +2250,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public Subject getCurrentSubject() {
-        // Not supported
-        return new NoopSubject();
+        return (Subject) threadPool.getThreadContext().getPersistent(OPENDISTRO_SECURITY_AUTHENTICATED_USER);
     }
 
     @Override
@@ -2260,7 +2260,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
-        return new NoopPluginSubject(threadPool);
+        Set<String> clusterActions = new HashSet<>();
+        clusterActions.add(BulkAction.NAME);
+        PluginSubject subject = new ContextProvidingPluginSubject(threadPool, settings, plugin);
+        sf.updatePluginToClusterActions(subject.getPrincipal().getName(), clusterActions);
+        return subject;
     }
 
     @Override
