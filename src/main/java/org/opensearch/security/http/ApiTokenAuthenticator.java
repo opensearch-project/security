@@ -63,7 +63,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
     @SuppressWarnings("removal")
     public ApiTokenAuthenticator(Settings settings, String clusterName, ApiTokenRepository apiTokenRepository) {
-        log.info("We instantiating it");
         String apiTokenEnabledSetting = settings.get("enabled", "true");
         apiTokenEnabled = Boolean.parseBoolean(apiTokenEnabledSetting);
 
@@ -127,7 +126,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.error("Api token authentication is disabled");
             return null;
         }
-        log.info("API TOKEN AUTHENTICATOR IS BEING CALLED");
 
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
@@ -143,13 +141,13 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
             final String subject = claims.getSubject();
             if (subject == null) {
-                log.error("Valid jwt api token with no subject");
+                log.error("Api token does not have a subject");
                 return null;
             }
 
             // TODO: handle revocation different from deletion?
             if (!apiTokenRepository.isValidToken(subject)) {
-                log.error("Token is not allowlisted");
+                log.error("Api token is not allowlisted");
                 return null;
             }
 
@@ -162,11 +160,11 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return new AuthCredentials(API_TOKEN_USER_PREFIX + subject, List.of(), "").markComplete();
 
         } catch (WeakKeyException e) {
-            log.error("Cannot authenticate user with JWT because of ", e);
+            log.error("Cannot authenticate api token because of ", e);
             return null;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
-                log.debug("Invalid or expired JWT token.", e);
+                log.debug("Invalid or expired api token.", e);
             }
         }
 

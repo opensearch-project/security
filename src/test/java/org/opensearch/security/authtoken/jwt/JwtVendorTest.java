@@ -318,11 +318,11 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testKeyTooShortThrowsException() {
+    public void testKeyTooShortForApiTokenThrowsException() {
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
         Settings settings = Settings.builder().put("signing_key", tooShortKey).put("encryption_key", claimsEncryptionKey).build();
-        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new OBOJwtVendor(settings, Optional.empty()); });
+        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new ApiTokenJwtVendor(settings, Optional.empty()); });
 
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }

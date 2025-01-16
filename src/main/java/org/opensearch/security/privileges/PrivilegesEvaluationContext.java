@@ -51,8 +51,7 @@ public class PrivilegesEvaluationContext {
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
-    private ApiTokenRepository apiTokenRepository;
-    private Permissions permissionsForApiToken;
+    private final Permissions permissionsForApiToken;
     /**
      * This caches the ready to use WildcardMatcher instances for the current request. Many index patterns have
      * to be executed several times per request (for example first for action privileges, later for DLS). Thus,
@@ -79,8 +78,7 @@ public class PrivilegesEvaluationContext {
         this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.task = task;
-        this.apiTokenRepository = apiTokenRepository;
-        this.permissionsForApiToken = extractApiTokenPermissionsForUser();
+        this.permissionsForApiToken = extractApiTokenPermissionsForUser(apiTokenRepository);
     }
 
     public User getUser() {
@@ -210,7 +208,7 @@ public class PrivilegesEvaluationContext {
         this.permissionsForApiToken = permissions;
     }
 
-    private Permissions extractApiTokenPermissionsForUser() {
+    private Permissions extractApiTokenPermissionsForUser(ApiTokenRepository apiTokenRepository) {
         if (user.getName().startsWith(API_TOKEN_USER_PREFIX)) {
             String jti = user.getName().split(API_TOKEN_USER_PREFIX)[1];
             if (apiTokenRepository.isValidToken(jti)) {

@@ -183,7 +183,6 @@ public class ApiTokenAuthenticatorTest {
         Settings settings = Settings.builder()
             .put("enabled", "false")
             .put("signing_key", "U3VwZXJTZWNyZXRLZXlUaGF0SXNFeGFjdGx5NjRCeXRlc0xvbmdBbmRXaWxsV29ya1dpdGhIUzUxMkFsZ29yaXRobSEhCgo=")
-            .put("encryption_key", "MTIzNDU2Nzg5MDEyMzQ1Ng==")
             .build();
         ThreadContext threadContext = new ThreadContext(settings);
 

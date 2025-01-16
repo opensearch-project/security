@@ -52,7 +52,7 @@ public class SecurityTokenManager implements TokenManager {
     private final UserService userService;
 
     private OBOJwtVendor oboJwtVendor = null;
-    private ApiTokenJwtVendor apiTokenOBOJwtVendor = null;
+    private ApiTokenJwtVendor apiTokenJwtVendor = null;
     private ConfigModel configModel = null;
 
     public SecurityTokenManager(final ClusterService cs, final ThreadPool threadPool, final UserService userService) {
@@ -76,7 +76,7 @@ public class SecurityTokenManager implements TokenManager {
         final Settings apiTokenSettings = dcm.getDynamicApiTokenSettings();
         final Boolean apiTokenEnabled = apiTokenSettings.getAsBoolean("enabled", false);
         if (apiTokenEnabled) {
-            apiTokenOBOJwtVendor = createApiTokenJwtVendor(apiTokenSettings);
+            apiTokenJwtVendor = createApiTokenJwtVendor(apiTokenSettings);
         }
     }
 
@@ -105,7 +105,7 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     public boolean issueApiTokenAllowed() {
-        return apiTokenOBOJwtVendor != null && configModel != null;
+        return apiTokenJwtVendor != null && configModel != null;
     }
 
     @Override
@@ -157,7 +157,7 @@ public class SecurityTokenManager implements TokenManager {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         try {
-            return apiTokenOBOJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration);
+            return apiTokenJwtVendor.createJwt(cs.getClusterName().value(), name, name, expiration);
         } catch (final Exception ex) {
             logger.error("Error creating Api Token for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate Api Token");

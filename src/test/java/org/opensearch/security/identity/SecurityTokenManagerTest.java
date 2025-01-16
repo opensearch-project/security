@@ -126,6 +126,7 @@ public class SecurityTokenManagerTest {
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
         when(dcm.getDynamicApiTokenSettings()).thenReturn(settings);
         doAnswer((invocation) -> oboJwtVendor).when(tokenManager).createOboJwtVendor(settings);
+        doAnswer((invocation) -> apiTokenJwtVendor).when(tokenManager).createApiTokenJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;
     }
@@ -265,27 +266,6 @@ public class SecurityTokenManagerTest {
 
         final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
         when(apiTokenJwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
-        final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
-
-        assertThat(returnedToken, equalTo(authToken));
-
-        verify(cs).getClusterName();
-        verify(threadPool).getThreadContext();
-    }
-
-    @Test
-    public void encryptCallsJwtEncrypt() throws Exception {
-        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
-        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon", List.of(), null));
-        when(threadPool.getThreadContext()).thenReturn(threadContext);
-        final ConfigModel configModel = mock(ConfigModel.class);
-        tokenManager.onConfigModelChanged(configModel);
-
-        createMockJwtVendorInTokenManager();
-
-        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
-        when(oboJwtVendor.createJwt(anyString(), anyString(), anyString(), anyLong())).thenReturn(authToken);
         final AuthToken returnedToken = tokenManager.issueApiToken("elmo", Long.MAX_VALUE);
 
         assertThat(returnedToken, equalTo(authToken));
