@@ -203,6 +203,42 @@ public class SystemIndexTests {
     }
 
     @Test
+    public void testPluginShouldBeAbleGetOnItsSystemIndex() {
+        JsonNode getResponse1;
+        JsonNode getResponse2;
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
+
+            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+
+            HttpResponse searchResponse = client.get("search-on-system-index/" + SYSTEM_INDEX_1);
+
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            String docId = searchResponse.getTextFromJsonBody("/hits/hits/0/_id");
+
+            HttpResponse getResponse = client.get("get-on-system-index/" + SYSTEM_INDEX_1 + "/" + docId);
+
+            getResponse1 = getResponse.bodyAsJsonNode();
+        }
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse searchResponse = client.get(SYSTEM_INDEX_1 + "/_search");
+
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(searchResponse.getIntFromJsonBody("/hits/total/value"), equalTo(2));
+
+            String docId = searchResponse.getTextFromJsonBody("/hits/hits/0/_id");
+
+            HttpResponse getResponse = client.get(SYSTEM_INDEX_1 + "/_doc/" + docId);
+
+            getResponse2 = getResponse.bodyAsJsonNode();
+        }
+        assertThat(getResponse1.toPrettyString(), equalTo(getResponse2.toPrettyString()));
+    }
+
+    @Test
     public void testPluginShouldNotBeAbleToBulkIndexDocumentIntoMixOfSystemIndexWhereAtLeastOneDoesNotBelongToPlugin() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.put(".system-index1");

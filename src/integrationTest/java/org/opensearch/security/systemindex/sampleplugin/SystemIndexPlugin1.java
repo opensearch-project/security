@@ -89,7 +89,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
             new RestRunClusterHealthAction(client),
             new RestBulkIndexDocumentIntoSystemIndexAction(client, pluginClient),
             new RestBulkIndexDocumentIntoMixOfSystemIndexAction(client, pluginClient),
-            new RestSearchOnSystemIndexAction(pluginClient)
+            new RestSearchOnSystemIndexAction(pluginClient),
+            new RestGetOnSystemIndexAction(pluginClient)
         );
     }
 
