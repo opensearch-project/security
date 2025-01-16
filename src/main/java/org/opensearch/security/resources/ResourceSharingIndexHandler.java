@@ -43,8 +43,10 @@ import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -1187,9 +1189,14 @@ public class ResourceSharingIndexHandler {
 
             for (MultiGetItemResponse itemResponse : response.getResponses()) {
                 if (!itemResponse.isFailed() && itemResponse.getResponse().isExists()) {
-                    String sourceAsString = itemResponse.getResponse().getSourceAsString();
-                    // T resource = DefaultObjectMapper.readValue(sourceAsString, clazz);
-                    T resource = parser.parse(sourceAsString);
+                    BytesReference sourceAsString = itemResponse.getResponse().getSourceAsBytesRef();
+                    XContentParser xContentParser = XContentHelper.createParser(
+                        NamedXContentRegistry.EMPTY,
+                        LoggingDeprecationHandler.INSTANCE,
+                        sourceAsString,
+                        XContentType.JSON
+                    );
+                    T resource = parser.parseXContent(xContentParser);
                     result.add(resource);
                 }
             }

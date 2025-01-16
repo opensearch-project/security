@@ -92,13 +92,6 @@ sourceSets {
     }
 }
 
-tasks.named("bundlePlugin") {
-    from("$projectDir/plugin-security.policy") {
-        into ''
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
 tasks.register("integrationTest", Test) {
     description = 'Run integration tests for the subproject.'
     group = 'verification'

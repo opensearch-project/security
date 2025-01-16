@@ -14,10 +14,15 @@ package org.opensearch.sample;
 import java.io.IOException;
 import java.util.Map;
 
+import org.opensearch.core.ParseField;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.xcontent.ConstructingObjectParser;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.security.spi.resources.Resource;
+
+import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
 
 public class SampleResource extends Resource {
 
@@ -34,6 +39,34 @@ public class SampleResource extends Resource {
         this.name = in.readString();
         this.description = in.readString();
         this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(
+        "sample_resource",
+        true,
+        a -> {
+            SampleResource s;
+            try {
+                s = new SampleResource();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            s.setName((String) a[0]);
+            s.setDescription((String) a[1]);
+            s.setAttributes((Map<String, String>) a[2]);
+            return s;
+        }
+    );
+
+    static {
+        PARSER.declareString(constructorArg(), new ParseField("name"));
+        PARSER.declareString(constructorArg(), new ParseField("description"));
+        PARSER.declareObjectOrNull(constructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
+    }
+
+    public static SampleResource fromXContent(XContentParser parser) throws IOException {
+        return PARSER.parse(parser, null);
     }
 
     @Override

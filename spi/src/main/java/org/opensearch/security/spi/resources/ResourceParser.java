@@ -10,12 +10,14 @@ package org.opensearch.security.spi.resources;
 
 import java.io.IOException;
 
+import org.opensearch.core.xcontent.XContentParser;
+
 public interface ResourceParser<T extends Resource> {
     /**
-     * Parse stringified json input to a desired Resource type
-     * @param source the stringified json input
+     * Parse source bytes supplied by the parser to a desired Resource type
+     * @param parser to parser bytes-ref json input
      * @return the parsed object of Resource type
      * @throws IOException if something went wrong while parsing
      */
-    T parse(String source) throws IOException;
+    T parseXContent(XContentParser parser) throws IOException;
 }
