@@ -68,6 +68,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
         final Environment environment
     ) {
         super(settings, threadPool, resolver, clusterService, environment);
+        clusterService.state().metadata().
         this.settings = settings;
         this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
         this.messageRouterEnabled = this.messageRouter.isEnabled();
