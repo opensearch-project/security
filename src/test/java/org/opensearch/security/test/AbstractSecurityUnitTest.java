@@ -44,8 +44,8 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.hc.client5.http.config.TlsConfig;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.function.Factory;
@@ -197,14 +197,13 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                     })
                     .build();
 
-                final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
-                    .setTlsStrategy(tlsStrategy)
-                    .build();
-                builder.setConnectionManager(cm);
+                final PoolingAsyncClientConnectionManagerBuilder cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                    .setTlsStrategy(tlsStrategy);
+
                 if (httpVersionPolicy != null) {
-                    builder.setVersionPolicy(httpVersionPolicy);
+                    cm.setDefaultTlsConfig(TlsConfig.custom().setVersionPolicy(httpVersionPolicy).build());
                 }
-                return builder;
+                return builder.setConnectionManager(cm.build());
             });
             return new RestHighLevelClient(restClientBuilder);
         } catch (Exception e) {

@@ -195,34 +195,35 @@ class MockSamlIdpServer implements Closeable {
 
         this.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
 
-        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap()
-            .setListenerPort(port)
-            .register(CTX_METADATA, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-
-                    handleMetadataRequest(request, response, context);
-
-                }
-            })
-            .register(CTX_SAML_SSO, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-                    handleSsoRequest(request, response, context);
-                }
-            })
-            .register(CTX_SAML_SLO, new HttpRequestHandler() {
-
-                @Override
-                public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
-                    IOException {
-                    handleSloRequest(request, response, context);
-                }
-            });
+        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap().setListenerPort(port).setRequestRouter((request, context) -> {
+            if (request.getRequestUri().startsWith(CTX_METADATA)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleMetadataRequest(request, response, context);
+                    }
+                };
+            } else if (request.getRequestUri().startsWith(CTX_SAML_SSO)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleSsoRequest(request, response, context);
+                    }
+                };
+            } else if (request.getRequestUri().startsWith(CTX_SAML_SLO)) {
+                return new HttpRequestHandler() {
+                    @Override
+                    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
+                        IOException {
+                        handleSloRequest(request, response, context);
+                    }
+                };
+            } else {
+                return null;
+            }
+        });
 
         if (ssl) {
 
