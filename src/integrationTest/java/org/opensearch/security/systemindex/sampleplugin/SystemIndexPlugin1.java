@@ -96,7 +96,10 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
-        return Arrays.asList(new ActionHandler<>(RunClusterHealthAction.INSTANCE, TransportRunClusterHealthAction.class));
+        return Arrays.asList(
+            new ActionHandler<>(IndexDocumentIntoSystemIndexAction.INSTANCE, TransportIndexDocumentIntoSystemIndexAction.class),
+            new ActionHandler<>(RunClusterHealthAction.INSTANCE, TransportRunClusterHealthAction.class)
+        );
     }
 
     @Override

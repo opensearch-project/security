@@ -111,6 +111,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
 
     @Override
     public final DirectoryReader apply(DirectoryReader reader) throws IOException {
+
         if (isSecurityIndexRequest() && !isAdminAuthenticatedOrInternalRequest()) {
             return new EmptyFilterLeafReader.EmptyDirectoryReader(reader);
         }
