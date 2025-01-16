@@ -83,7 +83,7 @@ public class ResourceAccessHandler {
      * @return A set of accessible resource IDs.
      */
     public Set<String> getAccessibleResourceIdsForCurrentUser(String resourceIndex) {
-        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         if (user == null) {
             LOGGER.info("Unable to fetch user details ");
             return Collections.emptySet();
@@ -143,7 +143,7 @@ public class ResourceAccessHandler {
     public boolean hasPermission(String resourceId, String resourceIndex, String scope) {
         validateArguments(resourceId, resourceIndex, scope);
 
-        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         LOGGER.info("Checking if {} has {} permission to resource {}", user.getName(), scope, resourceId);
 
@@ -184,7 +184,7 @@ public class ResourceAccessHandler {
     public ResourceSharing shareWith(String resourceId, String resourceIndex, ShareWith shareWith) {
         validateArguments(resourceId, resourceIndex, shareWith);
 
-        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         LOGGER.info("Sharing resource {} created by {} with {}", resourceId, user.getName(), shareWith.toString());
 
         // check if user is admin, if yes the user has permission
@@ -208,7 +208,7 @@ public class ResourceAccessHandler {
         Set<String> scopes
     ) {
         validateArguments(resourceId, resourceIndex, revokeAccess, scopes);
-        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         LOGGER.info("User {} revoking access to resource {} for {} for scopes {} ", user.getName(), resourceId, revokeAccess, scopes);
 
         // check if user is admin, if yes the user has permission
@@ -226,7 +226,7 @@ public class ResourceAccessHandler {
     public boolean deleteResourceSharingRecord(String resourceId, String resourceIndex) {
         validateArguments(resourceId, resourceIndex);
 
-        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         LOGGER.info("Deleting resource sharing record for resource {} in {} created by {}", resourceId, resourceIndex, user.getName());
 
         ResourceSharing document = this.resourceSharingIndexHandler.fetchDocumentById(resourceIndex, resourceId);
@@ -247,7 +247,7 @@ public class ResourceAccessHandler {
      */
     public boolean deleteAllResourceSharingRecordsForCurrentUser() {
 
-        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         LOGGER.info("Deleting all resource sharing records for resource {}", user.getName());
 
         return this.resourceSharingIndexHandler.deleteAllRecordsForUser(user.getName());
