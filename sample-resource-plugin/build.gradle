@@ -105,5 +105,3 @@ tasks.register("integrationTest", Test) {
 tasks.named("integrationTest").configure {
     dependsOn rootProject.tasks.named("compileIntegrationTestJava")
 }
-
-project.getTasks().getByName('bundlePlugin').dependsOn(rootProject.tasks.getByName('build'))
